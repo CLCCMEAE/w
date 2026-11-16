@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.3.1
+  Version     : 1.3.2
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,14 @@
 
   HISTORIQUE
   ----------
+  1.3.2 - 16/11/2026 - CSNC - Clic droit sur un élément (ou touche Menu,
+          Maj+F10) : couleur de l'élément, couleur de toute sa catégorie
+          (légende et éléments), « Ajouter à la suite » (forme reliée par
+          un connecteur, post-it, texte, posés à droite), dupliquer, premier
+          plan, supprimer.
+          « Modifier les couleurs » retiré du volet. Étiquettes « N éléments »,
+          « N connecteurs », « fiches liées », « N votes » retirées de la
+          barre ; seule reste « Il vous reste N votes » en atelier.
   1.3.1 - 16/11/2026 - CSNC - Bouton « + » en tête de la barre d'outils de
           la toile (et touche A) : menu des types (post-it, forme, texte,
           section, couloir, image), l'élément choisi se pose au centre de la
@@ -412,6 +420,7 @@
     .w-outils { position: absolute; left: .75rem; top: .75rem; z-index: 10; display: flex; flex-direction: column; gap: 2px; padding: .25rem;
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 2px 6px rgba(0,0,18,.12); }
     .w-outils hr { width: 100%; margin: .125rem 0; padding: 0; border: 0; border-top: 1px solid var(--border-default-grey); }
+    .w-pop__sep { display: block; height: 1px; margin: .375rem 0; background: var(--border-default-grey); }
     .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
     .w-outil--ajouter, .w-outil--ajouter:hover { background-color: var(--background-action-high-blue-france) !important; color: var(--text-inverted-blue-france) !important; }
     .w-outil[aria-pressed="true"] { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
@@ -760,7 +769,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.3.1';
+var VERSION_WIDGET = '1.3.2';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -2514,7 +2523,7 @@ function majVolet() {
     });
     if (!entrees.length) { ul.appendChild(creer('li', { classe: 'w-mention', texte: 'Aucune couleur pour l\'instant.' })); }
     bl.appendChild(ul);
-    if (etat.peutParametrer) { bl.appendChild(bouton('Modifier les couleurs', 'discret', 'palette-line', function () { ouvrirParametrage(1); }, { petit: true, id: 'vCouleurs' })); }
+
   }
   var ba = document.getElementById('vBlocAffichage');
   if (ba) {
@@ -2542,15 +2551,8 @@ function majBarre() {
   var cpt = document.getElementById('vCompteurs');
   if (!cpt || !t) { return; }
   vider(cpt);
-  var els = elementsDuTableau().filter(function (e) { return e.type !== 'Section'; });
-  cpt.appendChild(creer('li', {}, [badge(pluriel(els.length, 'élément', 'éléments'), 'info')]));
-  var nl = liensDuTableau().length;
-  if (nl) { cpt.appendChild(creer('li', {}, [badge(pluriel(nl, 'connecteur', 'connecteurs'))])); }
-  var nf = els.filter(function (e) { return e.ficheLigne; }).length;
-  if (nf) { cpt.appendChild(creer('li', {}, [badge(pluriel(nf, 'fiche liée', 'fiches liées'))])); }
+  /* Seule etiquette utile : les votes qui restent, en atelier. */
   if (etat.affichage && etat.affichage.votes) {
-    var nv = els.reduce(function (s, e) { return s + compteVotes(e); }, 0);
-    cpt.appendChild(creer('li', {}, [badge(pluriel(nv, 'vote', 'votes'))]));
     var reste = votesRestants();
     if (reste !== null) { cpt.appendChild(creer('li', {}, [badge('Il vous reste ' + pluriel(reste, 'vote', 'votes'), reste ? 'info' : 'warning')])); }
   }
@@ -3238,6 +3240,7 @@ function brancherToile(toile) {
     }
   }, { passive: false });
   toile.addEventListener('keydown', surToucheToile);
+  toile.addEventListener('contextmenu', surMenuContextuel);
   toile.addEventListener('focusin', function (ev) {
     var d = ev.target.classList && ev.target.classList.contains('w-el') ? ev.target : null;
     if (!d || etat.geste || _focusSouris) { return; }
@@ -3560,6 +3563,12 @@ function surToucheToile(ev) {
   if (k === '+' || k === '=') { ev.preventDefault(); zoomerCentre(1.2); return; }
   if (k === '-') { ev.preventDefault(); zoomerCentre(1 / 1.2); return; }
   if (k === '0') { ev.preventDefault(); recentrer(); return; }
+  if ((k === 'ContextMenu' || (k === 'F10' && ev.shiftKey)) && sel.length && etat.peutModifier) {
+    ev.preventDefault();
+    var d0 = document.querySelector('#vMonde .w-el[data-id="' + sel[0].id + '"]');
+    if (d0) { var r0 = d0.getBoundingClientRect(); ouvrirMenuContextuel(r0.left + 12, r0.top + 12, d0); }
+    return;
+  }
   if ((k === 'a' || k === 'A') && etat.peutModifier) { ev.preventDefault(); var ba = document.getElementById('bOutil_Ajouter'); if (ba) { ouvrirAjout(ba); } return; }
   var o = OUTILS.filter(function (x) { return x && x.touche.toLowerCase() === String(k).toLowerCase(); })[0];
   if (o && (!o.edition || etat.peutModifier)) { ev.preventDefault(); choisirOutil(o.cle); }
@@ -5988,6 +5997,107 @@ async function copierDansTable(sel, tid, col, colDesc, relier) {
   } catch (e) { erreurEcriture(e, 'La copie dans la table n\'a pas abouti.'); }
 }
 
+
+/* === SECTION : MENU DU CLIC DROIT (1.3.2) ===
+   Sur un element : sa couleur (legende, autres couleurs), la couleur de
+   toute sa categorie (entree de legende et elements de cette couleur), et
+   dupliquer, premier plan, supprimer. Touche Menu ou Maj+F10 au clavier. */
+function surMenuContextuel(ev) {
+  /* La capture du pointeur renvoie l'evenement a la toile : l'element est
+     retrouve sous le curseur. */
+  var sous = document.elementFromPoint(ev.clientX, ev.clientY) || ev.target;
+  var d = sous && sous.closest ? sous.closest('.w-el') : null;
+  if (!d || !etat.peutModifier) { return; }
+  ev.preventDefault();
+  var id = Number(d.getAttribute('data-id'));
+  if (etat.selection.indexOf(id) === -1) { selectionner([id], true); }
+  ouvrirMenuContextuel(ev.clientX, ev.clientY, d);
+}
+
+function ouvrirMenuContextuel(x, y, ancre) {
+  var t = tableauCourant();
+  var sel = elementsSelectionnes();
+  if (!t || !sel.length) { return; }
+  var enfants = [creer('p', { classe: 'w-pop__titre', texte: sel.length > 1 ? 'Couleur des ' + sel.length + ' éléments' : 'Couleur de cet élément' })];
+  t.legende.forEach(function (l) {
+    enfants.push(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': sel.every(function (e) { return e.couleur === l.couleur; }) ? 'true' : 'false' },
+      clic: function () { fermerPop(true); return modifierSelection({ COULEUR: l.couleur }, 'Couleur changée.'); } }, [pastilleCouleur(l.couleur), l.libelle || nomCouleur(l.couleur)]));
+  });
+  var nuancier = creer('div', { classe: 'w-nuancier' });
+  COULEURS.forEach(function (c) {
+    var b = creer('button', { classe: 'w-nuance w-bulle', attrs: { 'aria-label': c[1], 'data-bulle': c[1] }, clic: function () { fermerPop(true); return modifierSelection({ COULEUR: c[0] }, 'Couleur changée.'); } });
+    appliquerCouleur(b, c[0]);
+    nuancier.appendChild(b);
+  });
+  enfants.push(nuancier);
+  /* Toute la categorie : seulement si la couleur est dans la legende. */
+  var coul = sel[0].couleur;
+  var cat = sel.every(function (e) { return e.couleur === coul; }) ? t.legende.filter(function (l) { return l.couleur === coul; })[0] : null;
+  if (cat && etat.peutParametrer) {
+    enfants.push(creer('p', { classe: 'w-pop__titre', texte: 'Tous les « ' + (cat.libelle || nomCouleur(cat.couleur)) + ' »' }));
+    var nc = creer('div', { classe: 'w-nuancier', attrs: { role: 'group', 'aria-label': 'Couleur de toute la catégorie ' + (cat.libelle || '') } });
+    COULEURS.forEach(function (c) {
+      if (c[0] === coul) { return; }
+      var b = creer('button', { classe: 'w-nuance w-bulle', attrs: { 'aria-label': 'Tous les « ' + (cat.libelle || '') + ' » en ' + c[1], 'data-bulle': c[1] }, clic: function () { fermerPop(true); return recolorerCategorie(t, coul, c[0]); } });
+      appliquerCouleur(b, c[0]);
+      nc.appendChild(b);
+    });
+    enfants.push(nc);
+  }
+  if (sel.length === 1 && sel[0].type !== 'Section' && sel[0].type !== 'Image') {
+    var src = sel[0];
+    enfants.push(creer('span', { classe: 'w-pop__sep' }));
+    enfants.push(creer('p', { classe: 'w-pop__titre', texte: 'Ajouter à la suite' }));
+    [['Forme', src.type === 'Forme' ? 'Forme reliée' : 'Forme', 'forme'], ['Post-it', 'Post-it', 'postit'], ['Texte', 'Texte', 'texte']].forEach(function (x) {
+      enfants.push(creer('button', { classe: 'w-pop__item w-pop__item--icone', id: 'cSuite_' + x[0].replace(/[^A-Za-z]/g, ''), clic: function () { fermerPop(); return ajouterALaSuite(src, x[0]); } },
+        [iconeSvg(x[2], 18), creer('span', { texte: x[1] })]));
+    });
+  }
+  enfants.push(creer('span', { classe: 'w-pop__sep' }));
+  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Dupliquer (Ctrl+D)', clic: function () { fermerPop(true); return dupliquerSelection(); } }));
+  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Mettre au premier plan', clic: function () { fermerPop(true); return premierPlan(); } }));
+  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Supprimer (Suppr)', clic: function () { fermerPop(true); return supprimerSelection(); } }));
+  ouvrirPopFixe(ancre, 'Menu', enfants);
+  var pop = document.getElementById('vPop');
+  if (pop) {
+    pop.style.left = Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, x)) + 'px';
+    pop.style.top = Math.max(4, Math.min(window.innerHeight - pop.offsetHeight - 4, y)) + 'px';
+  }
+}
+
+/* Une categorie de la legende change de couleur : l'entree de legende et
+   tous les elements de cette couleur du tableau, en une fois. */
+async function recolorerCategorie(t, ancienne, nouvelle) {
+  var els = etat.elements.filter(function (e) { return e.tableau === t.id && e.couleur === ancienne; });
+  try {
+    if (els.length) { await agir([['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { COULEUR: els.map(function () { return nouvelle; }) }]]); }
+    t.legende.forEach(function (l) { if (l.couleur === ancienne) { l.couleur = nouvelle; } });
+    t.jeu = '';
+    await ecrireConfig();
+    etat.signature = '';
+    await rafraichir(true);
+    afficherToast(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + ', légende mise à jour.');
+  } catch (e) { erreurEcriture(e, 'La couleur de la catégorie n\'a pas été changée.'); }
+}
+
+
+/* Nouvel element juste a droite d'un autre (a la Whimsical) ; une forme
+   ajoutee apres une forme lui est reliee par un connecteur. */
+async function ajouterALaSuite(src, type) {
+  var taille = TAILLES[type];
+  var x = aimanter(src.x + src.w + 80), y = aimanter(src.y + src.h / 2 - taille[1] / 2);
+  var chevauche = function (yy) { return elementsDuTableau().some(function (e) { return e.type !== 'Section' && e.x < x + taille[0] && e.x + e.w > x && e.y < yy + taille[1] && e.y + e.h > yy; }); };
+  for (var k = 0; k < 6 && chevauche(y); k++) { y = aimanter(y + taille[1] + 40); }
+  var relier = type === 'Forme' && src.type === 'Forme';
+  var autres = type === 'Post-it' ? { COULEUR: src.couleur } : (relier ? { COULEUR: src.couleur === 'blanc' || src.forme === 'Losange' || src.forme === 'Pilule' ? 'blanc' : src.couleur } : null);
+  var id = await creerElement(type, { x: x, y: y, w: taille[0], h: taille[1] }, !relier, autres);
+  if (relier && id) {
+    await creerLien(src.id, id);
+    selectionner([id]);
+    editerLibelle(id);
+  }
+}
+
 /* === SECTION : PANNEAU D'AIDE ===
    Trois onglets : À quoi ça sert, Pas à pas (une fiche par étape, l'étape
    courante mise en évidence), Questions. Etat retenu par le navigateur. */
@@ -6067,7 +6177,7 @@ function rendreAide() {
     corps.appendChild(creer('h3', { texte: 'Raccourcis sur la toile' }));
     var dl = creer('dl', { classe: 'w-raccourcis' });
     [['A', 'Ajouter un élément (menu)'], ['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['C, I', 'Couloir, image'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
-      ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
+      ['Clic droit', 'Couleur, catégorie, actions'], ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
       dl.appendChild(creer('dt', { texte: x[0] })); dl.appendChild(creer('dd', { texte: x[1] }));
     });
     corps.appendChild(dl);
