@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.3.3
+  Version     : 1.4.0
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,15 @@
 
   HISTORIQUE
   ----------
+  1.4.0 - 16/11/2026 - CSNC - Sept nouvelles formes : hexagone, cylindre,
+          nuage, document, cercle, triangle, trapèze (12 au total), avec leur
+          sens dans le choix de forme ; toile, export PNG et vignettes.
+          Un seul système d'actions : la barre au clic (le clic droit
+          sélectionne et l'affiche) ; « Ajouter à la suite » dans la barre ;
+          couleur : cet élément, toute la catégorie, ou toutes les formes de
+          même type. Mise à niveau des choix de FORME. Option d'affichage
+          « Légende sur la toile » : cartouche en bas à gauche, repris à
+          l'impression, en PDF et dans l'export PNG.
   1.3.3 - 16/11/2026 - CSNC - Barre d'outils courte : « + » (menu des
           types), Sélectionner, Connecteur, Annuler. Post-it, forme, texte,
           section, couloir, image et déplacement de la vue restent au
@@ -389,6 +398,10 @@
     .w-el--forme { font-weight: 700; }
     .w-el--forme .w-el__fond { filter: drop-shadow(0 2px 3px rgba(22,22,22,.12)) drop-shadow(0 6px 14px rgba(22,22,22,.08)); }
     .w-el--blanc.w-el--forme { --contour-el: var(--border-default-grey); }
+    .w-el[data-forme="Triangle"] { padding-top: 30%; }
+    .w-el[data-forme="Cylindre"] { padding-top: 1.25rem; }
+    .w-el[data-forme="Document"] { padding-bottom: 1rem; }
+    .w-el[data-forme="Losange"] .w-el__texte, .w-el[data-forme="Hexagone"] .w-el__texte, .w-el[data-forme="Triangle"] .w-el__texte { max-width: 70%; }
     .w-el--pilule { color: var(--text-title-grey); }
     .w-el--postit { justify-content: flex-start; align-items: flex-start; text-align: left; padding: .75rem .875rem 1.5rem; font-weight: 500; border-radius: 4px;
       background: var(--vif-el); color: var(--text-default-grey); box-shadow: 0 2px 3px rgba(22,22,22,.14), 0 6px 14px rgba(22,22,22,.10); transform: rotate(var(--incline, 0deg)); }
@@ -427,6 +440,19 @@
     .w-outils { position: absolute; left: .75rem; top: .75rem; z-index: 10; display: flex; flex-direction: column; gap: 2px; padding: .25rem;
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 2px 6px rgba(0,0,18,.12); }
     .w-outils hr { width: 100%; margin: .125rem 0; padding: 0; border: 0; border-top: 1px solid var(--border-default-grey); }
+    .w-portee { display: flex; flex-direction: column; gap: 2px; margin-bottom: .25rem; }
+    .w-portee__choix { display: flex; align-items: center; gap: .5rem; padding: .25rem .5rem; border: 0; background: none; text-align: left; font: inherit; font-size: .8125rem; cursor: pointer; color: var(--text-default-grey); }
+    .w-portee__choix::before { content: ''; width: .875rem; height: .875rem; border-radius: 50%; border: 1px solid var(--border-plain-grey); flex: none; }
+    .w-portee__choix[aria-checked="true"] { font-weight: 700; color: var(--text-action-high-blue-france); }
+    .w-portee__choix[aria-checked="true"]::before { border: 4px solid var(--border-action-high-blue-france); }
+    .w-portee__choix:hover { background: var(--background-default-grey-hover); }
+    .w-legende-toile { position: absolute; left: .75rem; bottom: .75rem; z-index: 9; max-width: 16rem; padding: .625rem .875rem; pointer-events: none;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); border-radius: 8px; box-shadow: 0 2px 6px rgba(22,22,22,.10); }
+    .w-legende-toile__titre { margin: 0 0 .375rem; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-legende-toile__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; font-size: .8125rem; }
+    .w-legende-toile__liste li { display: flex; align-items: center; gap: .5rem; padding: 0; }
+    .w-legende-toile__pastille { width: 1.25rem; height: .875rem; border-radius: 4px; background: var(--vif-el); box-shadow: inset 0 0 0 1px rgba(22,22,22,.12); flex: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .w-pop__sens { font-size: .75rem; color: var(--text-mention-grey); }
     .w-pop__sep { display: block; height: 1px; margin: .375rem 0; background: var(--border-default-grey); }
     .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
     .w-outil--ajouter, .w-outil--ajouter:hover { background-color: var(--background-action-high-blue-france) !important; color: var(--text-inverted-blue-france) !important; }
@@ -434,7 +460,7 @@
     .w-ctx { position: absolute; z-index: 12; display: flex; gap: 2px; padding: 3px; background: var(--background-default-grey); color: var(--text-default-grey);
       border: 1px solid var(--border-plain-grey); box-shadow: 0 2px 8px rgba(0,0,18,.2); }
     .w-ctx__sep { width: 1px; align-self: stretch; margin: 2px; background: var(--border-default-grey); }
-    .w-pop { position: absolute; z-index: 14; padding: .5rem; display: flex; flex-direction: column; gap: .375rem; min-width: 12rem; max-width: 18rem;
+    .w-pop { position: absolute; z-index: 14; padding: .5rem; display: flex; flex-direction: column; gap: .375rem; min-width: 12rem; max-width: 18rem; max-height: 70vh; overflow-y: auto;
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-plain-grey); box-shadow: 0 2px 8px rgba(0,0,18,.2); }
     .w-pop__titre { margin: 0; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
     .w-nuancier { display: flex; flex-wrap: wrap; gap: .25rem; }
@@ -776,7 +802,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.3.3';
+var VERSION_WIDGET = '1.4.0';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -826,7 +852,13 @@ var COLONNES_META = [
 ];
 
 var TYPES = ['Forme', 'Post-it', 'Texte', 'Section', 'Image'];
-var FORMES = ['Rectangle', 'Pilule', 'Ovale', 'Losange', 'Parallélogramme'];
+var FORMES = ['Rectangle', 'Pilule', 'Ovale', 'Losange', 'Parallélogramme', 'Hexagone', 'Cylindre', 'Nuage', 'Document', 'Cercle', 'Triangle', 'Trapèze'];
+/* Sens habituel de chaque forme, montre dans le choix de forme. */
+var SENS_FORMES = { 'Rectangle': 'étape', 'Pilule': 'début ou fin', 'Ovale': 'événement', 'Losange': 'décision', 'Parallélogramme': 'donnée', 'Hexagone': 'système, application',
+  'Cylindre': 'base de données', 'Nuage': 'service extérieur', 'Document': 'document, courrier', 'Cercle': 'renvoi, point de passage', 'Triangle': 'alerte', 'Trapèze': 'opération manuelle' };
+/* Formes polygonales : coins arrondis par un trait epais de la couleur du
+   fond, points rentres d'autant. */
+var FORMES_POLYGONES = ['Losange', 'Parallélogramme', 'Hexagone', 'Triangle', 'Trapèze'];
 /* Une section est un cadre (zone libre) ou un couloir (bande d'un acteur). */
 var FORMES_SECTION = ['Cadre', 'Couloir'];
 var TRACES = ['Droit', 'Coudé'];
@@ -856,7 +888,7 @@ var DEF_EL = {
   colonnes: [
     { id: 'TABLEAU', type: 'Text', label: 'TABLEAU', description: 'Identifiant du tableau blanc qui contient l\'élément. Rempli par le widget. Ne le modifiez pas.' },
     { id: 'TYPE', type: 'Choice', label: 'TYPE', widgetOptions: { widget: 'TextBox', choices: TYPES }, description: 'Nature de l\'élément : Forme, Post-it, Texte, Section ou Image. Choix dans une liste.' },
-    { id: 'FORME', type: 'Choice', label: 'FORME', widgetOptions: { widget: 'TextBox', choices: FORMES.concat(FORMES_SECTION) }, description: 'Dessin d\'une forme : Rectangle (étape), Pilule (début ou fin), Ovale, Losange (décision), Parallélogramme (donnée) ; pour une section : Cadre ou Couloir (bande d\'un acteur). Choix dans une liste.' },
+    { id: 'FORME', type: 'Choice', label: 'FORME', widgetOptions: { widget: 'TextBox', choices: FORMES.concat(FORMES_SECTION) }, description: 'Dessin d\'une forme : Rectangle (étape), Pilule (début ou fin), Ovale, Losange (décision), Parallélogramme (donnée), Hexagone (système), Cylindre (base de données), Nuage (service extérieur), Document, Cercle, Triangle (alerte), Trapèze (opération manuelle) ; pour une section : Cadre ou Couloir (bande d\'un acteur). Choix dans une liste.' },
     { id: 'LIBELLE', type: 'Text', label: 'LIBELLÉ', widgetOptions: { wrap: true }, description: 'Texte affiché dans l\'élément. Vide pour un élément relié à une fiche : le libellé de la ligne liée s\'affiche alors. Saisie manuelle.' },
     { id: 'DESCRIPTION', type: 'Text', label: 'DESCRIPTION', widgetOptions: { wrap: true }, description: 'Explication détaillée, visible dans la fiche de l\'élément. Saisie manuelle.' },
     { id: 'COULEUR', type: 'Text', label: 'COULEUR', description: 'Nom d\'une couleur du système de design de l\'État (blue-ecume, green-menthe...), dont le sens est donné par la légende du tableau. Se choisit dans le widget.' },
@@ -1075,7 +1107,7 @@ var MODELES = [
     affichage: { votes: false }, elements: [], liens: [] }
 ];
 
-var AFFICHAGE_DEFAUT = { grille: true, libellesLiens: true, minicarte: true, votes: false };
+var AFFICHAGE_DEFAUT = { grille: true, libellesLiens: true, minicarte: true, votes: false, legende: false };
 var ATELIER_DEFAUT = { votesParPersonne: 5, traceDefaut: 'Droit' };
 
 /* Jeux de couleurs (1.2.0) : quatre couleurs du DSFR par jeu. Les couleurs
@@ -2514,7 +2546,7 @@ function majVolet() {
   var bl = document.getElementById('vBlocLegende');
   if (bl) {
     vider(bl);
-    bl.appendChild(titreBloc('Légende', 'vTitreLeg', 'Le sens de chaque couleur. Un clic sur une couleur estompe ou fait réapparaître ses éléments.'));
+    bl.appendChild(titreBloc('Légende', 'vTitreLeg', null));
     var compte = {};
     nonSections.forEach(function (e) { compte[e.couleur] = (compte[e.couleur] || 0) + 1; });
     var ul = creer('ul', { classe: 'w-legende' });
@@ -2536,7 +2568,7 @@ function majVolet() {
   if (ba) {
     vider(ba);
     ba.appendChild(titreBloc('Affichage', 'vTitreAff', null));
-    [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['votes', 'Votes']].forEach(function (x) {
+    [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende sur la toile (et à l\'impression)'], ['votes', 'Votes']].forEach(function (x) {
       ba.appendChild(caseACocher('vAff_' + x[0], x[1], !!etat.affichage[x[0]], function (v) {
         etat.affichage[x[0]] = v;
         ecrirePref('affichage:' + etat.tableauId, etat.affichage);
@@ -2670,7 +2702,24 @@ function majSource() {
 }
 
 /* Dessin de tout le contenu du tableau. */
+/* Legende sur la toile (option d'affichage) : cartouche en bas a gauche,
+   imprimee avec le tableau blanc. */
+function majLegendeToile() {
+  var toile = document.getElementById('vToile');
+  var ancienne = document.getElementById('vLegendeToile');
+  if (ancienne) { ancienne.parentNode.removeChild(ancienne); }
+  var t = tableauCourant();
+  if (!toile || !t || !etat.affichage || !etat.affichage.legende || !t.legende.length) { return; }
+  var ul = creer('ul', { classe: 'w-legende-toile__liste' }, t.legende.map(function (l) {
+    var p = creer('span', { classe: 'w-legende-toile__pastille', attrs: { 'aria-hidden': 'true' } });
+    appliquerCouleur(p, l.couleur);
+    return creer('li', {}, [p, creer('span', { texte: l.libelle || nomCouleur(l.couleur) })]);
+  }));
+  toile.appendChild(creer('div', { classe: 'w-legende-toile', id: 'vLegendeToile', attrs: { role: 'note', 'aria-label': 'Légende' } }, [creer('p', { classe: 'w-legende-toile__titre', texte: 'Légende' }), ul]));
+}
+
 function rendreMonde() {
+  majLegendeToile();
   var monde = document.getElementById('vMonde');
   if (!monde) { return; }
   if (etat.edition) { return; }
@@ -2722,6 +2771,40 @@ function rendreMonde() {
 
 /* Forme dessinee en SVG a la taille reelle de l'element : le trait garde
    son epaisseur quelle que soit la taille. */
+/* Geometrie commune des formes (toile, export, vignettes, apercus) : un
+   chemin SVG dans la boite (x, y, w, h), et pour le cylindre le trait de son
+   couvercle. m : retrait des polygones (coins arrondis par le trait). */
+function cheminForme(f, x, y, w, h, m) {
+  var P = function (pts) { return 'M' + pts.map(function (p) { return p[0] + ' ' + p[1]; }).join('L') + 'Z'; };
+  var X = x + m, Y = y + m, W = Math.max(1, w - 2 * m), H = Math.max(1, h - 2 * m);
+  var rr = function (r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); return 'M' + (x + r) + ' ' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r) + 'V' + (y + h - r) + 'Q' + (x + w) + ' ' + (y + h) + ' ' + (x + w - r) + ' ' + (y + h) + 'H' + (x + r) + 'Q' + x + ' ' + (y + h) + ' ' + x + ' ' + (y + h - r) + 'V' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y + 'Z'; };
+  var ell = function (cx, cy, rx, ry) { return 'M' + (cx - rx) + ' ' + cy + 'A' + rx + ' ' + ry + ' 0 1 0 ' + (cx + rx) + ' ' + cy + 'A' + rx + ' ' + ry + ' 0 1 0 ' + (cx - rx) + ' ' + cy + 'Z'; };
+  if (f === 'Pilule') { return { d: rr(Math.min(w, h) / 2) }; }
+  if (f === 'Ovale') { return { d: ell(x + w / 2, y + h / 2, w / 2, h / 2) }; }
+  if (f === 'Cercle') { var r = Math.min(w, h) / 2; return { d: ell(x + w / 2, y + h / 2, r, r) }; }
+  if (f === 'Losange') { return { d: P([[X + W / 2, Y], [X + W, Y + H / 2], [X + W / 2, Y + H], [X, Y + H / 2]]) }; }
+  if (f === 'Parallélogramme') { var dp = Math.min(W * 0.18, 30); return { d: P([[X + dp, Y], [X + W, Y], [X + W - dp, Y + H], [X, Y + H]]) }; }
+  if (f === 'Trapèze') { var dt = Math.min(W * 0.16, 30); return { d: P([[X + dt, Y], [X + W - dt, Y], [X + W, Y + H], [X, Y + H]]) }; }
+  if (f === 'Hexagone') { var dh = Math.min(W * 0.2, H / 2); return { d: P([[X + dh, Y], [X + W - dh, Y], [X + W, Y + H / 2], [X + W - dh, Y + H], [X + dh, Y + H], [X, Y + H / 2]]) }; }
+  if (f === 'Triangle') { return { d: P([[X + W / 2, Y], [X + W, Y + H], [X, Y + H]]) }; }
+  if (f === 'Cylindre') {
+    var ry = Math.min(h * 0.16, 16);
+    return { d: 'M' + x + ' ' + (y + ry) + 'A' + (w / 2) + ' ' + ry + ' 0 0 1 ' + (x + w) + ' ' + (y + ry) + 'V' + (y + h - ry) + 'A' + (w / 2) + ' ' + ry + ' 0 0 1 ' + x + ' ' + (y + h - ry) + 'Z',
+      trait: 'M' + x + ' ' + (y + ry) + 'A' + (w / 2) + ' ' + ry + ' 0 0 0 ' + (x + w) + ' ' + (y + ry) };
+  }
+  if (f === 'Document') {
+    var v = Math.min(h * 0.14, 12), r2 = Math.min(10, w / 6, h / 6);
+    return { d: 'M' + (x + r2) + ' ' + y + 'H' + (x + w - r2) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r2) + 'V' + (y + h - v) + 'C' + (x + w * 0.75) + ' ' + (y + h - 3 * v) + ' ' + (x + w * 0.25) + ' ' + (y + h + v) + ' ' + x + ' ' + (y + h - v) + 'V' + (y + r2) + 'Q' + x + ' ' + y + ' ' + (x + r2) + ' ' + y + 'Z' };
+  }
+  if (f === 'Nuage') {
+    var A = function (rx, ry, px, py) { return 'A' + (rx * w) + ' ' + (ry * h) + ' 0 0 1 ' + (x + px * w) + ' ' + (y + py * h); };
+    return { d: 'M' + (x + 0.22 * w) + ' ' + (y + 0.92 * h) + A(0.14, 0.22, 0.08, 0.52) + A(0.18, 0.26, 0.32, 0.18) + A(0.2, 0.28, 0.7, 0.16) + A(0.16, 0.24, 0.92, 0.5) + A(0.14, 0.22, 0.78, 0.92) + 'Z' };
+  }
+  return { d: rr(Math.min(14, Math.min(w, h) / 4)) };
+}
+
+function retraitForme(f, w, h) { return FORMES_POLYGONES.indexOf(f) !== -1 ? Math.min(6, Math.min(w, h) * 0.12) : (f === 'Nuage' || f === 'Ovale' || f === 'Cercle' ? 1 : 0); }
+
 function dessinForme(forme, w, h) {
   var ns = 'http://www.w3.org/2000/svg';
   var s = document.createElementNS(ns, 'svg');
@@ -2729,32 +2812,22 @@ function dessinForme(forme, w, h) {
   s.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   s.setAttribute('preserveAspectRatio', 'none');
   s.setAttribute('aria-hidden', 'true');
-  /* Losange et parallelogramme : un trait epais de la couleur du fond
-     arrondit les coins ; les points sont rentres d'autant. */
-  var m = (forme === 'Losange' || forme === 'Parallélogramme') ? 6 : 1;
-  var f;
-  if (forme === 'Ovale') {
-    f = document.createElementNS(ns, 'ellipse');
-    f.setAttribute('cx', String(w / 2)); f.setAttribute('cy', String(h / 2)); f.setAttribute('rx', String(Math.max(1, w / 2 - m))); f.setAttribute('ry', String(Math.max(1, h / 2 - m)));
-  } else if (forme === 'Losange') {
-    f = document.createElementNS(ns, 'polygon');
-    f.setAttribute('points', [w / 2, m, w - m, h / 2, w / 2, h - m, m, h / 2].join(' '));
-  } else if (forme === 'Parallélogramme') {
-    var d = Math.min(w * 0.18, 30);
-    f = document.createElementNS(ns, 'polygon');
-    f.setAttribute('points', [d, m, w - m, m, w - d, h - m, m, h - m].join(' '));
-  } else {
-    f = document.createElementNS(ns, 'rect');
-    f.setAttribute('x', String(m)); f.setAttribute('y', String(m)); f.setAttribute('width', String(Math.max(1, w - 2 * m))); f.setAttribute('height', String(Math.max(1, h - 2 * m)));
-    var r = forme === 'Pilule' ? Math.max(1, (Math.min(w, h) - 2 * m) / 2) : Math.min(14, Math.min(w, h) / 4);
-    f.setAttribute('rx', String(r)); f.setAttribute('ry', String(r));
-  }
-  var plein = forme === 'Pilule';
+  var m = retraitForme(forme, w, h);
+  var g = cheminForme(forme, 0, 0, w, h, m);
+  var f = document.createElementNS(ns, 'path');
+  f.setAttribute('d', g.d);
+  var poly = FORMES_POLYGONES.indexOf(forme) !== -1;
   f.style.fill = 'var(--vif-el)';
-  f.style.stroke = (forme === 'Losange' || forme === 'Parallélogramme') ? 'var(--vif-el)' : 'var(--contour-el, none)';
-  f.style.strokeWidth = (forme === 'Losange' || forme === 'Parallélogramme') ? '12' : '1';
+  f.style.stroke = poly ? 'var(--vif-el)' : 'var(--contour-el, none)';
+  f.style.strokeWidth = poly ? String(2 * m) : '1';
   f.style.strokeLinejoin = 'round';
   s.appendChild(f);
+  if (g.trait) {
+    var t = document.createElementNS(ns, 'path');
+    t.setAttribute('d', g.trait);
+    t.style.fill = 'none'; t.style.stroke = 'rgba(22,22,22,.28)'; t.style.strokeWidth = '1.5';
+    s.appendChild(t);
+  }
   return s;
 }
 
@@ -2773,7 +2846,7 @@ function construireElement(e, estompe) {
   if (e.type === 'Section') { div.style.setProperty('--fond-section', nomCouleurSur(e.couleur) === 'blanc' ? 'var(--background-alt-grey)' : 'var(--background-contrast-' + nomCouleurSur(e.couleur) + ', var(--background-alt-grey))'); }
   /* Post-it legerement incline, toujours du meme angle pour un meme post-it. */
   if (e.type === 'Post-it') { div.style.setProperty('--incline', (((e.id * 37) % 7) - 3) * 0.45 + 'deg'); }
-  if (e.type === 'Forme') { div.appendChild(dessinForme(e.forme, e.w, e.h)); }
+  if (e.type === 'Forme') { div.setAttribute('data-forme', e.forme); div.appendChild(dessinForme(e.forme, e.w, e.h)); }
   if (e.type === 'Image') {
     var img = creer('img', { classe: 'w-image w-image--attente', attrs: { alt: texte || 'Image', draggable: 'false' } });
     if (e.pj[0]) { afficherImage(img, e.pj[0]); }
@@ -3080,6 +3153,7 @@ function placerCtx() {
       items.push(bouton('Couleur', 'discret', null, function (ev) { ouvrirPop('couleur', ev.currentTarget); }, { svg: 'couleur', id: 'cCouleur', attrs: { 'aria-haspopup': 'true' } }));
       if (sel.every(function (e) { return e.type === 'Forme'; }) || sel.every(function (e) { return e.type === 'Section'; })) { items.push(bouton('Forme', 'discret', null, function (ev) { ouvrirPop('forme', ev.currentTarget); }, { svg: 'forme', id: 'cForme', attrs: { 'aria-haspopup': 'true' } })); }
       if (un) { items.push(bouton('Modifier le texte (Entrée)', 'discret', null, function () { editerLibelle(un.id); }, { svg: 'libelle', id: 'cLibelle' })); }
+      if (un && un.type !== 'Section' && un.type !== 'Image') { items.push(bouton('Ajouter à la suite', 'discret', null, function (ev) { ouvrirPop('suite', ev.currentTarget); }, { svg: 'plus', id: 'cSuite', attrs: { 'aria-haspopup': 'true' } })); }
       if (un && t && t.fiche.table && un.type !== 'Section') { items.push(bouton(un.ficheLigne ? 'Changer la fiche liée' : 'Relier à une fiche', 'discret', null, function (ev) { ouvrirPop('fiche', ev.currentTarget); }, { svg: 'fiche', id: 'cRelier', attrs: { 'aria-haspopup': 'true' } })); }
     }
     if (un) { items.push(bouton('Ouvrir la fiche', 'discret', null, function () { ouvrirFiche(un.id); }, { svg: 'ouvrir', id: 'cOuvrir' })); }
@@ -3137,33 +3211,68 @@ function ouvrirPop(genre, ancre) {
   if (!toile) { return; }
   var sel = elementsSelectionnes();
   var t = tableauCourant();
-  var pop = creer('div', { classe: 'w-pop', id: 'vPop', attrs: { role: 'dialog', 'aria-label': { couleur: 'Couleur', forme: 'Forme', aligner: 'Aligner et répartir' }[genre] || 'Fiche liée' } });
+  var pop = creer('div', { classe: 'w-pop', id: 'vPop', attrs: { role: 'dialog', 'aria-label': { couleur: 'Couleur', forme: 'Forme', aligner: 'Aligner et répartir', suite: 'Ajouter à la suite' }[genre] || 'Fiche liée' } });
   if (genre === 'couleur') {
+    /* Trois portees : la selection, toute la categorie (meme couleur de
+       legende), tous les elements de meme forme ou de meme type. */
+    var portee = etat.porteeCouleur || 'selection';
+    var coul0 = sel[0].couleur, memeCoul = sel.every(function (e) { return e.couleur === coul0; });
+    var cat = memeCoul ? t.legende.filter(function (l) { return l.couleur === coul0; })[0] : null;
+    var cleType = function (e) { return e.type === 'Forme' ? 'Forme:' + e.forme : e.type; };
+    var type0 = cleType(sel[0]), memeType = sel.every(function (e) { return cleType(e) === type0; });
+    var nomType = sel[0].type === 'Forme' ? 'formes « ' + sel[0].forme + ' »' : ({ 'Post-it': 'post-it', 'Texte': 'textes', 'Section': 'sections', 'Image': 'images' }[sel[0].type] || 'éléments');
+    var portees = [['selection', sel.length > 1 ? 'Les ' + sel.length + ' éléments choisis' : 'Cet élément']];
+    if (cat && etat.peutParametrer) { portees.push(['categorie', 'Tous les « ' + (cat.libelle || nomCouleur(cat.couleur)) + ' »']); }
+    if (memeType) { portees.push(['type', 'Toutes les ' + nomType]); }
+    if (!portees.some(function (p) { return p[0] === portee; })) { portee = 'selection'; }
+    if (portees.length > 1) {
+      var grp = creer('div', { classe: 'w-portee', attrs: { role: 'radiogroup', 'aria-label': 'Changer la couleur de' } });
+      portees.forEach(function (p) {
+        grp.appendChild(creer('button', { classe: 'w-portee__choix', id: 'cPortee_' + p[0], attrs: { role: 'radio', 'aria-checked': p[0] === portee ? 'true' : 'false' },
+          clic: function () { etat.porteeCouleur = p[0]; fermerPop(); ouvrirPop('couleur', ancre); var f = document.getElementById('cPortee_' + p[0]); if (f) { f.focus(); } } }, [p[1]]));
+      });
+      pop.appendChild(creer('p', { classe: 'w-pop__titre', texte: 'Changer la couleur de' }));
+      pop.appendChild(grp);
+    }
+    var appliquer = function (nouvelle) {
+      fermerPop(true);
+      etat.porteeCouleur = 'selection';
+      if (portee === 'categorie') { return recolorerCategorie(t, coul0, nouvelle); }
+      if (portee === 'type') { return recolorerType(t, type0, nouvelle, cleType); }
+      return modifierSelection({ COULEUR: nouvelle }, 'Couleur changée.');
+    };
     pop.appendChild(creer('p', { classe: 'w-pop__titre', texte: 'Légende' }));
     t.legende.forEach(function (x) {
       var actif = sel.every(function (e) { return e.couleur === x.couleur; });
-      pop.appendChild(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': actif ? 'true' : 'false' }, clic: function () { fermerPop(true); return modifierSelection({ COULEUR: x.couleur }, 'Couleur changée.'); } },
+      pop.appendChild(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': actif ? 'true' : 'false' }, clic: function () { return appliquer(x.couleur); } },
         [pastilleCouleur(x.couleur), x.libelle || nomCouleur(x.couleur)]));
     });
     pop.appendChild(creer('p', { classe: 'w-pop__titre', texte: 'Autres couleurs' }));
     var nuancier = creer('div', { classe: 'w-nuancier' });
     COULEURS.forEach(function (x) {
       var b = creer('button', { classe: 'w-nuance w-bulle', attrs: { 'aria-label': x[1], 'data-bulle': x[1], 'aria-pressed': sel.every(function (e) { return e.couleur === x[0]; }) ? 'true' : 'false' },
-        clic: function () { fermerPop(true); return modifierSelection({ COULEUR: x[0] }, 'Couleur changée.'); } });
+        clic: function () { return appliquer(x[0]); } });
       appliquerCouleur(b, x[0]);
       nuancier.appendChild(b);
     });
     pop.appendChild(nuancier);
+  } else if (genre === 'suite') {
+    var src = sel[0];
+    pop.appendChild(creer('p', { classe: 'w-pop__titre', texte: 'Ajouter à la suite' }));
+    [['Forme', src.type === 'Forme' ? 'Forme reliée' : 'Forme', 'forme'], ['Post-it', 'Post-it', 'postit'], ['Texte', 'Texte', 'texte']].forEach(function (x) {
+      pop.appendChild(creer('button', { classe: 'w-pop__item w-pop__item--icone', id: 'cSuite_' + x[0].replace(/[^A-Za-z]/g, ''), clic: function () { fermerPop(); return ajouterALaSuite(src, x[0]); } },
+        [iconeSvg(x[2], 18), creer('span', { texte: x[1] })]));
+    });
   } else if (genre === 'aligner') {
     ALIGNEMENTS.forEach(function (a) { pop.appendChild(creer('button', { classe: 'w-pop__item', texte: a[1], clic: function () { return aligner(a[0]); } })); });
   } else if (genre === 'forme') {
     (sel[0].type === 'Section' ? FORMES_SECTION : FORMES).forEach(function (f) {
       var ico = creer('span', { attrs: { 'aria-hidden': 'true' } });
-      ico.style.position = 'relative'; ico.style.display = 'inline-block'; ico.style.width = '28px'; ico.style.height = '18px';
-      appliquerCouleur(ico, 'blanc');
-      ico.appendChild(dessinForme(f === 'Couloir' || f === 'Cadre' ? 'Rectangle' : f, 28, 18));
+      ico.style.position = 'relative'; ico.style.display = 'inline-block'; ico.style.width = '32px'; ico.style.height = '22px'; ico.style.flex = 'none';
+      appliquerCouleur(ico, sel[0].couleur && nomCouleurSur(sel[0].couleur) !== 'blanc' ? sel[0].couleur : 'blue-ecume');
+      ico.appendChild(dessinForme(f === 'Couloir' || f === 'Cadre' ? 'Rectangle' : f, 32, 22));
       pop.appendChild(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': sel.every(function (e) { return e.forme === f; }) ? 'true' : 'false' },
-        clic: function () { fermerPop(true); return modifierSelection({ FORME: f }, 'Forme changée.'); } }, [ico, f]));
+        clic: function () { fermerPop(true); return modifierSelection({ FORME: f }, 'Forme changée.'); } }, [ico, creer('span', {}, [f, SENS_FORMES[f] ? creer('span', { classe: 'w-pop__sens', texte: ' ' + SENS_FORMES[f] }) : null])]));
     });
   } else if (genre === 'fiche') {
     var un = sel[0];
@@ -3574,8 +3683,8 @@ function surToucheToile(ev) {
   if (k === '0') { ev.preventDefault(); recentrer(); return; }
   if ((k === 'ContextMenu' || (k === 'F10' && ev.shiftKey)) && sel.length && etat.peutModifier) {
     ev.preventDefault();
-    var d0 = document.querySelector('#vMonde .w-el[data-id="' + sel[0].id + '"]');
-    if (d0) { var r0 = d0.getBoundingClientRect(); ouvrirMenuContextuel(r0.left + 12, r0.top + 12, d0); }
+    placerCtx();
+    var c0 = document.querySelector('#vCtx button'); if (c0) { c0.focus(); }
     return;
   }
   if ((k === 'a' || k === 'A') && etat.peutModifier) { ev.preventDefault(); var ba = document.getElementById('bOutil_Ajouter'); if (ba) { ouvrirAjout(ba); } return; }
@@ -4341,6 +4450,8 @@ function imprimer(pdf) {
   if (toile && etat.vueType === 'toile') {
     var b = boiteDe(elementsDuTableau());
     var lw = 1050, lh = 640;
+    /* Place laissee a la legende en bas, si elle est affichee. */
+    if (t && etat.affichage && etat.affichage.legende && t.legende.length) { lh -= t.legende.length * 22 + 50; }
     if (b) {
       var z = Math.min(1.2, lw / Math.max(1, b.x2 - b.x1 + 40), lh / Math.max(1, b.y2 - b.y1 + 40));
       etat.cam = { z: z, x: -b.x1 * z + 20 * z, y: -b.y1 * z + 30 * z };
@@ -4423,7 +4534,8 @@ function construireSvgExport() {
   var b = boiteDe(tous);
   if (!b) { return null; }
   var m = 30;
-  var W = Math.ceil(b.x2 - b.x1 + 2 * m), H = Math.ceil(b.y2 - b.y1 + 2 * m);
+  var tl = tableauCourant(), basLeg = tl && etat.affichage && etat.affichage.legende && tl.legende.length ? tl.legende.length * 22 + 54 : 0;
+  var W = Math.ceil(b.x2 - b.x1 + 2 * m), H = Math.ceil(b.y2 - b.y1 + 2 * m + basLeg);
   var ox = m - b.x1, oy = m - b.y1;
   var texte = couleurResolue('var(--text-default-grey)');
   var fondPage = couleurResolue('var(--background-alt-grey)');
@@ -4459,11 +4571,10 @@ function construireSvgExport() {
     }
     if (e.type === 'Post-it') { parts.push('<rect x="' + x + '" y="' + y + '" width="' + e.w + '" height="' + e.h + '" rx="4" fill="' + vif + '"' + contour + ombre + ' transform="rotate(' + ((((e.id * 37) % 7) - 3) * 0.45) + ' ' + (x + e.w / 2) + ' ' + (y + e.h / 2) + ')"/>'); }
     if (e.type === 'Forme') {
-      var jointe = ' stroke="' + vif + '" stroke-width="12" stroke-linejoin="round"';
-      if (e.forme === 'Ovale') { parts.push('<ellipse cx="' + (x + e.w / 2) + '" cy="' + (y + e.h / 2) + '" rx="' + (e.w / 2) + '" ry="' + (e.h / 2) + '" fill="' + vif + '"' + contour + ombre + '/>'); }
-      else if (e.forme === 'Losange') { parts.push('<polygon points="' + [x + e.w / 2, y + 6, x + e.w - 6, y + e.h / 2, x + e.w / 2, y + e.h - 6, x + 6, y + e.h / 2].join(' ') + '" fill="' + vif + '"' + jointe + ombre + '/>'); }
-      else if (e.forme === 'Parallélogramme') { var d = Math.min(e.w * 0.18, 30); parts.push('<polygon points="' + [x + d, y + 6, x + e.w - 6, y + 6, x + e.w - d, y + e.h - 6, x + 6, y + e.h - 6].join(' ') + '" fill="' + vif + '"' + jointe + ombre + '/>'); }
-      else { var r = e.forme === 'Pilule' ? Math.min(e.w, e.h) / 2 : Math.min(14, Math.min(e.w, e.h) / 4); parts.push('<rect x="' + x + '" y="' + y + '" width="' + e.w + '" height="' + e.h + '" rx="' + r + '" fill="' + vif + '"' + (e.forme === 'Pilule' ? '' : contour) + ombre + '/>'); }
+      var mf = retraitForme(e.forme, e.w, e.h), gf = cheminForme(e.forme, x, y, e.w, e.h, mf);
+      var poly = FORMES_POLYGONES.indexOf(e.forme) !== -1;
+      parts.push('<path d="' + gf.d + '" fill="' + vif + '"' + (poly ? ' stroke="' + vif + '" stroke-width="' + (2 * mf) + '" stroke-linejoin="round"' : contour) + ombre + '/>');
+      if (gf.trait) { parts.push('<path d="' + gf.trait + '" fill="none" stroke="rgba(22,22,22,.28)" stroke-width="1.5"/>'); }
     }
     var taille = e.type === 'Texte' ? 16 : 14;
     var lignes = couperTexte(libelleAffiche(e), e.w - 16, taille).slice(0, Math.max(1, Math.floor((e.h - 8) / (taille * 1.3))));
@@ -4486,6 +4597,16 @@ function construireSvgExport() {
       textes.push('<text x="' + (g.mx + ox) + '" y="' + (g.my + oy + 5) + '" font-size="13" font-weight="700" text-anchor="middle" fill="' + texte + '">' + echapperXml(l.libelle) + '</text>');
     }
   });
+  var t0 = tableauCourant();
+  if (t0 && etat.affichage && etat.affichage.legende && t0.legende.length) {
+    var lh = 22, lx = 12, ly = H - 12 - (t0.legende.length * lh + 30), lw = 200;
+    parts.push('<rect x="' + lx + '" y="' + ly + '" width="' + lw + '" height="' + (t0.legende.length * lh + 30) + '" rx="8" fill="#ffffff" stroke="' + couleurResolue('var(--border-default-grey)') + '"/>');
+    textes.push('<text x="' + (lx + 12) + '" y="' + (ly + 20) + '" font-size="12" font-weight="700" fill="' + texte + '">Légende</text>');
+    t0.legende.forEach(function (l, k) {
+      parts.push('<rect x="' + (lx + 12) + '" y="' + (ly + 30 + k * lh) + '" width="20" height="14" rx="4" fill="' + couleurResolue(vifCouleur(l.couleur)) + '" stroke="rgba(22,22,22,.15)"/>');
+      textes.push('<text x="' + (lx + 40) + '" y="' + (ly + 41 + k * lh) + '" font-size="13" fill="' + texte + '">' + echapperXml(l.libelle || nomCouleur(l.couleur)) + '</text>');
+    });
+  }
   return { svg: parts.concat(textes).join('') + '</svg>', w: W, h: H };
 }
 
@@ -4768,7 +4889,7 @@ function editeurFiche(cible, apres, idBase) {
 
 function editeurAffichage(cible, apres, idBase) {
   var col1 = creer('div', { classe: 'w-colonne' }, [titreColonne('À l\'ouverture', idBase + 'TitreAff', 'Réglages de départ ; chaque personne peut les changer pour elle dans le volet.')]);
-  [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['votes', 'Votes (atelier)']].forEach(function (x) {
+  [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende sur la toile (et à l\'impression)'], ['votes', 'Votes (atelier)']].forEach(function (x) {
     col1.appendChild(caseACocher(idBase + 'Aff_' + x[0], x[1], !!cible.affichage[x[0]], function (v) { cible.affichage[x[0]] = v; apres(); }));
   });
   var col2 = creer('div', { classe: 'w-colonne' }, [titreColonne('Filtres proposés dans le volet', idBase + 'TitreFil', 'La recherche et la légende sont toujours proposées.')]);
@@ -4951,12 +5072,12 @@ function vignetteModele(cle) {
     var c = coul(e.c), blanc = nomCouleurSur(c) === 'blanc';
     var vif = vifCouleur(c), contour = blanc ? ';stroke:var(--border-default-grey);stroke-width:' + (trait / 2) : '';
     var f = e.t === 'Post-it' ? 'Post-it' : (e.f || 'Rectangle');
-    if (f === 'Losange') { el('polygon', { points: [[e.x + e.w / 2, e.y + px(2)], [e.x + e.w - px(2), e.y + e.h / 2], [e.x + e.w / 2, e.y + e.h - px(2)], [e.x + px(2), e.y + e.h / 2]].join(' '), style: 'fill:' + vif + ';stroke:' + vif + ';stroke-width:' + px(4) + ';stroke-linejoin:round' + ombre }, svg); }
-    else if (f === 'Ovale') { el('ellipse', { cx: e.x + e.w / 2, cy: e.y + e.h / 2, rx: e.w / 2, ry: e.h / 2, style: 'fill:' + vif + contour + ombre }, svg); }
-    else if (f === 'Parallélogramme') { var o = e.w * 0.15; el('polygon', { points: [[e.x + o, e.y + px(2)], [e.x + e.w - px(2), e.y + px(2)], [e.x + e.w - o, e.y + e.h - px(2)], [e.x + px(2), e.y + e.h - px(2)]].join(' '), style: 'fill:' + vif + ';stroke:' + vif + ';stroke-width:' + px(4) + ';stroke-linejoin:round' + ombre }, svg); }
-    else if (f === 'Post-it') { el('rect', { x: e.x, y: e.y, width: e.w, height: e.h, rx: px(1), style: 'fill:' + vif + contour + ombre }, svg); }
-    else if (f === 'Pilule') { el('rect', { x: e.x, y: e.y, width: e.w, height: e.h, rx: e.h / 2, style: 'fill:' + vifCouleur(c) + ombre }, svg); }
-    else { el('rect', { x: e.x, y: e.y, width: e.w, height: e.h, rx: Math.min(px(4), e.h / 4), style: 'fill:' + vif + contour + ombre }, svg); }
+    if (f === 'Post-it') { el('rect', { x: e.x, y: e.y, width: e.w, height: e.h, rx: px(1), style: 'fill:' + vif + contour + ombre }, svg); }
+    else {
+      var mv = FORMES_POLYGONES.indexOf(f) !== -1 ? px(2) : 0, gv = cheminForme(f, e.x, e.y, e.w, e.h, mv);
+      el('path', { d: gv.d, style: 'fill:' + vif + (mv ? ';stroke:' + vif + ';stroke-width:' + (2 * mv) + ';stroke-linejoin:round' : contour) + ombre }, svg);
+      if (gv.trait) { el('path', { d: gv.trait, style: 'fill:none;stroke:rgba(22,22,22,.3);stroke-width:' + (trait / 2) }, svg); }
+    }
     var ty = f === 'Post-it' ? e.y + px(9) : e.y + e.h / 2 + px(2.6);
     var tx = f === 'Post-it' ? e.x + px(3) : e.x + e.w / 2;
     var at = f === 'Post-it' ? {} : { 'text-anchor': 'middle', 'font-weight': '700' };
@@ -6007,71 +6128,30 @@ async function copierDansTable(sel, tid, col, colDesc, relier) {
 }
 
 
-/* === SECTION : MENU DU CLIC DROIT (1.3.2) ===
-   Sur un element : sa couleur (legende, autres couleurs), la couleur de
-   toute sa categorie (entree de legende et elements de cette couleur), et
-   dupliquer, premier plan, supprimer. Touche Menu ou Maj+F10 au clavier. */
+/* === SECTION : CLIC DROIT (1.3.4) ===
+   Un seul systeme : le clic droit selectionne l'element et affiche sa barre
+   d'actions, comme un clic. */
 function surMenuContextuel(ev) {
-  /* La capture du pointeur renvoie l'evenement a la toile : l'element est
-     retrouve sous le curseur. */
   var sous = document.elementFromPoint(ev.clientX, ev.clientY) || ev.target;
   var d = sous && sous.closest ? sous.closest('.w-el') : null;
-  if (!d || !etat.peutModifier) { return; }
+  if (!d) { return; }
   ev.preventDefault();
   var id = Number(d.getAttribute('data-id'));
-  if (etat.selection.indexOf(id) === -1) { selectionner([id], true); }
-  ouvrirMenuContextuel(ev.clientX, ev.clientY, d);
+  if (etat.selection.indexOf(id) === -1) { selectionner([id], true); } else { placerCtx(); }
+  var c = document.querySelector('#vCtx button'); if (c) { c.focus(); }
 }
 
-function ouvrirMenuContextuel(x, y, ancre) {
-  var t = tableauCourant();
-  var sel = elementsSelectionnes();
-  if (!t || !sel.length) { return; }
-  var enfants = [creer('p', { classe: 'w-pop__titre', texte: sel.length > 1 ? 'Couleur des ' + sel.length + ' éléments' : 'Couleur de cet élément' })];
-  t.legende.forEach(function (l) {
-    enfants.push(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': sel.every(function (e) { return e.couleur === l.couleur; }) ? 'true' : 'false' },
-      clic: function () { fermerPop(true); return modifierSelection({ COULEUR: l.couleur }, 'Couleur changée.'); } }, [pastilleCouleur(l.couleur), l.libelle || nomCouleur(l.couleur)]));
-  });
-  var nuancier = creer('div', { classe: 'w-nuancier' });
-  COULEURS.forEach(function (c) {
-    var b = creer('button', { classe: 'w-nuance w-bulle', attrs: { 'aria-label': c[1], 'data-bulle': c[1] }, clic: function () { fermerPop(true); return modifierSelection({ COULEUR: c[0] }, 'Couleur changée.'); } });
-    appliquerCouleur(b, c[0]);
-    nuancier.appendChild(b);
-  });
-  enfants.push(nuancier);
-  /* Toute la categorie : seulement si la couleur est dans la legende. */
-  var coul = sel[0].couleur;
-  var cat = sel.every(function (e) { return e.couleur === coul; }) ? t.legende.filter(function (l) { return l.couleur === coul; })[0] : null;
-  if (cat && etat.peutParametrer) {
-    enfants.push(creer('p', { classe: 'w-pop__titre', texte: 'Tous les « ' + (cat.libelle || nomCouleur(cat.couleur)) + ' »' }));
-    var nc = creer('div', { classe: 'w-nuancier', attrs: { role: 'group', 'aria-label': 'Couleur de toute la catégorie ' + (cat.libelle || '') } });
-    COULEURS.forEach(function (c) {
-      if (c[0] === coul) { return; }
-      var b = creer('button', { classe: 'w-nuance w-bulle', attrs: { 'aria-label': 'Tous les « ' + (cat.libelle || '') + ' » en ' + c[1], 'data-bulle': c[1] }, clic: function () { fermerPop(true); return recolorerCategorie(t, coul, c[0]); } });
-      appliquerCouleur(b, c[0]);
-      nc.appendChild(b);
-    });
-    enfants.push(nc);
-  }
-  if (sel.length === 1 && sel[0].type !== 'Section' && sel[0].type !== 'Image') {
-    var src = sel[0];
-    enfants.push(creer('span', { classe: 'w-pop__sep' }));
-    enfants.push(creer('p', { classe: 'w-pop__titre', texte: 'Ajouter à la suite' }));
-    [['Forme', src.type === 'Forme' ? 'Forme reliée' : 'Forme', 'forme'], ['Post-it', 'Post-it', 'postit'], ['Texte', 'Texte', 'texte']].forEach(function (x) {
-      enfants.push(creer('button', { classe: 'w-pop__item w-pop__item--icone', id: 'cSuite_' + x[0].replace(/[^A-Za-z]/g, ''), clic: function () { fermerPop(); return ajouterALaSuite(src, x[0]); } },
-        [iconeSvg(x[2], 18), creer('span', { texte: x[1] })]));
-    });
-  }
-  enfants.push(creer('span', { classe: 'w-pop__sep' }));
-  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Dupliquer (Ctrl+D)', clic: function () { fermerPop(true); return dupliquerSelection(); } }));
-  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Mettre au premier plan', clic: function () { fermerPop(true); return premierPlan(); } }));
-  enfants.push(creer('button', { classe: 'w-pop__item', texte: 'Supprimer (Suppr)', clic: function () { fermerPop(true); return supprimerSelection(); } }));
-  ouvrirPopFixe(ancre, 'Menu', enfants);
-  var pop = document.getElementById('vPop');
-  if (pop) {
-    pop.style.left = Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, x)) + 'px';
-    pop.style.top = Math.max(4, Math.min(window.innerHeight - pop.offsetHeight - 4, y)) + 'px';
-  }
+/* Tous les elements de meme forme (ou de meme type) du tableau changent de
+   couleur. */
+async function recolorerType(t, cle, nouvelle, cleType) {
+  var els = etat.elements.filter(function (e) { return e.tableau === t.id && cleType(e) === cle; });
+  if (!els.length) { return; }
+  try {
+    await agir([['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { COULEUR: els.map(function () { return nouvelle; }) }]]);
+    etat.signature = '';
+    await rafraichir(true);
+    afficherToast(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + '.');
+  } catch (e) { erreurEcriture(e, 'La couleur n\'a pas été changée.'); }
 }
 
 /* Une categorie de la legende change de couleur : l'entree de legende et
@@ -6186,7 +6266,7 @@ function rendreAide() {
     corps.appendChild(creer('h3', { texte: 'Raccourcis sur la toile' }));
     var dl = creer('dl', { classe: 'w-raccourcis' });
     [['A', 'Ajouter un élément (menu)'], ['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['C, I', 'Couloir, image'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
-      ['Clic droit', 'Couleur, catégorie, actions'], ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
+      ['Clic droit', 'Barre d\'actions de l\'élément'], ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
       dl.appendChild(creer('dt', { texte: x[0] })); dl.appendChild(creer('dd', { texte: x[1] }));
     });
     corps.appendChild(dl);
