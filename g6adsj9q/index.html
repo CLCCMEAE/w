@@ -1,0 +1,3863 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<head>
+<meta name="robots" content="noindex, nofollow">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diplodoublon</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
+  <style>
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--background-default-grey);
+    color: var(--text-default-grey);
+  }
+  body {
+    font-family: 'Marianne', arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  #skipLink:focus{position:fixed;top:0;left:0;z-index:9999;padding:.5rem 1rem;background:var(--background-default-grey);color:var(--text-action-high-blue-france);clip:auto;width:auto;height:auto;overflow:visible;white-space:nowrap;font-size:.875rem}
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .w-bandeau-sticky{position:sticky;top:0;z-index:100;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);
+    color: var(--text-default-grey);
+  }
+  .w-bandeau{display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem}
+  #bandeau-logo{width:80px;flex-shrink:0}
+  .w-bandeau__logo-wrap{width:100%}
+    .w-bandeau__marque{display:flex;align-items:center;gap:.625rem;flex-shrink:0}
+  .w-bandeau__sep{width:1px;height:24px;background:var(--border-default-grey);flex-shrink:0}
+  .w-bandeau__titre{font-size:2rem;font-weight:600;color:var(--text-title-blue-france);white-space:nowrap;margin:0}
+  .w-bandeau__version{font-size:.75rem;color:var(--text-mention-grey);font-weight:400;margin-left:.5rem;white-space:nowrap}
+  .w-bandeau__homologue{margin-left:.5rem;white-space:nowrap}
+  .w-bandeau__homologue[hidden]{display:none}
+  .w-bandeau .fr-logo::after{display:none}
+  .w-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem .75rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    background: var(--background-default-grey);
+    color: var(--text-default-grey);
+  }
+  .w-section {
+    border: 1px solid var(--border-default-grey);
+    border-left: 4px solid var(--border-action-high-blue-france);
+    background: var(--background-alt-grey);
+    padding: 1.25rem 1.5rem;
+    color: var(--text-default-grey);
+  }
+  .w-section__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-action-high-blue-france);
+  }
+  .w-section__title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--text-title-grey);
+    margin: 0;
+  }
+  h2.w-section__title, h2.fr-h6.w-section__title {
+    margin: 0;
+  }
+  .w-section__num {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .w-section__num--active {
+    background: var(--background-action-high-blue-france);
+    color: var(--text-inverted-blue-france);
+  }
+  .w-section__num--done {
+    background: var(--background-action-high-success);
+    color: var(--text-inverted-success);
+  }
+  .w-section__num--locked {
+    background: var(--background-disabled-grey);
+    color: var(--text-disabled-grey);
+  }
+  .w-section__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .w-section--locked {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .w-section--locked .w-section__body { display: none; }
+  .w-section__alert { margin-bottom: 0.75rem; }
+  .w-search {
+    position: relative;
+  }
+  .w-search__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--background-default-grey);
+    border: 1px solid var(--border-default-grey);
+    border-radius: 0;
+    max-height: 360px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    color: var(--text-default-grey);
+  }
+  .w-search__dropdown.open { display: block; }
+  .w-search__dd-header {
+    padding: 0.5rem 1rem 0.25rem;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-mention-grey);
+    position: sticky;
+    top: 0;
+    background: var(--background-default-grey);
+    z-index: 1;
+    border-bottom: 1px solid var(--border-default-grey);
+  }
+  .w-search__dd-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    gap: 0.5rem;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border-default-grey);
+    color: var(--text-default-grey);
+  }
+  .w-search__dd-item:last-child { border-bottom: none; }
+  .w-search__dd-item:hover { background: var(--background-alt-blue-france); }
+  .w-search__dd-item:hover .w-search__dd-add {
+    color: var(--text-action-high-blue-france);
+  }
+  .w-search__dd-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .w-search__dd-name {
+    font-size: .875rem;
+    font-weight: 500;
+    color: var(--text-title-grey);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .w-search__dd-meta {
+    font-size: .75rem;
+    color: var(--text-mention-grey);
+    font-family: ui-monospace, 'SFMono-Regular', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .w-search__dd-add {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-mention-grey);
+    font-size: .8125rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .w-criteria {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .w-criteria-empty {
+    padding: 1rem;
+    font-size: .8125rem;
+    color: var(--text-mention-grey);
+    font-style: italic;
+    text-align: center;
+    border: 1px dashed var(--border-default-grey);
+    border-radius: 0;
+    background: var(--background-alt-grey);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .w-criterion {
+    background: var(--background-default-grey);
+    border: 1px solid var(--border-default-grey);
+    border-left: 3px solid var(--border-action-high-blue-france);
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    transition: border-color 0.15s;
+    color: var(--text-default-grey);
+  }
+  .w-criterion:hover {
+    border-color: var(--border-action-high-blue-france-hover);
+  }
+  .w-criterion__info {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+  .w-criterion__name {
+    font-size: .8125rem;
+    font-weight: 700;
+    color: var(--text-title-grey);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .w-criterion__name-meta {
+    font-family: ui-monospace, monospace;
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--text-mention-grey);
+    white-space: nowrap;
+  }
+  .w-criterion__type-badge { font-family: ui-monospace, monospace; flex-shrink: 0; }
+  .w-criterion__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .w-criterion__remove { flex-shrink: 0; }
+  .w-criterion__remove:hover { color: var(--text-default-error); }
+  .w-criterion__modes {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+  .w-criterion__mode-btn {
+    padding: 0.5rem 1rem;
+    min-width: 10rem;
+    border: 1px solid var(--border-default-grey);
+    background: var(--background-default-grey);
+    color: var(--text-mention-grey);
+    font-family: inherit;
+    font-size: .8125rem;
+    font-weight: 600;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .w-criterion__mode-btn:hover {
+    border-color: var(--border-action-high-blue-france);
+    color: var(--text-action-high-blue-france);
+  }
+  .w-criterion__mode-btn.active.exact {
+    background: var(--background-action-high-success);
+    color: var(--text-inverted-success);
+    border-color: var(--background-action-high-success);
+  }
+  .w-criterion__mode-btn.active.similar {
+    background: var(--background-action-high-warning);
+    color: var(--text-inverted-warning);
+    border-color: var(--background-action-high-warning);
+  }
+  .w-config__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-default-grey);
+  }
+  .w-progress-bar {
+    height: 4px;
+    background: var(--border-default-grey);
+    border-radius: 0;
+    overflow: hidden;
+    width: 100%;
+    display: none;
+  }
+  .w-progress-bar.active { display: block; }
+  .w-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+      var(--background-action-high-blue-france),
+      var(--background-action-high-blue-france-hover));
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+  .w-resolve__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1.75rem;
+    background: var(--background-default-grey);
+    border-bottom: 1px solid var(--border-default-grey);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    color: var(--text-default-grey);
+  }
+  .w-resolve__toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .w-resolve__toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .w-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    background: var(--background-alt-grey);
+    border-radius: 0;
+    color: var(--text-default-grey);
+  }
+  .w-nav-counter {
+    font-family: ui-monospace, monospace;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--text-title-grey);
+    min-width: 3rem;
+    text-align: center;
+  }
+  .w-resolve__toolbar .fr-checkbox-group {
+    margin: 0;
+    align-self: center;
+  }
+  .w-toolbar-sep {
+    width: 1px;
+    height: 1.75rem;
+    background: var(--border-default-grey);
+    margin: 0 0.5rem;
+    align-self: center;
+  }
+  .w-resolve__main {
+    padding: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .w-resolve__cards {
+    display: flex;
+    gap: 1.25rem;
+    align-items: stretch;
+    min-height: min-content;
+    padding-bottom: 0.5rem;
+  }
+  .w-rec-card {
+    background: var(--background-default-grey);
+    border: 1px solid var(--border-default-grey);
+    border-radius: 0;
+    min-width: 17.5rem;
+    width: 17.5rem;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    color: var(--text-default-grey);
+  }
+  .w-rec-card--primary {
+    border: 2px solid var(--border-action-high-success);
+    background: var(--background-contrast-success);
+    color: var(--text-default-success);
+  }
+  .w-rec-card--excluded {
+    opacity: 0.45;
+    background: var(--background-disabled-grey);
+    color: var(--text-disabled-grey);
+  }
+  .w-rec-card--preview {
+    border: 3px solid var(--border-action-high-blue-france);
+    border-left: 6px solid var(--border-action-high-blue-france);
+    background: var(--background-contrast-blue-france);
+    position: sticky;
+    right: 0;
+    min-width: 20rem;
+    width: 20rem;
+    margin-left: 1rem;
+    color: var(--text-default-grey);
+  }
+  .w-rec-card__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border-default-grey);
+    background: var(--background-alt-grey);
+    min-height: 4.25rem;
+    color: var(--text-default-grey);
+  }
+  .w-rec-card__head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .w-rec-card--primary .w-rec-card__head {
+    background: var(--background-action-high-success);
+    color: var(--text-inverted-success);
+    border-bottom-color: var(--border-action-high-success);
+  }
+  .w-rec-card--preview .w-rec-card__head {
+    background: var(--background-action-high-blue-france);
+    color: var(--text-inverted-blue-france);
+    border-bottom-color: var(--background-action-high-blue-france);
+  }
+  .w-preview-sep {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--text-action-high-blue-france);
+    flex-shrink: 0;
+    padding: 0 0.25rem;
+  }
+  .w-rec-card--excluded .w-rec-card__title {
+    text-decoration: line-through;
+  }
+  .w-rec-card__title {
+    font-size: .8125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+  .w-rec-card__title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .9rem;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+  }
+  .w-rec-card__head-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .w-rec-card__state-label {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0;
+    background: var(--background-contrast-grey);
+    color: var(--text-default-grey);
+  }
+  .w-rec-card--primary .w-rec-card__state-label {
+    background: var(--background-action-high-success);
+    color: var(--text-inverted-success);
+  }
+  .w-rec-card--preview .w-rec-card__state-label {
+    background: var(--background-action-high-blue-france);
+    color: var(--text-inverted-blue-france);
+  }
+  .w-rec-card__state-label--pending {
+    background: var(--background-disabled-grey);
+    color: var(--text-mention-grey);
+  }
+  .w-rec-card__state-label--excluded {
+    background: var(--background-contrast-error);
+    color: var(--text-default-error);
+  }
+  .w-rec-card__rec-id {
+    font-family: ui-monospace, monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-mention-grey);
+    letter-spacing: 0;
+  }
+  .w-rec-card--primary .w-rec-card__rec-id,
+  .w-rec-card--preview .w-rec-card__rec-id {
+    color: var(--text-inverted-grey);
+  }
+  .w-rec-ico {
+    flex-shrink: 0;
+    display: block;
+  }
+  .w-rec-ico--primary {
+    color: var(--background-action-high-success);
+  }
+  .w-rec-card--primary .w-rec-ico--primary {
+    color: var(--text-inverted-success);
+  }
+  .w-rec-card--primary .w-rec-ico--primary circle { fill: var(--background-default-grey); }
+  .w-rec-card--primary .w-rec-ico--primary path { stroke: var(--background-action-high-success); }
+  .w-rec-ico--pending {
+    color: var(--text-disabled-grey);
+  }
+  .w-rec-ico--excluded {
+    color: var(--text-mention-grey);
+  }
+  .w-rec-card--excluded .w-rec-ico--excluded {
+    color: var(--text-default-error);
+  }
+  .w-rec-card__actions {
+    display: flex;
+    gap: 0.125rem;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .w-rec-card__menu-btn {flex-shrink: 0;}
+  .w-rec-card__menu-btn:hover {
+    background: var(--background-alt-grey);
+    color: var(--text-title-grey);
+    border-color: var(--border-default-grey);
+  }
+  .w-rec-card--primary .w-rec-card__menu-btn {
+    color: var(--text-inverted-grey);
+  }
+  .w-rec-card--primary .w-rec-card__menu-btn:hover {
+    background: var(--background-action-high-success);
+    color: var(--text-inverted-grey);
+    border-color: var(--border-action-high-success);
+  }
+  .w-rec-menu {
+    position: fixed;
+    width: 280px;
+    background: var(--background-action-high-grey);
+    color: var(--text-inverted-grey);
+    border-radius: 0;
+    z-index: 10000;
+    padding: 0.375rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: w-menu-in 0.12s ease-out;
+  }
+  @keyframes w-menu-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .w-rec-menu__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.5rem 0.625rem;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-family: "Marianne", sans-serif;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.1s;
+  }
+  .w-rec-menu__item:hover,
+  .w-rec-menu__item:focus-visible {
+    background: var(--background-contrast-grey);
+  }
+  .w-rec-menu__icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-inverted-grey);
+    margin-top: 2px;
+  }
+  .w-rec-menu__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .w-rec-menu__label {
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .w-rec-menu__hint {
+    font-size: .75rem;
+    opacity: 0.65;
+    line-height: 1.35;
+  }
+  .w-formula-badge { font-family: ui-monospace, monospace; margin-right: 0.375rem; vertical-align: middle; }
+  .w-rec-card__body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .w-rec-field {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--border-default-grey);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    height: 5.25rem;
+    max-height: 5.25rem;
+    overflow: hidden;
+    background: var(--background-default-grey);
+    box-sizing: border-box;
+    color: var(--text-default-grey);
+  }
+  .w-rec-field:last-child { border-bottom: none; }
+  .w-rec-field--clickable {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .w-rec-field--clickable:hover {
+    background: var(--background-alt-grey);
+  }
+  .w-rec-field--same {
+    background: var(--background-default-grey);
+    color: var(--text-default-grey);
+  }
+  .w-rec-field--diff {
+    background: var(--background-disabled-grey);
+    color: var(--text-default-grey);
+  }
+  .w-rec-field--clickable.w-rec-field--diff:hover {
+    background: var(--background-contrast-grey);
+  }
+  .w-rec-field--selected {
+    background: var(--background-contrast-success) !important;
+    color: var(--text-default-grey);
+  }
+  .w-rec-field--selected::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--background-action-high-success);
+  }
+  .w-rec-field--selected .w-rec-field__value {
+    color: var(--text-default-success);
+    font-weight: 600;
+  }
+  .w-rec-field--cumulated {
+    background: var(--background-contrast-blue-france) !important;
+    color: var(--text-default-grey);
+  }
+  .w-rec-field--cumulated::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--text-label-blue-france);
+  }
+  .w-rec-field--cumulated .w-rec-field__value {
+    color: var(--text-label-blue-france);
+    font-weight: 600;
+  }
+  .w-rec-field--formula {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--background-disabled-grey) 0 8px,
+      var(--background-alt-grey) 8px 16px
+    );
+    cursor: not-allowed;
+    color: var(--text-default-grey);
+  }
+  .w-rec-field--formula .w-rec-field__value {
+    color: var(--text-mention-grey);
+    font-style: italic;
+  }
+  .w-rec-field__label {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--text-mention-grey);
+    line-height: 1.2;
+    height: 1.25rem;
+    max-height: 1.25rem;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .w-rec-field__label-mode {
+    font-family: ui-monospace, monospace;
+    font-size: .75rem;
+    padding: 1px 4px;
+    border-radius: 0;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .w-rec-field__value {
+    font-size: .875rem;
+    color: var(--text-default-grey);
+    word-break: break-word;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    padding-right: 1.5rem;
+    height: 2.5rem;
+    max-height: 2.5rem;
+    min-height: 2.5rem;
+    flex-shrink: 0;
+  }
+  .w-rec-field__value--empty {
+    color: var(--text-disabled-grey);
+    font-style: italic;
+  }
+  .w-rec-field__ref {
+    color: var(--text-action-high-blue-france);
+    font-weight: 500;
+  }
+  .w-rec-field__ref-id {
+    color: var(--text-mention-grey);
+    font-size: .75rem;
+    font-family: ui-monospace, monospace;
+    margin-left: 0.25rem;
+  }
+  .w-rec-field__cum-btn {position: absolute; top: 0.5rem; right: 0.5rem;}
+  .w-rec-field__cum-btn:hover {
+    border-color: var(--background-action-high-blue-france);
+    color: var(--background-action-high-blue-france);
+  }
+  .w-rec-field__cum-btn--active {
+    background: var(--background-action-high-blue-france);
+    color: var(--text-inverted-blue-france);
+    border-color: var(--background-action-high-blue-france);
+  }
+  .w-resolve__footer {
+    padding: 1rem 1.5rem;
+    background: var(--background-default-grey);
+    border-top: 1px solid var(--border-default-grey);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    color: var(--text-default-grey);
+  }
+  .w-resolve__footer-info {
+    font-size: .875rem;
+    color: var(--text-default-grey);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .w-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem;
+    text-align: center;
+  }
+  .w-empty__icon {
+    font-size: 2rem;
+    opacity: 0.4;
+  }
+  .w-empty h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-title-grey);
+    margin: 0;
+  }
+  .w-empty p {
+    font-size: .875rem;
+    color: var(--text-mention-grey);
+    max-width: 32rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .w-confirm-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9997;
+    background: rgba(0,0,0,.5);
+    align-items: center; justify-content: center;
+  }
+  .w-confirm-overlay.actif { display: flex; }
+  .w-confirm-box {
+    background: var(--background-default-grey);
+    max-width: 28rem; width: 90%; padding: 1.5rem;
+    border-radius: 0;
+    color: var(--text-default-grey);
+  }
+  .w-confirm-msg { margin: 0 0 1.25rem; font-size: .875rem; line-height: 1.5; color: var(--text-default-grey); }
+  .w-confirm-actions { display: flex; justify-content: flex-end; gap: .75rem; }
+    .w-erreur { display: none; flex-shrink: 0; }
+    .w-erreur.actif { display: block; }
+  .w-loader {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0,0,0,.5);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+  }
+  .w-loader.actif { display: flex; }
+  .w-loader__spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-default-grey);
+    border-top-color: var(--background-action-high-blue-france);
+    border-radius: 50%;
+    animation: wSpin 0.8s linear infinite;
+  }
+  @keyframes wSpin { to { transform: rotate(360deg); } }
+  .w-loader__texte {
+    font-size: .875rem;
+    color: var(--text-mention-grey);
+  }
+  .w-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  [hidden] { display: none !important; }
+  .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+    max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
+    border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+  .w-toast--succes { border-left-color: var(--border-plain-success); }
+  .w-toast--erreur { border-left-color: var(--border-plain-error); }
+  .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
+  .w-infobulle { position: relative; overflow: visible !important; }
+  .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
+    padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
+    color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
+  .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
+  .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; content: attr(data-infobulle) !important; display: block !important;
+    width: auto !important; height: auto !important; min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
+  .w-infobulle--gauche::after { left: 0; right: auto; }
+  .w-acces { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .w-acces__titre { margin: 0; }
+  .w-bandeau__aide { margin-left: auto; flex-shrink: 0; }
+  .w-corps { display: flex; min-height: 0; }
+  .w-corps > .w-corps__contenu { flex: 1 1 auto; min-width: 0; }
+  .w-panneau-aide { flex: 0 0 24rem; width: 24rem; min-height: 0; display: flex; flex-direction: column;
+    background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-left: 1px solid var(--border-default-grey); }
+  .w-panneau-aide__tete { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); }
+  .w-panneau-aide__icone { color: var(--text-action-high-blue-france); flex-shrink: 0; }
+  .w-panneau-aide__titre { flex: 1; margin: 0; font-size: 1rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+  .w-panneau-aide__onglets { order: 0; display: flex; flex-shrink: 0; gap: .25rem; margin: 0; padding: .25rem .75rem 0; list-style: none; overflow-x: auto;
+    background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-bottom: 1px solid var(--border-default-grey); }
+  .w-panneau-aide__onglets > li { margin: 0; padding: 0; }
+  .w-panneau-aide .fr-tabs__tab { display: inline-flex; align-items: center; margin: 0; padding: .375rem .625rem; border: 0; cursor: pointer; white-space: nowrap;
+    font: inherit; font-size: .875rem; font-weight: 700; line-height: 1.5; background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+  .w-panneau-aide .fr-tabs__tab[aria-selected="true"] { background-color: var(--background-contrast-yellow-tournesol); color: var(--text-active-blue-france);
+    box-shadow: inset 0 2px 0 var(--border-active-blue-france), inset 1px 0 0 var(--border-default-grey), inset -1px 0 0 var(--border-default-grey); }
+  .w-panneau-aide .fr-tabs__tab:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+  .w-panneau-aide__corps { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem .75rem 1.5rem; }
+  .w-panneau-aide__volet { display: flex; flex-direction: column; gap: .75rem; }
+  .w-panneau-aide__volet:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+  .w-panneau-aide__sous-titre { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+  .w-panneau-aide__liste { margin: 0; padding-left: 1.25rem; }
+  .w-panneau-aide .w-texte { margin: 0; font-size: .875rem; line-height: 1.5; }
+  .w-panneau-aide .w-mention { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
+  .w-question { display: flex; flex-direction: column; gap: .25rem; }
+  .w-pas { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+  .w-pas__etape { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .625rem .75rem;
+    background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+  .w-pas__etape--en-cours { border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+  .w-pas__num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+    font-size: .75rem; font-weight: 700; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+  .w-pas__etape--faite .w-pas__num { background: var(--background-flat-success); color: var(--text-inverted-success); }
+  .w-pas__etape--a-venir .w-pas__num { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+  .w-pas__texte { display: flex; flex-direction: column; gap: .125rem; min-width: 0; font-size: .875rem; line-height: 1.5; }
+  .w-pas__nom { margin: 0; }
+  .w-pas__ici { color: var(--text-action-high-blue-france); }
+  .w-pas__points { margin: .25rem 0 0; padding-left: 1.125rem; font-size: .8125rem; }
+  @media (max-width: 48em) {
+    .w-panneau-aide { position: fixed; inset: 0; z-index: 1500; width: auto; flex: none; border-left: 0; }
+  }
+  @media print { .w-toast, .w-panneau-aide, .w-bandeau__aide { display: none !important; } }
+  .app > .w-corps { flex: 1; }
+  </style>
+</head>
+<body>
+<a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
+<div class="w-loader" id="loader" role="status" aria-live="polite">
+  <div class="w-loader__spinner"></div>
+  <div class="w-loader__texte" id="loaderMessage">Chargement…</div>
+</div>
+<div class="app">
+  <header role="banner" class="w-bandeau-sticky">
+    <div class="w-bandeau">
+      <div class="w-bandeau__marque">
+        <div id="bandeau-logo"></div>
+        <div class="w-bandeau__sep"></div>
+        <h1 class="w-bandeau__titre">🧹 Diplodoublon</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      </div>
+      <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
+    </div>
+  </header>
+  <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert">
+    <p id="wErreurMsg">Une erreur est survenue</p>
+    <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button>
+  </div>
+  <div class="w-corps">
+  <main class="w-main w-corps__contenu" id="contenu" tabindex="-1">
+    <div class="w-acces" id="wAcces" hidden>
+      <h2 class="fr-h5 w-acces__titre">Accès au document nécessaire</h2>
+      <p class="fr-text--sm fr-mb-0">Ce widget a besoin d'un accès complet au document pour lire vos tables et fusionner les doublons. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »).</p>
+      <button type="button" class="fr-btn fr-icon-refresh-line fr-btn--icon-left" id="wAccesReessayer">Réessayer</button>
+    </div>
+    <div id="wContenuWidget">
+    <div class="w-section" id="section1">
+      <div class="w-section__head">
+        <span class="w-section__num w-section__num--active" id="num1">1</span>
+        <h2 class="fr-h6 w-section__title">La table</h2>
+      </div>
+      <div class="w-section__body">
+        <div id="alert1" role="status"></div>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+          <div class="fr-select-group" style="flex:1;min-width:200px;margin:0">
+            <label class="fr-label fr-sr-only" for="tableSelect">Table</label>
+            <select class="fr-select" id="tableSelect" autocomplete="off">
+              <option value="">Chargement…</option>
+            </select>
+          </div>
+          <span class="fr-badge fr-badge--blue-cumulus fr-badge--no-icon fr-badge--sm" id="badgeTotal" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+    <div class="w-section w-section--locked" id="section2">
+      <div class="w-section__head">
+        <span class="w-section__num w-section__num--locked" id="num2">2</span>
+        <h2 class="fr-h6 w-section__title">Les critères</h2>
+      </div>
+      <div class="w-section__body">
+        <div id="alert2" role="status"></div>
+        <div class="w-search">
+          <div class="fr-search-bar">
+            <label class="fr-label" for="fieldSearchInput">Rechercher un champ</label>
+            <input
+              class="fr-input"
+              type="search"
+              id="fieldSearchInput"
+              placeholder="Nom du champ"
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="fieldDropdown"
+            />
+          </div>
+          <div class="w-search__dropdown" id="fieldDropdown" role="listbox"></div>
+        </div>
+        <div class="w-criteria" id="criteriaList" aria-live="polite">
+          <div class="w-criteria-empty">
+            <span aria-hidden="true">↑</span>
+            Aucun critère. Ajoutez des champs dans la recherche ci-dessus.
+          </div>
+        </div>
+        <div class="w-config__actions">
+          <div class="w-progress-bar" id="scanProgressBar">
+            <div class="w-progress-fill" id="scanProgressFill"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <span class="fr-badge fr-badge--warning fr-badge--no-icon fr-badge--sm" id="badgeGroups" style="display:none"></span>
+            <span class="fr-badge fr-badge--error fr-badge--no-icon fr-badge--sm" id="badgeDupes" style="display:none"></span>
+            <button type="button" class="fr-btn fr-btn--icon-right fr-icon-search-line" id="scanBtn" disabled>
+              Scanner les doublons
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="w-section w-section--locked" id="section3">
+      <div class="w-section__head">
+        <span class="w-section__num w-section__num--locked" id="num3">3</span>
+        <h2 class="fr-h6 w-section__title">Les doublons</h2>
+      </div>
+      <div class="w-section__body">
+        <div id="alert3" role="status"></div>
+        <p class="fr-text--sm" id="resolveRecap" style="margin:0 0 0.75rem;color:var(--text-action-high-blue-france);background:var(--background-alt-blue-france);padding:0.75rem 1rem;text-align:center"></p>
+        <div class="w-resolve__toolbar">
+          <div class="w-resolve__toolbar-left">
+            <div class="w-nav-group">
+              <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-arrow-left-s-line w-infobulle w-infobulle--gauche" id="navPrev" aria-label="Groupe précédent" data-infobulle="Groupe précédent"></button>
+              <span class="w-nav-counter" id="navCounter">1 / 1</span>
+              <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-arrow-right-s-line w-infobulle" id="navNext" aria-label="Groupe suivant" data-infobulle="Groupe suivant"></button>
+            </div>
+            <span class="w-toolbar-sep" aria-hidden="true"></span>
+            <div class="fr-checkbox-group fr-checkbox-group--sm">
+              <input type="checkbox" id="hideIdenticalCheck" autocomplete="off" />
+              <label class="fr-label" for="hideIdenticalCheck">Masquer les champs identiques</label>
+            </div>
+            <div class="fr-checkbox-group fr-checkbox-group--sm">
+              <input type="checkbox" id="hideFormulasCheck" autocomplete="off" checked />
+              <label class="fr-label" for="hideFormulasCheck">Masquer les formules</label>
+            </div>
+          </div>
+          <div class="w-resolve__toolbar-right">
+            <div class="fr-select-group" style="margin:0;">
+              <label class="fr-label fr-sr-only" for="sortSelect">Tri des lignes</label>
+              <select class="fr-select fr-select--sm" id="sortSelect" autocomplete="off">
+                <option value="default">Ordre de la table</option>
+                <option value="created_asc">Plus anciens d'abord</option>
+                <option value="created_desc">Plus récents d'abord</option>
+              </select>
+            </div>
+            <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-flashlight-line" id="mergeAllBtn">
+              Tout fusionner
+            </button>
+          </div>
+        </div>
+        <div class="w-resolve__main">
+          <div class="w-empty" id="emptyState">
+            <div class="w-empty__icon" aria-hidden="true">✨</div>
+            <h3>Aucun groupe à résoudre</h3>
+            <p>Les groupes de doublons à résoudre apparaîtront ici.</p>
+          </div>
+          <div class="w-resolve__cards" id="resolveCards" style="display:none;"></div>
+        </div>
+        <div class="w-resolve__footer">
+          <div class="w-resolve__footer-info" id="footerInfo">
+            <span>Sélectionnez la ligne à conserver pour chaque groupe.</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="button" class="fr-btn fr-btn--tertiary" id="skipBtn">Ignorer ce groupe</button>
+            <button type="button" class="fr-btn fr-btn--icon-left fr-icon-git-merge-line" id="mergeBtn">
+              Fusionner et supprimer&nbsp;<span id="mergeBtnCount">0</span>&nbsp;ligne(s)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </main>
+  <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
+  </div>
+  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+</div>
+<div class="w-confirm-overlay" id="wConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="wConfirmMsg">
+  <div class="w-confirm-box">
+    <p class="w-confirm-msg" id="wConfirmMsg"></p>
+    <div class="w-confirm-actions">
+      <button type="button" class="fr-btn fr-btn--secondary" id="wConfirmNon">Annuler</button>
+      <button type="button" class="fr-btn" id="wConfirmOui">Confirmer</button>
+    </div>
+  </div>
+</div>
+<script>'use strict';
+function echapperHTML(texte) {
+    if (!texte && texte !== 0)
+        return '';
+    var div = document.createElement('div');
+    div.textContent = String(texte);
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function majStats() {
+    var nT = S.allRecords.length;
+    var nG = S.duplicateGroups.length;
+    var nD = S.duplicateGroups.reduce((s, g) => s + g.records.length, 0);
+    const bT = $('badgeTotal');
+    bT.style.display = S.selectedTable ? '' : 'none';
+    bT.textContent = nT + ' ' + (nT <= 1 ? 'ligne' : 'lignes');
+    $('badgeGroups').textContent = nG + ' ' + (nG <= 1 ? 'groupe' : 'groupes');
+    $('badgeDupes').textContent = nD + ' ' + (nD <= 1 ? 'doublon' : 'doublons');
+}
+function validerNombre(valeur, min, max, defaut) {
+    var n = parseFloat(valeur);
+    if (isNaN(n) || !isFinite(n))
+        return defaut;
+    if (n < min)
+        return min;
+    if (n > max)
+        return max;
+    return n;
+}
+function logSecurite(niveau, message, details) {
+    var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
+    if (niveau === 'ERREUR') {
+        if (details !== undefined) {
+            console.error(ligne, details);
+        }
+        else {
+            console.error(ligne);
+        }
+    }
+    else if (niveau === 'AVERTISSEMENT') {
+        if (details !== undefined) {
+            console.warn(ligne, details);
+        }
+        else {
+            console.warn(ligne);
+        }
+    }
+    else {
+        if (details !== undefined) {
+            console.log(ligne, details);
+        }
+        else {
+            console.log(ligne);
+        }
+    }
+}
+var _loaderTimeout = null;
+var _loaderDelai = null;
+function afficherLoader(message) {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+    }
+    _loaderTimeout = setTimeout(function () {
+        masquerLoader();
+        logSecurite('AVERTISSEMENT', 'Voile de chargement masque automatiquement apres 60 s');
+    }, 60000);
+    var texte = document.getElementById('loaderMessage');
+    if (texte) {
+        texte.textContent = message || 'Chargement…';
+    }
+    var voileEnCours = document.getElementById('loader');
+    if (voileEnCours && voileEnCours.classList.contains('actif')) {
+        return;
+    }
+    if (_loaderDelai) {
+        return;
+    }
+    _loaderDelai = setTimeout(function () {
+        _loaderDelai = null;
+        var voile = document.getElementById('loader');
+        if (voile) {
+            voile.classList.add('actif');
+        }
+    }, 250);
+}
+function masquerLoader() {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+        _loaderTimeout = null;
+    }
+    if (_loaderDelai) {
+        clearTimeout(_loaderDelai);
+        _loaderDelai = null;
+    }
+    var voile = document.getElementById('loader');
+    if (voile) {
+        void voile.offsetHeight;
+        voile.classList.remove('actif');
+    }
+}
+var _minuterieErreur = null;
+function afficherErreur(message, erreur) {
+    logSecurite('ERREUR', message, erreur);
+    var bandeau = document.getElementById('wErreur');
+    var texte = document.getElementById('wErreurMsg');
+    if (texte) {
+        texte.textContent = message || 'Une erreur est survenue.';
+    }
+    if (bandeau) {
+        bandeau.classList.add('actif');
+    }
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+    }
+    _minuterieErreur = setTimeout(masquerErreur, 10000);
+}
+function masquerErreur() {
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+        _minuterieErreur = null;
+    }
+    var bandeau = document.getElementById('wErreur');
+    if (bandeau) {
+        bandeau.classList.remove('actif');
+    }
+}
+function ecouter(id, evenement, gestionnaire) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(evenement, gestionnaire);
+        return el;
+    }
+    logSecurite('AVERTISSEMENT', 'Element introuvable dans le balisage : ' + id);
+    return null;
+}
+var _confirmResolve = null;
+function _fermerConfirm(val) {
+    var overlay = document.getElementById('wConfirmOverlay');
+    if (overlay)
+        overlay.classList.remove('actif');
+    if (_piegeConfirm) {
+        document.removeEventListener('keydown', _piegeConfirm, true);
+        _piegeConfirm = null;
+    }
+    if (_focusAvantConfirm && typeof _focusAvantConfirm.focus === 'function' && document.contains(_focusAvantConfirm)) {
+        _focusAvantConfirm.focus();
+    }
+    _focusAvantConfirm = null;
+    if (_confirmResolve) {
+        _confirmResolve(val);
+        _confirmResolve = null;
+    }
+}
+ecouter('wConfirmOui', 'click', function () { _fermerConfirm(true); });
+ecouter('wConfirmNon', 'click', function () { _fermerConfirm(false); });
+var _focusAvantConfirm = null;
+var _piegeConfirm = null;
+function confirmerAction(msg) {
+    return new Promise(function (resolve) {
+        _confirmResolve = resolve;
+        var msgEl = document.getElementById('wConfirmMsg');
+        var overlay = document.getElementById('wConfirmOverlay');
+        if (msgEl)
+            msgEl.textContent = msg;
+        if (!overlay) {
+            resolve(false);
+            return;
+        }
+        _focusAvantConfirm = document.activeElement;
+        overlay.classList.add('actif');
+        void overlay.offsetHeight;
+        var premierBouton = overlay.querySelector('button');
+        if (premierBouton) {
+            try {
+                premierBouton.focus();
+            }
+            catch (e) {
+                logSecurite('INFO', 'Focus initial impossible', e);
+            }
+        }
+        _piegeConfirm = function (e) {
+            if (e.key !== 'Tab')
+                return;
+            var f = overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            var vis = [];
+            for (var i = 0; i < f.length; i++) {
+                if (!f[i].disabled)
+                    vis.push(f[i]);
+            }
+            if (!vis.length)
+                return;
+            var prem = vis[0], der = vis[vis.length - 1];
+            if (e.shiftKey && document.activeElement === prem) {
+                e.preventDefault();
+                der.focus();
+            }
+            else if (!e.shiftKey && document.activeElement === der) {
+                e.preventDefault();
+                prem.focus();
+            }
+        };
+        document.addEventListener('keydown', _piegeConfirm, true);
+    });
+}
+var VERSION_WIDGET = '1.2.0';
+var NOM_WIDGET = 'Diplodoublon';
+var HOMOLOGUE = false;
+(function () {
+    var el = document.getElementById('bandeauVersion');
+    if (el)
+        el.textContent = 'v' + VERSION_WIDGET;
+    var badge = document.getElementById('bandeauHomologue');
+    if (badge)
+        badge.hidden = !HOMOLOGUE;
+})();
+logSecurite('INFO', 'Widget Diplodoublon v' + VERSION_WIDGET + ' - initialisation terminée');
+let NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
+const LABEL_TABLE_CENTRALE = "📦 BIBLIOTHÈQUE CENTRALE ⚡";
+var COLONNES_CENTRALE = [
+    { id: 'WIDGET', type: 'Text', label: 'WIDGET' },
+    { id: 'DESCRIPTIF', type: 'Text', label: 'DESCRIPTIF' },
+    { id: 'NOM', type: 'Text', label: 'NOM' },
+    { id: 'CONFIG', type: 'Text', label: 'CONFIG' },
+    { id: 'STATUT', type: 'Text', label: 'STATUT' },
+    { id: 'CONTENU', type: 'Text', label: 'CONTENU' },
+    { id: 'BASE', type: 'Text', label: 'BASE' },
+    { id: 'DATE_CREATION', type: 'Text', label: 'DATE_CREATION' },
+    { id: 'PARAMETRES', type: 'Text', label: 'PARAMÈTRES' },
+    { id: 'FICHIER_XLS_SOURCE', type: 'Text', label: 'FICHIER XLS SOURCE' },
+    { id: 'TABLE_SOURCE', type: 'Text', label: 'TABLE_SOURCE' },
+    { id: 'DATE_MAJ', type: 'Text', label: 'DATE_MAJ' },
+    { id: 'CATEGORIE', type: 'Text', label: 'CATÉGORIE' },
+    { id: 'QUESTION', type: 'Text', label: 'QUESTION' },
+    { id: 'REPONSE', type: 'Text', label: 'RÉPONSE' },
+    { id: 'EPINGLEE', type: 'Bool', label: 'ÉPINGLÉE' },
+    { id: 'POSEE_PAR', type: 'Text', label: 'POSÉE PAR' },
+    { id: 'REPONDUE_PAR', type: 'Text', label: 'RÉPONDUE PAR' },
+    { id: 'PRENOM', type: 'Text', label: 'PRÉNOM' },
+    { id: 'EMAIL', type: 'Text', label: 'EMAIL' },
+    { id: 'TYPE_UTILISATEUR', type: 'Text', label: 'TYPE UTILISATEUR' },
+    { id: 'ROLE_GRIST', type: 'Text', label: 'RÔLE' },
+    { id: 'ACTIF', type: 'Bool', label: 'ACTIF' },
+    { id: 'LIBELLE', type: 'Text', label: 'LIBELLÉ' },
+    { id: 'VOIR_EN_TANT_QUE', type: 'Text', label: 'VOIR EN TANT QUE' },
+    { id: 'TYPE', type: 'Text', label: 'TYPE' },
+    { id: 'CLE', type: 'Text', label: 'CLÉ' },
+    { id: 'VALEUR', type: 'Text', label: 'VALEUR' },
+    { id: 'NOM_PROJET', type: 'Text', label: 'NOM PROJET' },
+    { id: 'COMMANDITAIRE', type: 'Text', label: 'COMMANDITAIRE' },
+    { id: 'CHEF_DE_PROJET', type: 'Text', label: 'CHEF DE PROJET' },
+    { id: 'REFERENT', type: 'Text', label: 'RÉFÉRENT' },
+    { id: 'DEVELOPPEUR', type: 'Text', label: 'DÉVELOPPEUR' },
+    { id: 'DATE_MEP', type: 'Text', label: 'DATE MEP' },
+    { id: 'FINALITE', type: 'Text', label: 'FINALITÉ' },
+    { id: 'VOLUMETRIE', type: 'Text', label: 'VOLUMÉTRIE' },
+    { id: 'INTEGRATIONS', type: 'Text', label: 'INTÉGRATIONS' },
+    { id: 'REGLES_METIER', type: 'Text', label: 'RÈGLES MÉTIER' },
+    { id: 'NOM_PAGE', type: 'Text', label: 'NOM PAGE' },
+    { id: 'NOM_BLOC', type: 'Text', label: 'NOM BLOC' },
+    { id: 'TYPE_BLOC', type: 'Text', label: 'TYPE BLOC' },
+    { id: 'ORDRE', type: 'Numeric', label: 'ORDRE' },
+    { id: 'ICONE', type: 'Text', label: 'ICONE' },
+    { id: 'HTML_COMPLET', type: 'Text', label: 'HTML COMPLET' },
+    { id: 'VERSION_CREATION', type: 'Text', label: 'VERSION CRÉATION' },
+    { id: 'VERSION_MODIF', type: 'Text', label: 'VERSION MODIF' },
+    { id: 'CREE_LE', type: 'DateTime:Europe/Paris', label: 'CRÉÉ LE',
+        isFormula: false, formula: 'NOW()', recalcWhen: 0, recalcDeps: null },
+    { id: 'CREE_PAR', type: 'Text', label: 'CRÉÉ PAR',
+        isFormula: false, formula: 'user.Email', recalcWhen: 0, recalcDeps: null },
+    { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE',
+        isFormula: false, formula: 'NOW()', recalcWhen: 2, recalcDeps: null },
+    { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR',
+        isFormula: false, formula: 'user.Email', recalcWhen: 2, recalcDeps: null },
+    { id: 'PUBLIEE_LE', type: 'DateTime:Europe/Paris', label: 'PUBLIÉE LE' }
+];
+const S = {
+    isGristConnected: false,
+    allRecords: [],
+    allColumns: [],
+    availableTables: [],
+    selectedTable: null,
+    colMeta: {},
+    refCache: {},
+    refCacheParColonne: {},
+    selectedFields: [],
+    duplicateGroups: [],
+    currentGroupIndex: 0,
+    mergeSelections: {},
+    cumulateSelections: {},
+    keepRecordChoices: {},
+    excludedRecords: {},
+    hideIdentical: false,
+    hideFormulas: true,
+    sortMode: 'default',
+    searchQuery: '',
+    currentStep: 1,
+    mergeCount: 0,
+    mergeErrors: 0,
+};
+const $ = (id) => document.getElementById(id);
+const MARQUEUR_ERREUR = '⚠ Erreur';
+function relayer(promesse, quoi) {
+    if (promesse && typeof promesse.catch === 'function') {
+        promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
+    }
+    return promesse;
+}
+function estValeurEnErreur(v) {
+    return Array.isArray(v) && v[0] === 'E';
+}
+function valStr(v) {
+    if (v == null)
+        return '';
+    if (Array.isArray(v)) {
+        if (v[0] === 'E')
+            return MARQUEUR_ERREUR;
+        return (v[0] === 'L' ? v.slice(1) : v).join(', ');
+    }
+    return String(v);
+}
+function isMulti(fid, recs) {
+    for (const r of recs) {
+        const v = r[fid];
+        if (Array.isArray(v))
+            return true;
+        if (typeof v === 'string' && v.split(/[,;]+/).map(s => s.trim()).filter(Boolean).length > 1)
+            return true;
+    }
+    return false;
+}
+function isHelper(id) {
+    return /^gristHelper_/i.test(id) || id === 'manualSort';
+}
+function normalize(v) {
+    return valStr(v)
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\s\u00a0\u202f]+/g, ' ')
+        .trim();
+}
+function typeCategory(colType) {
+    if (!colType)
+        return 'Non défini';
+    const t = colType.toLowerCase();
+    if (t === 'any')
+        return 'Non défini';
+    if (t === 'text')
+        return 'Texte';
+    if (t === 'numeric')
+        return 'Numérique';
+    if (t === 'int')
+        return 'Entier';
+    if (t === 'bool')
+        return 'Booléen';
+    if (t === 'date')
+        return 'Date';
+    if (t.startsWith('datetime'))
+        return 'Date et Heure';
+    if (t === 'choice')
+        return 'Choix unique';
+    if (t === 'choicelist')
+        return 'Choix multiple';
+    if (t.startsWith('ref:'))
+        return 'Référence';
+    if (t.startsWith('reflist:'))
+        return 'Référence multiple';
+    if (t === 'attachments')
+        return 'Pièce jointe';
+    return 'Non défini';
+}
+function typeCategoryShort(cat) {
+    const m = {
+        'Non défini': '?',
+        'Texte': 'TXT',
+        'Numérique': 'NUM',
+        'Entier': 'INT',
+        'Booléen': 'BOOL',
+        'Date': 'DATE',
+        'Date et Heure': 'DATEH',
+        'Choix unique': 'CHOIX',
+        'Choix multiple': 'MCHOIX',
+        'Référence': 'REF',
+        'Référence multiple': 'REFL',
+        'Pièce jointe': 'FILE'
+    };
+    return m[cat] || '?';
+}
+function formatDate(val, withTime) {
+    if (val == null || val === '' || val === 0)
+        return '';
+    const ts = typeof val === 'number' ? val : parseFloat(val);
+    if (isNaN(ts))
+        return String(val);
+    try {
+        const d = new Date(ts * 1000);
+        if (isNaN(d.getTime()))
+            return String(val);
+        if (withTime) {
+            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    catch (_) {
+        return String(val);
+    }
+}
+function cacheRefDeColonne(colId, meta) {
+    if (!meta || !meta.refTable)
+        return null;
+    const cle = S.refCacheParColonne ? S.refCacheParColonne[colId] : null;
+    if (cle && S.refCache[cle])
+        return S.refCache[cle];
+    return S.refCache[meta.refTable] || null;
+}
+function displayValue(colId, rawVal) {
+    const meta = S.colMeta[colId];
+    if (!meta)
+        return valStr(rawVal);
+    if (Array.isArray(rawVal) && rawVal[0] === 'E')
+        return MARQUEUR_ERREUR;
+    const t = (meta.type || '').toLowerCase();
+    if (t === 'date')
+        return formatDate(rawVal, false);
+    if (t.startsWith('datetime'))
+        return formatDate(rawVal, true);
+    if (t === 'bool') {
+        if (rawVal === true)
+            return 'Oui';
+        if (rawVal === false)
+            return 'Non';
+        return '';
+    }
+    if (t.startsWith('ref:')) {
+        const cache = cacheRefDeColonne(colId, meta);
+        const numId = typeof rawVal === 'number' ? rawVal : parseInt(rawVal, 10);
+        if (cache && numId && cache[numId] != null)
+            return String(cache[numId]);
+        return rawVal ? String(rawVal) : '';
+    }
+    if (t.startsWith('reflist:')) {
+        const cache = cacheRefDeColonne(colId, meta);
+        if (cache && Array.isArray(rawVal)) {
+            const ids = rawVal[0] === 'L' ? rawVal.slice(1) : rawVal;
+            return ids.map(id => cache[id] != null ? String(cache[id]) : String(id)).join(', ');
+        }
+        return valStr(rawVal);
+    }
+    return valStr(rawVal);
+}
+function sortRecords(recs) {
+    const m = S.sortMode;
+    if (m === 'default')
+        return recs;
+    const copy = recs.slice();
+    const asc = m.endsWith('asc');
+    copy.sort((a, b) => (asc ? a.id - b.id : b.id - a.id));
+    return copy;
+}
+function isPureFormula(colId) {
+    const m = S.colMeta[colId];
+    return m && m.formulaKind === 'pure';
+}
+function isDefaultFormula(colId) {
+    const m = S.colMeta[colId];
+    return m && m.formulaKind === 'default';
+}
+function hasAnyFormula(colId) {
+    const m = S.colMeta[colId];
+    return m && (m.formulaKind === 'pure' || m.formulaKind === 'default');
+}
+function getDisplayCols(recs) {
+    let cols = S.allColumns.slice();
+    cols = cols.filter(c => !isHelper(c.id));
+    if (S.hideFormulas)
+        cols = cols.filter(c => !isPureFormula(c.id));
+    cols.sort((a, b) => (a.label || a.id).toLowerCase()
+        .localeCompare((b.label || b.id).toLowerCase()));
+    const compIds = new Set(S.selectedFields.map(f => f.fieldId));
+    const comp = cols.filter(c => compIds.has(c.id));
+    let rest = cols.filter(c => !compIds.has(c.id));
+    let all = [...comp, ...rest];
+    if (recs && S.hideIdentical) {
+        all = all.filter(col => {
+            const vs = recs.map(r => normalize(displayValue(col.id, r[col.id])));
+            return !vs.every(v => v === vs[0]);
+        });
+    }
+    return { comp, rest, all };
+}
+var TAILLE_MAX_SVG = 200000;
+function purifierHTML(contenu, usage) {
+    if (typeof DOMPurify === 'undefined' || !DOMPurify.isSupported) {
+        logSecurite('AVERTISSEMENT', 'Bibliotheque d assainissement indisponible : contenu enrichi non insere');
+        return null;
+    }
+    if (usage !== 'svg') {
+        return null;
+    }
+    return DOMPurify.sanitize(String(contenu), {
+        USE_PROFILES: { svg: true },
+        FORBID_TAGS: ['style', 'foreignObject', 'image', 'use', 'a', 'animate', 'animateTransform', 'animateMotion', 'set']
+    });
+}
+function injecterSvgSecurise(container, svgTexte) {
+    container.textContent = '';
+    if (!svgTexte)
+        return false;
+    if (String(svgTexte).length > TAILLE_MAX_SVG) {
+        logSecurite('AVERTISSEMENT', 'Logo trop volumineux, ignore');
+        return false;
+    }
+    const propre = purifierHTML(svgTexte, 'svg');
+    if (!propre)
+        return false;
+    const wrap = document.createElement('div');
+    wrap.className = 'w-bandeau__logo-wrap';
+    wrap.innerHTML = propre;
+    const svg = wrap.firstElementChild;
+    if (!svg || wrap.children.length !== 1 || String(svg.nodeName).toLowerCase() !== 'svg') {
+        logSecurite('AVERTISSEMENT', 'Logo hors format SVG');
+        return false;
+    }
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    container.appendChild(wrap);
+    return true;
+}
+function afficherLogoRepli() {
+    const c = document.getElementById('bandeau-logo');
+    if (!c || document.getElementById('logoRepli')) {
+        return;
+    }
+    c.textContent = '';
+    const p = document.createElement('p');
+    p.className = 'fr-logo';
+    p.id = 'logoRepli';
+    p.style.fontSize = '.38rem';
+    p.appendChild(document.createTextNode('Ministère'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode("de l'Europe"));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('et des Affaires'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('étrangères'));
+    c.appendChild(p);
+}
+function genererLogoMEAE() {
+    var cs = getComputedStyle(document.documentElement);
+    var cB = cs.getPropertyValue('--text-action-high-blue-france').trim();
+    var cR = cs.getPropertyValue('--background-flat-error').trim();
+    var cG = cs.getPropertyValue('--text-mention-grey').trim();
+    var svgTpl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.3 200" style="width:100%;height:auto" aria-hidden="true" focusable="false"><g><rect fill="__W__" width="301.3" height="200"/></g><g><path d="M31.4,91.5V70.9h5.3l5,8.5l5-8.5h5.3v20.6h-4.2V76.8l-4.6,7.6h-2.9l-4.6-7.6v14.7H31.4z"/><path d="M57.7,91.5V70.9h4.2v20.6H57.7z"/><path d="M67.6,91.5V70.9H73l9.2,14.8V70.9h4.2v20.6h-5.4l-9.2-14.8v14.8H67.6z"/><path d="M92.2,91.5V70.9h4.2v20.6H92.2z"/><path d="M100.3,88.7l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2c-1-0.9-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2c1,0.9,1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S101.2,89.7,100.3,88.7z"/><path d="M117,74.7v-3.8h16.9v3.8h-6.4v16.8h-4.2V74.7H117z"/><path d="M137.6,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H137.6z M141.7,69.1l-3.8-4h4.3l3.3,4H141.7z"/><path d="M154.5,91.5V70.9h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H154.5z M161,74.4h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S161.9,74.4,161,74.4z"/><path d="M173.9,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H173.9z"/><path d="M31.4,122.7v-20.7h8.1c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H31.4z M39.6,105.9h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S40.5,105.9,39.6,105.9z"/><path d="M54.5,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H54.5z"/><path d="M79.1,122.7v-20.7h4.2v16.8h7.8v3.8H79.1z"/><path d="M93.7,110.6h-3.5l2.7-8.5h4.2L93.7,110.6z"/><path d="M100.4,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H100.4z"/><path d="M129.3,115v-12.9h4.2v12.6c0,2.7-0.8,4.8-2.3,6.4s-3.5,2.3-6.1,2.3s-4.6-0.8-6.1-2.3s-2.2-3.7-2.2-6.4v-12.6h4.2V115c0,1.4,0.4,2.5,1.1,3.2s1.8,1.2,3.1,1.2s2.3-0.4,3-1.2S129.3,116.4,129.3,115z"/><path d="M138.7,122.7v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H138.7z M145.3,105.6h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S146.2,105.6,145.3,105.6z"/><path d="M167.2,101.5c1.6,0,3.1,0.3,4.4,0.9s2.5,1.4,3.5,2.4s1.7,2.1,2.2,3.5s0.8,2.7,0.8,4.2s-0.3,2.9-0.8,4.2s-1.3,2.5-2.2,3.5s-2.1,1.8-3.5,2.4s-2.8,0.9-4.4,0.9s-3.1-0.3-4.5-0.9s-2.5-1.4-3.5-2.4s-1.7-2.1-2.2-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4S165.6,101.5,167.2,101.5z M167.2,119.4c1,0,1.9-0.2,2.7-0.5s1.5-0.9,2.1-1.5s1-1.4,1.4-2.2s0.5-1.8,0.5-2.8s-0.2-1.9-0.5-2.8s-0.8-1.6-1.4-2.2s-1.3-1.1-2.1-1.5s-1.7-0.5-2.7-0.5s-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.3,1.1,2.1,1.5S166.2,119.4,167.2,119.4z"/><path d="M182.1,122.7v-20.7h6.8c2.3,0,4,0.6,5.4,1.7s2,2.6,2,4.5s-0.7,3.4-2,4.5s-3.1,1.7-5.4,1.7h-2.6v8.3H182.1z M189.1,105.6h-2.8v5.2h2.8c0.9,0,1.6-0.2,2.1-0.7s0.8-1.1,0.8-1.9s-0.3-1.4-0.8-1.9S190,105.6,189.1,105.6z"/><path d="M199.7,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H199.7z"/><path d="M31.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z"/><path d="M46.6,137.1v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M74.9,153.9v-20.7H83c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H74.9z M83.1,137.1h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S84,137.1,83.1,137.1z"/><path d="M98,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H98z"/><path d="M113.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S114,152.1,113.1,151.1z"/><path d="M137,153.9l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H137z M144.8,145h5.7l-2.8-7.8L144.8,145z"/><path d="M161.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H161.4z"/><path d="M177.1,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H177.1z"/><path d="M188.3,153.9l7.8-20.7h5.5l7.8,20.7H205l-2-5.4h-8.3l-2,5.4H188.3z M196,145h5.7l-2.8-7.8L196,145z"/><path d="M212.6,153.9v-20.7h4.2v20.7H212.6z"/><path d="M222.6,153.9v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H222.6z M229.1,136.8h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S230,136.8,229.1,136.8z"/><path d="M242,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H242z"/><path d="M257.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S258,152.1,257.1,151.1z"/><path d="M31.4,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z M39.3,162.7h-3.8l3.3-4h4.3L39.3,162.7z"/><path d="M46.6,168.3v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M67.2,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H67.2z M73.8,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S74.7,168,73.8,168z"/><path d="M85,185.1l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H85z M92.7,176.2h5.7l-2.8-7.8L92.7,176.2z"/><path d="M109.3,185.1v-20.7h5.4l9.2,14.8v-14.8h4.2v20.7h-5.4l-9.2-14.8v14.8H109.3z"/><path d="M143.3,181.8c1,0,1.9-0.2,2.7-0.5s1.5-0.8,2.1-1.3v-3.5h-5.3v-3.8h9.4v8.8c-1,1.3-2.2,2.3-3.8,3.1s-3.3,1.2-5.2,1.2c-1.7,0-3.2-0.3-4.6-0.9s-2.6-1.4-3.6-2.4s-1.8-2.1-2.3-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4s2.8-0.9,4.5-0.9c1.9,0,3.5,0.4,5,1.2s2.7,1.8,3.7,3l-3.3,2.6c-0.6-0.8-1.3-1.5-2.3-2.1s-2-0.8-3.1-0.8c-1,0-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.4,1.1,2.2,1.5S142.3,181.8,143.3,181.8z"/><path d="M157,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H157z M161.2,162.7l-3.8-4h4.3l3.3,4H161.2z"/><path d="M173.9,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H173.9z M180.4,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S181.3,168,180.4,168z"/><path d="M193.3,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H193.3z"/><path d="M208.4,182.3l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S209.3,183.3,208.4,182.3z"/></g><g><path fill="__B__" d="M63.6,53.3c0.3-0.3,0.6-0.6,0.9-1h0c0.6-0.6,1.1-1.3,1.8-1.8c0.2-0.2,0.4-0.3,0.6-0.5c0.1-0.1,0.1-0.2,0.1-0.2c-0.3,0.1-0.4,0.3-0.7,0.4c-0.1,0-0.1-0.1-0.1-0.1c0.2-0.1,0.4-0.3,0.6-0.4c-0.1,0-0.1-0.1-0.1-0.1C66,49.6,65.5,50,65,50.5c-0.1,0.1-0.2-0.1-0.3-0.1c-0.8,0.3-1.4,1-2.2,1.3v-0.1c-0.3,0.1-0.6,0.3-1,0.4c-0.5,0.1-0.9,0.1-1.3,0.1c-0.6,0.1-1.3,0.2-1.9,0.3c-0.3,0.1-0.7,0.2-1,0.4c0,0-0.1,0.1-0.1,0.1c-0.1,0.1-0.2,0.2-0.4,0.3c-0.3,0.2-0.6,0.5-0.9,0.7c-0.3,0.3-0.6,0.6-0.9,0.8c0,0,0,0,0-0.1c0-0.1,0.1-0.2,0.1-0.2c0.1-0.1,0.1-0.2,0.2-0.2c0.1-0.1,0.1-0.2,0.2-0.3c0.3-0.3,0.6-0.5,0.9-0.7c0,0,0.1-0.1,0.1-0.1C56.1,52.9,56,53,55.9,53c-0.1,0.1-0.2,0.4-0.4,0.3c0,0,0,0,0-0.1c0,0,0-0.1,0.1-0.1c0,0,0-0.1,0.1-0.1c0.1-0.1,0.2-0.2,0.4-0.3c0.2-0.1,0.4-0.2,0.6-0.3c0,0,0.1-0.1,0.1-0.1c-0.3,0.1-0.6,0.2-0.9,0.4c0.1-0.1,0.2-0.2,0.3-0.3c1.7-1.3,4.1-1,6.1-1.7c0.2-0.1,0.3-0.2,0.5-0.3c0.3-0.1,0.5-0.4,0.8-0.5c0.4-0.3,0.7-0.7,0.9-1.2c0-0.1-0.1-0.1-0.1-0.1c-0.7,0.8-1.5,1.3-2.4,1.8c-1.1,0.6-2.4,0.5-3.5,0.6c0.1-0.1,0.2-0.1,0.3-0.1c0-0.2,0.1-0.2,0.2-0.3H59c0.1,0,0.1-0.1,0.1-0.1c0.1,0,0.3-0.1,0.2-0.1c-0.2-0.2-0.5,0.2-0.8,0c0.1-0.1,0.1-0.3,0.2-0.3h0.2c0-0.1,0.1-0.2,0.1-0.2c0.8-0.5,1.6-0.9,2.3-1.3c-0.2,0-0.3,0.2-0.4,0.1c0.1,0,0-0.2,0.1-0.2c0.6-0.2,1.1-0.5,1.7-0.7c-0.2,0-0.4,0.2-0.6,0c0.1-0.1,0.2-0.2,0.3-0.2v-0.2c0-0.1,0.1-0.1,0.1-0.1c-0.1,0-0.1-0.1-0.1-0.1c0.1-0.1,0.2-0.1,0.3-0.2c-0.1,0-0.2,0-0.2-0.1c0.2-0.2,0.4-0.3,0.7-0.3c-0.1-0.1-0.2,0-0.2-0.1c0-0.1,0.1-0.1,0.1-0.1H63c-0.1-0.1-0.1-0.2-0.1-0.2c0.3-0.4,0.3-0.9,0.5-1.3c-0.5,0.6-1.4,0.8-2.2,1h-0.3c-0.3,0.1-0.6,0.1-0.9-0.1c-0.2-0.1-0.3-0.3-0.5-0.4c-0.4-0.3-0.9-0.5-1.3-0.6C56.8,44.2,55.4,44,54,44c0.6-0.3,1.2-0.3,1.9-0.5c0.9-0.3,1.8-0.6,2.7-0.5c-0.2-0.1-0.4,0-0.5,0c-0.8-0.1-1.5,0.2-2.3,0.3c-0.5,0.1-1,0.3-1.6,0.4c-0.3,0.1-0.5,0.4-0.9,0.4v-0.2c0.5-0.6,1.2-1.3,2-1.3c1-0.2,1.9,0,2.8,0.1c0.7,0.1,1.3,0.2,2,0.4c0.3,0,0.3,0.4,0.5,0.5c0.3,0.1,0.6,0,1,0.2c0-0.1-0.1-0.2,0-0.3c0.2-0.2,0.5,0.1,0.7-0.1c0.4-0.3-0.4-0.7-0.6-1.1c0-0.1,0.1-0.1,0.1-0.1c0.4,0.4,0.7,0.8,1.3,1.1c0.3,0.1,0.9,0.3,0.8-0.1c-0.3-0.6-0.8-1.1-1.2-1.6v-0.2c-0.1,0-0.1-0.1-0.2-0.1V41c-0.2-0.1-0.2-0.3-0.3-0.5c-0.2-0.3-0.1-0.6-0.2-1C62.1,39.3,62,39,62,38.7c-0.2-0.9-0.4-1.7-0.5-2.6c-0.1-1,0.6-1.8,1.1-2.7c0.4-0.6,0.8-1.3,1.5-1.7c0.2-0.6,0.6-1.2,1-1.7c0.4-0.5,1.1-0.8,1.7-1.1c0.7-0.3,1.4-0.5,1.4-0.5H31.4v28.3h26c1-0.7,2-1.1,3.5-1.8C61.5,54.6,63.1,53.9,63.6,53.3"/><path fill="__R__" d="M109.3,28.3H78.8c0,0,0.1,0,0.3,0.1c0.2,0.1,0.6,0.3,0.8,0.4c0.4,0.2,0.8,0.5,1,0.9c0.1,0.2,0.3,0.5,0.2,0.7c-0.1,0.3-0.2,0.7-0.4,0.8c-0.3,0.2-0.7,0.2-1.1,0.1c-0.2,0-0.4-0.1-0.6-0.1c0.8,0.3,1.6,0.7,2.1,1.4c0.1,0.1,0.3,0.2,0.5,0.2c0.1,0,0.1,0.1,0.1,0.2c-0.1,0.1-0.2,0.2-0.2,0.3h0.2c0.3-0.1,0.2-0.6,0.6-0.5c0.3,0.2,0.4,0.5,0.2,0.8c-0.2,0.2-0.4,0.4-0.6,0.5c-0.1,0.1-0.1,0.3,0,0.4c0.2,0.2,0.2,0.4,0.3,0.6c0.2,0.4,0.2,0.8,0.4,1.2c0.2,0.8,0.4,1.6,0.4,2.4c0,0.4-0.2,0.8-0.1,1.2c0.1,0.4,0.4,0.8,0.6,1.1c0.2,0.3,0.4,0.5,0.6,0.9c0.3,0.5,0.9,1.1,0.6,1.7c-0.2,0.4-0.8,0.3-1.1,0.5c-0.3,0.3-0.1,0.7,0.1,1c0.3,0.5-0.3,0.8-0.7,1c0.1,0.2,0.3,0.1,0.4,0.2c0.1,0.3,0.3,0.4,0.2,0.7c-0.2,0.3-0.9,0.5-0.5,1c0.2,0.4,0.1,0.8-0.1,1.2c-0.2,0.5-0.6,0.7-1,0.8c-0.3,0.1-0.7,0.1-1,0.1c-0.9-0.1-1.8-0.4-2.7-0.4c-0.3,0.1-0.5,0.1-0.7,0.2c-0.2,0.2-0.5,0.4-0.6,0.6c0,0-0.1,0.1-0.1,0.1c0,0,0,0.1-0.1,0.1c-0.2,0.2-0.3,0.4-0.4,0.6c0,0,0,0.1,0,0.1c-0.2,0.3-0.3,0.7-0.4,1c-0.4,1.2-0.2,2.3,0.1,2.5c0.1,0.1,1.8,0.6,2.9,1.1c0.6,0.2,0.9,0.4,1.3,0.6h29.9V28.3z"/><path fill="__G__" d="M80.7,38.7c0.2,0.1,0.5,0.1,0.5,0.2c-0.1,0.4-0.7,0.5-1.1,1H80c-0.2,0.1-0.1,0.4-0.3,0.4c-0.2-0.1-0.3,0-0.5,0.1c0.2,0.2,0.5,0.4,0.8,0.3c0.1,0,0.2,0.1,0.2,0.2c0,0,0.1,0,0.1-0.1c0.1,0,0.1,0,0.1,0.1V41c-0.2,0.2-0.4,0.1-0.6,0.2c0.4,0.1,0.9,0.1,1.2,0c0.3-0.1,0-0.6,0.2-0.9c-0.1,0,0-0.2-0.1-0.2c0.1-0.1,0.2-0.3,0.3-0.3c0.1,0,0.3-0.1,0.3-0.2c0-0.1-0.2-0.2-0.2-0.3c0.3-0.2,0.6-0.5,0.5-0.9c-0.1-0.2-0.5-0.2-0.8-0.3c-0.3-0.1-0.6,0-0.9,0.1c-0.3,0-0.5,0.2-0.8,0.2c-0.4,0.1-0.7,0.3-1,0.5c0.4-0.2,0.8-0.2,1.2-0.3C80.1,38.7,80.3,38.6,80.7,38.7"/></g></svg>';
+    return svgTpl.replace(/__W__/g, 'white').replace(/__B__/g, cB).replace(/__R__/g, cR).replace(/__G__/g, cG);
+}
+function trouverTableCentrale(ids) {
+    const liste = ids || [];
+    for (let i = 0; i < liste.length; i++) {
+        if (String(liste[i]).toUpperCase().indexOf('BIBLIOTHEQUE_CENTRALE') !== -1)
+            return liste[i];
+    }
+    return null;
+}
+async function reparerSchemaCentrale() {
+    if (!NOM_TABLE_CENTRALE)
+        return;
+    try {
+        var metaT = await grist.docApi.fetchTable('_grist_Tables');
+        var refTable = null;
+        for (var t = 0; t < (metaT.tableId || []).length; t++) {
+            if (metaT.tableId[t] === NOM_TABLE_CENTRALE) {
+                refTable = metaT.id[t];
+                break;
+            }
+        }
+        if (refTable === null)
+            return;
+        var cols = await grist.docApi.fetchTable('_grist_Tables_column');
+        var presentes = {};
+        for (var c = 0; c < (cols.id || []).length; c++) {
+            if (cols.parentId[c] === refTable) {
+                presentes[cols.colId[c]] = {
+                    type: cols.type[c],
+                    formule: String((cols.formula || [])[c] || ''),
+                    estFormule: Boolean((cols.isFormula || [])[c])
+                };
+            }
+        }
+        var ajoutees = [], formulesPosees = [], divergentes = [];
+        for (var k = 0; k < COLONNES_CENTRALE.length; k++) {
+            var col = COLONNES_CENTRALE[k];
+            var etat = presentes[col.id];
+            if (etat === undefined) {
+                var creee = false;
+                try {
+                    await ecrireDocument([['AddColumn', NOM_TABLE_CENTRALE, col.id, {}]]);
+                    creee = true;
+                }
+                catch (eCol) {
+                    logSecurite('INFO', 'Colonne ' + col.id + ' non ajoutée (déjà présente ou droits insuffisants)', eCol);
+                }
+                if (creee) {
+                    var propr = { type: col.type, label: col.label };
+                    if (col.formula) {
+                        propr.isFormula = false;
+                        propr.formula = col.formula;
+                        propr.recalcWhen = col.recalcWhen === undefined ? 0 : col.recalcWhen;
+                        propr.recalcDeps = col.recalcDeps === undefined ? null : col.recalcDeps;
+                    }
+                    try {
+                        await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, col.id, propr]]);
+                        ajoutees.push(col.id);
+                    }
+                    catch (eMod) {
+                        divergentes.push(col.id + ' : créée mais laissée en texte, type ' + col.type + ' non appliqué');
+                        logSecurite('AVERTISSEMENT', 'Propriétés de la colonne ' + col.id + ' non appliquées', eMod);
+                    }
+                }
+                continue;
+            }
+            if (etat.type !== col.type) {
+                divergentes.push(col.id + ' : type ' + col.type + ' attendu, ' + etat.type + ' trouvé');
+                continue;
+            }
+            if (col.formula && (etat.formule.trim() !== String(col.formula).trim() || etat.estFormule)) {
+                try {
+                    await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, col.id, {
+                                isFormula: false,
+                                formula: col.formula,
+                                recalcWhen: col.recalcWhen === undefined ? 0 : col.recalcWhen,
+                                recalcDeps: col.recalcDeps === undefined ? null : col.recalcDeps
+                            }]]);
+                    formulesPosees.push(col.id);
+                }
+                catch (eF) {
+                    logSecurite('INFO', 'Formule de déclenchement non posée sur ' + col.id, eF);
+                }
+            }
+        }
+        if (ajoutees.length)
+            logSecurite('INFO', 'Schéma de la bibliothèque complété', { colonnes: ajoutees });
+        if (formulesPosees.length)
+            logSecurite('INFO', 'Formules de déclenchement rétablies', { colonnes: formulesPosees });
+        if (divergentes.length)
+            logSecurite('AVERTISSEMENT', 'Colonnes au type inattendu, laissées en l’état : à corriger à la main dans la bibliothèque', { colonnes: divergentes });
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Vérification du schéma de la bibliothèque impossible', e);
+    }
+}
+async function assurerTableCentrale() {
+    try {
+        const meta = await grist.docApi.fetchTable('_grist_Tables');
+        const dejaLa = trouverTableCentrale(meta.tableId);
+        if (dejaLa) {
+            NOM_TABLE_CENTRALE = dejaLa;
+            await reparerSchemaCentrale();
+            return true;
+        }
+        var metaAvantAdd = await grist.docApi.fetchTable('_grist_Tables');
+        var dejaCreee = trouverTableCentrale(metaAvantAdd.tableId);
+        if (dejaCreee) {
+            NOM_TABLE_CENTRALE = dejaCreee;
+            await reparerSchemaCentrale();
+            logSecurite('INFO', 'Bibliothèque déjà créée entre-temps', { tableId: dejaCreee });
+        }
+        else {
+            var COLONNES_A_CREER = COLONNES_CENTRALE
+                .map(function (c) { return { id: c.id, type: c.type, label: c.label }; });
+            var retAddBiblio = await ecrireDocument([['AddTable', NOM_TABLE_CENTRALE, COLONNES_A_CREER]]);
+            if (retAddBiblio && retAddBiblio.retValues && retAddBiblio.retValues[0] && retAddBiblio.retValues[0].table_id)
+                NOM_TABLE_CENTRALE = retAddBiblio.retValues[0].table_id;
+            for (var iF = 0; iF < COLONNES_CENTRALE.length; iF++) {
+                var colF = COLONNES_CENTRALE[iF];
+                if (!colF.formula) {
+                    continue;
+                }
+                try {
+                    await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, colF.id, {
+                                isFormula: false,
+                                formula: colF.formula,
+                                recalcWhen: colF.recalcWhen === undefined ? 0 : colF.recalcWhen,
+                                recalcDeps: colF.recalcDeps === undefined ? null : colF.recalcDeps
+                            }]]);
+                }
+                catch (eF) {
+                    logSecurite('AVERTISSEMENT', 'Formule de déclenchement non posée sur ' + colF.id, eF);
+                }
+            }
+        }
+        logSecurite('INFO', 'Bibliotheque centrale creee');
+        try {
+            const meta2 = await grist.docApi.fetchTable('_grist_Tables');
+            for (let j = 0; j < meta2.id.length; j++) {
+                if (meta2.tableId[j] === NOM_TABLE_CENTRALE && meta2.rawViewSectionRef[j]) {
+                    await ecrireDocument([['UpdateRecord', '_grist_Views_section', meta2.rawViewSectionRef[j], { title: LABEL_TABLE_CENTRALE }]]);
+                    const pvId = meta2.primaryViewId ? meta2.primaryViewId[j] : null;
+                    if (pvId) {
+                        try {
+                            await ecrireDocument([['RemoveRecord', '_grist_Views', pvId]]);
+                            logSecurite('INFO', 'Page auto-creee supprimee (bibliotheque centrale)');
+                        }
+                        catch (ep) {
+                            logSecurite('INFO', 'Page auto-créée déjà absente', ep);
+                        }
+                    }
+                    break;
+                }
+            }
+            const meta3 = await grist.docApi.fetchTable('_grist_Tables');
+            const ids3 = meta3.tableId || [];
+            for (let m = 0; m < ids3.length; m++) {
+                if (ids3[m].toUpperCase().indexOf('BIBLIOTHEQUE_CENTRALE') !== -1) {
+                    NOM_TABLE_CENTRALE = ids3[m];
+                    logSecurite('INFO', 'TableId reel apres renommage : ' + NOM_TABLE_CENTRALE);
+                    break;
+                }
+            }
+        }
+        catch (e2) {
+            logSecurite('AVERTISSEMENT', 'Renommage de la bibliothèque impossible, la table reste utilisable', e2);
+        }
+        await reparerSchemaCentrale();
+        return true;
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Creation de la bibliotheque centrale impossible', e);
+        return false;
+    }
+}
+async function chargerLogoDepuisBiblio() {
+    const container = document.getElementById('bandeau-logo');
+    if (!container)
+        return;
+    try {
+        const data = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
+        let logoSvg = null;
+        for (let i = 0; i < (data.id || []).length; i++) {
+            if ((data.WIDGET ? data.WIDGET[i] : '') === '__RESSOURCE__' && (data.NOM ? data.NOM[i] : '') === 'LOGO_SVG') {
+                logoSvg = data.CONTENU ? data.CONTENU[i] : '';
+                break;
+            }
+        }
+        if (!logoSvg) {
+            logoSvg = genererLogoMEAE();
+            try {
+                await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, {
+                            WIDGET: '__RESSOURCE__', NOM: 'LOGO_SVG', CONTENU: logoSvg
+                        }]]);
+            }
+            catch (eAdd) {
+                logSecurite('INFO', 'Stockage du logo non possible, affichage local', eAdd);
+            }
+        }
+        if (!injecterSvgSecurise(container, logoSvg))
+            afficherLogoRepli();
+    }
+    catch (e) {
+        logSecurite('INFO', 'Bibliotheque illisible, logo genere localement', e);
+        if (!injecterSvgSecurise(container, genererLogoMEAE()))
+            afficherLogoRepli();
+    }
+}
+function initGrist() {
+    afficherLoader('Connexion au document…');
+    try {
+        grist.onRecords(() => {
+            S.isGristConnected = true;
+        });
+        grist.docApi.fetchTable('_grist_Tables').then(meta => {
+            S.isGristConnected = true;
+            const tables = (meta.tableId || []).filter(t => !estTableExclue(t));
+            S.availableTables = tables;
+            populateTableSelect(tables);
+            assurerTableCentrale()
+                .then(chargerLogoDepuisBiblio)
+                .catch(eBib => {
+                logSecurite('AVERTISSEMENT', 'Bibliothèque centrale ou logo indisponible', eBib);
+                afficherLogoRepli();
+            });
+            masquerLoader();
+        }).catch(e => {
+            masquerLoader();
+            afficherLogoRepli();
+            afficherErreur('Impossible de charger les tables.', e);
+        });
+    }
+    catch (e) {
+        masquerLoader();
+        afficherLogoRepli();
+        afficherErreur('Connexion au document impossible.', e);
+    }
+}
+function estTableExclue(tid) {
+    if (!tid) {
+        return true;
+    }
+    var brut = String(tid);
+    var up = brut.toUpperCase();
+    if (brut.indexOf('_grist') === 0) {
+        return true;
+    }
+    if (brut.indexOf('GristHidden_') === 0) {
+        return true;
+    }
+    if (brut === 'GristDocTour') {
+        return true;
+    }
+    if (up === 'BIBLIOTHEQUE_CENTRALE') {
+        return true;
+    }
+    if (up.indexOf('BIBLIOTHEQUE') !== -1 && brut.charAt(brut.length - 1) === '_') {
+        return true;
+    }
+    if (up.indexOf('ONLY') !== -1) {
+        return true;
+    }
+    if (up.indexOf('_SUMMARY_') !== -1 || up.indexOf('GRISTSUMMARY_') !== -1) {
+        return true;
+    }
+    return false;
+}
+function populateTableSelect(tables) {
+    $('tableSelect').innerHTML =
+        '<option value="">-- Sélectionnez une table --</option>' +
+            tables
+                .map(t => '<option value="' + echapperHTML(t) + '">' + echapperHTML(t) + '</option>')
+                .join('');
+}
+async function loadTableFull(tableName) {
+    if (!S.isGristConnected || !tableName)
+        return;
+    try {
+        afficherLoader('Chargement…');
+        await fetchColMeta(tableName);
+        await fetchTableData(tableName);
+        await resolveReferences();
+        majStats();
+        masquerLoader();
+    }
+    catch (e) {
+        masquerLoader();
+        logSecurite('ERREUR', 'Chargement des donnees', e);
+        afficherErreur('Impossible de charger les données de la table. Veuillez réessayer.', e);
+    }
+}
+async function fetchColMeta(tableName) {
+    try {
+        const tMeta = await grist.docApi.fetchTable('_grist_Tables');
+        let tableRef = null;
+        for (let i = 0; i < tMeta.id.length; i++) {
+            if (tMeta.tableId[i] === tableName) {
+                tableRef = tMeta.id[i];
+                break;
+            }
+        }
+        if (tableRef == null)
+            return;
+        const cMeta = await grist.docApi.fetchTable('_grist_Tables_column');
+        S.colMeta = {};
+        for (let i = 0; i < cMeta.id.length; i++) {
+            if (cMeta.parentId[i] !== tableRef)
+                continue;
+            const colId = cMeta.colId[i];
+            const colType = cMeta.type[i] || 'Any';
+            const label = (cMeta.label && cMeta.label[i]) || colId;
+            const visibleCol = (cMeta.visibleCol && cMeta.visibleCol[i]) || 0;
+            const isFormulaFlag = !!((cMeta.isFormula && cMeta.isFormula[i]));
+            const formulaText = (cMeta.formula && cMeta.formula[i]) || '';
+            const hasFormula = formulaText && String(formulaText).trim().length > 0;
+            let formulaKind = 'none';
+            if (isFormulaFlag && hasFormula)
+                formulaKind = 'pure';
+            else if (!isFormulaFlag && hasFormula)
+                formulaKind = 'default';
+            let refTable = null;
+            const lower = colType.toLowerCase();
+            if (lower.startsWith('ref:') || lower.startsWith('reflist:')) {
+                refTable = colType.split(':')[1];
+            }
+            S.colMeta[colId] = {
+                type: colType,
+                label,
+                visibleCol,
+                refTable,
+                isFormula: isFormulaFlag,
+                hasFormula: hasFormula,
+                formulaKind: formulaKind,
+                _order: i
+            };
+        }
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Metadonnees colonnes indisponibles', e);
+    }
+}
+async function fetchTableData(tableName) {
+    const td = await grist.docApi.fetchTable(tableName);
+    if (!td || !td.id)
+        return;
+    const cols = Object.keys(td).filter(k => k !== 'id');
+    S.allColumns = cols.map((c, i) => {
+        const meta = S.colMeta[c];
+        return { id: c, label: meta ? meta.label : c, _order: meta ? meta._order : i };
+    });
+    S.allRecords = [];
+    for (let i = 0; i < td.id.length; i++) {
+        const rec = { id: td.id[i] };
+        cols.forEach(c => { rec[c] = td[c][i]; });
+        S.allRecords.push(rec);
+    }
+}
+async function resolveReferences() {
+    const refTables = new Set();
+    for (const colId in S.colMeta) {
+        const m = S.colMeta[colId];
+        if (m.refTable)
+            refTables.add(m.refTable);
+    }
+    if (refTables.size === 0)
+        return;
+    let colIdMap = {};
+    try {
+        const cmt = await grist.docApi.fetchTable('_grist_Tables_column');
+        for (let i = 0; i < cmt.id.length; i++) {
+            colIdMap[cmt.id[i]] = cmt.colId[i];
+        }
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Lecture des metadonnees de colonnes impossible', e);
+    }
+    S.refCache = {};
+    S.refCacheParColonne = {};
+    const aCharger = new Map();
+    for (const colId in S.colMeta) {
+        const m = S.colMeta[colId];
+        if (!m.refTable)
+            continue;
+        const dc = (m.visibleCol && colIdMap[m.visibleCol]) ? colIdMap[m.visibleCol] : null;
+        const cle = m.refTable + '\u0000' + (dc || '');
+        S.refCacheParColonne[colId] = cle;
+        if (!aCharger.has(cle))
+            aCharger.set(cle, { table: m.refTable, displayCol: dc });
+    }
+    for (const [cle, e] of aCharger) {
+        const rt = e.table;
+        try {
+            const rtData = await grist.docApi.fetchTable(rt);
+            if (!rtData || !rtData.id)
+                continue;
+            let displayCol = e.displayCol;
+            if (!displayCol) {
+                const rtCols = Object.keys(rtData).filter(k => k !== 'id');
+                const priorities = ['Name', 'name', 'Nom', 'nom', 'Label', 'label',
+                    'Title', 'title', 'Titre', 'titre', 'Libelle', 'libelle',
+                    'Description', 'description'];
+                for (const p of priorities) {
+                    if (rtCols.includes(p)) {
+                        displayCol = p;
+                        break;
+                    }
+                }
+                if (!displayCol && rtCols.length)
+                    displayCol = rtCols[0];
+            }
+            if (!displayCol || !rtData[displayCol])
+                continue;
+            const cache = {};
+            for (let i = 0; i < rtData.id.length; i++) {
+                cache[rtData.id[i]] = rtData[displayCol][i];
+            }
+            S.refCache[cle] = cache;
+            if (!S.refCache[rt])
+                S.refCache[rt] = cache;
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Resolution ref table impossible: ' + rt, e);
+        }
+    }
+}
+function goToStep(n, sansDefiler) {
+    const step = validerNombre(n, 1, 3, 1);
+    S.currentStep = step;
+    for (var i = 1; i <= 3; i++) {
+        var el = $('num' + i);
+        var sec = $('section' + i);
+        el.className = 'w-section__num';
+        if (i < step) {
+            el.classList.add('w-section__num--done');
+            el.textContent = '✓';
+            sec.classList.remove('w-section--locked');
+        }
+        else if (i === step) {
+            el.classList.add('w-section__num--active');
+            el.textContent = String(i);
+            sec.classList.remove('w-section--locked');
+        }
+        else {
+            el.classList.add('w-section__num--locked');
+            el.textContent = String(i);
+            sec.classList.add('w-section--locked');
+        }
+    }
+    panneauAide();
+    if (sansDefiler)
+        return;
+    var target = $('section' + step);
+    if (target)
+        setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+}
+function majRevealSections() {
+    if (S.selectedTable) {
+        goToStep(2);
+    }
+    majScanBtn();
+}
+function majScanBtn() {
+    $('scanBtn').disabled = !S.selectedFields.length;
+}
+function majRecap(nGroups, nDoublons) {
+    var table = echapperHTML(S.selectedTable);
+    var criteres = S.selectedFields.map(function (f) {
+        var col = S.allColumns.find(function (c) { return c.id === f.fieldId; });
+        var nom = col ? col.label : f.fieldId;
+        var mode = f.mode === 'exact' ? 'exact' : 'similaire';
+        return echapperHTML(nom) + ' (' + mode + ')';
+    });
+    var txt = 'Étude de ' + nDoublons + ' doublon' + (nDoublons > 1 ? 's' : '') +
+        ' en ' + nGroups + ' groupe' + (nGroups > 1 ? 's' : '') +
+        ' dans la table <strong>' + table + '</strong>' +
+        ' suivant ' + (criteres.length > 1 ? 'les critères ' : 'le critère ') +
+        criteres.join(', ');
+    $('resolveRecap').innerHTML = txt;
+}
+function resetScan() {
+    S.duplicateGroups = [];
+    S.currentGroupIndex = 0;
+    S.mergeSelections = {};
+    S.cumulateSelections = {};
+    S.keepRecordChoices = {};
+    S.excludedRecords = {};
+    S.mergeCount = 0;
+    S.mergeErrors = 0;
+    $('badgeGroups').style.display = 'none';
+    $('badgeDupes').style.display = 'none';
+    $('alert2').innerHTML = '';
+    if (S.currentStep === 3)
+        goToStep(2, true);
+    const sec3 = $('section3');
+    if (sec3)
+        sec3.classList.add('w-section--locked');
+    var n3 = $('num3');
+    n3.className = 'w-section__num w-section__num--locked';
+    n3.textContent = '3';
+}
+function renderFieldDropdown() {
+    const dd = $('fieldDropdown');
+    const q = S.searchQuery.toLowerCase().trim();
+    const selIds = new Set(S.selectedFields.map(f => f.fieldId));
+    let pool = S.allColumns.filter(c => !selIds.has(c.id));
+    pool = pool.filter(c => !isHelper(c.id));
+    if (S.hideFormulas)
+        pool = pool.filter(c => !isPureFormula(c.id));
+    if (q) {
+        pool = pool.filter(c => {
+            const meta = S.colMeta[c.id];
+            const cat = meta ? typeCategory(meta.type).toLowerCase() : '';
+            const typ = meta ? (meta.type || '').toLowerCase() : '';
+            return c.label.toLowerCase().includes(q)
+                || c.id.toLowerCase().includes(q)
+                || cat.includes(q)
+                || typ.includes(q);
+        });
+    }
+    pool.sort((a, b) => (a.label || a.id).toLowerCase()
+        .localeCompare((b.label || b.id).toLowerCase()));
+    if (!pool.length) {
+        dd.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-mention-grey);font-size:.875rem;">' +
+            (q ? 'Aucun champ ne correspond à « ' + echapperHTML(q) + ' »' : 'Aucun champ disponible') +
+            '</div>';
+        return;
+    }
+    let h = '<div class="w-search__dd-header">Champs disponibles (' + pool.length + ')</div>';
+    pool.forEach(c => {
+        const meta = S.colMeta[c.id];
+        const cat = meta ? typeCategory(meta.type) : 'Non défini';
+        const typeStr = meta ? (meta.type || '') : '';
+        let formulaBadge = '';
+        if (isPureFormula(c.id)) {
+            formulaBadge = '<span class="fr-badge fr-badge--sm fr-badge--no-icon w-formula-badge" title="Formule pure (calculée automatiquement) - non éditable">ƒ</span>';
+        }
+        else if (isDefaultFormula(c.id)) {
+            formulaBadge = '<span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--blue-cumulus w-formula-badge" title="Valeur par défaut calculée à la création">ƒ₀</span>';
+        }
+        h += '<div class="w-search__dd-item" data-cid="' + echapperHTML(c.id) + '" role="option">' +
+            '<div class="w-search__dd-info">' +
+            '<span class="w-search__dd-name">' + formulaBadge + echapperHTML(c.label) + '</span>' +
+            '<span class="w-search__dd-meta">' + echapperHTML(c.id) + ' · ' + echapperHTML(cat) + (typeStr !== cat ? ' (' + echapperHTML(typeStr) + ')' : '') + '</span>' +
+            '</div>' +
+            '<span class="w-search__dd-add" aria-hidden="true">' +
+            '<span class="fr-icon-add-line" aria-hidden="true"></span>&nbsp;Ajouter' +
+            '</span>' +
+            '</div>';
+    });
+    dd.innerHTML = h;
+    dd.querySelectorAll('.w-search__dd-item').forEach(item => {
+        item.addEventListener('click', () => {
+            addField(item.dataset.cid, 'exact', 80);
+        });
+    });
+}
+function addField(fid, mode, thr) {
+    if (S.selectedFields.some(f => f.fieldId === fid))
+        return;
+    const safeThr = validerNombre(thr, 1, 100, 80);
+    S.selectedFields.push({ fieldId: fid, mode, threshold: safeThr });
+    S.searchQuery = '';
+    $('fieldSearchInput').value = '';
+    resetScan();
+    renderChips();
+    $('fieldDropdown').classList.remove('open');
+}
+function removeField(fid) {
+    S.selectedFields = S.selectedFields.filter(f => f.fieldId !== fid);
+    resetScan();
+    renderChips();
+}
+const SIMILAR_THRESHOLD = 80;
+function renderCriteria() {
+    const ct = $('criteriaList');
+    ct.innerHTML = '';
+    if (S.selectedFields.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'w-criteria-empty';
+        empty.innerHTML = '<span aria-hidden="true">↑</span> Aucun critère. Ajoutez des champs dans la recherche ci-dessus.';
+        ct.appendChild(empty);
+        return;
+    }
+    S.selectedFields.forEach((f, idx) => {
+        if (f.mode === 'fuzzy')
+            f.mode = 'similar';
+        const col = S.allColumns.find(c => c.id === f.fieldId);
+        const meta = S.colMeta[f.fieldId];
+        const cat = meta ? typeCategory(meta.type) : '';
+        const catShort = meta ? typeCategoryShort(cat) : '';
+        const name = col ? col.label : f.fieldId;
+        const num = idx + 1;
+        const row = document.createElement('div');
+        row.className = 'w-criterion';
+        row.innerHTML =
+            '<div class="w-criterion__info">' +
+                '<span class="w-criterion__name" title="' + echapperHTML(name) + '">Critère ' + num + ' : ' + echapperHTML(name) + '</span>' +
+                '<span class="w-criterion__name-meta">' + echapperHTML(f.fieldId) + '</span>' +
+                (catShort ? '<span class="fr-badge fr-badge--sm fr-badge--no-icon w-criterion__type-badge" title="' + echapperHTML(cat) + '">' + echapperHTML(catShort) + '</span>' : '') +
+                '</div>' +
+                '<div class="w-criterion__actions">' +
+                '<div class="w-criterion__modes" role="radiogroup" aria-label="Degré de comparaison">' +
+                '<button type="button" class="w-criterion__mode-btn' + (f.mode === 'exact' ? ' active exact' : '') + '" data-mode="exact" data-f="' + echapperHTML(f.fieldId) + '">Exact (identique)</button>' +
+                '<button type="button" class="w-criterion__mode-btn' + (f.mode === 'similar' ? ' active similar' : '') + '" data-mode="similar" data-f="' + echapperHTML(f.fieldId) + '">Similaire (approchant)</button>' +
+                '</div>' +
+                '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-close-line w-criterion__remove" data-remove="' + echapperHTML(f.fieldId) + '" aria-label="Retirer ce critère" title="Retirer ce critère"></button>' +
+                '</div>';
+        row.querySelectorAll('.w-criterion__mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                const fid = btn.dataset.f;
+                setCriterionMode(fid, mode);
+            });
+        });
+        row.querySelector('.w-criterion__remove').addEventListener('click', () => {
+            removeField(f.fieldId);
+        });
+        ct.appendChild(row);
+    });
+}
+function setCriterionMode(fid, mode) {
+    const c = S.selectedFields.find(f => f.fieldId === fid);
+    if (!c)
+        return;
+    c.mode = mode;
+    if (mode === 'similar')
+        c.threshold = SIMILAR_THRESHOLD;
+    resetScan();
+    renderCriteria();
+}
+function renderChips() {
+    renderCriteria();
+    majScanBtn();
+}
+function lev(a, b) {
+    if (!a.length)
+        return b.length;
+    if (!b.length)
+        return a.length;
+    const m = [];
+    for (let i = 0; i <= b.length; i++)
+        m[i] = [i];
+    for (let j = 0; j <= a.length; j++)
+        m[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            const c = b[i - 1] === a[j - 1] ? 0 : 1;
+            m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + c);
+        }
+    }
+    return m[b.length][a.length];
+}
+function levSim(a, b) {
+    const na = normalize(a), nb = normalize(b);
+    if (na === nb)
+        return 100;
+    if (!na.length || !nb.length)
+        return 0;
+    return Math.round((1 - lev(na, nb) / Math.max(na.length, nb.length)) * 100);
+}
+function fScore(va, vb, mode) {
+    if (mode === 'exact')
+        return normalize(va) === normalize(vb) ? 100 : 0;
+    return levSim(va, vb);
+}
+async function startScan() {
+    if (!S.selectedFields.length) {
+        showToast('Aucun champ sélectionné', 'Ajoutez au moins un champ de comparaison.', 'error', 2);
+        return;
+    }
+    const btn = $('scanBtn');
+    btn.disabled = true;
+    if (S.isGristConnected && S.selectedTable)
+        await loadTableFull(S.selectedTable);
+    const progressBar = $('scanProgressBar');
+    const fill = $('scanProgressFill');
+    progressBar.classList.add('active');
+    fill.style.width = '0%';
+    afficherLoader('Analyse en cours - recherche des doublons…');
+    S.duplicateGroups = [];
+    S.mergeSelections = {};
+    S.cumulateSelections = {};
+    S.keepRecordChoices = {};
+    S.excludedRecords = {};
+    S.currentGroupIndex = 0;
+    S.mergeCount = 0;
+    S.mergeErrors = 0;
+    const recs = S.allRecords, n = recs.length, used = new Set(), CHUNK = 50;
+    const exacts = S.selectedFields.filter(sf => sf.mode === 'exact');
+    let paquets;
+    if (exacts.length) {
+        const parCle = new Map();
+        for (let k = 0; k < n; k++) {
+            let cle = '', ecartee = false;
+            for (const sf of exacts) {
+                const brut = recs[k][sf.fieldId];
+                if (estValeurEnErreur(brut)) {
+                    ecartee = true;
+                    break;
+                }
+                const v = normalize(displayValue(sf.fieldId, brut));
+                if (!v) {
+                    ecartee = true;
+                    break;
+                }
+                cle += v + '\u0000';
+            }
+            if (ecartee)
+                continue;
+            if (!parCle.has(cle))
+                parCle.set(cle, []);
+            parCle.get(cle).push(k);
+        }
+        paquets = Array.from(parCle.values()).filter(pq => pq.length > 1);
+    }
+    else {
+        paquets = [Array.from({ length: n }, (_, k) => k)];
+    }
+    const totalLignes = paquets.reduce((t, pq) => t + pq.length, 0);
+    let pi = 0, a = 0, traitees = 0;
+    await new Promise(resolve => {
+        function proc() {
+            let budget = CHUNK;
+            while (budget > 0 && pi < paquets.length) {
+                const pq = paquets[pi];
+                if (a >= pq.length) {
+                    pi++;
+                    a = 0;
+                    continue;
+                }
+                const i = pq[a];
+                budget--;
+                traitees++;
+                if (!used.has(recs[i].id)) {
+                    const grp = [recs[i]];
+                    for (let b = a + 1; b < pq.length; b++) {
+                        const j = pq[b];
+                        if (used.has(recs[j].id))
+                            continue;
+                        let ok = true;
+                        for (const sf of S.selectedFields) {
+                            if (estValeurEnErreur(recs[i][sf.fieldId]) || estValeurEnErreur(recs[j][sf.fieldId])) {
+                                ok = false;
+                                break;
+                            }
+                            const va = displayValue(sf.fieldId, recs[i][sf.fieldId]);
+                            const vb = displayValue(sf.fieldId, recs[j][sf.fieldId]);
+                            if (!normalize(va) && !normalize(vb)) {
+                                ok = false;
+                                break;
+                            }
+                            const sc = fScore(va, vb, sf.mode);
+                            if (sc < (sf.mode === 'exact' ? 100 : sf.threshold)) {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (ok) {
+                            grp.push(recs[j]);
+                            used.add(recs[j].id);
+                        }
+                    }
+                    if (grp.length > 1) {
+                        used.add(recs[i].id);
+                        S.duplicateGroups.push({ records: grp, _ordre: i });
+                    }
+                }
+                a++;
+            }
+            const p = totalLignes > 0 ? Math.round((traitees / totalLignes) * 100) : 100;
+            if (fill)
+                fill.style.width = p + '%';
+            const loaderMsg = document.getElementById('loaderMessage');
+            if (loaderMsg) {
+                loaderMsg.textContent = 'Analyse en cours… ' + p + ' % (' + traitees + ' / ' + totalLignes + ' lignes comparables)';
+            }
+            if (pi < paquets.length)
+                requestAnimationFrame(proc);
+            else
+                resolve();
+        }
+        requestAnimationFrame(proc);
+    });
+    S.duplicateGroups.sort((g1, g2) => g1._ordre - g2._ordre);
+    _indexRefs = null;
+    S.duplicateGroups.forEach((g, gi) => {
+        S.mergeSelections[gi] = {};
+        S.cumulateSelections[gi] = {};
+        S.keepRecordChoices[gi] = g.records[0].id;
+        S.excludedRecords[gi] = new Set();
+        S.allColumns.forEach(col => {
+            S.mergeSelections[gi][col.id] = choisirSourceParDefaut(g.records, col.id);
+            S.cumulateSelections[gi][col.id] = new Set();
+        });
+    });
+    btn.disabled = false;
+    fill.style.width = '100%';
+    setTimeout(() => progressBar.classList.remove('active'), 800);
+    masquerLoader();
+    updateStats();
+    const ng = S.duplicateGroups.length;
+    const nd = S.duplicateGroups.reduce((s, g) => s + g.records.length, 0);
+    if (!ng) {
+        $('badgeGroups').style.display = 'none';
+        $('badgeDupes').style.display = 'none';
+        showToast('Aucun doublon', 'Aucun doublon détecté avec ces critères. Modifiez vos critères et relancez le scan.', 'info', 2);
+    }
+    else {
+        $('badgeGroups').style.display = '';
+        $('badgeDupes').style.display = '';
+        showToast('Scan terminé', ng + ' groupe(s), ' + nd + ' lignes concernées.', 'success', 2);
+        majRecap(ng, nd);
+        goToStep(3);
+        renderGroup();
+    }
+    majScanBtn();
+}
+function svgIconPrimary() {
+    return '<svg class="w-rec-ico w-rec-ico--primary" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+        '<circle cx="10" cy="10" r="9" fill="currentColor"/>' +
+        '<path d="M5.5 10.5l3 3 6-6.5" stroke="var(--text-inverted-grey)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+        '</svg>';
+}
+function svgIconPending() {
+    return '<svg class="w-rec-ico w-rec-ico--pending" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+        '<circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="10" cy="10" r="3" fill="currentColor" opacity=".35"/>' +
+        '</svg>';
+}
+function svgIconExcluded() {
+    return '<svg class="w-rec-ico w-rec-ico--excluded" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+        '<circle cx="10" cy="10" r="9" fill="currentColor"/>' +
+        '<path d="M6.5 6.5l7 7M13.5 6.5l-7 7" stroke="var(--text-inverted-grey)" stroke-width="2" stroke-linecap="round"/>' +
+        '</svg>';
+}
+function svgIconPreview() {
+    return '<svg class="w-rec-ico" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">' +
+        '<path d="M6 4v5a4 4 0 0 0 4 4h4M14 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+        '</svg>';
+}
+function renderGroup() {
+    const gi = S.currentGroupIndex;
+    const grp = S.duplicateGroups[gi];
+    if (!grp) {
+        $('resolveCards').style.display = 'none';
+        $('emptyState').style.display = '';
+        $('resolveCards').innerHTML = '';
+        updateNav();
+        return;
+    }
+    ensureGroupState(gi);
+    try {
+        $('emptyState').style.display = 'none';
+        $('resolveCards').style.display = '';
+        updateNav();
+        const excluded = S.excludedRecords[gi] || new Set();
+        const allRecs = grp.records;
+        const actRecs = sortRecords(allRecs.filter(r => !excluded.has(r.id)));
+        const excRecs = allRecs.filter(r => excluded.has(r.id));
+        const { all } = getDisplayCols(actRecs.length ? actRecs : allRecs);
+        const cards = $('resolveCards');
+        cards.innerHTML = '';
+        actRecs.forEach(r => {
+            cards.appendChild(buildRecordCard(gi, r, all, actRecs, false));
+        });
+        excRecs.forEach(r => {
+            cards.appendChild(buildRecordCard(gi, r, all, actRecs, true));
+        });
+        if (actRecs.length >= 2) {
+            var sep = document.createElement('div');
+            sep.className = 'w-preview-sep';
+            sep.setAttribute('aria-hidden', 'true');
+            sep.innerHTML = '➜';
+            cards.appendChild(sep);
+            cards.appendChild(buildPreviewCard(gi, all, actRecs));
+        }
+        const nDel = actRecs.length > 0 ? Math.max(0, actRecs.length - 1) : 0;
+        $('mergeBtnCount').textContent = String(nDel);
+        $('mergeBtn').disabled = actRecs.length < 2;
+        $('skipBtn').disabled = false;
+        $('mergeAllBtn').disabled = false;
+        $('footerInfo').textContent = actRecs.length + ' ' + (actRecs.length <= 1 ? 'ligne active' : 'lignes actives') +
+            ' · Ligne #' + S.keepRecordChoices[gi] + ' sera conservée';
+    }
+    catch (e) {
+        logSecurite('ERREUR', 'Rendu du groupe ' + gi + ' échoué', e);
+        afficherErreur('Impossible d\'afficher ce groupe de doublons. Essayez le groupe suivant ou relancez le scan.', e);
+        $('resolveCards').style.display = 'none';
+        $('emptyState').style.display = '';
+        setEmpty('⚠️', 'Groupe corrompu', 'Ce groupe n\'a pas pu être affiché. Utilisez les flèches pour naviguer vers un autre groupe, ou relancez le scan depuis l\'étape 1.');
+    }
+}
+function buildRecordCard(gi, rec, cols, actRecs, isExcluded) {
+    const card = document.createElement('div');
+    card.className = 'w-rec-card';
+    const isPrimary = S.keepRecordChoices[gi] === rec.id;
+    if (isExcluded)
+        card.classList.add('w-rec-card--excluded');
+    else if (isPrimary)
+        card.classList.add('w-rec-card--primary');
+    const head = document.createElement('div');
+    head.className = 'w-rec-card__head';
+    let icon;
+    let stateLabelText, stateLabelClass;
+    if (isExcluded) {
+        icon = svgIconExcluded();
+        stateLabelText = 'Exclu';
+        stateLabelClass = 'w-rec-card__state-label--excluded';
+    }
+    else if (isPrimary) {
+        icon = svgIconPrimary();
+        stateLabelText = 'Conservé';
+        stateLabelClass = '';
+    }
+    else {
+        icon = svgIconPending();
+        stateLabelText = 'Sera supprimé';
+        stateLabelClass = 'w-rec-card__state-label--pending';
+    }
+    const labelField = S.selectedFields[0]?.fieldId;
+    const fieldValue = labelField ? displayValue(labelField, rec[labelField]) : '';
+    const titleText = (fieldValue && fieldValue.trim()) ? fieldValue : ('Ligne #' + rec.id);
+    const recIdTag = 'Rec #' + rec.id;
+    const actionsHtml = '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline w-rec-card__menu-btn" ' +
+        'data-menu-toggle="1" data-r="' + rec.id + '" ' +
+        'aria-label="Actions sur cette ligne" aria-haspopup="menu" aria-expanded="false" ' +
+        'title="Actions">' +
+        '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+        '<circle cx="3" cy="8" r="1.5" fill="currentColor"/>' +
+        '<circle cx="8" cy="8" r="1.5" fill="currentColor"/>' +
+        '<circle cx="13" cy="8" r="1.5" fill="currentColor"/>' +
+        '</svg>' +
+        '</button>';
+    head.innerHTML =
+        '<div class="w-rec-card__head-row">' +
+            '<div class="w-rec-card__title">' +
+            icon +
+            '<span class="w-rec-card__title-text" title="' + echapperHTML(titleText) + '">' + echapperHTML(titleText) + '</span>' +
+            '</div>' +
+            '<div class="w-rec-card__actions">' + actionsHtml + '</div>' +
+            '</div>' +
+            '<div class="w-rec-card__head-foot">' +
+            '<span class="w-rec-card__state-label ' + stateLabelClass + '">' + stateLabelText + '</span>' +
+            '<span class="w-rec-card__rec-id">' + echapperHTML(recIdTag) + '</span>' +
+            '</div>';
+    card.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'w-rec-card__body';
+    cols.forEach(col => {
+        const meta = S.colMeta[col.id];
+        const cat = meta ? typeCategory(meta.type) : '';
+        const fConf = S.selectedFields.find(f => f.fieldId === col.id);
+        const vs = actRecs.map(x => normalize(displayValue(col.id, x[col.id])));
+        const same = vs.length > 0 && vs.every(v => v === vs[0]);
+        const isSelected = !isExcluded && S.mergeSelections[gi]?.[col.id] === rec.id;
+        const cumSet = S.cumulateSelections[gi]?.[col.id];
+        const isCumulated = !isExcluded && cumSet && cumSet.has(rec.id);
+        const im = isMulti(col.id, actRecs);
+        const fld = document.createElement('div');
+        fld.className = 'w-rec-field';
+        const isFormulaField = isPureFormula(col.id);
+        const isDefaultFormulaField = isDefaultFormula(col.id);
+        const nonFusionnable = isFormulaField || isDefaultFormulaField;
+        if (!isExcluded) {
+            fld.classList.add('w-rec-field--clickable');
+            if (nonFusionnable) {
+                fld.classList.remove('w-rec-field--clickable');
+                fld.classList.add('w-rec-field--formula');
+            }
+            else if (isSelected)
+                fld.classList.add('w-rec-field--selected');
+            else if (isCumulated)
+                fld.classList.add('w-rec-field--cumulated');
+            else if (!same)
+                fld.classList.add('w-rec-field--diff');
+            else
+                fld.classList.add('w-rec-field--same');
+        }
+        fld.dataset.f = col.id;
+        fld.dataset.r = rec.id;
+        let formulaTag = '';
+        if (isFormulaField) {
+            formulaTag = '<span class="fr-badge fr-badge--sm fr-badge--no-icon w-formula-badge" title="Formule pure - calculée automatiquement, non modifiable">ƒ</span>';
+        }
+        else if (isDefaultFormulaField) {
+            formulaTag = '<span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--blue-cumulus w-formula-badge" title="Valeur par défaut à la création de la ligne : la ligne conservée garde la sienne">ƒ₀</span>';
+        }
+        const labelHtml = '<div class="w-rec-field__label">' +
+            formulaTag +
+            '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
+            (cat ? '<span class="w-rec-field__label-mode" style="background:var(--background-alt-grey);color:var(--text-mention-grey)">' + echapperHTML(typeCategoryShort(cat)) + '</span>' : '') +
+            (fConf ? '<span class="w-rec-field__label-mode w-rec-field__label-mode--' + fConf.mode + '">' +
+                (fConf.mode === 'exact' ? 'Exact' : 'Similaire') +
+                '</span>' : '') +
+            '</div>';
+        const raw = rec[col.id];
+        const display = displayValue(col.id, raw);
+        let valueHtml;
+        if (!display.trim()) {
+            valueHtml = '<div class="w-rec-field__value w-rec-field__value--empty">(vide)</div>';
+        }
+        else {
+            const t = (meta?.type || '').toLowerCase();
+            if (t.startsWith('ref:') && typeof raw === 'number' && raw > 0) {
+                valueHtml = '<div class="w-rec-field__value">' +
+                    '<span class="w-rec-field__ref">' + echapperHTML(display) + '</span>' +
+                    '<span class="w-rec-field__ref-id">#' + raw + '</span>' +
+                    '</div>';
+            }
+            else {
+                valueHtml = '<div class="w-rec-field__value">' + echapperHTML(display) + '</div>';
+            }
+        }
+        let cumBtn = '';
+        if (im && !isExcluded && !isSelected && !nonFusionnable) {
+            cumBtn = '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary w-rec-field__cum-btn' +
+                (isCumulated ? ' w-rec-field__cum-btn--active' : '') +
+                '" data-cum="1" data-f="' + echapperHTML(col.id) + '" data-r="' + echapperHTML(rec.id) +
+                '" aria-label="Cumuler cette valeur" title="Cumuler cette valeur">+</button>';
+        }
+        fld.innerHTML = labelHtml + valueHtml + cumBtn;
+        if (!isExcluded && !nonFusionnable) {
+            fld.addEventListener('click', e => {
+                if (e.target.closest('[data-cum]'))
+                    return;
+                ensureGroupState(gi);
+                S.mergeSelections[gi][col.id] = rec.id;
+                const curCumSet = S.cumulateSelections[gi][col.id];
+                if (curCumSet)
+                    curCumSet.delete(rec.id);
+                renderGroup();
+            });
+        }
+        body.appendChild(fld);
+    });
+    card.appendChild(body);
+    card.querySelectorAll('[data-menu-toggle]').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            openRecordMenu(btn, gi, rec.id, isPrimary, isExcluded);
+        });
+    });
+    card.addEventListener('dblclick', () => {
+        const btn = card.querySelector('[data-menu-toggle]');
+        if (btn)
+            openRecordMenu(btn, gi, rec.id, isPrimary, isExcluded);
+    });
+    card.querySelectorAll('[data-cum]').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            ensureGroupState(gi);
+            const fid = btn.dataset.f, rid = parseInt(btn.dataset.r, 10);
+            const set = S.cumulateSelections[gi][fid] || new Set();
+            S.cumulateSelections[gi][fid] = set;
+            if (set.has(rid))
+                set.delete(rid);
+            else
+                set.add(rid);
+            renderGroup();
+        });
+    });
+    return card;
+}
+function openRecordMenu(anchor, gi, rid, isPrimary, isExcluded) {
+    closeAllMenus();
+    const menu = document.createElement('div');
+    menu.className = 'w-rec-menu';
+    menu.setAttribute('role', 'menu');
+    const items = [];
+    if (!isExcluded) {
+        if (!isPrimary) {
+            items.push({
+                act: 'primary',
+                label: 'Utiliser comme ligne principale',
+                hint: 'Cette ligne sera conservée, les autres supprimées',
+                icon: 'check'
+            });
+        }
+        items.push({
+            act: 'exclude',
+            label: 'Exclure du set',
+            hint: 'Cette ligne ne sera ni fusionnée ni supprimée',
+            icon: 'exclude'
+        });
+    }
+    else {
+        items.push({
+            act: 'reinclude',
+            label: 'Réintégrer au set',
+            hint: 'Inclure à nouveau cette ligne dans la fusion',
+            icon: 'reinclude'
+        });
+    }
+    let h = '';
+    items.forEach(it => {
+        let iconSvg = '';
+        if (it.icon === 'check') {
+            iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+        }
+        else if (it.icon === 'exclude') {
+            iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+        }
+        else if (it.icon === 'reinclude') {
+            iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4L6 8l4 4M6 8h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+        }
+        h += '<button type="button" class="w-rec-menu__item" role="menuitem" data-menu-act="' + it.act + '">' +
+            '<span class="w-rec-menu__icon">' + iconSvg + '</span>' +
+            '<span class="w-rec-menu__text">' +
+            '<span class="w-rec-menu__label">' + echapperHTML(it.label) + '</span>' +
+            '<span class="w-rec-menu__hint">' + echapperHTML(it.hint) + '</span>' +
+            '</span>' +
+            '</button>';
+    });
+    menu.innerHTML = h;
+    document.body.appendChild(menu);
+    const r = anchor.getBoundingClientRect();
+    const menuWidth = 280;
+    let left = r.right - menuWidth;
+    if (left < 8)
+        left = 8;
+    if (left + menuWidth > window.innerWidth - 8)
+        left = window.innerWidth - menuWidth - 8;
+    menu.style.left = left + 'px';
+    menu.style.top = (r.bottom + 4) + 'px';
+    anchor.setAttribute('aria-expanded', 'true');
+    menu.querySelectorAll('[data-menu-act]').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const act = btn.dataset.menuAct;
+            closeAllMenus();
+            handleCardAction(gi, rid, act);
+        });
+    });
+    setTimeout(() => {
+        const closeHandler = (ev) => {
+            if (!menu.contains(ev.target)) {
+                closeAllMenus();
+                document.removeEventListener('click', closeHandler, true);
+                document.removeEventListener('keydown', escHandler, true);
+            }
+        };
+        const escHandler = (ev) => {
+            if (ev.key === 'Escape') {
+                closeAllMenus();
+                document.removeEventListener('click', closeHandler, true);
+                document.removeEventListener('keydown', escHandler, true);
+            }
+        };
+        document.addEventListener('click', closeHandler, true);
+        document.addEventListener('keydown', escHandler, true);
+    }, 0);
+}
+function closeAllMenus() {
+    document.querySelectorAll('.w-rec-menu').forEach(m => m.remove());
+    document.querySelectorAll('[data-menu-toggle]').forEach(b => {
+        b.setAttribute('aria-expanded', 'false');
+    });
+}
+function buildPreviewCard(gi, cols, actRecs) {
+    const card = document.createElement('div');
+    card.className = 'w-rec-card w-rec-card--preview';
+    const head = document.createElement('div');
+    head.className = 'w-rec-card__head';
+    head.innerHTML =
+        '<div class="w-rec-card__head-row">' +
+            '<div class="w-rec-card__title">' +
+            svgIconPreview() +
+            '<span class="w-rec-card__title-text">Aperçu fusion</span>' +
+            '</div>' +
+            '</div>' +
+            '<div class="w-rec-card__head-foot">' +
+            '<span class="w-rec-card__state-label">Résultat final</span>' +
+            '<span class="w-rec-card__rec-id">après fusion</span>' +
+            '</div>';
+    card.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'w-rec-card__body';
+    cols.forEach(col => {
+        const meta = S.colMeta[col.id];
+        const cat = meta ? typeCategory(meta.type) : '';
+        const pv = computePreview(gi, col.id, actRecs);
+        const fld = document.createElement('div');
+        fld.className = 'w-rec-field';
+        const labelHtml = '<div class="w-rec-field__label">' +
+            '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
+            (cat ? '<span class="w-rec-field__label-mode" style="background:var(--background-alt-grey);color:var(--text-mention-grey)">' + echapperHTML(typeCategoryShort(cat)) + '</span>' : '') +
+            '</div>';
+        let valueHtml;
+        if (!pv.value || !pv.value.trim()) {
+            valueHtml = '<div class="w-rec-field__value w-rec-field__value--empty">(vide)</div>';
+        }
+        else {
+            valueHtml = '<div class="w-rec-field__value" style="color:var(--text-action-high-blue-france);font-weight:600">' +
+                echapperHTML(pv.value) + (pv.cum ? ' <em style="font-size:.75rem;font-weight:400">(cumulé)</em>' : '') +
+                '</div>';
+        }
+        fld.innerHTML = labelHtml + valueHtml;
+        body.appendChild(fld);
+    });
+    card.appendChild(body);
+    return card;
+}
+function computePreview(gi, fid, recs) {
+    if (hasAnyFormula(fid)) {
+        const garde = recs.find(r => r.id === S.keepRecordChoices[gi]);
+        if (!garde || estValeurEnErreur(garde[fid]))
+            return { value: '', cum: false };
+        return { value: displayValue(fid, garde[fid]), cum: false };
+    }
+    const cumSet = S.cumulateSelections[gi]?.[fid];
+    const mainId = S.mergeSelections[gi]?.[fid];
+    const meta = S.colMeta[fid];
+    const colType = (meta?.type || '').toLowerCase();
+    const isRefList = colType.startsWith('reflist:');
+    const isChoiceList = colType === 'choicelist';
+    if (cumSet && cumSet.size > 0) {
+        const all = new Set(mainId != null ? [mainId, ...cumSet] : [...cumSet]);
+        if (isRefList) {
+            const ids = new Set();
+            all.forEach(rid => {
+                const r = recs.find(x => x.id === rid);
+                if (!r || estValeurEnErreur(r[fid]))
+                    return;
+                const raw = r[fid];
+                if (Array.isArray(raw)) {
+                    const list = raw[0] === 'L' ? raw.slice(1) : raw;
+                    list.forEach(id => {
+                        const n = typeof id === 'number' ? id : parseInt(id, 10);
+                        if (!isNaN(n) && n > 0)
+                            ids.add(n);
+                    });
+                }
+                else if (typeof raw === 'number' && raw > 0) {
+                    ids.add(raw);
+                }
+            });
+            const cache = cacheRefDeColonne(fid, meta);
+            const names = Array.from(ids).map(id => (cache && cache[id] != null) ? String(cache[id]) : ('#' + id));
+            return { value: names.join(', '), cum: true };
+        }
+        if (isChoiceList) {
+            const tokens = new Set();
+            all.forEach(rid => {
+                const r = recs.find(x => x.id === rid);
+                if (!r || estValeurEnErreur(r[fid]))
+                    return;
+                const raw = r[fid];
+                if (Array.isArray(raw)) {
+                    const list = raw[0] === 'L' ? raw.slice(1) : raw;
+                    list.forEach(v => { const s = String(v).trim(); if (s)
+                        tokens.add(s); });
+                }
+                else if (raw != null) {
+                    String(raw).split(/[,;]+/).forEach(t => {
+                        const s = t.trim();
+                        if (s)
+                            tokens.add(s);
+                    });
+                }
+            });
+            return { value: Array.from(tokens).join(', '), cum: true };
+        }
+        const tokens = new Set();
+        all.forEach(rid => {
+            const r = recs.find(x => x.id === rid);
+            if (!r)
+                return;
+            if (estValeurEnErreur(r[fid]))
+                return;
+            displayValue(fid, r[fid]).split(/[,;]+/).forEach(t => {
+                const s = t.trim();
+                if (s)
+                    tokens.add(s);
+            });
+        });
+        return { value: Array.from(tokens).join(', '), cum: true };
+    }
+    const src = recs.find(r => r.id === mainId);
+    if (src && estValeurEnErreur(src[fid]))
+        return { value: '', cum: false };
+    return { value: src ? displayValue(fid, src[fid]) : '', cum: false };
+}
+function choisirSourceParDefaut(recs, colId) {
+    let bestId = recs[0].id, bestLen = -1;
+    recs.forEach(r => {
+        if (estValeurEnErreur(r[colId]))
+            return;
+        const v = valStr(r[colId]);
+        if (v.length > bestLen) {
+            bestLen = v.length;
+            bestId = r.id;
+        }
+    });
+    return bestId;
+}
+function purgerSelectionsExclues(gi) {
+    const grp = S.duplicateGroups[gi];
+    if (!grp)
+        return;
+    const exclus = S.excludedRecords[gi] || new Set();
+    const actifs = grp.records.filter(r => !exclus.has(r.id));
+    if (!actifs.length)
+        return;
+    const sel = S.mergeSelections[gi] || {};
+    const cum = S.cumulateSelections[gi] || {};
+    let reportees = 0;
+    S.allColumns.forEach(col => {
+        const cs = cum[col.id];
+        if (cs)
+            exclus.forEach(id => cs.delete(id));
+        if (sel[col.id] != null && exclus.has(sel[col.id])) {
+            sel[col.id] = choisirSourceParDefaut(actifs, col.id);
+            reportees++;
+        }
+    });
+    if (reportees > 0) {
+        logSecurite('INFO', 'Sources reportees apres exclusion', { groupe: gi, champs: reportees });
+    }
+    return reportees;
+}
+function handleCardAction(gi, rid, act) {
+    ensureGroupState(gi);
+    const set = S.excludedRecords[gi];
+    if (act === 'primary') {
+        S.keepRecordChoices[gi] = rid;
+    }
+    else if (act === 'exclude') {
+        set.add(rid);
+        if (S.keepRecordChoices[gi] === rid) {
+            const rem = S.duplicateGroups[gi].records.filter(r => !set.has(r.id));
+            if (rem.length)
+                S.keepRecordChoices[gi] = rem[0].id;
+        }
+        const reportees = purgerSelectionsExclues(gi);
+        if (reportees > 0) {
+            showToast('Sources reportées', reportees + ' champ(s) prenaient leur valeur sur cette ligne. La source a été reportée sur une ligne active.', 'info', 3);
+        }
+    }
+    else if (act === 'reinclude') {
+        set.delete(rid);
+    }
+    renderGroup();
+}
+function navGroup(d) {
+    const dn = validerNombre(d, -100, 100, 0);
+    S.currentGroupIndex = Math.max(0, Math.min(Math.max(0, S.duplicateGroups.length - 1), S.currentGroupIndex + dn));
+    renderGroup();
+}
+function terminerGroupe(gi, messageVide) {
+    S.duplicateGroups.splice(gi, 1);
+    reindex(gi);
+    updateStats();
+    if (!S.duplicateGroups.length) {
+        const cartes = $('resolveCards');
+        if (cartes)
+            cartes.style.display = 'none';
+        const vide = $('emptyState');
+        if (vide)
+            vide.style.display = '';
+        setEmpty('🎉', messageVide, S.mergeCount + ' fusion(s) effectuée(s)' + (S.mergeErrors ? ', ' + S.mergeErrors + ' erreur(s)' : '') + '.');
+        updateNav();
+        const pied = $('footerInfo');
+        if (pied)
+            pied.textContent = 'Aucun groupe restant.';
+        const bFusion = $('mergeBtn');
+        if (bFusion)
+            bFusion.disabled = true;
+        const bIgnorer = $('skipBtn');
+        if (bIgnorer)
+            bIgnorer.disabled = true;
+        const bTout = $('mergeAllBtn');
+        if (bTout)
+            bTout.disabled = true;
+    }
+    else {
+        if (S.currentGroupIndex >= S.duplicateGroups.length) {
+            S.currentGroupIndex = S.duplicateGroups.length - 1;
+        }
+        renderGroup();
+    }
+}
+function skipGroup() {
+    var gi = S.currentGroupIndex;
+    if (!S.duplicateGroups.length)
+        return;
+    terminerGroupe(gi, 'Tous les groupes ont été traités !');
+}
+function updateNav() {
+    const tot = Math.max(1, S.duplicateGroups.length);
+    const cur = Math.min(S.currentGroupIndex + 1, tot);
+    $('navCounter').textContent = cur + ' / ' + tot;
+    $('navPrev').disabled = S.currentGroupIndex === 0 || !S.duplicateGroups.length;
+    $('navNext').disabled = S.currentGroupIndex >= S.duplicateGroups.length - 1 || !S.duplicateGroups.length;
+}
+function updateStats() {
+    majStats();
+}
+function ensureGroupState(gi) {
+    const grp = S.duplicateGroups[gi];
+    if (!grp)
+        return false;
+    if (!S.mergeSelections[gi])
+        S.mergeSelections[gi] = {};
+    if (!S.cumulateSelections[gi])
+        S.cumulateSelections[gi] = {};
+    if (!S.excludedRecords[gi])
+        S.excludedRecords[gi] = new Set();
+    if (S.keepRecordChoices[gi] == null) {
+        S.keepRecordChoices[gi] = grp.records[0].id;
+    }
+    const actifsInit = grp.records.filter(r => !S.excludedRecords[gi].has(r.id));
+    S.allColumns.forEach(col => {
+        if (S.mergeSelections[gi][col.id] == null) {
+            S.mergeSelections[gi][col.id] = choisirSourceParDefaut(actifsInit.length ? actifsInit : grp.records, col.id);
+        }
+        if (!S.cumulateSelections[gi][col.id]) {
+            S.cumulateSelections[gi][col.id] = new Set();
+        }
+    });
+    const exists = grp.records.some(r => r.id === S.keepRecordChoices[gi]);
+    if (!exists) {
+        const firstActive = grp.records.find(r => !S.excludedRecords[gi].has(r.id));
+        S.keepRecordChoices[gi] = firstActive ? firstActive.id : grp.records[0].id;
+    }
+    return true;
+}
+async function mergeGroup(gi, dejaConfirme) {
+    const grp = S.duplicateGroups[gi];
+    if (!grp)
+        return 'ignore';
+    const excluded = S.excludedRecords[gi] || new Set();
+    const actRecs = grp.records.filter(r => !excluded.has(r.id));
+    if (actRecs.length < 2) {
+        showToast('Fusion impossible', 'Il faut au moins 2 lignes actives pour fusionner.', 'error', 3);
+        return 'ignore';
+    }
+    const keepId = S.keepRecordChoices[gi];
+    if (excluded.has(keepId)) {
+        showToast('Fusion impossible', 'La ligne à conserver est exclue.', 'error', 3);
+        return 'ignore';
+    }
+    if (!actRecs.some(r => r.id === keepId)) {
+        logSecurite('ERREUR', 'Fusion refusée : la ligne à conserver n’appartient pas au groupe', { groupe: gi, keepId: keepId });
+        showToast('Fusion impossible', 'La ligne à conserver est introuvable dans ce groupe. Rechargez l’analyse.', 'error', 3);
+        return 'ignore';
+    }
+    const autoReference = _indexRefs && _indexRefs.colonnes.some(c => c.table === _indexRefs.table);
+    if (!dejaConfirme || !_indexRefs || autoReference) {
+        try {
+            afficherLoader('Recherche des références vers cette table…');
+            await construireIndexReferences(S.selectedTable);
+        }
+        catch (eIdx) {
+            masquerLoader();
+            afficherErreur('Impossible de lire les références vers cette table : la fusion est annulée pour ne pas laisser de références cassées.', eIdx);
+            return 'echec';
+        }
+        finally {
+            masquerLoader();
+        }
+    }
+    const delIdsPrevus = actRecs.filter(r => r.id !== keepId).map(r => r.id);
+    const planRefs = planifierRedirections(delIdsPrevus, keepId);
+    if (!dejaConfirme) {
+        const aSupprimer = delIdsPrevus.length;
+        const ok = await confirmerAction('Conserver la ligne #' + keepId + ' et supprimer ' + aSupprimer + ' ligne' + (aSupprimer > 1 ? 's' : '') +
+            (planRefs.total ? ', en redirigeant ' + resumePlanRefs(planRefs) + ' vers la ligne conservée' : '') +
+            ' ? Cette action est irréversible.');
+        if (!ok)
+            return 'ignore';
+    }
+    const merged = {};
+    S.allColumns.forEach(col => {
+        if (col.id === 'id')
+            return;
+        if (isHelper(col.id))
+            return;
+        if (hasAnyFormula(col.id))
+            return;
+        const meta = S.colMeta[col.id];
+        const colType = (meta?.type || '').toLowerCase();
+        const isRefList = colType.startsWith('reflist:');
+        const isChoiceList = colType === 'choicelist';
+        const cumSet = S.cumulateSelections[gi]?.[col.id];
+        if (cumSet && cumSet.size > 0) {
+            const srcId = S.mergeSelections[gi][col.id];
+            const allIds = new Set(srcId != null ? [srcId, ...cumSet] : [...cumSet]);
+            if (isRefList) {
+                const ids = new Set();
+                allIds.forEach(rid => {
+                    const r = actRecs.find(x => x.id === rid);
+                    if (!r)
+                        return;
+                    const raw = r[col.id];
+                    if (Array.isArray(raw)) {
+                        const list = raw[0] === 'L' ? raw.slice(1) : raw;
+                        list.forEach(id => {
+                            const n = typeof id === 'number' ? id : parseInt(id, 10);
+                            if (!isNaN(n) && n > 0)
+                                ids.add(n);
+                        });
+                    }
+                    else if (typeof raw === 'number' && raw > 0) {
+                        ids.add(raw);
+                    }
+                });
+                merged[col.id] = ['L', ...Array.from(ids)];
+            }
+            else if (isChoiceList) {
+                const tokens = new Set();
+                allIds.forEach(rid => {
+                    const r = actRecs.find(x => x.id === rid);
+                    if (!r)
+                        return;
+                    const raw = r[col.id];
+                    if (Array.isArray(raw)) {
+                        const list = raw[0] === 'L' ? raw.slice(1) : raw;
+                        list.forEach(v => { const s = String(v).trim(); if (s)
+                            tokens.add(s); });
+                    }
+                    else if (raw != null) {
+                        String(raw).split(/[,;]+/).forEach(t => {
+                            const s = t.trim();
+                            if (s)
+                                tokens.add(s);
+                        });
+                    }
+                });
+                merged[col.id] = ['L', ...Array.from(tokens)];
+            }
+            else {
+                const tokens = new Set();
+                allIds.forEach(rid => {
+                    const r = actRecs.find(x => x.id === rid);
+                    if (!r)
+                        return;
+                    if (estValeurEnErreur(r[col.id]))
+                        return;
+                    valStr(r[col.id]).split(/[,;]+/).forEach(t => {
+                        const s = t.trim();
+                        if (s)
+                            tokens.add(s);
+                    });
+                });
+                merged[col.id] = Array.from(tokens).join(', ');
+            }
+        }
+        else {
+            const srcId = S.mergeSelections[gi][col.id];
+            const src = actRecs.find(r => r.id === srcId);
+            if (src && !estValeurEnErreur(src[col.id]))
+                merged[col.id] = src[col.id];
+        }
+    });
+    const delIds = actRecs.filter(r => r.id !== keepId).map(r => r.id);
+    if (delIds.indexOf(keepId) !== -1 || delIds.length === 0 || delIds.length >= actRecs.length) {
+        logSecurite('ERREUR', 'Fusion refusée : liste de suppression incohérente', { groupe: gi, keepId: keepId, delIds: delIds, actifs: actRecs.length });
+        showToast('Fusion impossible', 'Incohérence détectée dans la sélection. Rechargez l’analyse.', 'error', 3);
+        return 'ignore';
+    }
+    if (S.isGristConnected && S.selectedTable) {
+        try {
+            afficherLoader('Fusion en cours…');
+            const acts = [];
+            appliquerRedirectionsAuxValeurs(merged, delIds, keepId);
+            if (Object.keys(merged).length > 0) {
+                acts.push(['UpdateRecord', S.selectedTable, keepId, merged]);
+            }
+            planRefs.actions.forEach(a => acts.push(a));
+            delIds.forEach(id => acts.push(['RemoveRecord', S.selectedTable, id]));
+            await ecrireDocument(acts);
+            validerRedirections(planRefs);
+            const retirees = new Set(delIds);
+            S.allRecords = S.allRecords.filter(r => !retirees.has(r.id));
+            masquerLoader();
+            S.mergeCount++;
+            logSecurite('INFO', 'Fusion reussie', { keepId, delIds, champsModifies: Object.keys(merged).length });
+            showToast('Fusion réussie', 'Ligne #' + keepId + ' conservée, ' + delIds.length + ' ligne(s) supprimée(s)' + (planRefs.total ? ', ' + resumePlanRefs(planRefs) + ' redirigée(s)' : '') + '.', 'success', 3);
+        }
+        catch (e) {
+            masquerLoader();
+            S.mergeErrors++;
+            let hint = 'Veuillez réessayer.';
+            const msg = (e && (e.message || String(e))) || '';
+            if (/formula|read.?only|cannot set/i.test(msg)) {
+                hint = 'Une colonne a refusé la valeur retenue (colonne calculée ou en lecture seule). Rechargez l\'analyse et vérifiez les colonnes de la table.';
+            }
+            else if (/permission|access/i.test(msg)) {
+                hint = 'Droits d\'accès insuffisants sur la table.';
+            }
+            afficherErreur('La fusion a échoué. ' + hint, e);
+            return 'echec';
+        }
+    }
+    else {
+        afficherErreur('Connexion au document non établie. Impossible de fusionner.');
+        return 'echec';
+    }
+    terminerGroupe(gi, 'Tout est propre !');
+    return 'ok';
+}
+let _indexRefs = null;
+async function construireIndexReferences(tableCible) {
+    const tMeta = await grist.docApi.fetchTable('_grist_Tables');
+    const cMeta = await grist.docApi.fetchTable('_grist_Tables_column');
+    const nomParRef = {};
+    tMeta.id.forEach((id, i) => { nomParRef[id] = tMeta.tableId[i]; });
+    const colonnes = [];
+    for (let i = 0; i < cMeta.id.length; i++) {
+        const type = String(cMeta.type[i] || '');
+        const estRef = type === 'Ref:' + tableCible, estListe = type === 'RefList:' + tableCible;
+        if (!estRef && !estListe)
+            continue;
+        const formule = String((cMeta.formula && cMeta.formula[i]) || '').trim();
+        if (cMeta.isFormula && cMeta.isFormula[i] && formule)
+            continue;
+        const table = nomParRef[cMeta.parentId[i]];
+        if (!table || /^_grist/.test(table))
+            continue;
+        colonnes.push({ table: table, colId: cMeta.colId[i], liste: estListe, label: (cMeta.label && cMeta.label[i]) || cMeta.colId[i] });
+    }
+    const donnees = {};
+    for (const c of colonnes) {
+        if (!donnees[c.table])
+            donnees[c.table] = await grist.docApi.fetchTable(c.table);
+    }
+    _indexRefs = { table: tableCible, colonnes: colonnes, donnees: donnees };
+    logSecurite('INFO', 'Références vers la table relevées', { table: tableCible, colonnes: colonnes.length });
+    return _indexRefs;
+}
+function idsDeListe(v) {
+    if (!Array.isArray(v))
+        return (typeof v === 'number' && v > 0) ? [v] : [];
+    return (v[0] === 'L' ? v.slice(1) : v).filter(x => typeof x === 'number');
+}
+function planifierRedirections(delIds, keepId) {
+    const plan = { actions: [], total: 0, parTable: {}, ecritures: [] };
+    if (!_indexRefs || !delIds.length)
+        return plan;
+    const supprimees = new Set(delIds);
+    const parLigne = new Map();
+    _indexRefs.colonnes.forEach(c => {
+        const d = _indexRefs.donnees[c.table];
+        if (!d || !d[c.colId])
+            return;
+        d.id.forEach((rowId, k) => {
+            if (c.table === _indexRefs.table && (supprimees.has(rowId) || rowId === keepId))
+                return;
+            const v = d[c.colId][k];
+            let nouvelle, nb = 0;
+            if (c.liste) {
+                const ids = idsDeListe(v);
+                if (!ids.some(x => supprimees.has(x)))
+                    return;
+                const vus = new Set(), sortie = [];
+                ids.forEach(x => {
+                    const y = supprimees.has(x) ? keepId : x;
+                    if (supprimees.has(x))
+                        nb++;
+                    if (!vus.has(y)) {
+                        vus.add(y);
+                        sortie.push(y);
+                    }
+                });
+                nouvelle = ['L'].concat(sortie);
+            }
+            else {
+                if (!(typeof v === 'number' && supprimees.has(v)))
+                    return;
+                nouvelle = keepId;
+                nb = 1;
+            }
+            const cle = c.table + '\u0000' + rowId;
+            if (!parLigne.has(cle))
+                parLigne.set(cle, { table: c.table, rowId: rowId, champs: {} });
+            parLigne.get(cle).champs[c.colId] = nouvelle;
+            plan.ecritures.push({ table: c.table, k: k, colId: c.colId, valeur: nouvelle });
+            plan.total += nb;
+            plan.parTable[c.table] = (plan.parTable[c.table] || 0) + nb;
+        });
+    });
+    parLigne.forEach(l => plan.actions.push(['UpdateRecord', l.table, l.rowId, l.champs]));
+    return plan;
+}
+function validerRedirections(plan) {
+    if (!_indexRefs)
+        return;
+    plan.ecritures.forEach(e => {
+        const d = _indexRefs.donnees[e.table];
+        if (d && d[e.colId])
+            d[e.colId][e.k] = e.valeur;
+    });
+}
+function appliquerRedirectionsAuxValeurs(merged, delIds, keepId) {
+    if (!_indexRefs)
+        return;
+    const supprimees = new Set(delIds);
+    _indexRefs.colonnes.forEach(c => {
+        if (c.table !== _indexRefs.table || !Object.prototype.hasOwnProperty.call(merged, c.colId))
+            return;
+        const v = merged[c.colId];
+        if (c.liste) {
+            const ids = idsDeListe(v);
+            if (!ids.some(x => supprimees.has(x)))
+                return;
+            const vus = new Set(), sortie = [];
+            ids.forEach(x => { const y = supprimees.has(x) ? keepId : x; if (!vus.has(y)) {
+                vus.add(y);
+                sortie.push(y);
+            } });
+            merged[c.colId] = ['L'].concat(sortie);
+        }
+        else if (typeof v === 'number' && supprimees.has(v)) {
+            merged[c.colId] = keepId;
+        }
+    });
+}
+function resumePlanRefs(plan) {
+    const detail = Object.keys(plan.parTable).sort().map(t => t + ' (' + plan.parTable[t] + ')').join(', ');
+    return plan.total + ' référence' + (plan.total > 1 ? 's' : '') + (detail ? ' : ' + detail : '');
+}
+function reindex(rm) {
+    const nM = {}, nC = {}, nK = {}, nE = {};
+    S.duplicateGroups.forEach((g, i) => {
+        const o = i >= rm ? i + 1 : i;
+        nM[i] = S.mergeSelections[o] || {};
+        nC[i] = S.cumulateSelections[o] || {};
+        const keepCand = S.keepRecordChoices[o];
+        if (keepCand != null && g.records.some(r => r.id === keepCand)) {
+            nK[i] = keepCand;
+        }
+        else {
+            nK[i] = g.records[0].id;
+        }
+        nE[i] = S.excludedRecords[o] || new Set();
+    });
+    S.mergeSelections = nM;
+    S.cumulateSelections = nC;
+    S.keepRecordChoices = nK;
+    S.excludedRecords = nE;
+    S.duplicateGroups.forEach((_, i) => ensureGroupState(i));
+}
+async function mergeAll() {
+    if (!S.duplicateGroups.length)
+        return;
+    let resumeTotal = '';
+    try {
+        afficherLoader('Recherche des références vers cette table…');
+        await construireIndexReferences(S.selectedTable);
+        const cumul = { total: 0, parTable: {} };
+        S.duplicateGroups.forEach((g, gi) => {
+            const excl = S.excludedRecords[gi] || new Set();
+            const keep = S.keepRecordChoices[gi];
+            const dels = g.records.filter(rr => !excl.has(rr.id) && rr.id !== keep).map(rr => rr.id);
+            const pl = planifierRedirections(dels, keep);
+            cumul.total += pl.total;
+            Object.keys(pl.parTable).forEach(t => { cumul.parTable[t] = (cumul.parTable[t] || 0) + pl.parTable[t]; });
+        });
+        if (cumul.total)
+            resumeTotal = ', en redirigeant ' + resumePlanRefs(cumul) + ' vers les lignes conservées';
+    }
+    catch (eIdx) {
+        masquerLoader();
+        afficherErreur('Impossible de lire les références vers cette table : la fusion est annulée pour ne pas laisser de références cassées.', eIdx);
+        return;
+    }
+    finally {
+        masquerLoader();
+    }
+    if (!await confirmerAction('Fusionner les ' + S.duplicateGroups.length + ' groupe(s)' + resumeTotal + ' ? Cette action est irréversible.'))
+        return;
+    let i = 0, laisses = 0, garde = S.duplicateGroups.length + 1;
+    while (i < S.duplicateGroups.length && garde-- > 0) {
+        const res = await mergeGroup(i, true);
+        if (res === 'echec')
+            return;
+        if (res !== 'ok') {
+            i++;
+            laisses++;
+        }
+    }
+    if (laisses) {
+        S.currentGroupIndex = 0;
+        renderGroup();
+        showToast('Fusion partielle', laisses + ' groupe(s) n’ont pas pu être fusionnés et restent à traiter un par un.', 'info', 3);
+    }
+}
+var _minuteursAlerte = {};
+function showToast(title, detail, type, sectionNum) {
+    if (type !== 'error') {
+        toast(title + (detail ? ' : ' + detail : ''), { type: type === 'success' ? 'succes' : 'info' });
+        return;
+    }
+    var targetId = 'alert' + (sectionNum || S.currentStep);
+    var container = $(targetId);
+    if (!container)
+        return;
+    var kind = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+    if (_minuteursAlerte[targetId]) {
+        clearTimeout(_minuteursAlerte[targetId]);
+        delete _minuteursAlerte[targetId];
+    }
+    container.innerHTML =
+        '<div class="fr-alert fr-alert--' + kind + ' fr-alert--sm w-section__alert">' +
+            '<p class="fr-alert__title">' + echapperHTML(title) + '</p>' +
+            (detail ? '<p>' + echapperHTML(detail) + '</p>' : '') +
+            '</div>';
+    if (kind !== 'error') {
+        _minuteursAlerte[targetId] = setTimeout(function () {
+            container.innerHTML = '';
+            delete _minuteursAlerte[targetId];
+        }, 6000);
+    }
+}
+function setEmpty(icon, title, desc) {
+    const el = $('emptyState');
+    el.querySelector('.w-empty__icon').textContent = icon;
+    el.querySelector('h3').textContent = title;
+    el.querySelector('p').textContent = desc;
+}
+function bindGlobal() {
+    ecouter('wErreurFermer', 'click', masquerErreur);
+    ecouter('tableSelect', 'change', () => {
+        relayer((async () => {
+            S.selectedTable = $('tableSelect').value;
+            S.selectedFields = [];
+            resetScan();
+            if (!S.selectedTable) {
+                S.allRecords = [];
+                S.allColumns = [];
+                S.colMeta = {};
+                renderChips();
+                updateStats();
+                goToStep(1);
+                majScanBtn();
+                return;
+            }
+            renderChips();
+            updateStats();
+            majRevealSections();
+            if (S.isGristConnected)
+                await loadTableFull(S.selectedTable);
+            else {
+                majStats();
+            }
+        })(), 'Changement de table impossible');
+    });
+    ecouter('fieldSearchInput', 'focus', () => {
+        renderFieldDropdown();
+        const dd = $('fieldDropdown');
+        if (dd)
+            dd.classList.add('open');
+    });
+    ecouter('fieldSearchInput', 'input', () => {
+        S.searchQuery = $('fieldSearchInput').value;
+        renderFieldDropdown();
+        const dd = $('fieldDropdown');
+        if (dd)
+            dd.classList.add('open');
+    });
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.w-search')) {
+            const dd = $('fieldDropdown');
+            if (dd)
+                dd.classList.remove('open');
+        }
+    });
+    ecouter('scanBtn', 'click', () => relayer(startScan(), 'Analyse impossible'));
+    ecouter('navPrev', 'click', () => navGroup(-1));
+    ecouter('navNext', 'click', () => navGroup(1));
+    ecouter('skipBtn', 'click', () => skipGroup());
+    ecouter('mergeBtn', 'click', () => relayer(mergeGroup(S.currentGroupIndex), 'Fusion impossible'));
+    ecouter('mergeAllBtn', 'click', () => relayer(mergeAll(), 'Fusion globale impossible'));
+    ecouter('hideIdenticalCheck', 'change', () => {
+        S.hideIdentical = $('hideIdenticalCheck').checked;
+        if (S.duplicateGroups.length && S.currentStep === 3)
+            renderGroup();
+    });
+    ecouter('hideFormulasCheck', 'change', () => {
+        S.hideFormulas = $('hideFormulasCheck').checked;
+        if (S.duplicateGroups.length && S.currentStep === 3)
+            renderGroup();
+        const dd = $('fieldDropdown');
+        if (dd && dd.classList.contains('open'))
+            renderFieldDropdown();
+    });
+    ecouter('sortSelect', 'change', () => {
+        S.sortMode = $('sortSelect').value;
+        if (S.duplicateGroups.length && S.currentStep === 3)
+            renderGroup();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')
+            return;
+        if (S.currentStep !== 3 || !S.duplicateGroups.length)
+            return;
+        if (e.key === 'ArrowLeft')
+            navGroup(-1);
+        if (e.key === 'ArrowRight')
+            navGroup(1);
+    });
+}
+function creerEl(tag, classe, texte, attrs, enfants) {
+    var n = document.createElement(tag);
+    if (classe) {
+        n.className = classe;
+    }
+    if (texte !== null && texte !== undefined) {
+        n.textContent = texte;
+    }
+    if (attrs) {
+        Object.keys(attrs).forEach(function (k) { if (attrs[k] !== null && attrs[k] !== undefined) {
+            n.setAttribute(k, attrs[k]);
+        } });
+    }
+    (enfants || []).forEach(function (e) { if (e) {
+        n.appendChild(typeof e === 'string' ? document.createTextNode(e) : e);
+    } });
+    return n;
+}
+function viderEl(n) { while (n && n.firstChild) {
+    n.removeChild(n.firstChild);
+} }
+var _toast = { minuterie: null, texte: null };
+function toast(message, opts) {
+    opts = opts || {};
+    var z = document.getElementById('wToast');
+    if (!z) {
+        return;
+    }
+    fermerToast();
+    var type = opts.type || 'info';
+    z.className = 'w-toast w-toast--' + type;
+    z.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
+    var msg = document.getElementById('wToastMsg');
+    msg.textContent = '';
+    z.hidden = false;
+    _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
+    var duree = opts.duree === undefined ? (type === 'erreur' ? 10000 : 6000) : opts.duree;
+    if (duree > 0) {
+        _toast.minuterie = setTimeout(fermerToast, duree);
+    }
+}
+function fermerToast() {
+    clearTimeout(_toast.minuterie);
+    _toast.minuterie = null;
+    clearTimeout(_toast.texte);
+    _toast.texte = null;
+    var z = document.getElementById('wToast');
+    if (z && !z.hidden) {
+        var focusDedans = z.contains(document.activeElement);
+        z.hidden = true;
+        if (focusDedans) {
+            var c = document.getElementById('contenu');
+            if (c) {
+                c.focus();
+            }
+        }
+    }
+}
+var _niveauAcces = null;
+var _accesRecu = null;
+var _promesseAcces = new Promise(function (ok) { _accesRecu = ok; });
+function accesComplet() { return !_niveauAcces || _niveauAcces === 'full'; }
+function accesRefuse(n) { return n === 'none' || n === 'read table'; }
+function attendreAcces() { return Promise.race([_promesseAcces, new Promise(function (ok) { setTimeout(ok, 3000); })]); }
+function ecrireDocument(actions) {
+    if (!accesComplet()) {
+        logSecurite('AVERTISSEMENT', 'Écriture refusée : accès complet non accordé au widget (niveau : ' + _niveauAcces + ')');
+        return Promise.reject(new Error('Accès complet non accordé au widget : not allowed'));
+    }
+    return grist.docApi.applyUserActions(actions);
+}
+function afficherEcranAcces(refuse) {
+    var e = document.getElementById('wAcces');
+    var c = document.getElementById('wContenuWidget');
+    if (e) {
+        e.hidden = !refuse;
+    }
+    if (c) {
+        c.hidden = !!refuse;
+    }
+}
+function suivreAcces(relancer) {
+    grist.onOptions(function (options, interaction) {
+        var avant = _niveauAcces;
+        _niveauAcces = interaction && interaction.accessLevel ? interaction.accessLevel : null;
+        _accesRecu();
+        if (accesRefuse(avant) !== accesRefuse(_niveauAcces)) {
+            relancer();
+        }
+    });
+}
+var CLE_AIDE = NOM_WIDGET.toLowerCase() + ':aide';
+var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
+var _aide = { ouvert: false, onglet: null };
+function lireEtatAide() {
+    try {
+        var v = JSON.parse(window.localStorage.getItem(CLE_AIDE) || 'null');
+        if (v && typeof v === 'object') {
+            _aide.ouvert = v.ouvert === true;
+            _aide.onglet = ONGLETS_AIDE.some(function (o) { return o.cle === v.onglet; }) ? v.onglet : null;
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Aide : état non relu par le navigateur', e);
+    }
+}
+function ecrireEtatAide() {
+    try {
+        window.localStorage.setItem(CLE_AIDE, JSON.stringify({ ouvert: _aide.ouvert, onglet: _aide.onglet }));
+    }
+    catch (e) {
+        logSecurite('INFO', 'Aide : état non mémorisé par le navigateur', e);
+    }
+}
+function ongletAide(ctx) { return _aide.onglet || (ctx.courante >= 0 ? 'pas' : 'resume'); }
+function basculerAide(ouvrir) {
+    _aide.ouvert = !!ouvrir;
+    ecrireEtatAide();
+    panneauAide();
+    if (ouvrir) {
+        var t = document.getElementById('wAideTitre');
+        if (t) {
+            t.focus();
+        }
+    }
+    else {
+        var b = document.getElementById('bandeauAide');
+        if (b) {
+            b.focus();
+        }
+    }
+}
+function choisirOngletAide(cle) {
+    _aide.onglet = cle;
+    ecrireEtatAide();
+    panneauAide();
+    var o = document.getElementById('wAideOnglet_' + cle);
+    if (o) {
+        o.focus();
+    }
+}
+function panneauAide() {
+    var p = document.getElementById('wPanneauAide');
+    var btn = document.getElementById('bandeauAide');
+    if (!p) {
+        return;
+    }
+    if (btn) {
+        btn.setAttribute('aria-expanded', _aide.ouvert ? 'true' : 'false');
+        btn.classList.toggle('fr-btn--secondary', !_aide.ouvert);
+    }
+    document.body.classList.toggle('w-aide-ouverte', _aide.ouvert);
+    var actif = document.activeElement && p.contains(document.activeElement) ? document.activeElement.id : null;
+    viderEl(p);
+    p.hidden = !_aide.ouvert;
+    if (!_aide.ouvert) {
+        return;
+    }
+    var ctx = contexteAide();
+    var courant = ongletAide(ctx);
+    var fermer = creerEl('button', 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line fr-btn--icon-left', 'Fermer', { type: 'button', id: 'wAideFermer', 'aria-label': 'Fermer l\'aide' });
+    fermer.addEventListener('click', function () { basculerAide(false); });
+    p.appendChild(creerEl('div', 'w-panneau-aide__tete', null, null, [
+        creerEl('span', 'fr-icon-question-line w-panneau-aide__icone', null, { 'aria-hidden': 'true' }),
+        creerEl('h2', 'w-panneau-aide__titre', 'Aide', { id: 'wAideTitre', tabindex: '-1' }), fermer
+    ]));
+    var liste = creerEl('ul', 'w-panneau-aide__onglets', null, { role: 'tablist', 'aria-label': 'Rubriques de l\'aide' });
+    ONGLETS_AIDE.forEach(function (o, i) {
+        var choisi = o.cle === courant;
+        var b = creerEl('button', 'fr-tabs__tab', o.libelle, { type: 'button', role: 'tab', id: 'wAideOnglet_' + o.cle, 'aria-selected': choisi ? 'true' : 'false',
+            'aria-controls': 'wAideVolet_' + o.cle, tabindex: choisi ? '0' : '-1' });
+        b.addEventListener('click', function () { choisirOngletAide(o.cle); });
+        b.addEventListener('keydown', function (e) {
+            var j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ONGLETS_AIDE.length - 1 }[e.key];
+            if (j === undefined) {
+                return;
+            }
+            e.preventDefault();
+            choisirOngletAide(ONGLETS_AIDE[(j + ONGLETS_AIDE.length) % ONGLETS_AIDE.length].cle);
+        });
+        liste.appendChild(creerEl('li', null, null, { role: 'presentation' }, [b]));
+    });
+    p.appendChild(liste);
+    var corps = creerEl('div', 'w-panneau-aide__corps');
+    ONGLETS_AIDE.forEach(function (o) {
+        var v = creerEl('div', 'w-panneau-aide__volet', null, { id: 'wAideVolet_' + o.cle, role: 'tabpanel', 'aria-labelledby': 'wAideOnglet_' + o.cle, tabindex: '0' });
+        v.hidden = o.cle !== courant;
+        if (o.cle === courant) {
+            (o.cle === 'resume' ? voletAideResume() : (o.cle === 'pas' ? voletAidePas(ctx) : voletAideQuestions())).forEach(function (n) { v.appendChild(n); });
+        }
+        corps.appendChild(v);
+    });
+    p.appendChild(corps);
+    var f = actif ? document.getElementById(actif) : null;
+    if (f) {
+        f.focus();
+    }
+    var ici = p.querySelector('.w-pas__etape--en-cours');
+    if (ici) {
+        corps.scrollTop = Math.max(0, ici.offsetTop - corps.offsetTop - 16);
+    }
+}
+function listeAide(items) { return creerEl('ul', 'w-texte w-panneau-aide__liste', null, null, items.map(function (t) { return creerEl('li', null, t); })); }
+function voletAideResume() {
+    return [creerEl('p', 'w-texte', AIDE.resume),
+        creerEl('h3', 'w-panneau-aide__sous-titre', 'Ce que vous pouvez faire'), listeAide(AIDE.fonctions),
+        creerEl('h3', 'w-panneau-aide__sous-titre', 'Avant de commencer'), listeAide(AIDE.avant)];
+}
+function voletAidePas(ctx) {
+    var res = [];
+    if (ctx.repere) {
+        res.push(creerEl('p', 'w-mention', ctx.repere));
+    }
+    var ol = creerEl('ol', 'w-pas');
+    ctx.etapes.forEach(function (nom, i) {
+        var fiche = AIDE.etapes[nom] || { titre: '', points: [] };
+        var etatE = ctx.courante < 0 ? 'neutre' : (i < ctx.courante ? 'faite' : (i === ctx.courante ? 'en-cours' : 'a-venir'));
+        var detail = ctx.courante < 0 || etatE === 'en-cours';
+        var li = creerEl('li', 'w-pas__etape w-pas__etape--' + etatE, null, null, [
+            creerEl('span', 'w-pas__num' + (etatE === 'faite' ? ' fr-icon-check-line fr-icon--sm' : ''), etatE === 'faite' ? null : String(i + 1), { 'aria-hidden': 'true' }),
+            creerEl('div', 'w-pas__texte', null, null, [
+                creerEl('p', 'w-pas__nom', null, null, [creerEl('strong', null, nom), etatE === 'en-cours' ? creerEl('span', 'w-pas__ici', ' (vous êtes ici)') : null,
+                    etatE === 'faite' ? creerEl('span', 'fr-sr-only', ' (terminée)') : null, fiche.titre ? ' : ' + fiche.titre : null]),
+                detail && fiche.points.length ? creerEl('ul', 'w-pas__points', null, null, fiche.points.map(function (t) { return creerEl('li', null, t); })) : null
+            ])
+        ]);
+        if (etatE === 'en-cours') {
+            li.setAttribute('aria-current', 'step');
+        }
+        ol.appendChild(li);
+    });
+    res.push(ol);
+    return res;
+}
+function voletAideQuestions() {
+    return AIDE.questions.map(function (x) {
+        return creerEl('div', 'w-question', null, null, [creerEl('h3', 'w-panneau-aide__sous-titre', x.q), creerEl('p', 'w-texte', x.r)]);
+    });
+}
+function brancherAide() {
+    lireEtatAide();
+    var btn = document.getElementById('bandeauAide');
+    var p = document.getElementById('wPanneauAide');
+    if (btn) {
+        btn.addEventListener('click', function () { basculerAide(!_aide.ouvert); });
+        btn.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _aide.ouvert) {
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        } });
+    }
+    if (p) {
+        p.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || e.defaultPrevented) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        });
+    }
+    var tf = document.getElementById('wToastFermer');
+    if (tf) {
+        tf.addEventListener('click', fermerToast);
+    }
+    var tz = document.getElementById('wToast');
+    if (tz) {
+        tz.addEventListener('keydown', function (e) { if (e.key === 'Escape') {
+            e.stopPropagation();
+            fermerToast();
+        } });
+    }
+    panneauAide();
+}
+var AIDE = {
+    resume: 'Diplodoublon repère les lignes en double dans une table, par exemple une même personne saisie deux fois, puis vous aide à les fusionner sans perdre d\'information.',
+    fonctions: ['Choisir les champs à comparer, à l\'identique ou de façon approchée', 'Voir les doublons groupe par groupe', 'Choisir la ligne à garder et, champ par champ, la valeur à conserver', 'Fusionner un groupe ou tous les groupes d\'un coup ; les liens des autres tables suivent la ligne gardée'],
+    avant: ['Il faut le droit de modifier la table : la fusion supprime des lignes.', 'Pensez à une copie du document avant une grosse reprise de données.'],
+    etapes: {
+        'La table': { titre: 'choisissez la table à analyser.', points: ['Le nombre de lignes s\'affiche à côté.', 'Les tables techniques ne sont pas proposées.'] },
+        'Les critères': { titre: 'les champs qui doivent se ressembler.', points: ['Ajoutez un ou plusieurs champs depuis la recherche.', 'Pour chacun, choisissez une correspondance exacte ou approchée.', 'Lancez « Scanner les doublons ».'] },
+        'Les doublons': { titre: 'un groupe à la fois.', points: ['Cliquez la ligne à conserver.', 'Cliquez une valeur d\'une autre ligne pour la reprendre dans la ligne gardée.', '« Fusionner et supprimer » garde une ligne et supprime les autres ; « Ignorer ce groupe » passe au suivant.', '« Tout fusionner » traite tous les groupes avec vos choix.'] }
+    },
+    questions: [
+        { q: 'Les lignes supprimées sont-elles perdues ?', r: 'Oui, la fusion supprime les autres lignes du groupe. Les valeurs que vous avez choisies sont reportées dans la ligne gardée avant la suppression, et l\'historique du document permet de revenir en arrière.' },
+        { q: 'Et les autres tables qui pointent vers ces lignes ?', r: 'Les liens qui visaient une ligne supprimée sont redirigés vers la ligne gardée.' },
+        { q: 'Pourquoi certains champs ne sont-ils pas cliquables ?', r: 'Les champs calculés par une formule ne se modifient pas : ils se recalculent d\'eux-mêmes après la fusion.' }
+    ]
+};
+var ETAPES_AIDE = ['La table', 'Les critères', 'Les doublons'];
+function contexteAide() { return { etapes: ETAPES_AIDE, courante: (S.currentStep || 1) - 1 }; }
+grist.ready({ requiredAccess: 'full', columns: [], allowSelectBy: true });
+async function demarrer() {
+    await attendreAcces();
+    if (accesRefuse(_niveauAcces)) {
+        afficherEcranAcces(true);
+        return;
+    }
+    afficherEcranAcces(false);
+    initGrist();
+}
+suivreAcces(function () { demarrer(); });
+document.addEventListener('DOMContentLoaded', () => {
+    bindGlobal();
+    brancherAide();
+    ecouter('wAccesReessayer', 'click', () => { demarrer(); });
+    demarrer();
+    setTimeout(() => {
+        window.addEventListener('error', (evt) => {
+            if (!evt || !evt.message || evt.message === 'Script error.')
+                return;
+            if (evt.filename) {
+                try {
+                    if (new URL(evt.filename, location.href).origin !== location.origin)
+                        return;
+                }
+                catch (eUrl) {
+                    logSecurite('INFO', 'Origine de l’erreur illisible', eUrl);
+                }
+            }
+            logSecurite('ERREUR', 'Exception non capturée', {
+                message: evt.message, source: evt.filename, line: evt.lineno
+            });
+            afficherErreur('Une erreur inattendue est survenue. Consultez la console pour plus de détails.', evt.error);
+        });
+        window.addEventListener('unhandledrejection', (evt) => {
+            logSecurite('ERREUR', 'Promesse rejetée non capturée', evt.reason);
+        });
+    }, 1500);
+});
+</script>
+</body>
+</html>

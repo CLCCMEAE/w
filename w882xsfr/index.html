@@ -1,0 +1,3783 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<head>
+<meta name="robots" content="noindex, nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diploexport</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha256-zAFRMKqFIefwiPiImOupSczcv7ON8L0Sm0S3Jzw6b0E=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
+  <style>
+    [hidden] { display: none !important; }
+    body {
+      background-color: var(--background-default-grey);
+      margin: 0;
+      padding: 0;
+      font-family: Marianne, arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column; color: var(--text-default-grey); }
+    #skipLink:focus{position:fixed;top:0;left:0;z-index:9999;padding:.5rem 1rem;background:var(--background-default-grey);color:var(--text-action-high-blue-france);clip:auto;width:auto;height:auto;overflow:visible;white-space:nowrap;font-size:.875rem}
+    main { padding: 0; }
+    .csnc-section-cachee { display: none !important; }
+    .w-bandeau{display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);flex-shrink:0; color: var(--text-default-grey); }
+    #bandeau-logo{width:80px;flex-shrink:0}
+    .w-bandeau__logo-wrap{width:100%}
+        .w-bandeau__marque{display:flex;align-items:center;gap:.625rem;flex-shrink:0}
+    .w-bandeau__sep{width:1px;align-self:stretch;margin:.25rem 0;background:var(--border-default-grey);flex-shrink:0}
+    .w-bandeau__titre{font-size:2rem;font-weight:600;color:var(--text-title-blue-france);white-space:nowrap;margin:0;line-height:1}
+    .w-bandeau__version{font-size:.75rem;color:var(--text-mention-grey);font-weight:400;margin-left:.5rem;white-space:nowrap}
+    .w-bandeau__homologue{margin-left:.5rem;white-space:nowrap}
+    .w-bandeau__homologue[hidden]{display:none}
+    .w-bandeau .fr-logo::after{display:none}
+    .tab-nav{flex-shrink:0;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);padding:0 .75rem;margin-bottom:0; color: var(--text-default-grey); }
+    .tab-nav .fr-tabs__list{border-bottom:none;margin:0;display:flex;list-style:none;padding:0;gap:0}
+    .tab-nav .fr-tabs__list li{margin:0;padding:0}
+    .tab-nav .fr-tabs__tab{margin-bottom:0}
+    .csnc-panneau{flex:1;overflow-y:auto;padding:1.25rem .75rem 2rem}
+    .csnc-panneau.csnc-panneau-cache{display:none}
+    .csnc-barre-tables{display:flex;align-items:stretch;gap:0;background:var(--background-alt-grey);border-bottom:2px solid var(--border-default-grey);overflow-x:auto;padding:0;min-height:42px; color: var(--text-default-grey); }
+    .csnc-onglet-table{padding:.5rem 1rem;border:none;border-bottom:3px solid transparent;background:transparent;cursor:pointer;font-size:.875rem;font-family:inherit;color:var(--text-default-grey);white-space:nowrap;transition:all .15s;flex-shrink:0}
+    .csnc-onglet-table:hover{background:var(--background-contrast-blue-france);color:var(--text-action-high-blue-france)}
+    .csnc-onglet-table.csnc-actif{border-bottom-color:var(--border-action-high-blue-france);color:var(--text-action-high-blue-france);font-weight:700;background:var(--background-default-grey)}
+    .csnc-onglet-table .csnc-onglet-coche{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:2px solid var(--border-default-grey);background:var(--background-default-grey);margin-right:.4rem;flex-shrink:0;vertical-align:middle;transition:all .15s;cursor:pointer;position:relative; color: var(--text-default-grey); }
+    .csnc-onglet-table .csnc-onglet-coche.csnc-coche-active{background:var(--background-flat-success);border-color:var(--background-flat-success); color: var(--text-default-grey); }
+    .csnc-onglet-table .csnc-onglet-coche.csnc-coche-active::after{content:'\2713';color:var(--text-inverted-success);font-size:.75rem;font-weight:900;line-height:1}
+    .csnc-onglet-table--ignored{opacity:.5;text-decoration:line-through}
+    .csnc-onglet-etiquette{flex-shrink:0}
+    .csnc-actif .csnc-onglet-etiquette{background:var(--background-contrast-blue-france);color:var(--text-action-high-blue-france)}
+    .csnc-layout{display:flex;min-height:400px}
+    .csnc-sidebar{width:280px;flex:0 0 280px;resize:none;border-left:1px solid var(--border-default-grey);border-right:1px solid var(--border-default-grey);border-bottom:1px solid var(--border-default-grey);background:var(--background-default-grey);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden; color: var(--text-default-grey); }
+    .csnc-sidebar-titre{min-height:84px;padding:.75rem 1rem;font-weight:700;font-size:.875rem;color:var(--text-title-grey);border-bottom:1px solid var(--border-default-grey);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:.4rem;background:var(--background-alt-grey)}
+    .csnc-sidebar-commandes{display:flex;align-items:center;gap:.75rem;width:100%}
+    .csnc-sidebar-lien{background:none;border:none;font-size:.75rem;color:var(--text-action-high-blue-france);cursor:pointer;font-family:inherit;padding:0 .25rem;font-weight:500}
+    .csnc-sidebar-lien:hover{text-decoration:underline}
+    .csnc-sidebar-recherche{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;border-bottom:1px solid var(--border-default-grey);background:var(--background-default-grey); color: var(--text-default-grey); }
+    .csnc-sidebar-recherche .fr-icon-search-line{color:var(--text-mention-grey);font-size:.9rem}
+    .csnc-sidebar-recherche input[type="search"]{flex:1;border:none;background:transparent;padding:.25rem;font-size:.875rem;font-family:inherit;color:var(--text-default-grey);min-width:0}
+    .csnc-sidebar-recherche input[type="search"]::-webkit-search-cancel-button{display:none}
+    .csnc-sidebar-recherche input[type="search"]:focus{outline:2px solid var(--border-action-high-blue-france);outline-offset:-1px;border-radius:0}
+    .csnc-sidebar-recherche-reset{background:transparent;border:none;color:var(--text-mention-grey);cursor:pointer;font-size:1rem;line-height:1;padding:0 .25rem;border-radius:50%}
+    .csnc-sidebar-recherche-reset:hover{background:var(--background-contrast-grey);color:var(--text-action-high-blue-france)}
+    .csnc-sidebar-liste{list-style:none;margin:0;padding:0 .75rem;overflow-y:auto;flex:1}
+    .csnc-sidebar-item{display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;font-size:.8125rem;cursor:default;border-bottom:1px solid var(--background-alt-grey); color: var(--text-default-grey); }
+    .csnc-sidebar-item:last-child{border-bottom:none}
+    .csnc-sidebar-item input[type="checkbox"]{margin:0;flex-shrink:0;accent-color:var(--background-action-high-blue-france); color: var(--text-default-grey); }
+    .csnc-sidebar-item-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+    .csnc-sidebar-item--avec-mention{flex-wrap:wrap}
+    .csnc-mention-pj{flex-basis:100%;font-size:.75rem;line-height:1.3;color:var(--text-default-warning);background:var(--background-contrast-warning);padding:2px 6px;margin-top:.25rem}
+    .csnc-sidebar-item .csnc-badge-type{ margin-left:auto; flex-shrink:0; }
+    .csnc-sidebar-separateur{height:1px;background:var(--border-default-grey);margin:.35rem .5rem}
+    .csnc-sidebar-vide{padding:.75rem;text-align:center;color:var(--text-mention-grey);font-style:italic;font-size:.8125rem}
+    .csnc-surligne{background-color:var(--background-contrast-warning);color:var(--text-default-warning);font-weight:bold;padding:0 2px;border-radius:0}
+    .csnc-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+    .csnc-main-titre{font-weight:700;color:var(--text-title-blue-france);white-space:nowrap}
+    .csnc-filtres-barre{display:none;align-items:center;gap:.75rem;padding:.6rem 0;flex-wrap:wrap;border-bottom:1px solid var(--border-default-grey);background:var(--background-alt-grey);min-height:40px; color: var(--text-default-grey); }
+    .csnc-filtres-barre.actif{display:flex}
+    .csnc-filtre-tag{ display:inline-flex; align-items:center; gap:.3rem; }
+    .csnc-filtre-tag-suppr{background:transparent;border:none;color:var(--text-action-high-blue-france);cursor:pointer;font-size:.9rem;line-height:1;padding:0 .15rem}
+    .csnc-filtre-tag-suppr:hover{color:var(--text-default-error)}
+    .csnc-filtres-info{margin-left:auto;color:var(--text-mention-grey);font-size:.8125rem;white-space:nowrap}
+    .csnc-filtres-panneau{display:none;padding:1.25rem 1rem;border-bottom:1px solid var(--border-default-grey);background:var(--background-default-grey); color: var(--text-default-grey); }
+    .csnc-filtres-panneau.actif{display:block}
+    .csnc-groupe{border:1px solid var(--border-default-grey);border-left:3px solid var(--border-action-high-blue-france);background:var(--background-default-grey);padding:1rem 1.25rem;margin-bottom:1rem; color: var(--text-default-grey); }
+    .csnc-groupe-entete{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap}
+    .csnc-groupe-titre{font-weight:bold;color:var(--text-title-blue-france)}
+    .csnc-groupe-mini-select{font-size:.875rem;padding:.15rem 1.5rem .15rem .5rem;max-width:130px}
+    .csnc-condition-ligne{display:grid;grid-template-columns:1.2fr 1.4fr 1.6fr auto;gap:.75rem;align-items:end;padding:.75rem;margin-bottom:.75rem;background:var(--background-alt-grey); color: var(--text-default-grey); }
+    @media (max-width:900px){.csnc-condition-ligne{grid-template-columns:1fr}}
+    .csnc-condition-ligne .fr-input-group,.csnc-condition-ligne .fr-select-group{margin-bottom:0}
+    .csnc-plage-dates{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+    .csnc-plage-dates .fr-label{font-size:.8125rem}
+    .csnc-liaison-groupes{display:flex;justify-content:center;padding:.5rem 0;gap:.5rem;align-items:center;position:relative}
+    .csnc-liaison-groupes::before,.csnc-liaison-groupes::after{content:'';flex:1;max-width:80px;height:1px;background:var(--border-default-grey)}
+    .csnc-liaison-groupes select{font-weight:bold;color:var(--text-title-blue-france);text-align:center;text-align-last:center;min-width:70px;padding:.2rem 1.5rem .2rem .75rem;font-size:.875rem}
+    .csnc-aucun-filtre{padding:1rem;text-align:center;color:var(--text-mention-grey);font-style:italic}
+    .csnc-preview-grille{overflow:auto;flex:1;min-height:200px;border-bottom:1px solid var(--border-default-grey);border-right:1px solid var(--border-default-grey)}
+    .csnc-preview-vide{padding:2rem;text-align:center;color:var(--text-mention-grey);font-style:italic}
+    .csnc-feuille{border-collapse:collapse;font-family:'Calibri','Marianne',sans-serif;font-size:.875rem;min-width:100%;table-layout:fixed;background:var(--background-default-grey); color: var(--text-default-grey); }
+    .csnc-feuille th,.csnc-feuille td{border:1px solid var(--border-default-grey);padding:6px 10px;text-align:left;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+    .csnc-feuille thead th{background:var(--background-contrast-grey);color:var(--text-default-grey);font-weight:bold;text-align:center;padding:6px 10px;cursor:grab;user-select:none;position:sticky;top:0;z-index:2}
+    .csnc-feuille thead th.csnc-coin{background:var(--background-contrast-grey);cursor:default;width:36px;min-width:36px; color: var(--text-default-grey); }
+    .csnc-feuille thead th.csnc-en-glisse{opacity:.4}
+    .csnc-feuille thead th.csnc-survol-glisse{background-color:var(--background-contrast-blue-france) !important;border-left:2px solid var(--border-action-high-blue-france)}
+    .csnc-en-tete-cellule{display:flex;align-items:center;justify-content:center;gap:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .csnc-en-tete-lettre{color:var(--text-mention-grey);font-weight:normal}
+    .csnc-en-tete-nom{overflow:hidden;text-overflow:ellipsis}
+    .csnc-feuille tbody td.csnc-num-ligne{background:var(--background-contrast-grey);color:var(--text-mention-grey);font-weight:bold;text-align:center;width:36px;min-width:36px;max-width:36px}
+    .csnc-cellule-vide{color:var(--text-disabled-grey);font-style:italic}
+    .csnc-actions-barre{display:flex;align-items:center;gap:.75rem;min-height:84px;padding:.75rem 1rem;border-bottom:1px solid var(--border-default-grey);background:var(--background-alt-grey);flex-wrap:wrap; color: var(--text-default-grey); }
+    .csnc-bloc{background:var(--background-alt-grey);padding:1.25rem 1.5rem;margin-bottom:1.5rem;border-left:4px solid var(--border-action-high-blue-france); color: var(--text-default-grey); }
+    .csnc-bloc-titre{margin:0 0 .75rem;padding-bottom:.5rem;border-bottom:2px solid var(--border-action-high-blue-france);font-size:.9rem;font-weight:700;color:var(--text-title-grey)}
+    h2.csnc-bloc-titre,h2.fr-h6.csnc-bloc-titre{margin:0 0 .75rem}
+    .csnc-actions-ligne{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem}
+    .w-erreur { display: none; flex-shrink: 0; }
+    .w-erreur.actif { display: block; }
+    .w-loader{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);flex-direction:column;align-items:center;justify-content:center;gap:.75rem}
+    .w-loader.actif{display:flex}
+    .w-loader__spinner{width:32px;height:32px;border:3px solid var(--border-default-grey);border-top-color:var(--background-action-high-blue-france);border-radius:50%;animation:wSpin .8s linear infinite}
+    @keyframes wSpin{to{transform:rotate(360deg)}}
+    .w-loader__texte{font-size:.875rem;color:var(--text-inverted-grey)}
+    .w-confirm-overlay{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.5);align-items:center;justify-content:center}
+    .w-confirm-overlay.actif{display:flex}
+    .w-confirm-box{background:var(--background-default-grey);max-width:28rem;width:90%;padding:1.5rem; color: var(--text-default-grey); }
+    .w-confirm-msg{margin:0 0 1.25rem;font-size:.875rem;line-height:1.5;color:var(--text-default-grey)}
+    .w-confirm-actions{display:flex;justify-content:flex-end;gap:.75rem}
+    .w-prompt-input{width:100%;margin-bottom:1.25rem}
+    @media (max-width:700px){
+      .csnc-layout{flex-direction:column}
+      .csnc-sidebar{width:100%;flex:0 0 auto;border-right:none;border-bottom:1px solid var(--border-default-grey);max-height:220px}
+    }
+    .w-bandeau__aide { margin-left: auto; flex-shrink: 0; }
+    .w-panneau-aide { position: fixed; z-index: 900; top: var(--haut-bandeau, 0); right: 0; bottom: 0; width: 24rem; display: flex; flex-direction: column;
+      background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-left: 1px solid var(--border-default-grey); }
+    .w-panneau-aide[hidden] { display: none; }
+    body.w-aide-ouverte { padding-right: 24rem; box-sizing: border-box; }
+    body.w-aide-ouverte .w-bandeau { margin-right: -24rem; }
+    .w-panneau-aide__tete { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); }
+    .w-panneau-aide__icone { color: var(--text-action-high-blue-france); flex-shrink: 0; }
+    .w-panneau-aide__titre { flex: 1; margin: 0; font-size: 1rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+    .w-panneau-aide__onglets { display: flex; flex-shrink: 0; gap: .25rem; margin: 0; padding: .25rem .75rem 0; list-style: none; overflow-x: auto;
+      background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-bottom: 1px solid var(--border-default-grey); }
+    .w-panneau-aide__onglets > li { margin: 0; padding: 0; }
+    .w-panneau-aide .w-panneau-aide__onglet { display: inline-flex; align-items: center; margin: 0; padding: .375rem .625rem; border: 0; cursor: pointer; white-space: nowrap;
+      font: inherit; font-size: .875rem; font-weight: 700; line-height: 1.5; background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-panneau-aide .w-panneau-aide__onglet[aria-selected="true"] { background-color: var(--background-contrast-yellow-tournesol); color: var(--text-active-blue-france);
+      box-shadow: inset 0 2px 0 var(--border-active-blue-france), inset 1px 0 0 var(--border-default-grey), inset -1px 0 0 var(--border-default-grey); }
+    .w-panneau-aide .w-panneau-aide__onglet:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-panneau-aide__corps { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem .75rem 1.5rem; }
+    .w-panneau-aide__volet:not([hidden]) { display: flex; flex-direction: column; gap: .75rem; }
+    .w-panneau-aide__volet:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-panneau-aide__texte { margin: 0; font-size: .875rem; line-height: 1.5; }
+    .w-panneau-aide__sous-titre { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+    .w-panneau-aide__liste { margin: 0; padding-left: 1.25rem; font-size: .875rem; line-height: 1.5; }
+    .w-pas { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+    .w-pas__etape { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .625rem .75rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-pas__num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+      font-size: .75rem; font-weight: 700; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .w-pas__texte { display: flex; flex-direction: column; gap: .125rem; min-width: 0; font-size: .875rem; line-height: 1.5; }
+    .w-pas__nom { margin: 0; }
+    .w-pas__points { margin: .25rem 0 0; padding-left: 1.125rem; font-size: .8125rem; }
+    @media (max-width: 48em) {
+      .w-panneau-aide { top: 0; left: 0; width: auto; z-index: 1500; border-left: 0; }
+      body.w-aide-ouverte { padding-right: 0; }
+      body.w-aide-ouverte .w-bandeau { margin-right: 0; }
+    }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
+      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast[hidden] { display: none; }
+    .w-toast--succes { border-left-color: var(--border-plain-success); }
+    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
+    .w-infobulle { position: relative; overflow: visible !important; }
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
+      padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
+      color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
+    .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; content: attr(data-infobulle) !important; display: block !important;
+      width: auto !important; height: auto !important; min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline;
+      background-color: var(--background-default-grey) !important; }
+    .w-infobulle--gauche::after { left: 0; right: auto; }
+    .w-acces { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    .w-acces__titre { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-acces__texte { margin: 0; font-size: .875rem; line-height: 1.5; }
+    body.w-acces-refuse #contenu, body.w-acces-refuse .tab-nav { display: none !important; }
+    .w-modeles-outils { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .w-modeles-outils .fr-input-group { margin: 0; flex: 0 1 20rem; }
+    .w-tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1rem; }
+    .w-tuile { min-width: 0; border: 1px solid var(--border-default-grey); padding: 1.25rem; display: flex; flex-direction: column; gap: .625rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-tuile__tete { display: flex; align-items: flex-start; gap: .625rem; }
+    .w-tuile__icone { color: var(--text-title-blue-france); flex-shrink: 0; }
+    .w-tuile__titre { margin: 0; font-size: 1rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); overflow-wrap: anywhere; }
+    .w-tuile__phrase { margin: 0; font-size: .875rem; line-height: 1.5; }
+    .w-tuile__puces { margin: 0; padding-left: 1.25rem; font-size: .8125rem; line-height: 1.6; }
+    .w-tuile__mention { margin: 0; font-size: .75rem; color: var(--text-mention-grey); }
+    .w-tuile__bas { margin-top: auto; padding-top: .5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+    .w-tuile__secondaires { display: flex; gap: .25rem; }
+    .w-tuile--ouverte { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+    .w-modeles-vide { margin: 0; font-size: .875rem; color: var(--text-mention-grey); }
+    @media print {
+      .w-bandeau__aide, .w-panneau-aide, .w-toast, .w-acces { display: none !important; }
+      body.w-aide-ouverte { padding-right: 0; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
+  <div class="w-loader" id="loader" role="status" aria-live="polite">
+    <div class="w-loader__spinner"></div>
+    <div class="w-loader__texte" id="loaderMessage">Chargement…</div>
+  </div>
+  <div class="w-confirm-overlay" id="wConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="wConfirmMsg">
+    <div class="w-confirm-box">
+      <p class="w-confirm-msg" id="wConfirmMsg"></p>
+      <div class="w-confirm-actions">
+        <button type="button" class="fr-btn fr-btn--secondary" id="wConfirmNon">Annuler</button>
+        <button type="button" class="fr-btn" id="wConfirmOui">Confirmer</button>
+      </div>
+    </div>
+  </div>
+  <div class="w-confirm-overlay" id="wPromptOverlay" role="dialog" aria-modal="true" aria-labelledby="wPromptMsg">
+    <div class="w-confirm-box">
+      <p class="w-confirm-msg" id="wPromptMsg"></p>
+      <label for="wPromptInput" class="fr-sr-only">Valeur à saisir</label>
+      <input type="text" class="fr-input w-prompt-input" id="wPromptInput" autocomplete="off">
+      <div class="w-confirm-actions">
+        <button type="button" class="fr-btn fr-btn--secondary" id="wPromptNon">Annuler</button>
+        <button type="button" class="fr-btn" id="wPromptOui">Valider</button>
+      </div>
+    </div>
+  </div>
+  <div class="w-confirm-overlay" id="wExportOverlay" role="dialog" aria-modal="true" aria-labelledby="wExportTitre">
+    <div class="w-confirm-box" style="max-width:32rem">
+      <p class="w-confirm-msg" id="wExportTitre" style="font-weight:700;font-size:1rem;margin-bottom:1rem">Exporter les données</p>
+      <div class="fr-select-group fr-mb-2w">
+        <label class="fr-label" for="export-format">Format</label>
+        <select class="fr-select" id="export-format" autocomplete="off">
+          <option value="xlsx">Excel (.xlsx)</option>
+          <option value="csv">CSV (.csv)</option>
+        </select>
+      </div>
+      <div id="export-alerte-volume" style="display:none;background:var(--background-contrast-warning);padding:.75rem 1rem;margin-bottom:1rem;border-radius:0;font-size:.8125rem;line-height:1.5;color:var(--text-default-warning)"><p style="margin:0 0 .5rem;font-weight:700"><span class="fr-icon-warning-line" aria-hidden="true"></span> Volume important</p><p style="margin:0" id="export-alerte-volume-detail"></p></div>
+      <div id="export-alerte-pj" style="display:none;background:var(--background-contrast-info);padding:.75rem 1rem;margin-bottom:1rem;border-radius:0;font-size:.8125rem;line-height:1.5;color:var(--text-default-info)"><p style="margin:0 0 .5rem;font-weight:700"><span class="fr-icon-info-line" aria-hidden="true"></span> Champs de pièces jointes</p><p style="margin:0 0 .25rem">Les fichiers eux-mêmes ne peuvent pas être placés dans un classeur : seuls les <strong>noms des documents</strong> sont exportés, séparés par des virgules (<span id="export-alerte-pj-detail"></span>).</p><p style="margin:0">Pour récupérer les fichiers, utilisez le téléchargement depuis la table.</p></div>
+      <div id="export-alerte-csv" style="display:none;background:var(--background-contrast-warning);padding:.75rem 1rem;margin-bottom:1rem;border-radius:0;font-size:.8125rem;line-height:1.5;color:var(--text-default-warning)"><p style="margin:0 0 .5rem;font-weight:700"><span class="fr-icon-warning-line" aria-hidden="true"></span> <span id="export-alerte-csv-titre"></span></p><div id="export-alerte-csv-corps"></div></div>
+      <div id="export-alerte-limite" style="display:none;background:var(--background-contrast-info);padding:.75rem 1rem;margin-bottom:1rem;border-radius:0;font-size:.8125rem;line-height:1.5;color:var(--text-default-info)"><p style="margin:0 0 .5rem;font-weight:700"><span class="fr-icon-info-line" aria-hidden="true"></span> Suggestion : exporter en CSV</p><p style="margin:0 0 .25rem">Votre fichier contient des champs qui dépassent 32 767 caractères, la limite acceptée par Excel (<span id="export-alerte-detail"></span>).</p><p style="margin:0">En exportant au format Excel, ces champs seront automatiquement tronqués. Le format CSV conserve l'intégralité des données sans cette limitation.</p></div>
+      <div class="fr-input-group fr-mb-2w">
+        <label class="fr-label" for="export-nom-fichier">
+          Nom du fichier
+          <span class="fr-hint-text">Sans l'extension</span>
+        </label>
+        <input class="fr-input" type="text" id="export-nom-fichier" autocomplete="off" value="export" maxlength="80">
+      </div>
+      <p class="fr-text--sm" id="export-resume" style="color:var(--text-mention-grey);margin-bottom:1rem"></p>
+      <div class="w-confirm-actions">
+        <button type="button" class="fr-btn fr-btn--secondary" id="wExportAnnuler">Annuler</button>
+        <button type="button" class="fr-btn fr-icon-download-line fr-btn--icon-left" id="wExportConfirmer">Télécharger</button>
+      </div>
+    </div>
+  </div>
+  <div class="w-bandeau" role="banner">
+    <div class="w-bandeau__marque">
+      <div id="bandeau-logo"></div>
+      <div class="w-bandeau__sep"></div>
+      <h1 class="w-bandeau__titre">📤 Diploexport</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+    </div>
+    <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
+  </div>
+  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-acces" id="wAcces" hidden>
+    <h2 class="w-acces__titre">Accès au document nécessaire</h2>
+    <p class="w-acces__texte">Ce widget a besoin d'un accès complet au document pour lire vos tables et enregistrer vos modèles. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »).</p>
+    <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-refresh-line fr-btn--icon-left" id="wAccesReessayer">Réessayer</button>
+  </div>
+  <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
+  <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert">
+  <p id="wErreurMsg"></p>
+  <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button>
+</div>
+  <main id="contenu" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+    <div id="tabs-export" class="tab-nav">
+      <ul class="fr-tabs__list" role="tablist" aria-label="Navigation export">
+      <li role="presentation"><button type="button" class="fr-tabs__tab fr-icon-add-circle-line fr-tabs__tab--icon-left" role="tab" data-onglet="creer" id="btnOngletCreer" aria-selected="true" aria-controls="panneau-creer" tabindex="0">Créer un export</button></li>
+      <li role="presentation"><button type="button" class="fr-tabs__tab fr-icon-bookmark-line fr-tabs__tab--icon-left" role="tab" data-onglet="bibliotheque" id="btnOngletBiblio" aria-selected="false" aria-controls="panneau-bibliotheque" tabindex="-1">Modèles enregistrés</button></li>
+    </ul>
+    </div>
+    <div class="csnc-panneau" id="panneau-creer" role="tabpanel" aria-labelledby="btnOngletCreer">
+      <div class="csnc-barre-tables" id="barre-tables" role="tablist" aria-label="Tables disponibles"></div>
+      <div class="csnc-layout">
+        <aside class="csnc-sidebar" role="region" aria-label="Colonnes">
+          <div class="csnc-sidebar-titre">
+            <span>COLONNES <span id="sidebar-compteur">(0/0)</span></span>
+            <span class="csnc-sidebar-commandes">
+              <button type="button" class="csnc-sidebar-lien" id="btn-tout-cocher" aria-label="Sélectionner ou désélectionner toutes les colonnes">Tout</button>
+              <button type="button" class="csnc-sidebar-lien w-infobulle" id="btn-trier-colonnes" data-infobulle="Trier de A à Z" aria-label="Trier les colonnes de A à Z">A→Z</button>
+              <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-search-line w-infobulle" id="btn-ouvrir-recherche" data-infobulle="Rechercher un champ" aria-label="Rechercher un champ" aria-expanded="false" aria-controls="zone-recherche-colonnes"></button>
+            </span>
+          </div>
+          <div class="csnc-sidebar-recherche csnc-section-cachee" id="zone-recherche-colonnes">
+            <span class="fr-icon-search-line" aria-hidden="true"></span>
+            <label for="recherche-colonnes" class="fr-sr-only">Rechercher un champ</label>
+            <input type="search" id="recherche-colonnes" autocomplete="off" placeholder="Rechercher un champ…" aria-label="Rechercher un champ">
+            <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-close-line csnc-sidebar-recherche-reset csnc-section-cachee w-infobulle" id="btn-effacer-recherche-colonnes" data-infobulle="Effacer la recherche" aria-label="Effacer la recherche"></button>
+          </div>
+          <div class="csnc-section-cachee">
+            <label for="cb-tout-cocher">
+              <input type="checkbox" id="cb-tout-cocher" checked autocomplete="off" aria-label="Cocher ou décocher toutes les colonnes">
+              <span>Tout sélectionner</span>
+            </label>
+          </div>
+          <ul class="csnc-sidebar-liste" id="liste-colonnes" role="list"></ul>
+        </aside>
+        <div class="csnc-main">
+          <div class="csnc-actions-barre" id="barre-actions">
+            <span class="csnc-main-titre" id="main-titre">Sélectionnez une table</span>
+            <div style="flex:1"></div>
+            <button type="button" class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-filter-line" id="btn-toggle-filtres" aria-expanded="false">Filtres</button>
+            <button type="button" class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-save-line" id="btn-enregistrer-barre">Enregistrer dans les modèles</button>
+            <button type="button" class="fr-btn fr-btn--icon-left fr-icon-download-line" id="btn-exporter">Exporter</button>
+          </div>
+          <div class="csnc-filtres-barre" id="filtres-barre">
+            <div id="filtres-tags"></div>
+            <span class="csnc-filtres-info" id="filtres-info"></span>
+          </div>
+          <div class="csnc-filtres-panneau" id="filtres-panneau">
+            <div id="groupes-container">
+              <p class="csnc-aucun-filtre" id="aucun-filtre-message">Aucun filtre n'est défini. Toutes les lignes seront exportées.</p>
+            </div>
+            <div class="csnc-actions-ligne fr-mt-2w">
+              <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-condition">Ajouter une condition</button>
+              <button type="button" class="fr-btn fr-btn--tertiary fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-groupe">Ajouter un groupe de conditions</button>
+            </div>
+          </div>
+          <div class="csnc-preview-grille" id="preview-grille">
+            <p class="csnc-preview-vide" id="preview-vide-message">La prévisualisation apparaîtra ici dès que vous aurez choisi une table.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="csnc-panneau csnc-panneau-cache" id="panneau-bibliotheque" role="tabpanel" aria-labelledby="btnOngletBiblio">
+      <div class="csnc-bloc fr-mt-2w">
+        <h2 class="fr-h6 csnc-bloc-titre"><span class="fr-icon-bookmark-line" aria-hidden="true"></span> Mes modèles d'export enregistrés</h2>
+        <p class="fr-text--sm fr-mb-2w">Chaque modèle mémorise les tables exportées, les colonnes retenues et les filtres.</p>
+        <div id="listeModeles" class="fr-mb-2w"></div>
+        <p class="fr-text--sm fr-mb-0 fr-mt-2w" id="info-sauvegarde" style="color:var(--text-mention-grey)" hidden>
+          <span class="fr-icon-information-line" aria-hidden="true"></span>
+          <span id="texte-info-sauvegarde"></span>
+        </p>
+      </div>
+    </div>
+  </main>
+<script>'use strict';
+var SOCLE = {
+    cle: "diploexport",
+    relancer: null,
+    aide: {
+        "resume": "Diploexport télécharge les données de vos tables dans un fichier Excel ou CSV : vous choisissez les tables, les colonnes et les lignes à garder, et vous voyez le résultat avant d'exporter.",
+        "fonctions": [
+            "Exporter une ou plusieurs tables, chacune dans sa feuille Excel",
+            "Cocher les colonnes à garder et les remettre dans l'ordre voulu",
+            "Garder seulement certaines lignes avec des filtres",
+            "Voir l'aperçu du fichier avant de l'exporter",
+            "Choisir le format : Excel (.xlsx) ou CSV",
+            "Enregistrer vos choix comme modèle pour les retrouver"
+        ],
+        "avant": [
+            "Le fichier contient seulement les données que vous avez le droit de lire.",
+            "Excel limite une cellule à 32 767 caractères : au-delà, le CSV garde le texte entier."
+        ],
+        "etapes": [
+            {
+                "nom": "La table",
+                "titre": "cliquez sur l'onglet d'une table, en haut.",
+                "points": [
+                    "Cochez les autres tables à mettre dans le même fichier : une feuille par table."
+                ]
+            },
+            {
+                "nom": "Les colonnes",
+                "titre": "cochez les colonnes à garder.",
+                "points": [
+                    "Glissez une colonne pour changer sa place dans le fichier.",
+                    "« A→Z » trie la liste ; la loupe cherche une colonne."
+                ]
+            },
+            {
+                "nom": "Les filtres",
+                "titre": "gardez seulement certaines lignes.",
+                "points": [
+                    "« Filtres » ouvre les conditions ; un groupe réunit plusieurs conditions.",
+                    "Le nombre de lignes retenues s'affiche à côté des filtres."
+                ]
+            },
+            {
+                "nom": "Exporter",
+                "titre": "choisissez le format et le nom du fichier.",
+                "points": [
+                    "L'aperçu montre exactement ce que contiendra le fichier."
+                ]
+            },
+            {
+                "nom": "Le modèle",
+                "titre": "« Enregistrer dans les modèles » garde vos choix.",
+                "points": [
+                    "Dans « Modèles enregistrés », « Utiliser ce modèle » remet les mêmes tables, colonnes et filtres."
+                ]
+            }
+        ],
+        "questions": [
+            {
+                "q": "Qui voit mes modèles ?",
+                "r": "Les modèles sont enregistrés dans le document : les personnes qui ont accès au document les voient et peuvent les utiliser."
+            },
+            {
+                "q": "Pourquoi le CSV m'est-il proposé ?",
+                "r": "Une cellule dépasse la limite d'Excel (32 767 caractères). L'export Excel reste possible, mais le texte de cette cellule y serait coupé ; le CSV le garde entier."
+            },
+            {
+                "q": "Une colonne n'apparaît pas dans la liste ?",
+                "r": "Le widget montre les colonnes que vous pouvez lire ; les colonnes techniques sont masquées."
+            }
+        ]
+    }
+};
+function journalSocle(niveau, message, details) {
+    var c = window.console;
+    if (!c) {
+        return;
+    }
+    (niveau === 'ERREUR' ? c.error : (niveau === 'AVERTISSEMENT' ? c.warn : c.info)).call(c, '[' + niveau + '] ' + message, details === undefined ? '' : details);
+}
+function noeud(tag, o, enfants) {
+    o = o || {};
+    var n = document.createElement(tag);
+    if (o.classe) {
+        n.className = o.classe;
+    }
+    if (o.id) {
+        n.id = o.id;
+    }
+    if (o.texte !== undefined && o.texte !== null) {
+        n.textContent = o.texte;
+    }
+    if (o.attrs) {
+        Object.keys(o.attrs).forEach(function (k) { if (o.attrs[k] !== null && o.attrs[k] !== undefined && o.attrs[k] !== false) {
+            n.setAttribute(k, o.attrs[k] === true ? '' : o.attrs[k]);
+        } });
+    }
+    (enfants || []).forEach(function (e) { if (e === null || e === undefined) {
+        return;
+    } n.appendChild(typeof e === 'string' ? document.createTextNode(e) : e); });
+    return n;
+}
+function infobulle(btn, libelle) {
+    if (!btn) {
+        return btn;
+    }
+    btn.removeAttribute('title');
+    btn.classList.add('w-infobulle');
+    btn.setAttribute('data-infobulle', libelle);
+    btn.setAttribute('aria-label', libelle);
+    return btn;
+}
+var _minuteurToast = null;
+function notifier(message, type) {
+    var t = document.getElementById('wToast');
+    var m = document.getElementById('wToastMsg');
+    if (!t || !m) {
+        return;
+    }
+    if (_minuteurToast) {
+        clearTimeout(_minuteurToast);
+        _minuteurToast = null;
+    }
+    m.textContent = message;
+    t.className = 'w-toast' + (type === 'erreur' ? ' w-toast--erreur' : (type === 'info' ? '' : ' w-toast--succes'));
+    t.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
+    t.hidden = false;
+    _minuteurToast = setTimeout(fermerNotification, type === 'erreur' ? 10000 : 5000);
+}
+function fermerNotification() {
+    var t = document.getElementById('wToast');
+    if (_minuteurToast) {
+        clearTimeout(_minuteurToast);
+        _minuteurToast = null;
+    }
+    if (t) {
+        t.hidden = true;
+    }
+}
+var _niveauAcces = null;
+var _accesRecu = null;
+var _promesseAcces = new Promise(function (ok) { _accesRecu = ok; });
+function accesComplet() { return !_niveauAcces || _niveauAcces === 'full'; }
+function accesRefuse(n) { return n === 'none' || n === 'read table'; }
+function attendreAcces() { return Promise.race([_promesseAcces, new Promise(function (ok) { setTimeout(ok, 3000); })]); }
+var _accesVerifie = null;
+async function verifierAcces() {
+    await attendreAcces();
+    var refuse = accesRefuse(_niveauAcces);
+    _accesVerifie = refuse;
+    document.body.classList.toggle('w-acces-refuse', refuse);
+    var e = document.getElementById('wAcces');
+    if (e) {
+        e.hidden = !refuse;
+    }
+    if (refuse) {
+        journalSocle('AVERTISSEMENT', 'Accès complet non accordé au widget (niveau : ' + _niveauAcces + ')');
+    }
+    return !refuse;
+}
+function ecrireDocument(actions) {
+    if (!accesComplet()) {
+        journalSocle('AVERTISSEMENT', 'Écriture refusée : accès complet non accordé au widget');
+        return Promise.reject(new Error('Accès complet non accordé au widget : not allowed'));
+    }
+    var api = grist.docApi;
+    return api.applyUserActions(actions);
+}
+var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
+var _aide = { ouvert: false, onglet: 'resume' };
+function cleAide() { return SOCLE.cle + ':aide'; }
+function lireEtatAide() {
+    try {
+        var v = JSON.parse(window.localStorage.getItem(cleAide()) || 'null');
+        if (v && typeof v === 'object') {
+            _aide.ouvert = v.ouvert === true;
+            if (ONGLETS_AIDE.some(function (o) { return o.cle === v.onglet; })) {
+                _aide.onglet = v.onglet;
+            }
+        }
+    }
+    catch (e) {
+        journalSocle('INFO', 'Aide : état non relu par le navigateur', e);
+    }
+}
+function ecrireEtatAide() {
+    try {
+        window.localStorage.setItem(cleAide(), JSON.stringify({ ouvert: _aide.ouvert, onglet: _aide.onglet }));
+    }
+    catch (e) {
+        journalSocle('INFO', 'Aide : état non mémorisé par le navigateur', e);
+    }
+}
+function placerPanneauAide() {
+    var b = document.querySelector('.w-bandeau');
+    if (b) {
+        document.documentElement.style.setProperty('--haut-bandeau', Math.max(0, Math.round(b.getBoundingClientRect().bottom)) + 'px');
+    }
+}
+function basculerAide(ouvrir) {
+    _aide.ouvert = !!ouvrir;
+    ecrireEtatAide();
+    panneauAide();
+    if (ouvrir) {
+        var t = document.getElementById('wAideTitre');
+        if (t) {
+            t.focus();
+        }
+    }
+    else {
+        var b = document.getElementById('bandeauAide');
+        if (b) {
+            b.focus();
+        }
+    }
+}
+function choisirOngletAide(cle) {
+    _aide.onglet = cle;
+    ecrireEtatAide();
+    panneauAide();
+    var o = document.getElementById('wAideOnglet_' + cle);
+    if (o) {
+        o.focus();
+    }
+}
+function panneauAide() {
+    var p = document.getElementById('wPanneauAide');
+    var btn = document.getElementById('bandeauAide');
+    if (!p) {
+        return;
+    }
+    if (btn) {
+        btn.setAttribute('aria-expanded', _aide.ouvert ? 'true' : 'false');
+        btn.classList.toggle('fr-btn--secondary', !_aide.ouvert);
+    }
+    document.body.classList.toggle('w-aide-ouverte', _aide.ouvert);
+    while (p.firstChild) {
+        p.removeChild(p.firstChild);
+    }
+    p.hidden = !_aide.ouvert;
+    if (!_aide.ouvert) {
+        return;
+    }
+    placerPanneauAide();
+    var A = SOCLE.aide;
+    var fermer = noeud('button', { classe: 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line fr-btn--icon-left', id: 'wAideFermer', texte: 'Fermer', attrs: { type: 'button', 'aria-label': 'Fermer l\'aide' } });
+    fermer.addEventListener('click', function () { basculerAide(false); });
+    p.appendChild(noeud('div', { classe: 'w-panneau-aide__tete' }, [
+        noeud('span', { classe: 'fr-icon-question-line w-panneau-aide__icone', attrs: { 'aria-hidden': 'true' } }),
+        noeud('h2', { classe: 'w-panneau-aide__titre', id: 'wAideTitre', texte: 'Aide', attrs: { tabindex: '-1' } }), fermer
+    ]));
+    var liste = noeud('ul', { classe: 'w-panneau-aide__onglets', attrs: { role: 'tablist', 'aria-label': 'Rubriques de l\'aide' } });
+    ONGLETS_AIDE.forEach(function (o, i) {
+        var choisi = o.cle === _aide.onglet;
+        var b = noeud('button', { classe: 'w-panneau-aide__onglet', id: 'wAideOnglet_' + o.cle, texte: o.libelle,
+            attrs: { type: 'button', role: 'tab', 'aria-selected': choisi ? 'true' : 'false', 'aria-controls': 'wAideVolet_' + o.cle, tabindex: choisi ? '0' : '-1' } });
+        b.addEventListener('click', function () { choisirOngletAide(o.cle); });
+        b.addEventListener('keydown', function (e) {
+            var j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ONGLETS_AIDE.length - 1 }[e.key];
+            if (j === undefined) {
+                return;
+            }
+            e.preventDefault();
+            choisirOngletAide(ONGLETS_AIDE[(j + ONGLETS_AIDE.length) % ONGLETS_AIDE.length].cle);
+        });
+        liste.appendChild(noeud('li', { attrs: { role: 'presentation' } }, [b]));
+    });
+    p.appendChild(liste);
+    var corps = noeud('div', { classe: 'w-panneau-aide__corps' });
+    ONGLETS_AIDE.forEach(function (o) {
+        var v = noeud('div', { classe: 'w-panneau-aide__volet', id: 'wAideVolet_' + o.cle, attrs: { role: 'tabpanel', 'aria-labelledby': 'wAideOnglet_' + o.cle, tabindex: '0' } });
+        v.hidden = o.cle !== _aide.onglet;
+        if (!v.hidden) {
+            var contenu = o.cle === 'resume' ? [
+                noeud('p', { classe: 'w-panneau-aide__texte', texte: A.resume }),
+                noeud('h3', { classe: 'w-panneau-aide__sous-titre', texte: 'Ce que vous pouvez faire' }),
+                noeud('ul', { classe: 'w-panneau-aide__liste' }, A.fonctions.map(function (t) { return noeud('li', { texte: t }); })),
+                noeud('h3', { classe: 'w-panneau-aide__sous-titre', texte: 'Avant de commencer' }),
+                noeud('ul', { classe: 'w-panneau-aide__liste' }, A.avant.map(function (t) { return noeud('li', { texte: t }); }))
+            ]
+                : (o.cle === 'pas' ? [noeud('ol', { classe: 'w-pas' }, A.etapes.map(function (et, k) {
+                        return noeud('li', { classe: 'w-pas__etape' }, [noeud('span', { classe: 'w-pas__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
+                            noeud('div', { classe: 'w-pas__texte' }, [noeud('p', { classe: 'w-pas__nom' }, [noeud('strong', { texte: et.nom }), et.titre ? ' : ' + et.titre : null]),
+                                et.points && et.points.length ? noeud('ul', { classe: 'w-pas__points' }, et.points.map(function (t) { return noeud('li', { texte: t }); })) : null])]);
+                    }))]
+                    : A.questions.map(function (x) { return noeud('div', {}, [noeud('h3', { classe: 'w-panneau-aide__sous-titre', texte: x.q }), noeud('p', { classe: 'w-panneau-aide__texte', texte: x.r })]); }));
+            contenu.forEach(function (n) { v.appendChild(n); });
+        }
+        corps.appendChild(v);
+    });
+    p.appendChild(corps);
+}
+var _rechercheModeles = '';
+function normaliserSocle(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function rendreCartesModeles(zone, modeles, actions, textes) {
+    if (!zone) {
+        return;
+    }
+    while (zone.firstChild) {
+        zone.removeChild(zone.firstChild);
+    }
+    if (!modeles.length) {
+        zone.appendChild(noeud('p', { classe: 'w-modeles-vide', texte: textes.vide }));
+        return;
+    }
+    var grille = noeud('div', { classe: 'w-tuiles', attrs: { role: 'list', 'aria-label': textes.liste } });
+    var dessiner = function () {
+        while (grille.firstChild) {
+            grille.removeChild(grille.firstChild);
+        }
+        var q = normaliserSocle(_rechercheModeles).trim();
+        var vus = modeles.filter(function (m) { return !q || normaliserSocle(m.nom + ' ' + (m.phrase || '') + ' ' + (m.puces || []).join(' ')).indexOf(q) !== -1; });
+        if (!vus.length) {
+            grille.appendChild(noeud('p', { classe: 'w-modeles-vide', texte: 'Aucun modèle ne correspond à la recherche.' }));
+            return;
+        }
+        vus.forEach(function (m) {
+            var titreId = 'wModeleTitre_' + m.id;
+            var utiliser = noeud('button', { classe: 'fr-btn fr-btn--sm fr-icon-arrow-right-line fr-btn--icon-right', id: 'wModeleUtiliser_' + m.id, texte: 'Utiliser ce modèle',
+                attrs: { type: 'button', 'aria-label': 'Utiliser ce modèle : ' + m.nom } });
+            utiliser.addEventListener('click', function () { actions.utiliser(m); });
+            var secondaires = noeud('div', { classe: 'w-tuile__secondaires' });
+            (actions.secondaires || []).forEach(function (a) {
+                var b = infobulle(noeud('button', { classe: 'fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-only fr-icon-' + a.icone + ' w-infobulle--gauche',
+                    id: 'wModele' + a.cle + '_' + m.id, attrs: { type: 'button' } }, [noeud('span', { classe: 'fr-sr-only', texte: a.libelle + ' : ' + m.nom })]), a.libelle);
+                b.setAttribute('aria-label', a.libelle + ' : ' + m.nom);
+                b.addEventListener('click', function () { a.faire(m); });
+                secondaires.appendChild(b);
+            });
+            grille.appendChild(noeud('section', { classe: 'w-tuile' + (m.ouvert ? ' w-tuile--ouverte' : ''), attrs: { role: 'listitem', 'aria-labelledby': titreId } }, [
+                noeud('div', { classe: 'w-tuile__tete' }, [noeud('span', { classe: 'w-tuile__icone fr-icon-' + (textes.icone || 'bookmark-line'), attrs: { 'aria-hidden': 'true' } }),
+                    noeud('h3', { classe: 'w-tuile__titre', id: titreId, texte: m.nom })]),
+                m.phrase ? noeud('p', { classe: 'w-tuile__phrase', texte: m.phrase }) : null,
+                m.puces && m.puces.length ? noeud('ul', { classe: 'w-tuile__puces' }, m.puces.map(function (t) { return noeud('li', { texte: t }); })) : null,
+                m.mention ? noeud('p', { classe: 'w-tuile__mention', texte: m.mention }) : null,
+                noeud('div', { classe: 'w-tuile__bas' }, [secondaires, utiliser])
+            ]));
+        });
+    };
+    if (modeles.length > 6) {
+        var champ = noeud('input', { classe: 'fr-input', id: 'wModelesRecherche', attrs: { type: 'search', autocomplete: 'off', placeholder: 'Nom, table, colonne…' } });
+        champ.value = _rechercheModeles;
+        champ.addEventListener('input', function () { _rechercheModeles = champ.value; dessiner(); });
+        zone.appendChild(noeud('div', { classe: 'w-modeles-outils' }, [noeud('div', { classe: 'fr-input-group' }, [
+                noeud('label', { classe: 'fr-label', texte: 'Rechercher un modèle', attrs: { 'for': 'wModelesRecherche' } }), champ
+            ])]));
+    }
+    zone.appendChild(grille);
+    dessiner();
+}
+function dateLisibleSocle(v) {
+    if (v === null || v === undefined || v === '') {
+        return '';
+    }
+    var n = typeof v === 'number' ? v : (/^\d+$/.test(String(v)) ? parseInt(v, 10) : NaN);
+    var d = !isNaN(n) ? new Date(n < 1e11 ? n * 1000 : n) : new Date(String(v));
+    if (isNaN(d.getTime())) {
+        return '';
+    }
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function brancherSocle() {
+    var btn = document.getElementById('bandeauAide');
+    var p = document.getElementById('wPanneauAide');
+    lireEtatAide();
+    if (btn) {
+        btn.addEventListener('click', function () { basculerAide(!_aide.ouvert); });
+        btn.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _aide.ouvert) {
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        } });
+    }
+    if (p) {
+        p.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || e.defaultPrevented) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        });
+    }
+    window.addEventListener('resize', function () { if (_aide.ouvert) {
+        placerPanneauAide();
+    } });
+    var f = document.getElementById('wToastFermer');
+    if (f) {
+        f.addEventListener('click', fermerNotification);
+    }
+    var r = document.getElementById('wAccesReessayer');
+    if (r) {
+        r.addEventListener('click', function () { if (SOCLE.relancer) {
+            SOCLE.relancer();
+        } });
+    }
+    grist.onOptions(function (options, interaction) {
+        _niveauAcces = interaction && interaction.accessLevel ? interaction.accessLevel : null;
+        _accesRecu();
+        if (_accesVerifie !== null && accesRefuse(_niveauAcces) !== _accesVerifie && SOCLE.relancer) {
+            SOCLE.relancer();
+        }
+    });
+    panneauAide();
+}
+</script>
+<script>'use strict';
+var VERSION_WIDGET = '1.2.0';
+var HOMOLOGUE = false;
+function echapperHTML(texte) {
+    if (!texte && texte !== 0)
+        return '';
+    var div = document.createElement('div');
+    div.textContent = String(texte);
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function validerNombre(valeur, min, max, defaut) {
+    var n = parseFloat(valeur);
+    if (isNaN(n) || !isFinite(n))
+        return defaut;
+    if (n < min)
+        return min;
+    if (n > max)
+        return max;
+    return n;
+}
+function logSecurite(niveau, message, details) {
+    var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
+    if (niveau === 'ERREUR') {
+        if (details !== undefined) {
+            console.error(ligne, details);
+        }
+        else {
+            console.error(ligne);
+        }
+    }
+    else if (niveau === 'AVERTISSEMENT') {
+        if (details !== undefined) {
+            console.warn(ligne, details);
+        }
+        else {
+            console.warn(ligne);
+        }
+    }
+    else {
+        if (details !== undefined) {
+            console.log(ligne, details);
+        }
+        else {
+            console.log(ligne);
+        }
+    }
+}
+var _loaderTimeout = null;
+var _loaderDelai = null;
+function afficherLoader(message) {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+    }
+    _loaderTimeout = setTimeout(function () {
+        masquerLoader();
+        logSecurite('AVERTISSEMENT', 'Voile de chargement masque automatiquement apres 60 s');
+    }, 60000);
+    var texte = document.getElementById('loaderMessage');
+    if (texte) {
+        texte.textContent = message || 'Chargement…';
+    }
+    var voileEnCours = document.getElementById('loader');
+    if (voileEnCours && voileEnCours.classList.contains('actif')) {
+        return;
+    }
+    if (_loaderDelai) {
+        return;
+    }
+    _loaderDelai = setTimeout(function () {
+        _loaderDelai = null;
+        var voile = document.getElementById('loader');
+        if (voile) {
+            voile.classList.add('actif');
+        }
+    }, 250);
+}
+function masquerLoader() {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+        _loaderTimeout = null;
+    }
+    if (_loaderDelai) {
+        clearTimeout(_loaderDelai);
+        _loaderDelai = null;
+    }
+    var voile = document.getElementById('loader');
+    if (voile) {
+        void voile.offsetHeight;
+        voile.classList.remove('actif');
+    }
+}
+var _minuterieErreur = null;
+function afficherErreur(message, erreur) {
+    logSecurite('ERREUR', message, erreur);
+    var bandeau = document.getElementById('wErreur');
+    var texte = document.getElementById('wErreurMsg');
+    if (texte) {
+        texte.textContent = message || 'Une erreur est survenue.';
+    }
+    if (bandeau) {
+        bandeau.classList.add('actif');
+    }
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+    }
+    _minuterieErreur = setTimeout(masquerErreur, 10000);
+}
+function masquerErreur() {
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+        _minuterieErreur = null;
+    }
+    var bandeau = document.getElementById('wErreur');
+    if (bandeau) {
+        bandeau.classList.remove('actif');
+    }
+}
+function ecouter(id, evenement, gestionnaire) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(evenement, gestionnaire);
+        return el;
+    }
+    logSecurite('AVERTISSEMENT', 'Element introuvable dans le balisage : ' + id);
+    return null;
+}
+function nettoyerNomFichier(nom) {
+    if (!nom)
+        return 'export';
+    const nettoye = String(nom).replace(/[\\/:*?"<>|]/g, '_').trim();
+    return nettoye.substring(0, 80) || 'export';
+}
+function nettoyerNomFeuille(nom) {
+    if (!nom)
+        return 'Feuille';
+    const nettoye = String(nom).replace(/[:\\/?*\[\]]/g, '_').trim();
+    return nettoye.substring(0, 31) || 'Feuille';
+}
+var _confirmResolve = null;
+var _focusAvantDialogue = {};
+var _piegesDialogue = {};
+function ouvrirDialogue(idOverlay, idFocus) {
+    var overlay = document.getElementById(idOverlay);
+    if (!overlay) {
+        logSecurite('AVERTISSEMENT', 'Dialogue introuvable dans le balisage : ' + idOverlay);
+        return;
+    }
+    _focusAvantDialogue[idOverlay] = document.activeElement;
+    overlay.classList.add('actif');
+    void overlay.offsetHeight;
+    var cible = idFocus ? document.getElementById(idFocus) : null;
+    if (cible) {
+        try {
+            cible.focus();
+        }
+        catch (e) {
+            logSecurite('INFO', 'Focus initial impossible', e);
+        }
+    }
+    var piege = function (e) {
+        if (e.key !== 'Tab')
+            return;
+        var focusables = overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        var visibles = [];
+        for (var i = 0; i < focusables.length; i++) {
+            if (!focusables[i].disabled)
+                visibles.push(focusables[i]);
+        }
+        if (!visibles.length)
+            return;
+        var premier = visibles[0], dernier = visibles[visibles.length - 1];
+        if (e.shiftKey && document.activeElement === premier) {
+            e.preventDefault();
+            dernier.focus();
+        }
+        else if (!e.shiftKey && document.activeElement === dernier) {
+            e.preventDefault();
+            premier.focus();
+        }
+    };
+    _piegesDialogue[idOverlay] = piege;
+    document.addEventListener('keydown', piege, true);
+}
+function fermerDialogue(idOverlay) {
+    var overlay = document.getElementById(idOverlay);
+    if (overlay)
+        overlay.classList.remove('actif');
+    var piege = _piegesDialogue[idOverlay];
+    if (piege) {
+        document.removeEventListener('keydown', piege, true);
+        delete _piegesDialogue[idOverlay];
+    }
+    var precedent = _focusAvantDialogue[idOverlay];
+    delete _focusAvantDialogue[idOverlay];
+    if (precedent && typeof precedent.focus === 'function' && document.contains(precedent)) {
+        precedent.focus();
+    }
+}
+function _fermerConfirm(v) {
+    fermerDialogue('wConfirmOverlay');
+    if (_confirmResolve) {
+        _confirmResolve(v);
+        _confirmResolve = null;
+    }
+}
+ecouter('wConfirmOui', 'click', function () { _fermerConfirm(true); });
+ecouter('wConfirmNon', 'click', function () { _fermerConfirm(false); });
+function confirmerAction(msg) {
+    return new Promise(function (resolve) {
+        _confirmResolve = resolve;
+        var msgEl = document.getElementById('wConfirmMsg');
+        if (msgEl)
+            msgEl.textContent = msg;
+        ouvrirDialogue('wConfirmOverlay', 'wConfirmOui');
+    });
+}
+var _promptResolve = null;
+function _fermerPrompt(v) {
+    fermerDialogue('wPromptOverlay');
+    if (_promptResolve) {
+        _promptResolve(v);
+        _promptResolve = null;
+    }
+}
+ecouter('wPromptOui', 'click', function () {
+    _fermerPrompt(document.getElementById('wPromptInput').value);
+});
+ecouter('wPromptNon', 'click', function () { _fermerPrompt(null); });
+ecouter('wPromptInput', 'keydown', function (e) {
+    if (e.key === 'Enter')
+        _fermerPrompt(document.getElementById('wPromptInput').value);
+});
+function demanderSaisie(msg, valeurDefaut) {
+    return new Promise(function (resolve) {
+        _promptResolve = resolve;
+        var inp = document.getElementById('wPromptInput');
+        var msgP = document.getElementById('wPromptMsg');
+        if (msgP)
+            msgP.textContent = msg;
+        if (inp)
+            inp.value = valeurDefaut || '';
+        ouvrirDialogue('wPromptOverlay', 'wPromptInput');
+        if (inp)
+            inp.select();
+    });
+}
+function basculerOngletExport(nom) {
+    var btns = document.querySelectorAll('#tabs-export .fr-tabs__tab');
+    var panels = document.querySelectorAll('#contenu > .csnc-panneau');
+    for (var i = 0; i < btns.length; i++) {
+        var a = btns[i].getAttribute('data-onglet') === nom;
+        btns[i].setAttribute('aria-selected', a ? 'true' : 'false');
+        btns[i].setAttribute('tabindex', a ? '0' : '-1');
+    }
+    for (var j = 0; j < panels.length; j++) {
+        if (panels[j].id === 'panneau-' + nom)
+            panels[j].classList.remove('csnc-panneau-cache');
+        else
+            panels[j].classList.add('csnc-panneau-cache');
+    }
+}
+ecouter('btnOngletBiblio', 'click', function () { basculerOngletExport('bibliotheque'); });
+ecouter('btnOngletCreer', 'click', function () { basculerOngletExport('creer'); });
+(function () {
+    var tabIds = ['creer', 'bibliotheque'];
+    var tabBtnIds = ['btnOngletCreer', 'btnOngletBiblio'];
+    var tabList = document.querySelector('#tabs-export [role="tablist"]');
+    if (!tabList)
+        return;
+    tabList.addEventListener('keydown', function (e) {
+        var idx = -1;
+        for (var ti = 0; ti < tabBtnIds.length; ti++) {
+            if (document.activeElement && document.activeElement.id === tabBtnIds[ti]) {
+                idx = ti;
+                break;
+            }
+        }
+        if (idx === -1)
+            return;
+        var newIdx = -1;
+        if (e.key === 'ArrowRight' || e.key === 'Right')
+            newIdx = (idx + 1) % tabIds.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'Left')
+            newIdx = (idx - 1 + tabIds.length) % tabIds.length;
+        else if (e.key === 'Home')
+            newIdx = 0;
+        else if (e.key === 'End')
+            newIdx = tabIds.length - 1;
+        if (newIdx !== -1 && newIdx !== idx) {
+            e.preventDefault();
+            basculerOngletExport(tabIds[newIdx]);
+            document.getElementById(tabBtnIds[newIdx]).focus();
+        }
+    });
+})();
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        if (document.getElementById('wConfirmOverlay').classList.contains('actif'))
+            _fermerConfirm(false);
+        else if (document.getElementById('wPromptOverlay').classList.contains('actif'))
+            _fermerPrompt(null);
+        else if (document.getElementById('wExportOverlay').classList.contains('actif'))
+            document.getElementById('wExportAnnuler').click();
+    }
+});
+const NB_LIGNES_PREVISUALISATION = 100;
+const LIMITE_LIGNES_EXPORT = 1000000;
+const SEUIL_AVERTISSEMENT_LIGNES = 200000;
+const MAX_VALEURS_DETECTEES = 200;
+let NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
+const LABEL_TABLE_CENTRALE = "📦 BIBLIOTHÈQUE CENTRALE ⚡";
+const NOM_WIDGET = 'Export Excel';
+const NOM_WIDGET_ANCIEN = 'export_excel';
+const STATUT_BROUILLON = 'BROUILLON';
+const NOM_WIDGET_BROUILLON_ANCIEN = 'export_excel_brouillon';
+function estLigneDuWidget(valeurWidget) {
+    return valeurWidget === NOM_WIDGET || valeurWidget === NOM_WIDGET_ANCIEN;
+}
+var TAILLE_MAX_SVG = 200000;
+function purifierHTML(contenu, usage) {
+    if (typeof DOMPurify === 'undefined' || !DOMPurify.isSupported) {
+        logSecurite('AVERTISSEMENT', 'Bibliotheque d assainissement indisponible : contenu enrichi non insere');
+        return null;
+    }
+    if (usage !== 'svg') {
+        return null;
+    }
+    return DOMPurify.sanitize(String(contenu), {
+        USE_PROFILES: { svg: true },
+        FORBID_TAGS: ['style', 'foreignObject', 'image', 'use', 'a', 'animate', 'animateTransform', 'animateMotion', 'set']
+    });
+}
+function injecterSvgSecurise(container, svgTexte) {
+    container.textContent = '';
+    if (!svgTexte) {
+        return false;
+    }
+    if (String(svgTexte).length > TAILLE_MAX_SVG) {
+        logSecurite('AVERTISSEMENT', 'Logo trop volumineux, ignore');
+        return false;
+    }
+    var propre = purifierHTML(svgTexte, 'svg');
+    if (!propre) {
+        return false;
+    }
+    var wrap = document.createElement('div');
+    wrap.className = 'w-bandeau__logo-wrap';
+    wrap.innerHTML = propre;
+    var svg = wrap.firstElementChild;
+    if (!svg || wrap.children.length !== 1 || String(svg.nodeName).toLowerCase() !== 'svg') {
+        logSecurite('AVERTISSEMENT', 'Logo hors format SVG');
+        return false;
+    }
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    container.appendChild(wrap);
+    return true;
+}
+function afficherLogoRepli() {
+    var c = document.getElementById('bandeau-logo');
+    if (!c || document.getElementById('logoRepli')) {
+        return;
+    }
+    c.textContent = '';
+    var p = document.createElement('p');
+    p.className = 'fr-logo';
+    p.id = 'logoRepli';
+    p.style.fontSize = '.38rem';
+    p.appendChild(document.createTextNode('Ministère'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode("de l'Europe"));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('et des Affaires'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('étrangères'));
+    c.appendChild(p);
+}
+function relayer(promesse, quoi) {
+    if (promesse && typeof promesse.catch === 'function') {
+        promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
+    }
+    return promesse;
+}
+function trouverTableCentrale(ids) {
+    var liste = ids || [];
+    for (var i = 0; i < liste.length; i++) {
+        if (String(liste[i]).toUpperCase().indexOf('BIBLIOTHEQUE_CENTRALE') !== -1)
+            return liste[i];
+    }
+    return null;
+}
+function estTableExclue(tid) {
+    if (!tid) {
+        return true;
+    }
+    var brut = String(tid);
+    var up = brut.toUpperCase();
+    if (brut.indexOf('_grist') === 0) {
+        return true;
+    }
+    if (brut.indexOf('GristHidden_') === 0) {
+        return true;
+    }
+    if (brut === 'GristDocTour') {
+        return true;
+    }
+    if (up === 'BIBLIOTHEQUE_CENTRALE') {
+        return true;
+    }
+    if (up.indexOf('BIBLIOTHEQUE') !== -1 && brut.charAt(brut.length - 1) === '_') {
+        return true;
+    }
+    if (up.indexOf('ONLY') !== -1) {
+        return true;
+    }
+    if (up.indexOf('_SUMMARY_') !== -1 || up.indexOf('GRISTSUMMARY_') !== -1) {
+        return true;
+    }
+    return false;
+}
+var COLONNES_CENTRALE = [
+    { id: 'WIDGET', type: 'Text', label: 'WIDGET' },
+    { id: 'DESCRIPTIF', type: 'Text', label: 'DESCRIPTIF' },
+    { id: 'NOM', type: 'Text', label: 'NOM' },
+    { id: 'CONFIG', type: 'Text', label: 'CONFIG' },
+    { id: 'STATUT', type: 'Text', label: 'STATUT' },
+    { id: 'CONTENU', type: 'Text', label: 'CONTENU' },
+    { id: 'BASE', type: 'Text', label: 'BASE' },
+    { id: 'DATE_CREATION', type: 'Text', label: 'DATE_CREATION' },
+    { id: 'PARAMETRES', type: 'Text', label: 'PARAMÈTRES' },
+    { id: 'FICHIER_XLS_SOURCE', type: 'Text', label: 'FICHIER XLS SOURCE' },
+    { id: 'TABLE_SOURCE', type: 'Text', label: 'TABLE_SOURCE' },
+    { id: 'DATE_MAJ', type: 'Text', label: 'DATE_MAJ' },
+    { id: 'CATEGORIE', type: 'Text', label: 'CATÉGORIE' },
+    { id: 'QUESTION', type: 'Text', label: 'QUESTION' },
+    { id: 'REPONSE', type: 'Text', label: 'RÉPONSE' },
+    { id: 'EPINGLEE', type: 'Bool', label: 'ÉPINGLÉE' },
+    { id: 'POSEE_PAR', type: 'Text', label: 'POSÉE PAR' },
+    { id: 'REPONDUE_PAR', type: 'Text', label: 'RÉPONDUE PAR' },
+    { id: 'PRENOM', type: 'Text', label: 'PRÉNOM' },
+    { id: 'EMAIL', type: 'Text', label: 'EMAIL' },
+    { id: 'TYPE_UTILISATEUR', type: 'Text', label: 'TYPE UTILISATEUR' },
+    { id: 'ROLE_GRIST', type: 'Text', label: 'RÔLE' },
+    { id: 'ACTIF', type: 'Bool', label: 'ACTIF' },
+    { id: 'LIBELLE', type: 'Text', label: 'LIBELLÉ' },
+    { id: 'VOIR_EN_TANT_QUE', type: 'Text', label: 'VOIR EN TANT QUE' },
+    { id: 'TYPE', type: 'Text', label: 'TYPE' },
+    { id: 'CLE', type: 'Text', label: 'CLÉ' },
+    { id: 'VALEUR', type: 'Text', label: 'VALEUR' },
+    { id: 'NOM_PROJET', type: 'Text', label: 'NOM PROJET' },
+    { id: 'COMMANDITAIRE', type: 'Text', label: 'COMMANDITAIRE' },
+    { id: 'CHEF_DE_PROJET', type: 'Text', label: 'CHEF DE PROJET' },
+    { id: 'REFERENT', type: 'Text', label: 'RÉFÉRENT' },
+    { id: 'DEVELOPPEUR', type: 'Text', label: 'DÉVELOPPEUR' },
+    { id: 'DATE_MEP', type: 'Text', label: 'DATE MEP' },
+    { id: 'FINALITE', type: 'Text', label: 'FINALITÉ' },
+    { id: 'VOLUMETRIE', type: 'Text', label: 'VOLUMÉTRIE' },
+    { id: 'INTEGRATIONS', type: 'Text', label: 'INTÉGRATIONS' },
+    { id: 'REGLES_METIER', type: 'Text', label: 'RÈGLES MÉTIER' },
+    { id: 'NOM_PAGE', type: 'Text', label: 'NOM PAGE' },
+    { id: 'NOM_BLOC', type: 'Text', label: 'NOM BLOC' },
+    { id: 'TYPE_BLOC', type: 'Text', label: 'TYPE BLOC' },
+    { id: 'ORDRE', type: 'Numeric', label: 'ORDRE' },
+    { id: 'ICONE', type: 'Text', label: 'ICONE' },
+    { id: 'HTML_COMPLET', type: 'Text', label: 'HTML COMPLET' },
+    { id: 'VERSION_CREATION', type: 'Text', label: 'VERSION CRÉATION' },
+    { id: 'VERSION_MODIF', type: 'Text', label: 'VERSION MODIF' },
+    { id: 'CREE_LE', type: 'DateTime:Europe/Paris', label: 'CRÉÉ LE',
+        isFormula: false, formula: 'NOW()', recalcWhen: 0, recalcDeps: null },
+    { id: 'CREE_PAR', type: 'Text', label: 'CRÉÉ PAR',
+        isFormula: false, formula: 'user.Email', recalcWhen: 0, recalcDeps: null },
+    { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE',
+        isFormula: false, formula: 'NOW()', recalcWhen: 2, recalcDeps: null },
+    { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR',
+        isFormula: false, formula: 'user.Email', recalcWhen: 2, recalcDeps: null },
+    { id: 'PUBLIEE_LE', type: 'DateTime:Europe/Paris', label: 'PUBLIÉE LE' }
+];
+function genererLogoMEAE() {
+    var cs = getComputedStyle(document.documentElement);
+    var cB = cs.getPropertyValue('--text-action-high-blue-france').trim();
+    var cR = cs.getPropertyValue('--background-flat-error').trim();
+    var cG = cs.getPropertyValue('--text-mention-grey').trim();
+    var svgTpl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.3 200" style="width:100%;height:auto" aria-hidden="true" focusable="false"><g><rect fill="__W__" width="301.3" height="200"/></g><g><path d="M31.4,91.5V70.9h5.3l5,8.5l5-8.5h5.3v20.6h-4.2V76.8l-4.6,7.6h-2.9l-4.6-7.6v14.7H31.4z"/><path d="M57.7,91.5V70.9h4.2v20.6H57.7z"/><path d="M67.6,91.5V70.9H73l9.2,14.8V70.9h4.2v20.6h-5.4l-9.2-14.8v14.8H67.6z"/><path d="M92.2,91.5V70.9h4.2v20.6H92.2z"/><path d="M100.3,88.7l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2c-1-0.9-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2c1,0.9,1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S101.2,89.7,100.3,88.7z"/><path d="M117,74.7v-3.8h16.9v3.8h-6.4v16.8h-4.2V74.7H117z"/><path d="M137.6,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H137.6z M141.7,69.1l-3.8-4h4.3l3.3,4H141.7z"/><path d="M154.5,91.5V70.9h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H154.5z M161,74.4h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S161.9,74.4,161,74.4z"/><path d="M173.9,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H173.9z"/><path d="M31.4,122.7v-20.7h8.1c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H31.4z M39.6,105.9h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S40.5,105.9,39.6,105.9z"/><path d="M54.5,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H54.5z"/><path d="M79.1,122.7v-20.7h4.2v16.8h7.8v3.8H79.1z"/><path d="M93.7,110.6h-3.5l2.7-8.5h4.2L93.7,110.6z"/><path d="M100.4,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H100.4z"/><path d="M129.3,115v-12.9h4.2v12.6c0,2.7-0.8,4.8-2.3,6.4s-3.5,2.3-6.1,2.3s-4.6-0.8-6.1-2.3s-2.2-3.7-2.2-6.4v-12.6h4.2V115c0,1.4,0.4,2.5,1.1,3.2s1.8,1.2,3.1,1.2s2.3-0.4,3-1.2S129.3,116.4,129.3,115z"/><path d="M138.7,122.7v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H138.7z M145.3,105.6h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S146.2,105.6,145.3,105.6z"/><path d="M167.2,101.5c1.6,0,3.1,0.3,4.4,0.9s2.5,1.4,3.5,2.4s1.7,2.1,2.2,3.5s0.8,2.7,0.8,4.2s-0.3,2.9-0.8,4.2s-1.3,2.5-2.2,3.5s-2.1,1.8-3.5,2.4s-2.8,0.9-4.4,0.9s-3.1-0.3-4.5-0.9s-2.5-1.4-3.5-2.4s-1.7-2.1-2.2-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4S165.6,101.5,167.2,101.5z M167.2,119.4c1,0,1.9-0.2,2.7-0.5s1.5-0.9,2.1-1.5s1-1.4,1.4-2.2s0.5-1.8,0.5-2.8s-0.2-1.9-0.5-2.8s-0.8-1.6-1.4-2.2s-1.3-1.1-2.1-1.5s-1.7-0.5-2.7-0.5s-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.3,1.1,2.1,1.5S166.2,119.4,167.2,119.4z"/><path d="M182.1,122.7v-20.7h6.8c2.3,0,4,0.6,5.4,1.7s2,2.6,2,4.5s-0.7,3.4-2,4.5s-3.1,1.7-5.4,1.7h-2.6v8.3H182.1z M189.1,105.6h-2.8v5.2h2.8c0.9,0,1.6-0.2,2.1-0.7s0.8-1.1,0.8-1.9s-0.3-1.4-0.8-1.9S190,105.6,189.1,105.6z"/><path d="M199.7,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H199.7z"/><path d="M31.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z"/><path d="M46.6,137.1v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M74.9,153.9v-20.7H83c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H74.9z M83.1,137.1h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S84,137.1,83.1,137.1z"/><path d="M98,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H98z"/><path d="M113.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S114,152.1,113.1,151.1z"/><path d="M137,153.9l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H137z M144.8,145h5.7l-2.8-7.8L144.8,145z"/><path d="M161.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H161.4z"/><path d="M177.1,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H177.1z"/><path d="M188.3,153.9l7.8-20.7h5.5l7.8,20.7H205l-2-5.4h-8.3l-2,5.4H188.3z M196,145h5.7l-2.8-7.8L196,145z"/><path d="M212.6,153.9v-20.7h4.2v20.7H212.6z"/><path d="M222.6,153.9v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H222.6z M229.1,136.8h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S230,136.8,229.1,136.8z"/><path d="M242,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H242z"/><path d="M257.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S258,152.1,257.1,151.1z"/><path d="M31.4,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z M39.3,162.7h-3.8l3.3-4h4.3L39.3,162.7z"/><path d="M46.6,168.3v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M67.2,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H67.2z M73.8,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S74.7,168,73.8,168z"/><path d="M85,185.1l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H85z M92.7,176.2h5.7l-2.8-7.8L92.7,176.2z"/><path d="M109.3,185.1v-20.7h5.4l9.2,14.8v-14.8h4.2v20.7h-5.4l-9.2-14.8v14.8H109.3z"/><path d="M143.3,181.8c1,0,1.9-0.2,2.7-0.5s1.5-0.8,2.1-1.3v-3.5h-5.3v-3.8h9.4v8.8c-1,1.3-2.2,2.3-3.8,3.1s-3.3,1.2-5.2,1.2c-1.7,0-3.2-0.3-4.6-0.9s-2.6-1.4-3.6-2.4s-1.8-2.1-2.3-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4s2.8-0.9,4.5-0.9c1.9,0,3.5,0.4,5,1.2s2.7,1.8,3.7,3l-3.3,2.6c-0.6-0.8-1.3-1.5-2.3-2.1s-2-0.8-3.1-0.8c-1,0-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.4,1.1,2.2,1.5S142.3,181.8,143.3,181.8z"/><path d="M157,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H157z M161.2,162.7l-3.8-4h4.3l3.3,4H161.2z"/><path d="M173.9,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H173.9z M180.4,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S181.3,168,180.4,168z"/><path d="M193.3,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H193.3z"/><path d="M208.4,182.3l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S209.3,183.3,208.4,182.3z"/></g><g><path fill="__B__" d="M63.6,53.3c0.3-0.3,0.6-0.6,0.9-1h0c0.6-0.6,1.1-1.3,1.8-1.8c0.2-0.2,0.4-0.3,0.6-0.5c0.1-0.1,0.1-0.2,0.1-0.2c-0.3,0.1-0.4,0.3-0.7,0.4c-0.1,0-0.1-0.1-0.1-0.1c0.2-0.1,0.4-0.3,0.6-0.4c-0.1,0-0.1-0.1-0.1-0.1C66,49.6,65.5,50,65,50.5c-0.1,0.1-0.2-0.1-0.3-0.1c-0.8,0.3-1.4,1-2.2,1.3v-0.1c-0.3,0.1-0.6,0.3-1,0.4c-0.5,0.1-0.9,0.1-1.3,0.1c-0.6,0.1-1.3,0.2-1.9,0.3c-0.3,0.1-0.7,0.2-1,0.4c0,0-0.1,0.1-0.1,0.1c-0.1,0.1-0.2,0.2-0.4,0.3c-0.3,0.2-0.6,0.5-0.9,0.7c-0.3,0.3-0.6,0.6-0.9,0.8c0,0,0,0,0-0.1c0-0.1,0.1-0.2,0.1-0.2c0.1-0.1,0.1-0.2,0.2-0.2c0.1-0.1,0.1-0.2,0.2-0.3c0.3-0.3,0.6-0.5,0.9-0.7c0,0,0.1-0.1,0.1-0.1C56.1,52.9,56,53,55.9,53c-0.1,0.1-0.2,0.4-0.4,0.3c0,0,0,0,0-0.1c0,0,0-0.1,0.1-0.1c0,0,0-0.1,0.1-0.1c0.1-0.1,0.2-0.2,0.4-0.3c0.2-0.1,0.4-0.2,0.6-0.3c0,0,0.1-0.1,0.1-0.1c-0.3,0.1-0.6,0.2-0.9,0.4c0.1-0.1,0.2-0.2,0.3-0.3c1.7-1.3,4.1-1,6.1-1.7c0.2-0.1,0.3-0.2,0.5-0.3c0.3-0.1,0.5-0.4,0.8-0.5c0.4-0.3,0.7-0.7,0.9-1.2c0-0.1-0.1-0.1-0.1-0.1c-0.7,0.8-1.5,1.3-2.4,1.8c-1.1,0.6-2.4,0.5-3.5,0.6c0.1-0.1,0.2-0.1,0.3-0.1c0-0.2,0.1-0.2,0.2-0.3H59c0.1,0,0.1-0.1,0.1-0.1c0.1,0,0.3-0.1,0.2-0.1c-0.2-0.2-0.5,0.2-0.8,0c0.1-0.1,0.1-0.3,0.2-0.3h0.2c0-0.1,0.1-0.2,0.1-0.2c0.8-0.5,1.6-0.9,2.3-1.3c-0.2,0-0.3,0.2-0.4,0.1c0.1,0,0-0.2,0.1-0.2c0.6-0.2,1.1-0.5,1.7-0.7c-0.2,0-0.4,0.2-0.6,0c0.1-0.1,0.2-0.2,0.3-0.2v-0.2c0-0.1,0.1-0.1,0.1-0.1c-0.1,0-0.1-0.1-0.1-0.1c0.1-0.1,0.2-0.1,0.3-0.2c-0.1,0-0.2,0-0.2-0.1c0.2-0.2,0.4-0.3,0.7-0.3c-0.1-0.1-0.2,0-0.2-0.1c0-0.1,0.1-0.1,0.1-0.1H63c-0.1-0.1-0.1-0.2-0.1-0.2c0.3-0.4,0.3-0.9,0.5-1.3c-0.5,0.6-1.4,0.8-2.2,1h-0.3c-0.3,0.1-0.6,0.1-0.9-0.1c-0.2-0.1-0.3-0.3-0.5-0.4c-0.4-0.3-0.9-0.5-1.3-0.6C56.8,44.2,55.4,44,54,44c0.6-0.3,1.2-0.3,1.9-0.5c0.9-0.3,1.8-0.6,2.7-0.5c-0.2-0.1-0.4,0-0.5,0c-0.8-0.1-1.5,0.2-2.3,0.3c-0.5,0.1-1,0.3-1.6,0.4c-0.3,0.1-0.5,0.4-0.9,0.4v-0.2c0.5-0.6,1.2-1.3,2-1.3c1-0.2,1.9,0,2.8,0.1c0.7,0.1,1.3,0.2,2,0.4c0.3,0,0.3,0.4,0.5,0.5c0.3,0.1,0.6,0,1,0.2c0-0.1-0.1-0.2,0-0.3c0.2-0.2,0.5,0.1,0.7-0.1c0.4-0.3-0.4-0.7-0.6-1.1c0-0.1,0.1-0.1,0.1-0.1c0.4,0.4,0.7,0.8,1.3,1.1c0.3,0.1,0.9,0.3,0.8-0.1c-0.3-0.6-0.8-1.1-1.2-1.6v-0.2c-0.1,0-0.1-0.1-0.2-0.1V41c-0.2-0.1-0.2-0.3-0.3-0.5c-0.2-0.3-0.1-0.6-0.2-1C62.1,39.3,62,39,62,38.7c-0.2-0.9-0.4-1.7-0.5-2.6c-0.1-1,0.6-1.8,1.1-2.7c0.4-0.6,0.8-1.3,1.5-1.7c0.2-0.6,0.6-1.2,1-1.7c0.4-0.5,1.1-0.8,1.7-1.1c0.7-0.3,1.4-0.5,1.4-0.5H31.4v28.3h26c1-0.7,2-1.1,3.5-1.8C61.5,54.6,63.1,53.9,63.6,53.3"/><path fill="__R__" d="M109.3,28.3H78.8c0,0,0.1,0,0.3,0.1c0.2,0.1,0.6,0.3,0.8,0.4c0.4,0.2,0.8,0.5,1,0.9c0.1,0.2,0.3,0.5,0.2,0.7c-0.1,0.3-0.2,0.7-0.4,0.8c-0.3,0.2-0.7,0.2-1.1,0.1c-0.2,0-0.4-0.1-0.6-0.1c0.8,0.3,1.6,0.7,2.1,1.4c0.1,0.1,0.3,0.2,0.5,0.2c0.1,0,0.1,0.1,0.1,0.2c-0.1,0.1-0.2,0.2-0.2,0.3h0.2c0.3-0.1,0.2-0.6,0.6-0.5c0.3,0.2,0.4,0.5,0.2,0.8c-0.2,0.2-0.4,0.4-0.6,0.5c-0.1,0.1-0.1,0.3,0,0.4c0.2,0.2,0.2,0.4,0.3,0.6c0.2,0.4,0.2,0.8,0.4,1.2c0.2,0.8,0.4,1.6,0.4,2.4c0,0.4-0.2,0.8-0.1,1.2c0.1,0.4,0.4,0.8,0.6,1.1c0.2,0.3,0.4,0.5,0.6,0.9c0.3,0.5,0.9,1.1,0.6,1.7c-0.2,0.4-0.8,0.3-1.1,0.5c-0.3,0.3-0.1,0.7,0.1,1c0.3,0.5-0.3,0.8-0.7,1c0.1,0.2,0.3,0.1,0.4,0.2c0.1,0.3,0.3,0.4,0.2,0.7c-0.2,0.3-0.9,0.5-0.5,1c0.2,0.4,0.1,0.8-0.1,1.2c-0.2,0.5-0.6,0.7-1,0.8c-0.3,0.1-0.7,0.1-1,0.1c-0.9-0.1-1.8-0.4-2.7-0.4c-0.3,0.1-0.5,0.1-0.7,0.2c-0.2,0.2-0.5,0.4-0.6,0.6c0,0-0.1,0.1-0.1,0.1c0,0,0,0.1-0.1,0.1c-0.2,0.2-0.3,0.4-0.4,0.6c0,0,0,0.1,0,0.1c-0.2,0.3-0.3,0.7-0.4,1c-0.4,1.2-0.2,2.3,0.1,2.5c0.1,0.1,1.8,0.6,2.9,1.1c0.6,0.2,0.9,0.4,1.3,0.6h29.9V28.3z"/><path fill="__G__" d="M80.7,38.7c0.2,0.1,0.5,0.1,0.5,0.2c-0.1,0.4-0.7,0.5-1.1,1H80c-0.2,0.1-0.1,0.4-0.3,0.4c-0.2-0.1-0.3,0-0.5,0.1c0.2,0.2,0.5,0.4,0.8,0.3c0.1,0,0.2,0.1,0.2,0.2c0,0,0.1,0,0.1-0.1c0.1,0,0.1,0,0.1,0.1V41c-0.2,0.2-0.4,0.1-0.6,0.2c0.4,0.1,0.9,0.1,1.2,0c0.3-0.1,0-0.6,0.2-0.9c-0.1,0,0-0.2-0.1-0.2c0.1-0.1,0.2-0.3,0.3-0.3c0.1,0,0.3-0.1,0.3-0.2c0-0.1-0.2-0.2-0.2-0.3c0.3-0.2,0.6-0.5,0.5-0.9c-0.1-0.2-0.5-0.2-0.8-0.3c-0.3-0.1-0.6,0-0.9,0.1c-0.3,0-0.5,0.2-0.8,0.2c-0.4,0.1-0.7,0.3-1,0.5c0.4-0.2,0.8-0.2,1.2-0.3C80.1,38.7,80.3,38.6,80.7,38.7"/></g></svg>';
+    return svgTpl.replace(/__W__/g, 'white').replace(/__B__/g, cB).replace(/__R__/g, cR).replace(/__G__/g, cG);
+}
+async function chargerLogoDepuisBiblio() {
+    if (!etat.tableSauvegardePresente) {
+        afficherLogoRepli();
+        return;
+    }
+    try {
+        var data = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
+        if (!data || !data.id) {
+            afficherLogoRepli();
+            return;
+        }
+        var logoSvg = null;
+        for (var i = 0; i < data.id.length; i++) {
+            if ((data.WIDGET ? data.WIDGET[i] : '') === '__RESSOURCE__' && (data.NOM ? data.NOM[i] : '') === 'LOGO_SVG') {
+                logoSvg = data.CONTENU ? data.CONTENU[i] : '';
+                break;
+            }
+        }
+        if (!logoSvg) {
+            logoSvg = genererLogoMEAE();
+            try {
+                await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, { WIDGET: '__RESSOURCE__', NOM: 'LOGO_SVG', CONTENU: logoSvg }]]);
+                logSecurite('INFO', 'Logo MEAE stocké dans la bibliothèque centrale');
+            }
+            catch (e) {
+                logSecurite('INFO', 'Stockage logo non possible', e);
+            }
+        }
+        var container = document.getElementById('bandeau-logo');
+        if (container && logoSvg) {
+            if (!injecterSvgSecurise(container, logoSvg)) {
+                afficherLogoRepli();
+            }
+        }
+        else {
+            afficherLogoRepli();
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Chargement logo depuis biblio non possible', e);
+        afficherLogoRepli();
+    }
+}
+const OPERATEURS_PAR_GROUPE = {
+    texte: [
+        { code: 'contient', libelle: 'contient', necessiteValeur: true },
+        { code: 'ne_contient_pas', libelle: 'ne contient pas', necessiteValeur: true },
+        { code: 'egal', libelle: 'est égal à', necessiteValeur: true },
+        { code: 'different', libelle: "n'est pas égal à", necessiteValeur: true },
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    nombre: [
+        { code: 'egal', libelle: 'est égal à', necessiteValeur: true },
+        { code: 'different', libelle: "n'est pas égal à", necessiteValeur: true },
+        { code: 'superieur', libelle: 'est supérieur à', necessiteValeur: true },
+        { code: 'superieur_egal', libelle: 'est supérieur ou égal à', necessiteValeur: true },
+        { code: 'inferieur', libelle: 'est inférieur à', necessiteValeur: true },
+        { code: 'inferieur_egal', libelle: 'est inférieur ou égal à', necessiteValeur: true },
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    date: [
+        { code: 'egal', libelle: 'est à la date du', necessiteValeur: true },
+        { code: 'avant', libelle: 'est avant le', necessiteValeur: true },
+        { code: 'apres', libelle: 'est après le', necessiteValeur: true },
+        { code: 'entre', libelle: 'est entre le', necessiteValeur: true },
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    booleen: [
+        { code: 'vrai', libelle: 'est coché (vrai)', necessiteValeur: false },
+        { code: 'faux', libelle: 'est décoché (faux)', necessiteValeur: false }
+    ],
+    choix: [
+        { code: 'egal', libelle: 'est', necessiteValeur: true },
+        { code: 'different', libelle: "n'est pas", necessiteValeur: true },
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    choix_liste: [
+        { code: 'contient', libelle: 'contient', necessiteValeur: true },
+        { code: 'ne_contient_pas', libelle: 'ne contient pas', necessiteValeur: true },
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    piece_jointe: [
+        { code: 'vide', libelle: 'sans pièce jointe', necessiteValeur: false },
+        { code: 'non_vide', libelle: 'avec pièce jointe', necessiteValeur: false }
+    ],
+    reference: [
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ],
+    reference_liste: [
+        { code: 'vide', libelle: 'est vide', necessiteValeur: false },
+        { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
+    ]
+};
+const LIBELLES_TYPES = {
+    texte: 'TXT', nombre: 'NUM', date: 'DATE',
+    booleen: 'BOOL', choix: 'CHOIX', choix_liste: 'LISTE',
+    piece_jointe: 'PJ', reference: 'RÉF', reference_liste: 'RÉFS'
+};
+function obtenirGroupeType(type) {
+    if (!type)
+        return 'texte';
+    if (type === 'Numeric' || type === 'Int')
+        return 'nombre';
+    if (type === 'Date' || type.indexOf('DateTime') === 0)
+        return 'date';
+    if (type === 'Bool')
+        return 'booleen';
+    if (type === 'Choice')
+        return 'choix';
+    if (type === 'ChoiceList')
+        return 'choix_liste';
+    if (type === 'Attachments')
+        return 'piece_jointe';
+    if (type.indexOf('RefList:') === 0)
+        return 'reference_liste';
+    if (type.indexOf('Ref:') === 0)
+        return 'reference';
+    return 'texte';
+}
+const etat = {
+    basesDisponibles: [],
+    metadonneesColonnes: {},
+    nomsPiecesJointes: null,
+    colonneParRef: {},
+    libellesReferences: {},
+    baseSelectionnee: '',
+    parametragesParBase: {},
+    champsDisponibles: [],
+    champsSelectionnes: [],
+    filtres: { groupes: [] },
+    ordreAvantTri: null,
+    triCourant: { colId: '', ordre: 'none' },
+    donneesBaseCourante: null,
+    donneesPourExport: null,
+    options: { nomFichier: 'export', horodatage: true },
+    dispositions: [],
+    tableSauvegardePresente: false,
+    compteurGroupe: 0,
+    compteurCondition: 0,
+    itemGlisse: { type: null, colId: null },
+    rechercheColonnes: '',
+    tablesAExporter: [],
+    tablesRetenuesExport: []
+};
+function el(tag, attrs) {
+    var enfants = Array.prototype.slice.call(arguments, 2);
+    var e = document.createElement(tag);
+    if (attrs) {
+        for (var k in attrs) {
+            var v = attrs[k];
+            if (v === null || v === undefined)
+                continue;
+            if (k === 'class' || k === 'className') {
+                e.className = v;
+            }
+            else if (k === 'text') {
+                e.textContent = v;
+            }
+            else if (k === 'style' && typeof v === 'object') {
+                for (var sk in v)
+                    e.style[sk] = v[sk];
+            }
+            else if (k.indexOf('on') === 0 && typeof v === 'function') {
+                e.addEventListener(k.substring(2).toLowerCase(), v);
+            }
+            else {
+                e.setAttribute(k, v);
+            }
+        }
+    }
+    for (var i = 0; i < enfants.length; i++) {
+        var enf = enfants[i];
+        if (enf === null || enf === undefined || enf === false)
+            continue;
+        if (typeof enf === 'string' || typeof enf === 'number') {
+            e.appendChild(document.createTextNode(String(enf)));
+        }
+        else {
+            e.appendChild(enf);
+        }
+    }
+    return e;
+}
+function viderElement(element) {
+    while (element && element.firstChild)
+        element.removeChild(element.firstChild);
+}
+function lettreColonne(index) {
+    var n = validerNombre(index, 0, 999999, 0);
+    var s = '';
+    do {
+        s = String.fromCharCode(65 + (n % 26)) + s;
+        n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return s;
+}
+function normaliserRecherche(texte) {
+    if (texte === null || texte === undefined)
+        return '';
+    return String(texte)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .trim();
+}
+function construireLibelleSurligne(libelle, terme) {
+    var frag = document.createDocumentFragment();
+    if (!terme) {
+        frag.appendChild(document.createTextNode(libelle));
+        return frag;
+    }
+    var libNorm = normaliserRecherche(libelle);
+    var termeNorm = normaliserRecherche(terme);
+    if (!termeNorm || libNorm.indexOf(termeNorm) === -1) {
+        frag.appendChild(document.createTextNode(libelle));
+        return frag;
+    }
+    if (libNorm.length !== libelle.length) {
+        frag.appendChild(document.createTextNode(libelle));
+        return frag;
+    }
+    var pos = 0;
+    var lg = termeNorm.length;
+    while (pos < libelle.length) {
+        var idx = libNorm.indexOf(termeNorm, pos);
+        if (idx === -1) {
+            frag.appendChild(document.createTextNode(libelle.substring(pos)));
+            break;
+        }
+        if (idx > pos) {
+            frag.appendChild(document.createTextNode(libelle.substring(pos, idx)));
+        }
+        frag.appendChild(el('mark', { class: 'csnc-surligne', text: libelle.substring(idx, idx + lg) }));
+        pos = idx + lg;
+    }
+    return frag;
+}
+async function chargerNomsPiecesJointes() {
+    if (etat.nomsPiecesJointes)
+        return etat.nomsPiecesJointes;
+    var noms = {};
+    try {
+        var data = await grist.docApi.fetchTable('_grist_Attachments');
+        var ids = (data && data.id) || [];
+        for (var i = 0; i < ids.length; i++) {
+            var nom = data.fileName ? data.fileName[i] : '';
+            if (nom)
+                noms[ids[i]] = String(nom);
+        }
+        logSecurite('INFO', 'Noms des pièces jointes chargés', { entrees: Object.keys(noms).length });
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Noms des pièces jointes illisibles : les identifiants seront exportés', e);
+    }
+    etat.nomsPiecesJointes = noms;
+    return noms;
+}
+function tableCibleDeReference(type) {
+    if (!type)
+        return null;
+    if (type.indexOf('Ref:') === 0)
+        return type.substring(4);
+    if (type.indexOf('RefList:') === 0)
+        return type.substring(8);
+    return null;
+}
+function estColonneReference(type) {
+    return !!type && (type.indexOf('Ref:') === 0 || type.indexOf('RefList:') === 0);
+}
+function colonneAffichageReference(colonneMeta, tableCible) {
+    if (colonneMeta && colonneMeta.visibleCol && etat.colonneParRef[colonneMeta.visibleCol]) {
+        return etat.colonneParRef[colonneMeta.visibleCol];
+    }
+    var meta = etat.metadonneesColonnes[tableCible] || [];
+    for (var i = 0; i < meta.length; i++) {
+        if (meta[i].type === 'Text' || meta[i].type === 'Choice')
+            return meta[i].colId;
+    }
+    return null;
+}
+async function chargerLibellesReferences(tablesConcernees) {
+    var aCharger = {};
+    (tablesConcernees || []).forEach(function (nomT) {
+        (etat.metadonneesColonnes[nomT] || []).forEach(function (col) {
+            var cible = tableCibleDeReference(col.type);
+            if (!cible)
+                return;
+            var colAff = colonneAffichageReference(col, cible);
+            var cle = cible + '\u0000' + (colAff || '');
+            if (!aCharger[cle])
+                aCharger[cle] = { table: cible, colAffichage: colAff };
+        });
+    });
+    var cles = Object.keys(aCharger);
+    for (var i = 0; i < cles.length; i++) {
+        if (etat.libellesReferences[cles[i]])
+            continue;
+        var e = aCharger[cles[i]];
+        try {
+            var data = await grist.docApi.fetchTable(e.table);
+            var ids = (data && data.id) || [];
+            var map = {};
+            for (var r = 0; r < ids.length; r++) {
+                var lib = (e.colAffichage && data[e.colAffichage] !== undefined) ? data[e.colAffichage][r] : null;
+                if (lib !== null && lib !== undefined && lib !== '')
+                    map[ids[r]] = String(lib);
+            }
+            etat.libellesReferences[cles[i]] = map;
+            logSecurite('INFO', 'Libellés de référence chargés pour ' + e.table, { colAffichage: e.colAffichage, entrees: Object.keys(map).length });
+        }
+        catch (err) {
+            etat.libellesReferences[cles[i]] = {};
+            logSecurite('AVERTISSEMENT', 'Libellés de référence illisibles pour ' + e.table + ' : les identifiants seront exportés', err);
+        }
+    }
+}
+function libellesDeReference(valeur, colonneMeta) {
+    var cible = tableCibleDeReference(colonneMeta ? colonneMeta.type : '');
+    if (!cible)
+        return '';
+    var colAff = colonneAffichageReference(colonneMeta, cible);
+    var map = etat.libellesReferences[cible + '\u0000' + (colAff || '')] || {};
+    var ids = Array.isArray(valeur)
+        ? (valeur.length > 0 && valeur[0] === 'L' ? valeur.slice(1) : valeur)
+        : (valeur === null || valeur === undefined || valeur === '' || valeur === 0 ? [] : [valeur]);
+    return ids.map(function (id) { return map[id] || String(id); }).join(', ');
+}
+function estColonnePieceJointe(type) {
+    return type === 'Attachments';
+}
+function nomsDesPiecesJointes(valeur) {
+    var ids = Array.isArray(valeur) ? (valeur.length > 0 && valeur[0] === 'L' ? valeur.slice(1) : valeur) : (valeur === null || valeur === undefined || valeur === '' ? [] : [valeur]);
+    var table = etat.nomsPiecesJointes || {};
+    return ids.map(function (id) { return table[id] || String(id); }).join(', ');
+}
+function valeurGristEnTexte(valeur, type, colonneMeta) {
+    if (valeur === null || valeur === undefined || valeur === '')
+        return '';
+    if (estColonnePieceJointe(type))
+        return nomsDesPiecesJointes(valeur);
+    if (estColonneReference(type)) {
+        return libellesDeReference(valeur, (colonneMeta && colonneMeta.type) ? colonneMeta : { type: type, visibleCol: 0 });
+    }
+    if (type && (type === 'Date' || type.indexOf('DateTime') === 0)) {
+        if (valeur === 0 || valeur === false)
+            return '';
+        var n = parseFloat(valeur);
+        if (!isNaN(n) && isFinite(n)) {
+            var date = new Date(n * 1000);
+            if (type === 'Date')
+                return date.toISOString().substring(0, 10);
+            return dateHeureDansFuseau(n, type);
+        }
+    }
+    if (Array.isArray(valeur)) {
+        if (valeur.length > 0 && valeur[0] === 'E')
+            return '';
+        if (valeur.length > 0 && valeur[0] === 'L')
+            return valeur.slice(1).join(', ');
+        return valeur.join(', ');
+    }
+    if (typeof valeur === 'boolean')
+        return valeur ? 'Oui' : 'Non';
+    return String(valeur);
+}
+async function chargerListeBases() {
+    try {
+        var meta = await grist.docApi.fetchTable('_grist_Tables');
+        var ids = meta.tableId || [];
+        etat.basesDisponibles = ids.filter(function (t) { return !estTableExclue(t); });
+        return etat.basesDisponibles;
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur chargement liste des bases :', error);
+        afficherErreur("Impossible de récupérer la liste des bases de données.");
+        return [];
+    }
+}
+async function chargerMetadonneesColonnes() {
+    try {
+        var tablesMeta = await grist.docApi.fetchTable('_grist_Tables');
+        var colsMeta = await grist.docApi.fetchTable('_grist_Tables_column');
+        var indexTables = {};
+        if (tablesMeta && tablesMeta.id) {
+            for (var i = 0; i < tablesMeta.id.length; i++) {
+                indexTables[tablesMeta.id[i]] = tablesMeta.tableId[i];
+            }
+        }
+        var mapping = {};
+        if (colsMeta && colsMeta.id) {
+            for (var i = 0; i < colsMeta.id.length; i++) {
+                var colId = colsMeta.colId[i];
+                var label = colsMeta.label[i];
+                var type = colsMeta.type[i];
+                var parentId = colsMeta.parentId[i];
+                var widgetOpt = colsMeta.widgetOptions ? colsMeta.widgetOptions[i] : null;
+                var visibleCol = colsMeta.visibleCol ? (colsMeta.visibleCol[i] || 0) : 0;
+                etat.colonneParRef[colsMeta.id[i]] = colId;
+                var tableId = indexTables[parentId];
+                if (!tableId)
+                    continue;
+                if (colId === 'manualSort' || colId.startsWith('#'))
+                    continue;
+                if (colId.indexOf('gristHelper_') === 0)
+                    continue;
+                if (estTableExclue(tableId))
+                    continue;
+                var choix = null;
+                if (widgetOpt) {
+                    try {
+                        var opts = JSON.parse(widgetOpt);
+                        if (opts && Array.isArray(opts.choices))
+                            choix = opts.choices.slice();
+                    }
+                    catch (e) {
+                        logSecurite('AVERTISSEMENT', 'Options de colonne illisibles pour ' + tableId + '.' + colId, e);
+                    }
+                }
+                if (!mapping[tableId])
+                    mapping[tableId] = [];
+                mapping[tableId].push({ colId: colId, label: label || colId, type: type || 'Text', choix: choix, visibleCol: visibleCol });
+            }
+        }
+        etat.metadonneesColonnes = mapping;
+        return mapping;
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur chargement métadonnées :', error);
+        etat.metadonneesColonnes = {};
+        return {};
+    }
+}
+async function chargerDonneesBase(tableId) {
+    try {
+        var colonnesMeta = etat.metadonneesColonnes[tableId];
+        var data, colonnes, nbLignes, lignes;
+        data = await grist.docApi.fetchTable(tableId);
+        if (!data || !data.id)
+            return { colonnes: [], lignes: [], nbLignes: 0 };
+        if (colonnesMeta && colonnesMeta.length > 0) {
+            colonnes = colonnesMeta;
+        }
+        else {
+            colonnes = Object.keys(data)
+                .filter(function (k) { return k !== 'id' && k !== 'manualSort' && !k.startsWith('#') && k.indexOf('gristHelper_') !== 0; })
+                .map(function (k) { return { colId: k, label: k, type: 'Text', choix: null }; });
+        }
+        nbLignes = data.id.length;
+        lignes = [];
+        for (var i = 0; i < nbLignes; i++) {
+            var ligne = {};
+            for (var ci = 0; ci < colonnes.length; ci++) {
+                var c = colonnes[ci];
+                ligne[c.colId] = data[c.colId] !== undefined ? data[c.colId][i] : null;
+            }
+            lignes.push(ligne);
+        }
+        return { colonnes: colonnes, lignes: lignes, nbLignes: nbLignes };
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur chargement données base :', error);
+        afficherErreur("Impossible de récupérer les données de cette table.");
+        throw error;
+    }
+}
+async function reparerSchemaCentrale() {
+    if (!NOM_TABLE_CENTRALE)
+        return;
+    try {
+        var metaT = await grist.docApi.fetchTable('_grist_Tables');
+        var refTable = null;
+        for (var t = 0; t < (metaT.tableId || []).length; t++) {
+            if (metaT.tableId[t] === NOM_TABLE_CENTRALE) {
+                refTable = metaT.id[t];
+                break;
+            }
+        }
+        if (refTable === null)
+            return;
+        var cols = await grist.docApi.fetchTable('_grist_Tables_column');
+        var presentes = {};
+        for (var c = 0; c < (cols.id || []).length; c++) {
+            if (cols.parentId[c] === refTable) {
+                presentes[cols.colId[c]] = {
+                    type: cols.type[c],
+                    formule: String((cols.formula || [])[c] || ''),
+                    estFormule: Boolean((cols.isFormula || [])[c])
+                };
+            }
+        }
+        var ajoutees = [], formulesPosees = [], divergentes = [];
+        for (var k = 0; k < COLONNES_CENTRALE.length; k++) {
+            var col = COLONNES_CENTRALE[k];
+            var etatCol = presentes[col.id];
+            if (etatCol === undefined) {
+                var creee = false;
+                try {
+                    await ecrireDocument([['AddColumn', NOM_TABLE_CENTRALE, col.id, {}]]);
+                    creee = true;
+                }
+                catch (eCol) {
+                    logSecurite('INFO', 'Colonne ' + col.id + ' non ajoutée (déjà présente ou droits insuffisants)', eCol);
+                }
+                if (creee) {
+                    var propr = { type: col.type, label: col.label };
+                    if (col.formula) {
+                        propr.isFormula = false;
+                        propr.formula = col.formula;
+                        propr.recalcWhen = col.recalcWhen === undefined ? 0 : col.recalcWhen;
+                        propr.recalcDeps = col.recalcDeps === undefined ? null : col.recalcDeps;
+                    }
+                    try {
+                        await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, col.id, propr]]);
+                        ajoutees.push(col.id);
+                    }
+                    catch (eMod) {
+                        divergentes.push(col.id + ' : créée mais laissée en texte, type ' + col.type + ' non appliqué');
+                        logSecurite('AVERTISSEMENT', 'Propriétés de la colonne ' + col.id + ' non appliquées', eMod);
+                    }
+                }
+                continue;
+            }
+            if (etatCol.type !== col.type) {
+                divergentes.push(col.id + ' : type ' + col.type + ' attendu, ' + etatCol.type + ' trouvé');
+                continue;
+            }
+            if (col.formula && (etatCol.formule.trim() !== String(col.formula).trim() || etatCol.estFormule)) {
+                try {
+                    await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, col.id, {
+                                isFormula: false,
+                                formula: col.formula,
+                                recalcWhen: col.recalcWhen === undefined ? 0 : col.recalcWhen,
+                                recalcDeps: col.recalcDeps === undefined ? null : col.recalcDeps
+                            }]]);
+                    formulesPosees.push(col.id);
+                }
+                catch (eF) {
+                    logSecurite('INFO', 'Formule de déclenchement non posée sur ' + col.id, eF);
+                }
+            }
+        }
+        if (ajoutees.length)
+            logSecurite('INFO', 'Schéma de la bibliothèque complété', { colonnes: ajoutees });
+        if (formulesPosees.length)
+            logSecurite('INFO', 'Formules de déclenchement rétablies', { colonnes: formulesPosees });
+        if (divergentes.length)
+            logSecurite('AVERTISSEMENT', 'Colonnes au type inattendu, laissées en l’état : à corriger à la main dans la bibliothèque', { colonnes: divergentes });
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Vérification du schéma de la bibliothèque impossible', e);
+    }
+}
+async function detecterTableSauvegarde() {
+    try {
+        var meta = await grist.docApi.fetchTable('_grist_Tables');
+        var ids = meta.tableId || [];
+        var found = null;
+        for (var i = 0; i < ids.length; i++) {
+            var up = ids[i].toUpperCase();
+            if (up.indexOf('BIBLIOTHEQUE_CENTRALE') !== -1) {
+                found = ids[i];
+                break;
+            }
+        }
+        if (found) {
+            NOM_TABLE_CENTRALE = found;
+            await reparerSchemaCentrale();
+            etat.tableSauvegardePresente = true;
+        }
+        else {
+            var metaAvantAdd = await grist.docApi.fetchTable('_grist_Tables');
+            var dejaCreee = trouverTableCentrale(metaAvantAdd.tableId);
+            if (dejaCreee) {
+                NOM_TABLE_CENTRALE = dejaCreee;
+                await reparerSchemaCentrale();
+                logSecurite('INFO', 'Bibliothèque déjà créée entre-temps', { tableId: dejaCreee });
+            }
+            else {
+                var COLONNES_A_CREER = COLONNES_CENTRALE
+                    .map(function (c) { return { id: c.id, type: c.type, label: c.label }; });
+                var retAddBiblio = await ecrireDocument([['AddTable', NOM_TABLE_CENTRALE, COLONNES_A_CREER]]);
+                if (retAddBiblio && retAddBiblio.retValues && retAddBiblio.retValues[0] && retAddBiblio.retValues[0].table_id)
+                    NOM_TABLE_CENTRALE = retAddBiblio.retValues[0].table_id;
+                for (var iF = 0; iF < COLONNES_CENTRALE.length; iF++) {
+                    var colF = COLONNES_CENTRALE[iF];
+                    if (!colF.formula) {
+                        continue;
+                    }
+                    try {
+                        await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, colF.id, {
+                                    isFormula: false,
+                                    formula: colF.formula,
+                                    recalcWhen: colF.recalcWhen === undefined ? 0 : colF.recalcWhen,
+                                    recalcDeps: colF.recalcDeps === undefined ? null : colF.recalcDeps
+                                }]]);
+                    }
+                    catch (eF) {
+                        logSecurite('AVERTISSEMENT', 'Formule de déclenchement non posée sur ' + colF.id, eF);
+                    }
+                }
+            }
+            etat.tableSauvegardePresente = true;
+            try {
+                var meta2 = await grist.docApi.fetchTable('_grist_Tables');
+                for (var j = 0; j < meta2.id.length; j++) {
+                    if (meta2.tableId[j] === NOM_TABLE_CENTRALE && meta2.rawViewSectionRef[j]) {
+                        await ecrireDocument([['UpdateRecord', '_grist_Views_section', meta2.rawViewSectionRef[j], { title: LABEL_TABLE_CENTRALE }]]);
+                        var pvId = meta2.primaryViewId ? meta2.primaryViewId[j] : null;
+                        if (pvId) {
+                            try {
+                                await ecrireDocument([['RemoveRecord', '_grist_Views', pvId]]);
+                                logSecurite('INFO', 'Page auto-créée supprimée (biblio centrale)');
+                            }
+                            catch (ep) {
+                                logSecurite('INFO', 'Suppression page auto-créée non possible', ep);
+                            }
+                        }
+                        break;
+                    }
+                }
+                var meta3 = await grist.docApi.fetchTable('_grist_Tables');
+                var ids3 = meta3.tableId || [];
+                for (var m = 0; m < ids3.length; m++) {
+                    if (ids3[m].toUpperCase().indexOf('BIBLIOTHEQUE_CENTRALE') !== -1) {
+                        NOM_TABLE_CENTRALE = ids3[m];
+                        logSecurite('INFO', 'TableId reel apres renommage : ' + NOM_TABLE_CENTRALE);
+                        break;
+                    }
+                }
+            }
+            catch (e2) {
+                logSecurite('AVERTISSEMENT', 'Relecture du tableId apres renommage impossible', e2);
+            }
+        }
+        mettreAJourInfoSauvegarde();
+        if (etat.tableSauvegardePresente)
+            await chargerDispositions();
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur détection table centrale :', error);
+        etat.tableSauvegardePresente = false;
+        mettreAJourInfoSauvegarde();
+    }
+    await reparerSchemaCentrale();
+}
+function mettreAJourInfoSauvegarde() {
+    var texte = document.getElementById('texte-info-sauvegarde');
+    var bloc = document.getElementById('info-sauvegarde');
+    if (!texte || !bloc)
+        return;
+    bloc.hidden = etat.tableSauvegardePresente;
+    if (etat.tableSauvegardePresente) {
+        texte.textContent = '';
+    }
+    else {
+        texte.textContent = 'La bibliothèque centrale n\'a pas pu être créée. Vérifiez que vous disposez des droits nécessaires sur ce document, puis rechargez le widget.';
+    }
+}
+async function chargerDispositions() {
+    if (!etat.tableSauvegardePresente)
+        return;
+    try {
+        var data = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
+        if (!data || !data.id) {
+            etat.dispositions = [];
+        }
+        else {
+            etat.dispositions = [];
+            for (var i = 0; i < data.id.length; i++) {
+                var wLigne = data.WIDGET ? data.WIDGET[i] : '';
+                if (!estLigneDuWidget(wLigne) && wLigne !== NOM_WIDGET_BROUILLON_ANCIEN)
+                    continue;
+                if ((data.STATUT ? data.STATUT[i] : '') === STATUT_BROUILLON || wLigne === NOM_WIDGET_BROUILLON_ANCIEN)
+                    continue;
+                etat.dispositions.push({
+                    id: data.id[i],
+                    NOM: data.NOM ? data.NOM[i] : '',
+                    BASE: data.BASE ? data.BASE[i] : '',
+                    CONFIG: data.CONFIG ? data.CONFIG[i] : '',
+                    DATE_CREATION: data.DATE_CREATION ? data.DATE_CREATION[i] : null,
+                    CREE_PAR: data.CREE_PAR ? data.CREE_PAR[i] : ''
+                });
+            }
+            etat.dispositions.sort(function (a, b) { return (parseInt(b.DATE_CREATION, 10) || 0) - (parseInt(a.DATE_CREATION, 10) || 0); });
+        }
+        afficherSelectDispositions();
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur chargement dispositions :', error);
+    }
+}
+async function renommerDisposition(id, nomActuel) {
+    var nomBrut = await demanderSaisie('Nouveau nom du modèle :', nomActuel);
+    if (nomBrut === null)
+        return;
+    var nom = String(nomBrut).trim();
+    if (!nom) {
+        afficherErreur('Le nom ne peut pas être vide.');
+        return;
+    }
+    if (nom === nomActuel)
+        return;
+    try {
+        await ecrireDocument([['UpdateRecord', NOM_TABLE_CENTRALE, parseInt(id, 10), { NOM: nom, VERSION_MODIF: VERSION_WIDGET }]]);
+        logSecurite('INFO', 'Modèle renommé', { id: id, nom: nom });
+        await chargerDispositions();
+        notifier('Modèle renommé.');
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Renommage impossible', error);
+        afficherErreur('Impossible de renommer le modèle.');
+    }
+}
+function libelleColonneExport(tableId, colId) {
+    var cols = etat.metadonneesColonnes[tableId] || [];
+    for (var i = 0; i < cols.length; i++) {
+        if (cols[i].colId === colId)
+            return cols[i].label || colId;
+    }
+    return colId;
+}
+function compterConditions(filtres) {
+    var n = 0;
+    ((filtres && filtres.groupes) || []).forEach(function (g) { n += (g.conditions || []).length; });
+    return n;
+}
+function carteModeleExport(d) {
+    var config = {};
+    try {
+        config = JSON.parse(d.CONFIG || '{}') || {};
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Modèle illisible : ' + d.NOM, e);
+    }
+    var tables = Array.isArray(config.tablesAExporter) && config.tablesAExporter.length ? config.tablesAExporter.slice() : (d.BASE ? [d.BASE] : []);
+    if (d.BASE && tables.indexOf(d.BASE) > 0) {
+        tables.splice(tables.indexOf(d.BASE), 1);
+        tables.unshift(d.BASE);
+    }
+    var champs = Array.isArray(config.champs) ? config.champs : [];
+    var libs = champs.map(function (c) { return libelleColonneExport(d.BASE, c); });
+    var puces = [];
+    if (libs.length) {
+        puces.push(libs.length + (libs.length > 1 ? ' colonnes : ' : ' colonne : ') + libs.slice(0, 4).join(', ') + (libs.length > 4 ? '…' : ''));
+    }
+    var nf = compterConditions(config.filtres);
+    puces.push(nf ? nf + (nf > 1 ? ' conditions de filtre' : ' condition de filtre') : 'Toutes les lignes, sans filtre');
+    var date = dateLisibleSocle(d.DATE_CREATION);
+    return { id: d.id, nom: d.NOM || 'Modèle sans nom', source: d,
+        phrase: tables.length ? (tables.length > 1 ? 'Tables ' : 'Table ') + tables.join(', ') : 'Table non précisée',
+        puces: puces, mention: (date ? 'Créé le ' + date : '') + (d.CREE_PAR ? (date ? ' par ' : 'Créé par ') + d.CREE_PAR : '') };
+}
+function afficherSelectDispositions() {
+    rendreCartesModeles(document.getElementById('listeModeles'), etat.dispositions.map(carteModeleExport), {
+        utiliser: function (m) { relayer(chargerDispositionSelectionnee(String(m.id)), 'Chargement du modèle impossible'); },
+        secondaires: [
+            { cle: 'Renommer', icone: 'edit-line', libelle: 'Renommer', faire: function (m) { relayer(renommerDisposition(m.id, m.source.NOM), 'Renommage impossible'); } },
+            { cle: 'Supprimer', icone: 'delete-line', libelle: 'Supprimer', faire: function (m) { relayer(supprimerDisposition(m.id), 'Suppression impossible'); } }
+        ]
+    }, { vide: 'Aucun modèle enregistré pour le moment. Choisissez une table et des colonnes, puis « Enregistrer dans les modèles ».', liste: 'Modèles d’export enregistrés', icone: 'download-line' });
+}
+var _enregEnCours = false;
+var _supprEnCours = false;
+async function enregistrerDisposition() {
+    if (_enregEnCours)
+        return;
+    _enregEnCours = true;
+    if (!etat.baseSelectionnee || etat.champsSelectionnes.length === 0) {
+        afficherErreur("Choisissez d'abord une table et au moins un champ avant d'enregistrer.");
+        _enregEnCours = false;
+        return;
+    }
+    var nomDefaut = 'Export ' + etat.baseSelectionnee;
+    if (etat.tablesAExporter && etat.tablesAExporter.length > 1) {
+        var autres = etat.tablesAExporter.length - 1;
+        nomDefaut += ' + ' + autres + (autres > 1 ? ' tables' : ' table');
+    }
+    var dN = new Date();
+    var padN = function (n) { return n < 10 ? '0' + n : '' + n; };
+    nomDefaut += ' ' + padN(dN.getDate()) + '/' + padN(dN.getMonth() + 1) + '/' + dN.getFullYear() + ' ' + padN(dN.getHours()) + 'h' + padN(dN.getMinutes());
+    var nomBrut = await demanderSaisie('Nom du modèle à enregistrer :', nomDefaut);
+    if (nomBrut === null) {
+        _enregEnCours = false;
+        return;
+    }
+    var nom = String(nomBrut).trim();
+    if (!nom) {
+        afficherErreur('Le nom ne peut pas être vide.');
+        _enregEnCours = false;
+        return;
+    }
+    if (etat.baseSelectionnee) {
+        etat.parametragesParBase[etat.baseSelectionnee] = {
+            champsSelectionnes: etat.champsSelectionnes.slice(),
+            champsDisponibles: etat.champsDisponibles.slice(),
+            filtres: JSON.parse(JSON.stringify(etat.filtres)),
+            triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
+        };
+    }
+    var config = {
+        champs: etat.champsSelectionnes.slice(),
+        filtres: etat.filtres,
+        tri: etat.triCourant,
+        options: { nomFichier: etat.options.nomFichier, horodatage: etat.options.horodatage },
+        tablesAExporter: etat.tablesAExporter.slice(),
+        parametragesParBase: JSON.parse(JSON.stringify(etat.parametragesParBase))
+    };
+    var fields = {
+        WIDGET: NOM_WIDGET,
+        NOM: nom, BASE: etat.baseSelectionnee,
+        CONFIG: JSON.stringify(config),
+        DATE_CREATION: String(Math.floor(Date.now() / 1000)),
+        DESCRIPTIF: 'Modèle d’export de la table ' + etat.baseSelectionnee +
+            (etat.tablesAExporter.length > 1 ? ' et ' + (etat.tablesAExporter.length - 1) + ' autre(s)' : ''),
+        VERSION_CREATION: VERSION_WIDGET,
+        VERSION_MODIF: VERSION_WIDGET
+    };
+    afficherLoader('Enregistrement du modèle…');
+    try {
+        await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, fields]]);
+        await chargerDispositions();
+        notifier('Modèle « ' + nom + ' » enregistré.');
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur enregistrement disposition :', error);
+        afficherErreur("Impossible d'enregistrer le modèle.");
+    }
+    finally {
+        masquerLoader();
+        _enregEnCours = false;
+    }
+}
+async function chargerDispositionSelectionnee(id) {
+    var rowId = parseInt(id, 10);
+    var disp = etat.dispositions.find(function (d) { return d.id === rowId; });
+    if (!disp)
+        return;
+    var config;
+    try {
+        config = JSON.parse(disp.CONFIG || '{}');
+    }
+    catch (e) {
+        afficherErreur('Ce modèle est illisible.');
+        return;
+    }
+    basculerOngletExport('creer');
+    await selectionnerTable(disp.BASE);
+    if (Array.isArray(config.champs) && etat.donneesBaseCourante) {
+        var tousLesColIds = etat.donneesBaseCourante.colonnes.map(function (c) { return c.colId; });
+        etat.champsSelectionnes = config.champs.filter(function (c) { return tousLesColIds.indexOf(c) !== -1; });
+        etat.champsDisponibles = tousLesColIds.filter(function (c) { return etat.champsSelectionnes.indexOf(c) === -1; });
+        afficherSidebar();
+    }
+    if (config.filtres && Array.isArray(config.filtres.groupes)) {
+        etat.filtres = config.filtres;
+        afficherFiltres();
+    }
+    if (config.options) {
+        etat.options.nomFichier = config.options.nomFichier || 'export';
+        etat.options.horodatage = !!config.options.horodatage;
+    }
+    if (Array.isArray(config.tablesAExporter)) {
+        etat.tablesAExporter = config.tablesAExporter.filter(function (t) {
+            return etat.basesDisponibles.indexOf(t) !== -1;
+        });
+    }
+    if (config.parametragesParBase && typeof config.parametragesParBase === 'object') {
+        for (var k in config.parametragesParBase) {
+            if (etat.basesDisponibles.indexOf(k) !== -1) {
+                etat.parametragesParBase[k] = config.parametragesParBase[k];
+            }
+        }
+    }
+    afficherBarreTables();
+    rafraichirPreview();
+}
+async function supprimerDisposition(idModele) {
+    if (_supprEnCours)
+        return;
+    _supprEnCours = true;
+    var rowId = parseInt(idModele, 10);
+    if (!rowId) {
+        _supprEnCours = false;
+        return;
+    }
+    var disp = etat.dispositions.find(function (d) { return d.id === rowId; });
+    if (!disp) {
+        _supprEnCours = false;
+        return;
+    }
+    var ok = await confirmerAction('Supprimer définitivement le modèle "' + disp.NOM + '" ?');
+    if (!ok) {
+        _supprEnCours = false;
+        return;
+    }
+    afficherLoader('Suppression…');
+    try {
+        await ecrireDocument([['RemoveRecord', NOM_TABLE_CENTRALE, rowId]]);
+        await chargerDispositions();
+        notifier('Modèle supprimé.');
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur suppression :', error);
+        afficherErreur('Impossible de supprimer le modèle.');
+    }
+    finally {
+        masquerLoader();
+        _supprEnCours = false;
+    }
+}
+function afficherSidebar() {
+    var liste = document.getElementById('liste-colonnes');
+    var compteur = document.getElementById('sidebar-compteur');
+    if (!liste)
+        return;
+    viderElement(liste);
+    if (!etat.donneesBaseCourante || !etat.donneesBaseCourante.colonnes) {
+        liste.appendChild(el('li', { class: 'csnc-sidebar-vide', text: 'Aucune table sélectionnée.' }));
+        if (compteur)
+            compteur.textContent = '(0/0)';
+        return;
+    }
+    var toutesColonnes = etat.donneesBaseCourante.colonnes;
+    var terme = normaliserRecherche(etat.rechercheColonnes);
+    var cochees = [];
+    var nonCochees = [];
+    for (var i = 0; i < toutesColonnes.length; i++) {
+        var col = toutesColonnes[i];
+        var correspondRecherche = !terme || normaliserRecherche(col.label).indexOf(terme) !== -1;
+        if (!correspondRecherche)
+            continue;
+        if (etat.champsSelectionnes.indexOf(col.colId) !== -1) {
+            cochees.push(col);
+        }
+        else {
+            nonCochees.push(col);
+        }
+    }
+    var ordreSelection = etat.champsSelectionnes.slice();
+    var cocheesTriees = [];
+    for (var oi = 0; oi < ordreSelection.length; oi++) {
+        var found = cochees.find(function (c) { return c.colId === ordreSelection[oi]; });
+        if (found)
+            cocheesTriees.push(found);
+    }
+    for (var ci = 0; ci < cocheesTriees.length; ci++) {
+        liste.appendChild(construireItemColonne(cocheesTriees[ci], true));
+    }
+    if (cocheesTriees.length > 0 && nonCochees.length > 0) {
+        liste.appendChild(el('li', { class: 'csnc-sidebar-separateur' }));
+    }
+    for (var ni = 0; ni < nonCochees.length; ni++) {
+        liste.appendChild(construireItemColonne(nonCochees[ni], false));
+    }
+    if (cocheesTriees.length === 0 && nonCochees.length === 0) {
+        liste.appendChild(el('li', { class: 'csnc-sidebar-vide', text: 'Aucun champ ne correspond à la recherche.' }));
+    }
+    if (compteur) {
+        compteur.textContent = '(' + etat.champsSelectionnes.length + '/' + toutesColonnes.length + ')';
+    }
+    var cbTout = document.getElementById('cb-tout-cocher');
+    if (cbTout) {
+        cbTout.checked = (etat.champsSelectionnes.length === toutesColonnes.length);
+    }
+}
+function construireItemColonne(col, estCoche) {
+    var groupe = obtenirGroupeType(col.type);
+    var li = el('li', { class: 'csnc-sidebar-item', 'data-col-id': col.colId });
+    var cb = el('input', {
+        type: 'checkbox',
+        id: 'col-cb-' + col.colId,
+        autocomplete: 'off'
+    });
+    if (estCoche)
+        cb.checked = true;
+    cb.addEventListener('change', function () {
+        if (cb.checked) {
+            if (etat.champsSelectionnes.indexOf(col.colId) === -1) {
+                etat.champsSelectionnes.push(col.colId);
+            }
+            var idxD = etat.champsDisponibles.indexOf(col.colId);
+            if (idxD !== -1)
+                etat.champsDisponibles.splice(idxD, 1);
+        }
+        else {
+            var idxS = etat.champsSelectionnes.indexOf(col.colId);
+            if (idxS !== -1)
+                etat.champsSelectionnes.splice(idxS, 1);
+            if (etat.champsDisponibles.indexOf(col.colId) === -1) {
+                etat.champsDisponibles.push(col.colId);
+            }
+        }
+        afficherSidebar();
+        rafraichirPreview();
+        sauverBrouillon();
+    });
+    var labelEl = el('span', { class: 'csnc-sidebar-item-label', title: col.label });
+    labelEl.appendChild(construireLibelleSurligne(col.label, etat.rechercheColonnes));
+    li.appendChild(cb);
+    li.appendChild(labelEl);
+    li.appendChild(el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon csnc-badge-type', text: LIBELLES_TYPES[groupe] || 'TXT' }));
+    if (groupe === 'piece_jointe') {
+        var mention = el('span', { class: 'csnc-mention-pj' });
+        mention.textContent = 'Noms des documents seulement, les fichiers ne partent pas dans le classeur';
+        li.appendChild(mention);
+        li.classList.add('csnc-sidebar-item--avec-mention');
+    }
+    return li;
+}
+function resynchroniserCompteurs() {
+    (etat.filtres.groupes || []).forEach(function (g) {
+        if (Number(g.id) > etat.compteurGroupe)
+            etat.compteurGroupe = Number(g.id);
+        (g.conditions || []).forEach(function (c) {
+            if (Number(c.id) > etat.compteurCondition)
+                etat.compteurCondition = Number(c.id);
+        });
+    });
+}
+function ajouterCondition() {
+    resynchroniserCompteurs();
+    if (etat.filtres.groupes.length === 0) {
+        etat.compteurGroupe += 1;
+        etat.filtres.groupes.push({
+            id: etat.compteurGroupe, operateur: 'et', lien: 'et', conditions: []
+        });
+    }
+    var dernierGroupe = etat.filtres.groupes[etat.filtres.groupes.length - 1];
+    etat.compteurCondition += 1;
+    dernierGroupe.conditions.push({ id: etat.compteurCondition, colId: '', operateur: 'contient', valeur: '' });
+    afficherFiltres();
+}
+function ajouterGroupe() {
+    resynchroniserCompteurs();
+    etat.compteurGroupe += 1;
+    etat.compteurCondition += 1;
+    etat.filtres.groupes.push({
+        id: etat.compteurGroupe, operateur: 'et', lien: 'et',
+        conditions: [{ id: etat.compteurCondition, colId: '', operateur: 'contient', valeur: '' }]
+    });
+    afficherFiltres();
+}
+function supprimerCondition(idGroupe, idCondition) {
+    var groupe = etat.filtres.groupes.find(function (g) { return g.id === idGroupe; });
+    if (!groupe)
+        return;
+    groupe.conditions = groupe.conditions.filter(function (c) { return c.id !== idCondition; });
+    if (groupe.conditions.length === 0) {
+        etat.filtres.groupes = etat.filtres.groupes.filter(function (g) { return g.id !== idGroupe; });
+    }
+    afficherFiltres();
+    rafraichirPreview();
+}
+function supprimerGroupe(idGroupe) {
+    etat.filtres.groupes = etat.filtres.groupes.filter(function (g) { return g.id !== idGroupe; });
+    afficherFiltres();
+    rafraichirPreview();
+}
+function ajouterConditionAuGroupe(idGroupe) {
+    var groupe = etat.filtres.groupes.find(function (g) { return g.id === idGroupe; });
+    if (!groupe)
+        return;
+    resynchroniserCompteurs();
+    etat.compteurCondition += 1;
+    groupe.conditions.push({ id: etat.compteurCondition, colId: '', operateur: 'contient', valeur: '' });
+    afficherFiltres();
+}
+function afficherFiltres() {
+    afficherFiltresPanneau();
+    afficherFiltresTags();
+}
+function afficherFiltresPanneau() {
+    var container = document.getElementById('groupes-container');
+    var msgVide = document.getElementById('aucun-filtre-message');
+    if (!container)
+        return;
+    var enfants = Array.from(container.children);
+    for (var i = 0; i < enfants.length; i++) {
+        if (enfants[i].id !== 'aucun-filtre-message')
+            container.removeChild(enfants[i]);
+    }
+    if (etat.filtres.groupes.length === 0) {
+        if (msgVide)
+            msgVide.style.display = '';
+        return;
+    }
+    if (msgVide)
+        msgVide.style.display = 'none';
+    etat.filtres.groupes.forEach(function (groupe, idx) {
+        if (idx > 0)
+            container.appendChild(construireLiaisonGroupes(groupe));
+        container.appendChild(construireGroupe(groupe, idx));
+    });
+}
+function afficherFiltresTags() {
+    var barre = document.getElementById('filtres-barre');
+    var tagsContainer = document.getElementById('filtres-tags');
+    var infoSpan = document.getElementById('filtres-info');
+    if (!tagsContainer)
+        return;
+    viderElement(tagsContainer);
+    var colonnesMap = {};
+    if (etat.donneesBaseCourante) {
+        for (var ci = 0; ci < etat.donneesBaseCourante.colonnes.length; ci++) {
+            var c = etat.donneesBaseCourante.colonnes[ci];
+            colonnesMap[c.colId] = c;
+        }
+    }
+    var nbConditions = 0;
+    for (var gi = 0; gi < etat.filtres.groupes.length; gi++) {
+        var groupe = etat.filtres.groupes[gi];
+        for (var ci2 = 0; ci2 < groupe.conditions.length; ci2++) {
+            var cond = groupe.conditions[ci2];
+            if (!cond.colId)
+                continue;
+            nbConditions++;
+            var col = colonnesMap[cond.colId];
+            var groupeTag = col ? obtenirGroupeType(col.type) : 'texte';
+            var opTag = (OPERATEURS_PAR_GROUPE[groupeTag] || []).find(function (o) { return o.code === cond.operateur; });
+            var libelle = (col ? col.label : cond.colId) + ' ' + (opTag ? opTag.libelle : cond.operateur);
+            if (groupeTag === 'date' && cond.operateur === 'entre') {
+                libelle = (col ? col.label : cond.colId) + ' ' + libellePlageDates(cond.valeur, cond.valeur2);
+            }
+            else if (cond.valeur) {
+                libelle += ' ' + (groupeTag === 'date' ? dateIsoLisible(cond.valeur) : cond.valeur);
+            }
+            var tag = el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--blue-cumulus csnc-filtre-tag' });
+            tag.appendChild(document.createTextNode(libelle));
+            var btnSuppr = el('button', {
+                type: 'button', class: 'csnc-filtre-tag-suppr',
+                title: 'Retirer ce filtre', 'aria-label': 'Retirer ce filtre', text: '×',
+                'data-groupe-id': String(groupe.id), 'data-cond-id': String(cond.id)
+            });
+            btnSuppr.addEventListener('click', (function (gId, cId) {
+                return function () { supprimerCondition(gId, cId); };
+            })(groupe.id, cond.id));
+            tag.appendChild(btnSuppr);
+            tagsContainer.appendChild(tag);
+        }
+    }
+    if (barre) {
+        if (nbConditions > 0)
+            barre.classList.add('actif');
+        else
+            barre.classList.remove('actif');
+    }
+    if (infoSpan && etat.donneesBaseCourante) {
+        var nbFiltrees = compterLignesFiltrees();
+        if (nbConditions > 0) {
+            infoSpan.textContent = nbFiltrees + ' ligne' + (nbFiltrees > 1 ? 's' : '') + ' après filtrage';
+        }
+        else {
+            infoSpan.textContent = '';
+        }
+    }
+}
+function compterLignesFiltrees() {
+    if (!etat.donneesBaseCourante)
+        return 0;
+    var colonnesMap = {};
+    for (var i = 0; i < etat.donneesBaseCourante.colonnes.length; i++) {
+        var c = etat.donneesBaseCourante.colonnes[i];
+        colonnesMap[c.colId] = c;
+    }
+    var count = 0;
+    for (var li = 0; li < etat.donneesBaseCourante.lignes.length; li++) {
+        if (ligneCorrespondAuxFiltres(etat.donneesBaseCourante.lignes[li], etat.filtres, colonnesMap))
+            count++;
+    }
+    return count;
+}
+function construireLiaisonGroupes(groupe) {
+    var wrapper = el('div', { class: 'csnc-liaison-groupes' });
+    var select = el('select', {
+        class: 'fr-select csnc-groupe-mini-select', autocomplete: 'off',
+        'aria-label': 'Opérateur de liaison avec le groupe précédent'
+    });
+    select.addEventListener('change', function () {
+        groupe.lien = select.value;
+        afficherFiltres();
+        rafraichirPreview();
+    });
+    select.appendChild(el('option', { value: 'et', text: 'ET' }));
+    select.appendChild(el('option', { value: 'ou', text: 'OU' }));
+    select.value = groupe.lien || 'et';
+    wrapper.appendChild(select);
+    return wrapper;
+}
+function construireGroupe(groupe, idxGroupe) {
+    var div = el('div', { class: 'csnc-groupe' });
+    var entete = el('div', { class: 'csnc-groupe-entete' });
+    entete.appendChild(el('span', { class: 'csnc-groupe-titre', text: 'Groupe ' + (idxGroupe + 1) }));
+    if (groupe.conditions.length >= 2) {
+        entete.appendChild(document.createTextNode(' - conditions reliées par '));
+        var selOp = el('select', { class: 'fr-select csnc-groupe-mini-select', autocomplete: 'off' });
+        selOp.addEventListener('change', function () { groupe.operateur = selOp.value; rafraichirPreview(); });
+        selOp.appendChild(el('option', { value: 'et', text: 'ET (toutes)' }));
+        selOp.appendChild(el('option', { value: 'ou', text: 'OU (au moins une)' }));
+        selOp.value = groupe.operateur;
+        entete.appendChild(selOp);
+    }
+    if (etat.filtres.groupes.length > 1) {
+        var btnSup = el('button', {
+            type: 'button', class: 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-close-line',
+            title: 'Supprimer ce groupe', 'aria-label': 'Supprimer ce groupe', style: { marginLeft: 'auto' }
+        });
+        btnSup.addEventListener('click', function () { supprimerGroupe(groupe.id); });
+        entete.appendChild(btnSup);
+    }
+    div.appendChild(entete);
+    for (var ci = 0; ci < groupe.conditions.length; ci++) {
+        div.appendChild(construireConditionLigne(groupe, groupe.conditions[ci]));
+    }
+    var btnAjout = el('button', {
+        type: 'button', class: 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-add-line fr-btn--icon-left',
+        text: 'Condition dans ce groupe'
+    });
+    btnAjout.addEventListener('click', function () { ajouterConditionAuGroupe(groupe.id); });
+    div.appendChild(btnAjout);
+    return div;
+}
+function construireConditionLigne(groupe, cond) {
+    var ligne = el('div', { class: 'csnc-condition-ligne' });
+    var colonnes = etat.donneesBaseCourante ? etat.donneesBaseCourante.colonnes : [];
+    var lignes = etat.donneesBaseCourante ? etat.donneesBaseCourante.lignes : [];
+    var grpCol = el('div', { class: 'fr-select-group' });
+    grpCol.appendChild(el('label', { class: 'fr-label', for: 'cond-col-' + cond.id, text: 'Champ' }));
+    var selCol = el('select', { class: 'fr-select', id: 'cond-col-' + cond.id, autocomplete: 'off' });
+    selCol.appendChild(el('option', { value: '', text: '- Choisir -' }));
+    for (var i = 0; i < colonnes.length; i++) {
+        var opt = el('option', { value: colonnes[i].colId, text: colonnes[i].label });
+        if (colonnes[i].colId === cond.colId)
+            opt.selected = true;
+        selCol.appendChild(opt);
+    }
+    grpCol.appendChild(selCol);
+    var grpOp = el('div', { class: 'fr-select-group' });
+    grpOp.appendChild(el('label', { class: 'fr-label', for: 'cond-op-' + cond.id, text: 'Condition' }));
+    var selOp = el('select', { class: 'fr-select', id: 'cond-op-' + cond.id, autocomplete: 'off' });
+    grpOp.appendChild(selOp);
+    var grpVal = el('div', { class: 'fr-input-group' });
+    var labelVal = el('label', { class: 'fr-label', text: 'Valeur' });
+    grpVal.appendChild(labelVal);
+    var conteneurVal = el('div');
+    grpVal.appendChild(conteneurVal);
+    var btnSup = el('button', {
+        type: 'button', class: 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-close-line',
+        title: 'Supprimer cette condition', 'aria-label': 'Supprimer cette condition', text: ''
+    });
+    btnSup.addEventListener('click', function () { supprimerCondition(groupe.id, cond.id); });
+    var construireOperateurs = function (groupeType) {
+        viderElement(selOp);
+        var liste = OPERATEURS_PAR_GROUPE[groupeType] || OPERATEURS_PAR_GROUPE.texte;
+        for (var oi = 0; oi < liste.length; oi++) {
+            selOp.appendChild(el('option', { value: liste[oi].code, text: liste[oi].libelle }));
+        }
+        var trouve = liste.find(function (o) { return o.code === cond.operateur; });
+        if (trouve)
+            selOp.value = cond.operateur;
+        else {
+            cond.operateur = liste[0].code;
+            selOp.value = cond.operateur;
+        }
+    };
+    var construireChampValeur = function () {
+        viderElement(conteneurVal);
+        var col = colonnes.find(function (c) { return c.colId === cond.colId; });
+        if (!col) {
+            labelVal.setAttribute('for', 'cond-val-' + cond.id);
+            conteneurVal.appendChild(el('input', { class: 'fr-input', type: 'text', id: 'cond-val-' + cond.id, disabled: true, autocomplete: 'off' }));
+            return;
+        }
+        var groupeT = obtenirGroupeType(col.type);
+        var opObj = (OPERATEURS_PAR_GROUPE[groupeT] || []).find(function (o) { return o.code === cond.operateur; });
+        var necessite = opObj ? opObj.necessiteValeur : false;
+        if (!necessite) {
+            labelVal.textContent = 'Valeur';
+            labelVal.removeAttribute('for');
+            conteneurVal.appendChild(el('span', { class: 'fr-hint-text', text: 'Aucune valeur à saisir' }));
+            cond.valeur = '';
+            return;
+        }
+        labelVal.textContent = 'Valeur';
+        if (groupeT === 'date' && cond.operateur === 'entre') {
+            labelVal.textContent = 'Période';
+            labelVal.removeAttribute('for');
+            var plage = el('div', { class: 'csnc-plage-dates' });
+            [['valeur', 'Du', '-du'], ['valeur2', 'Au', '-au']].forEach(function (def) {
+                var g = el('div', { class: 'fr-input-group' });
+                g.appendChild(el('label', { class: 'fr-label', for: 'cond-val-' + cond.id + def[2], text: def[1] }));
+                var inp = el('input', { class: 'fr-input', type: 'date', id: 'cond-val-' + cond.id + def[2], value: cond[def[0]] || '', autocomplete: 'off' });
+                inp.addEventListener('change', function () { cond[def[0]] = inp.value; rafraichirPreview(); });
+                g.appendChild(inp);
+                plage.appendChild(g);
+            });
+            conteneurVal.appendChild(plage);
+            return;
+        }
+        labelVal.setAttribute('for', 'cond-val-' + cond.id);
+        if (groupeT === 'choix' || groupeT === 'choix_liste') {
+            var valeurs = obtenirValeursColonne(col, lignes);
+            var selV = el('select', { class: 'fr-select', id: 'cond-val-' + cond.id, autocomplete: 'off' });
+            selV.appendChild(el('option', { value: '', text: '- Choisir -' }));
+            for (var vi = 0; vi < valeurs.length; vi++) {
+                var optV = el('option', { value: valeurs[vi], text: valeurs[vi] });
+                if (valeurs[vi] === cond.valeur)
+                    optV.selected = true;
+                selV.appendChild(optV);
+            }
+            selV.addEventListener('change', function () { cond.valeur = selV.value; rafraichirPreview(); });
+            conteneurVal.appendChild(selV);
+            return;
+        }
+        var inputType = 'text';
+        if (groupeT === 'date')
+            inputType = 'date';
+        if (groupeT === 'nombre')
+            inputType = 'number';
+        var input = el('input', {
+            class: 'fr-input', type: inputType, id: 'cond-val-' + cond.id,
+            value: cond.valeur || '', autocomplete: 'off'
+        });
+        if (groupeT === 'nombre')
+            input.setAttribute('step', 'any');
+        if (groupeT === 'texte') {
+            var valeursT = obtenirValeursColonne(col, lignes);
+            if (valeursT.length > 0) {
+                var datalistId = 'dl-cond-' + cond.id;
+                input.setAttribute('list', datalistId);
+                var dl = el('datalist', { id: datalistId });
+                for (var dli = 0; dli < valeursT.length; dli++)
+                    dl.appendChild(el('option', { value: valeursT[dli] }));
+                conteneurVal.appendChild(dl);
+            }
+        }
+        input.addEventListener('input', function () { cond.valeur = input.value; rafraichirPreview(); });
+        conteneurVal.appendChild(input);
+    };
+    var groupeT2 = 'texte';
+    if (cond.colId) {
+        var colInit = colonnes.find(function (c) { return c.colId === cond.colId; });
+        if (colInit)
+            groupeT2 = obtenirGroupeType(colInit.type);
+    }
+    construireOperateurs(groupeT2);
+    construireChampValeur();
+    selCol.addEventListener('change', function () {
+        cond.colId = selCol.value;
+        var colC = colonnes.find(function (c) { return c.colId === cond.colId; });
+        cond.valeur = '';
+        cond.valeur2 = '';
+        construireOperateurs(colC ? obtenirGroupeType(colC.type) : 'texte');
+        construireChampValeur();
+        rafraichirPreview();
+    });
+    selOp.addEventListener('change', function () {
+        cond.operateur = selOp.value;
+        if (cond.operateur !== 'entre')
+            cond.valeur2 = '';
+        construireChampValeur();
+        rafraichirPreview();
+    });
+    ligne.appendChild(grpCol);
+    ligne.appendChild(grpOp);
+    ligne.appendChild(grpVal);
+    ligne.appendChild(btnSup);
+    return ligne;
+}
+function obtenirValeursColonne(col, lignes) {
+    if (col && Array.isArray(col.choix) && col.choix.length > 0)
+        return col.choix.slice();
+    if (!Array.isArray(lignes) || !col)
+        return [];
+    var set = new Set();
+    for (var i = 0; i < lignes.length; i++) {
+        var v = lignes[i][col.colId];
+        if (v === null || v === undefined || v === '')
+            continue;
+        if (Array.isArray(v)) {
+            var debut = (v.length > 0 && v[0] === 'L') ? 1 : 0;
+            for (var j = debut; j < v.length; j++) {
+                var s = String(v[j]);
+                if (s)
+                    set.add(s);
+                if (set.size >= MAX_VALEURS_DETECTEES)
+                    break;
+            }
+        }
+        else {
+            var txt = valeurGristEnTexte(v, col.type, col);
+            if (txt)
+                set.add(txt);
+        }
+        if (set.size >= MAX_VALEURS_DETECTEES)
+            break;
+    }
+    return Array.from(set).sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); });
+}
+function dateHeureDansFuseau(sec, type) {
+    var d = new Date(sec * 1000);
+    var tz = String(type || '').indexOf('DateTime:') === 0 ? String(type).slice(9) : '';
+    if (tz) {
+        try {
+            var p = {};
+            new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+                .formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
+            return p.year + '-' + p.month + '-' + p.day + ' ' + p.hour + ':' + p.minute + ':' + p.second;
+        }
+        catch (e) {
+            logSecurite('INFO', 'Fuseau de colonne inconnu : ' + tz, e);
+        }
+    }
+    return d.toISOString().substring(0, 19).replace('T', ' ');
+}
+function comparerDateGrist(valGrist, valISO, type) {
+    if (valGrist === 0 || valGrist === false)
+        return null;
+    var ts = parseFloat(valGrist);
+    if (isNaN(ts) || !isFinite(ts))
+        return null;
+    var tsFiltre = Date.parse(valISO);
+    if (isNaN(tsFiltre))
+        return null;
+    if (String(type || '').indexOf('DateTime') === 0) {
+        var jour = dateHeureDansFuseau(ts, type).substring(0, 10);
+        var jourFiltre = String(valISO).substring(0, 10);
+        return jour < jourFiltre ? -1 : (jour > jourFiltre ? 1 : 0);
+    }
+    var ms = ts * 1000;
+    if (ms < tsFiltre)
+        return -1;
+    if (ms > tsFiltre + 86399999)
+        return 1;
+    return 0;
+}
+var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+function dateIsoLisible(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m)
+        return String(iso || '');
+    return m[3] + ' ' + MOIS_COURTS[parseInt(m[2], 10) - 1] + ' ' + m[1];
+}
+function libellePlageDates(du, au) {
+    if (du && au)
+        return 'du ' + dateIsoLisible(du) + ' au ' + dateIsoLisible(au);
+    if (du)
+        return 'à partir du ' + dateIsoLisible(du);
+    if (au)
+        return 'jusqu’au ' + dateIsoLisible(au);
+    return 'entre deux dates (bornes à saisir)';
+}
+function listeContientValeur(valeurListe, cible) {
+    if (!Array.isArray(valeurListe)) {
+        if (valeurListe === null || valeurListe === undefined || valeurListe === '')
+            return false;
+        return String(valeurListe).toLowerCase() === String(cible).toLowerCase();
+    }
+    var cibleTxt = String(cible).toLowerCase();
+    var debut = (valeurListe.length > 0 && valeurListe[0] === 'L') ? 1 : 0;
+    for (var i = debut; i < valeurListe.length; i++) {
+        if (String(valeurListe[i]).toLowerCase() === cibleTxt)
+            return true;
+    }
+    return false;
+}
+function evaluerCondition(cond, ligne, colonnesMap) {
+    if (!cond.colId || !cond.operateur)
+        return true;
+    var colInfo = colonnesMap[cond.colId];
+    var type = colInfo ? colInfo.type : 'Text';
+    var groupe = obtenirGroupeType(type);
+    var valBrute = ligne[cond.colId];
+    var estVide = (valBrute === null || valBrute === undefined || valBrute === ''
+        || (Array.isArray(valBrute) && (valBrute.length === 0
+            || (valBrute.length === 1 && valBrute[0] === 'L'))));
+    switch (cond.operateur) {
+        case 'vide': return estVide;
+        case 'non_vide': return !estVide;
+        case 'vrai': return valBrute === true;
+        case 'faux': return valBrute === false || estVide;
+        case 'avant': {
+            var cmp = comparerDateGrist(valBrute, cond.valeur, type);
+            return cmp !== null && cmp < 0;
+        }
+        case 'apres': {
+            var cmp2 = comparerDateGrist(valBrute, cond.valeur, type);
+            return cmp2 !== null && cmp2 > 0;
+        }
+        case 'entre': {
+            var du = cond.valeur || '', au = cond.valeur2 || '';
+            if (!du && !au)
+                return true;
+            if (du) {
+                var cDu = comparerDateGrist(valBrute, du, type);
+                if (cDu === null || cDu < 0)
+                    return false;
+            }
+            if (au) {
+                var cAu = comparerDateGrist(valBrute, au, type);
+                if (cAu === null || cAu > 0)
+                    return false;
+            }
+            return true;
+        }
+        case 'contient':
+            if (groupe === 'choix_liste')
+                return listeContientValeur(valBrute, cond.valeur);
+            return valeurGristEnTexte(valBrute, type, colInfo).toLowerCase().indexOf(String(cond.valeur || '').toLowerCase()) !== -1;
+        case 'ne_contient_pas':
+            if (groupe === 'choix_liste')
+                return !listeContientValeur(valBrute, cond.valeur);
+            return valeurGristEnTexte(valBrute, type, colInfo).toLowerCase().indexOf(String(cond.valeur || '').toLowerCase()) === -1;
+        case 'egal':
+            if (groupe === 'date') {
+                var cmpE = comparerDateGrist(valBrute, cond.valeur, type);
+                return cmpE === 0;
+            }
+            if (groupe === 'nombre') {
+                var aE = parseFloat(valBrute);
+                var bE = parseFloat(cond.valeur);
+                return !isNaN(aE) && !isNaN(bE) && aE === bE;
+            }
+            return valeurGristEnTexte(valBrute, type, colInfo).toLowerCase() === String(cond.valeur || '').toLowerCase();
+        case 'different':
+            if (groupe === 'date') {
+                var cmpD = comparerDateGrist(valBrute, cond.valeur, type);
+                return cmpD !== 0;
+            }
+            if (groupe === 'nombre') {
+                var aD = parseFloat(valBrute);
+                var bD = parseFloat(cond.valeur);
+                return isNaN(aD) || isNaN(bD) || aD !== bD;
+            }
+            return valeurGristEnTexte(valBrute, type, colInfo).toLowerCase() !== String(cond.valeur || '').toLowerCase();
+        case 'superieur': {
+            var aS = parseFloat(valBrute);
+            var bS = parseFloat(cond.valeur);
+            return !isNaN(aS) && !isNaN(bS) && aS > bS;
+        }
+        case 'superieur_egal': {
+            var aSE = parseFloat(valBrute);
+            var bSE = parseFloat(cond.valeur);
+            return !isNaN(aSE) && !isNaN(bSE) && aSE >= bSE;
+        }
+        case 'inferieur': {
+            var aI = parseFloat(valBrute);
+            var bI = parseFloat(cond.valeur);
+            return !isNaN(aI) && !isNaN(bI) && aI < bI;
+        }
+        case 'inferieur_egal': {
+            var aIE = parseFloat(valBrute);
+            var bIE = parseFloat(cond.valeur);
+            return !isNaN(aIE) && !isNaN(bIE) && aIE <= bIE;
+        }
+    }
+    return true;
+}
+function evaluerGroupe(groupe, ligne, colonnesMap) {
+    if (!groupe.conditions || groupe.conditions.length === 0)
+        return true;
+    if (groupe.operateur === 'ou') {
+        for (var i = 0; i < groupe.conditions.length; i++)
+            if (evaluerCondition(groupe.conditions[i], ligne, colonnesMap))
+                return true;
+        return false;
+    }
+    for (var j = 0; j < groupe.conditions.length; j++)
+        if (!evaluerCondition(groupe.conditions[j], ligne, colonnesMap))
+            return false;
+    return true;
+}
+function ligneCorrespondAuxFiltres(ligne, filtres, colonnesMap) {
+    if (!filtres || !filtres.groupes || filtres.groupes.length === 0)
+        return true;
+    var groupesValides = filtres.groupes.filter(function (g) { return g.conditions && g.conditions.length > 0; });
+    if (groupesValides.length === 0)
+        return true;
+    var blocCourantVrai = evaluerGroupe(groupesValides[0], ligne, colonnesMap);
+    for (var i = 1; i < groupesValides.length; i++) {
+        var groupe = groupesValides[i];
+        var resGroupe = evaluerGroupe(groupe, ligne, colonnesMap);
+        if (groupe.lien === 'ou') {
+            if (blocCourantVrai)
+                return true;
+            blocCourantVrai = resGroupe;
+        }
+        else {
+            blocCourantVrai = blocCourantVrai && resGroupe;
+        }
+    }
+    return blocCourantVrai;
+}
+function rafraichirPreview() {
+    var grille = document.getElementById('preview-grille');
+    var msgVide = document.getElementById('preview-vide-message');
+    var mainTitre = document.getElementById('main-titre');
+    if (!etat.donneesBaseCourante || !etat.baseSelectionnee) {
+        if (grille) {
+            viderElement(grille);
+            if (msgVide)
+                grille.appendChild(msgVide);
+            if (msgVide)
+                msgVide.style.display = '';
+        }
+        if (mainTitre)
+            mainTitre.textContent = 'Sélectionnez une table';
+        return;
+    }
+    sauverBrouillon();
+    if (mainTitre)
+        mainTitre.textContent = 'Aperçu : ' + etat.baseSelectionnee;
+    afficherFiltresTags();
+    if (etat.champsSelectionnes.length === 0) {
+        if (grille) {
+            viderElement(grille);
+            grille.appendChild(el('p', { class: 'csnc-preview-vide', text: 'Cochez au moins une colonne dans la barre latérale pour afficher la prévisualisation.' }));
+        }
+        return;
+    }
+    construireFeuilleExcel();
+}
+function construireFeuilleExcel() {
+    var grille = document.getElementById('preview-grille');
+    if (!grille || !etat.donneesBaseCourante)
+        return;
+    viderElement(grille);
+    var colonnesMeta = etat.donneesBaseCourante.colonnes;
+    var colonnesAffichees = etat.champsSelectionnes.map(function (colId) {
+        return colonnesMeta.find(function (c) { return c.colId === colId; });
+    }).filter(Boolean);
+    if (colonnesAffichees.length === 0)
+        return;
+    var colonnesMap = {};
+    for (var mi = 0; mi < colonnesMeta.length; mi++) {
+        colonnesMap[colonnesMeta[mi].colId] = colonnesMeta[mi];
+    }
+    var lignesFiltrees = [];
+    for (var li = 0; li < etat.donneesBaseCourante.lignes.length; li++) {
+        if (ligneCorrespondAuxFiltres(etat.donneesBaseCourante.lignes[li], etat.filtres, colonnesMap)) {
+            lignesFiltrees.push(etat.donneesBaseCourante.lignes[li]);
+        }
+    }
+    etat.donneesPourExport = { colonnes: colonnesAffichees, lignes: lignesFiltrees };
+    var lignesPreview = lignesFiltrees.slice(0, NB_LIGNES_PREVISUALISATION);
+    var table = el('table', { class: 'csnc-feuille', role: 'grid', 'aria-label': 'Prévisualisation de l\'export' });
+    var thead = el('thead');
+    var trHead = el('tr');
+    trHead.appendChild(el('th', { class: 'csnc-coin', scope: 'col' }));
+    for (var hi = 0; hi < colonnesAffichees.length; hi++) {
+        var th = el('th', { scope: 'col', draggable: 'true', 'data-col-idx': String(hi) });
+        var cellule = el('div', { class: 'csnc-en-tete-cellule' });
+        var lettre = el('span', { class: 'csnc-en-tete-lettre' });
+        lettre.textContent = lettreColonne(hi);
+        cellule.appendChild(lettre);
+        cellule.appendChild(document.createTextNode(' → '));
+        var nomCol = el('span', { class: 'csnc-en-tete-nom' });
+        nomCol.textContent = colonnesAffichees[hi].label;
+        cellule.appendChild(nomCol);
+        th.title = colonnesAffichees[hi].label;
+        th.appendChild(cellule);
+        th.addEventListener('dragstart', (function (idx) {
+            return function (ev) {
+                etat.itemGlisse = { type: 'colonne', colId: etat.champsSelectionnes[idx] };
+                ev.dataTransfer.effectAllowed = 'move';
+                ev.target.classList.add('csnc-en-glisse');
+            };
+        })(hi));
+        th.addEventListener('dragend', function (ev) {
+            ev.target.classList.remove('csnc-en-glisse');
+            var all = table.querySelectorAll('.csnc-survol-glisse');
+            for (var ri = 0; ri < all.length; ri++)
+                all[ri].classList.remove('csnc-survol-glisse');
+        });
+        th.addEventListener('dragover', function (ev) {
+            ev.preventDefault();
+            ev.dataTransfer.dropEffect = 'move';
+            ev.target.closest('th').classList.add('csnc-survol-glisse');
+        });
+        th.addEventListener('dragleave', function (ev) {
+            ev.target.closest('th').classList.remove('csnc-survol-glisse');
+        });
+        th.addEventListener('drop', (function (idx) {
+            return function (ev) {
+                ev.preventDefault();
+                ev.target.closest('th').classList.remove('csnc-survol-glisse');
+                if (!etat.itemGlisse || etat.itemGlisse.type !== 'colonne')
+                    return;
+                var fromId = etat.itemGlisse.colId;
+                var toIdx = idx;
+                var fromIdx = etat.champsSelectionnes.indexOf(fromId);
+                if (fromIdx === -1 || fromIdx === toIdx)
+                    return;
+                etat.champsSelectionnes.splice(fromIdx, 1);
+                etat.champsSelectionnes.splice(toIdx, 0, fromId);
+                afficherSidebar();
+                rafraichirPreview();
+            };
+        })(hi));
+        trHead.appendChild(th);
+    }
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    for (var ri = 0; ri < lignesPreview.length; ri++) {
+        var tr = el('tr');
+        tr.appendChild(el('td', { class: 'csnc-num-ligne', text: String(ri + 1) }));
+        for (var ci = 0; ci < colonnesAffichees.length; ci++) {
+            var col = colonnesAffichees[ci];
+            var valeur = lignesPreview[ri][col.colId];
+            var texte = valeurGristEnTexte(valeur, col.type, col);
+            if (texte === '') {
+                tr.appendChild(el('td', { class: 'csnc-cellule-vide', text: '-' }));
+            }
+            else {
+                var td = el('td');
+                td.textContent = texte;
+                tr.appendChild(td);
+            }
+        }
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    grille.appendChild(table);
+    var cellules = tbody.querySelectorAll('td');
+    for (var ic = 0; ic < cellules.length; ic++) {
+        var c = cellules[ic];
+        if (c.scrollWidth > c.clientWidth + 1)
+            c.title = c.textContent;
+    }
+    if (lignesFiltrees.length > NB_LIGNES_PREVISUALISATION) {
+        grille.appendChild(el('p', {
+            class: 'csnc-preview-vide',
+            text: 'Prévisualisation limitée aux ' + NB_LIGNES_PREVISUALISATION + ' premières lignes sur ' + lignesFiltrees.length + '. L\'export contiendra toutes les lignes.'
+        }));
+    }
+}
+function genererNomFichier(extension) {
+    var nomBase = nettoyerNomFichier(etat.options.nomFichier || 'export');
+    return nomBase + (extension || '.xlsx');
+}
+function construireAoA(colonnes, lignes) {
+    var LIMITE_CELLULE = 32767;
+    var aoa = [];
+    var headers = colonnes.map(function (c) { return c.label; });
+    aoa.push(headers);
+    for (var i = 0; i < lignes.length; i++) {
+        var row = [];
+        for (var j = 0; j < colonnes.length; j++) {
+            var val = lignes[i][colonnes[j].colId];
+            if (val === null || val === undefined) {
+                row.push('');
+                continue;
+            }
+            var type = colonnes[j].type;
+            if (type === 'Date' || (type && type.indexOf('DateTime') === 0)) {
+                var ts = parseFloat(val);
+                if (!isNaN(ts) && isFinite(ts)) {
+                    var dt = new Date(ts * 1000);
+                    if (type === 'Date') {
+                        row.push(dt.toISOString().substring(0, 10));
+                    }
+                    else {
+                        row.push(dateHeureDansFuseau(ts, type));
+                    }
+                    continue;
+                }
+            }
+            if (estColonnePieceJointe(type)) {
+                row.push(nomsDesPiecesJointes(val));
+                continue;
+            }
+            if (estColonneReference(type)) {
+                row.push(libellesDeReference(val, colonnes[j]));
+                continue;
+            }
+            if (Array.isArray(val)) {
+                if (val.length > 0 && val[0] === 'E') {
+                    row.push('');
+                    continue;
+                }
+                var joined = val.length > 0 && val[0] === 'L' ? val.slice(1).join(', ') : val.join(', ');
+                if (joined.length > LIMITE_CELLULE)
+                    joined = joined.substring(0, LIMITE_CELLULE - 1) + '…';
+                row.push(joined);
+                continue;
+            }
+            if (typeof val === 'boolean') {
+                row.push(val ? 'Oui' : 'Non');
+                continue;
+            }
+            if (typeof val === 'string' && val.length > LIMITE_CELLULE) {
+                row.push(val.substring(0, LIMITE_CELLULE - 1) + '…');
+                continue;
+            }
+            row.push(val);
+        }
+        aoa.push(row);
+    }
+    return aoa;
+}
+function ajouterFeuilleAuWorkbook(wb, colonnesMeta, lignes, champsSelectionnes, filtres, nomTable) {
+    var colonnesAffichees = champsSelectionnes.map(function (colId) {
+        return colonnesMeta.find(function (c) { return c.colId === colId; });
+    }).filter(Boolean);
+    if (colonnesAffichees.length === 0)
+        return 0;
+    var colonnesMap = {};
+    for (var mi = 0; mi < colonnesMeta.length; mi++)
+        colonnesMap[colonnesMeta[mi].colId] = colonnesMeta[mi];
+    var lignesFiltrees = lignes.filter(function (l) { return ligneCorrespondAuxFiltres(l, filtres, colonnesMap); });
+    var aoa = construireAoA(colonnesAffichees, lignesFiltrees);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wscols = [];
+    for (var ci = 0; ci < colonnesAffichees.length; ci++) {
+        var maxLen = colonnesAffichees[ci].label.length;
+        for (var ri = 0; ri < Math.min(aoa.length, 50); ri++) {
+            var cellLen = String(aoa[ri][ci] || '').length;
+            if (cellLen > maxLen)
+                maxLen = cellLen;
+        }
+        wscols.push({ wch: Math.min(maxLen + 2, 50) });
+    }
+    ws['!cols'] = wscols;
+    var nomFeuille = nettoyerNomFeuille(nomTable), rang = 1;
+    var existe = function (n) { return wb.SheetNames.some(function (x) { return x.toLowerCase() === n.toLowerCase(); }); };
+    while (existe(nomFeuille)) {
+        rang += 1;
+        nomFeuille = nettoyerNomFeuille(nomTable).substring(0, 31 - String(rang).length - 1) + '~' + rang;
+    }
+    XLSX.utils.book_append_sheet(wb, ws, nomFeuille);
+    return lignesFiltrees.length;
+}
+async function telechargerExcel() {
+    var tablesToExport = etat.tablesAExporter.filter(function (tid) {
+        var p = etat.parametragesParBase[tid];
+        return p && p.champsSelectionnes && p.champsSelectionnes.length > 0;
+    });
+    if (tablesToExport.length === 0) {
+        afficherErreur('Aucune table cochée avec des colonnes sélectionnées.');
+        return;
+    }
+    afficherLoader('Chargement des données…');
+    try {
+        await new Promise(function (r) { setTimeout(r, 50); });
+        await chargerLibellesReferences(tablesToExport);
+        var toutesLesDonnees = [];
+        for (var ti = 0; ti < tablesToExport.length; ti++) {
+            var tid = tablesToExport[ti];
+            var param = etat.parametragesParBase[tid];
+            var data = await chargerDonneesBase(tid);
+            toutesLesDonnees.push({ tid: tid, param: param, data: data });
+        }
+        var tropVolumineuses = [];
+        for (var vi = 0; vi < toutesLesDonnees.length; vi++) {
+            var dv = toutesLesDonnees[vi];
+            if (dv.data && dv.data.lignes && dv.data.lignes.length > LIMITE_LIGNES_EXPORT) {
+                tropVolumineuses.push(dv.tid + ' (' + dv.data.lignes.length.toLocaleString('fr-FR') + ' lignes)');
+            }
+        }
+        if (tropVolumineuses.length > 0) {
+            afficherErreur('Export Excel impossible : ' + tropVolumineuses.join(', ')
+                + '. Une feuille ne peut pas dépasser ' + LIMITE_LIGNES_EXPORT.toLocaleString('fr-FR')
+                + ' lignes. Utilisez le format CSV, ou filtrez vos données.');
+            logSecurite('INFO', 'Export Excel refuse, volume : ' + tropVolumineuses.join(', '));
+            return;
+        }
+        var wb = XLSX.utils.book_new();
+        var totalLignes = 0;
+        for (var di = 0; di < toutesLesDonnees.length; di++) {
+            var d = toutesLesDonnees[di];
+            var nbL = ajouterFeuilleAuWorkbook(wb, d.data.colonnes, d.data.lignes, d.param.champsSelectionnes, d.param.filtres, d.tid);
+            totalLignes += nbL;
+        }
+        var nomFichier = genererNomFichier('.xlsx');
+        XLSX.writeFile(wb, nomFichier);
+        logSecurite('INFO', 'Export Excel multi-feuilles : ' + tablesToExport.length + ' table(s), ' + totalLignes + ' lignes -> ' + nomFichier);
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur export Excel :', error);
+        afficherErreur('Erreur lors de la génération du fichier Excel.');
+    }
+    finally {
+        masquerLoader();
+    }
+}
+function neutraliserFormule(valeur) {
+    if (typeof valeur !== 'string') {
+        return valeur;
+    }
+    if (/^[-+]?\d+([.,]\d+)?$/.test(valeur)) {
+        return valeur;
+    }
+    return /^[=+\-@\t\r]/.test(valeur) ? "'" + valeur : valeur;
+}
+async function telechargerCSV() {
+    if (!etat.donneesPourExport || !etat.donneesPourExport.colonnes || etat.donneesPourExport.colonnes.length === 0) {
+        afficherErreur('Aucune donnée à exporter. Sélectionnez au moins une colonne.');
+        return;
+    }
+    afficherLoader('Génération du fichier CSV…');
+    try {
+        await new Promise(function (r) { setTimeout(r, 50); });
+        await chargerLibellesReferences([etat.baseSelectionnee]);
+        var aoa = construireAoA(etat.donneesPourExport.colonnes, etat.donneesPourExport.lignes);
+        var csvLines = [];
+        var sep = ';';
+        for (var i = 0; i < aoa.length; i++) {
+            var line = aoa[i].map(function (cell) {
+                var s = String(neutraliserFormule(cell === null || cell === undefined ? '' : cell));
+                if (s.indexOf(sep) !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+                    return '"' + s.replace(/"/g, '""') + '"';
+                }
+                return s;
+            }).join(sep);
+            csvLines.push(line);
+        }
+        var csvContent = '﻿' + csvLines.join('\r\n');
+        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = genererNomFichier('.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logSecurite('INFO', 'Export CSV : ' + etat.donneesPourExport.lignes.length + ' lignes');
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur export CSV :', error);
+        afficherErreur('Erreur lors de la génération du fichier CSV.');
+    }
+    finally {
+        masquerLoader();
+    }
+}
+function afficherBarreTables() {
+    var barre = document.getElementById('barre-tables');
+    if (!barre)
+        return;
+    viderElement(barre);
+    if (etat.basesDisponibles.length === 0) {
+        barre.appendChild(el('span', { style: { padding: '.5rem', color: 'var(--text-mention-grey)', fontStyle: 'italic', fontSize: '.875rem' }, text: 'Aucune table disponible' }));
+        return;
+    }
+    for (var i = 0; i < etat.basesDisponibles.length; i++) {
+        var tableId = etat.basesDisponibles[i];
+        var btn = el('button', {
+            type: 'button', class: 'csnc-onglet-table',
+            role: 'tab', 'data-table-id': tableId,
+            'aria-selected': tableId === etat.baseSelectionnee ? 'true' : 'false'
+        });
+        if (tableId === etat.baseSelectionnee)
+            btn.classList.add('csnc-actif');
+        var estIncluse = etat.tablesAExporter.indexOf(tableId) !== -1;
+        if (!estIncluse)
+            btn.classList.add('csnc-onglet-table--ignored');
+        var coche = el('span', {
+            class: 'csnc-onglet-coche' + (estIncluse ? ' csnc-coche-active' : ''),
+            role: 'checkbox', 'aria-checked': estIncluse ? 'true' : 'false',
+            'aria-label': 'Inclure ' + tableId + ' dans l\'export',
+            title: estIncluse ? 'Incluse dans l\'export (cliquer pour exclure)' : 'Exclue de l\'export (cliquer pour inclure)',
+            'data-table-id': tableId
+        });
+        coche.addEventListener('click', (function (tid) {
+            return function (ev) {
+                ev.stopPropagation();
+                basculerTableExport(tid);
+            };
+        })(tableId));
+        btn.appendChild(coche);
+        btn.appendChild(el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon csnc-onglet-etiquette', text: 'TABLE' }));
+        btn.appendChild(document.createTextNode(tableId));
+        btn.addEventListener('click', (function (tid) {
+            return function () { relayer(selectionnerTable(tid), 'Chargement de la table impossible'); };
+        })(tableId));
+        barre.appendChild(btn);
+    }
+    mettreAJourBoutonExport();
+}
+function basculerTableExport(tableId) {
+    var idx = etat.tablesAExporter.indexOf(tableId);
+    if (idx !== -1) {
+        etat.tablesAExporter.splice(idx, 1);
+        afficherBarreTables();
+        sauverBrouillon();
+    }
+    else {
+        etat.tablesAExporter.push(tableId);
+        relayer(selectionnerTable(tableId), 'Chargement de la table impossible');
+    }
+}
+function mettreAJourBoutonExport() {
+    var btn = document.getElementById('btn-exporter');
+    if (!btn)
+        return;
+    var nb = etat.tablesAExporter.length;
+    if (nb <= 1) {
+        btn.textContent = 'Exporter';
+    }
+    else {
+        btn.textContent = 'Exporter (' + nb + ' tables)';
+    }
+}
+function ouvrirModaleExport() {
+    if (etat.baseSelectionnee) {
+        etat.parametragesParBase[etat.baseSelectionnee] = {
+            champsSelectionnes: etat.champsSelectionnes.slice(),
+            champsDisponibles: etat.champsDisponibles.slice(),
+            filtres: JSON.parse(JSON.stringify(etat.filtres)),
+            triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
+        };
+    }
+    var tablesToExport = etat.tablesAExporter.filter(function (tid) {
+        var p = etat.parametragesParBase[tid];
+        return p && p.champsSelectionnes && p.champsSelectionnes.length > 0;
+    });
+    if (tablesToExport.length === 0) {
+        afficherErreur('Aucune table cochée avec des colonnes sélectionnées. Cochez au moins une table et choisissez ses colonnes.');
+        return;
+    }
+    var selFormat = document.getElementById('export-format');
+    if (selFormat)
+        selFormat.value = 'xlsx';
+    var inputNom = document.getElementById('export-nom-fichier');
+    var resume = document.getElementById('export-resume');
+    if (inputNom) {
+        var nomSuggere = 'Export ' + (etat.baseSelectionnee || 'donnees');
+        if (tablesToExport.length > 1) {
+            var autresE = tablesToExport.length - 1;
+            nomSuggere += ' + ' + autresE + (autresE > 1 ? ' tables' : ' table');
+        }
+        var dE = new Date();
+        var padE = function (n) { return n < 10 ? '0' + n : '' + n; };
+        nomSuggere += ' ' + padE(dE.getDate()) + '-' + padE(dE.getMonth() + 1) + '-' + dE.getFullYear() + ' ' + padE(dE.getHours()) + 'h' + padE(dE.getMinutes());
+        inputNom.value = nomSuggere;
+        etat.options.nomFichier = nomSuggere;
+    }
+    if (resume) {
+        var txt = tablesToExport.length + ' table' + (tablesToExport.length > 1 ? 's' : '') + ' : ' + tablesToExport.join(', ');
+        resume.textContent = txt;
+    }
+    var alerteVol = document.getElementById('export-alerte-volume');
+    var alerteVolDetail = document.getElementById('export-alerte-volume-detail');
+    if (alerteVol) {
+        var lignesActive = compterLignesFiltrees();
+        if (lignesActive > SEUIL_AVERTISSEMENT_LIGNES) {
+            alerteVol.style.display = '';
+            if (alerteVolDetail) {
+                alerteVolDetail.textContent = 'La table ' + etat.baseSelectionnee + ' compte ' + lignesActive.toLocaleString('fr-FR')
+                    + ' lignes apres filtrage. La generation peut prendre plusieurs minutes et solliciter fortement votre navigateur.'
+                    + (lignesActive > LIMITE_LIGNES_EXPORT ? ' Au-dela de ' + LIMITE_LIGNES_EXPORT.toLocaleString('fr-FR') + ' lignes, une feuille Excel ne peut pas les contenir : choisissez le format CSV.' : '');
+            }
+            if (lignesActive > LIMITE_LIGNES_EXPORT) {
+                document.getElementById('export-format').value = 'csv';
+            }
+        }
+        else {
+            alerteVol.style.display = 'none';
+        }
+    }
+    var alertePJ = document.getElementById('export-alerte-pj');
+    var alertePJDetail = document.getElementById('export-alerte-pj-detail');
+    if (alertePJ) {
+        var colonnesPJ = [];
+        tablesToExport.forEach(function (nomT) {
+            var paramT = etat.parametragesParBase[nomT];
+            var champs = (nomT === etat.baseSelectionnee) ? etat.champsSelectionnes : ((paramT && paramT.champsSelectionnes) || []);
+            var meta = etat.metadonneesColonnes[nomT] || [];
+            meta.forEach(function (c) {
+                if (estColonnePieceJointe(c.type) && champs.indexOf(c.colId) !== -1) {
+                    var libelle = (tablesToExport.length > 1 ? nomT + ' : ' : '') + (c.label || c.colId);
+                    if (colonnesPJ.indexOf(libelle) === -1)
+                        colonnesPJ.push(libelle);
+                }
+            });
+        });
+        if (colonnesPJ.length > 0) {
+            alertePJ.style.display = '';
+            if (alertePJDetail)
+                alertePJDetail.textContent = colonnesPJ.length > 1 ? 'colonnes : ' + colonnesPJ.join(', ') : 'colonne : ' + colonnesPJ[0];
+        }
+        else {
+            alertePJ.style.display = 'none';
+        }
+    }
+    var alerteDiv = document.getElementById('export-alerte-limite');
+    var alerteDetail = document.getElementById('export-alerte-detail');
+    if (alerteDiv) {
+        var champsLongs = detecterChampsLongsDansDonnees(tablesToExport);
+        if (champsLongs.length > 0) {
+            alerteDiv.style.display = '';
+            if (alerteDetail)
+                alerteDetail.textContent = champsLongs.length > 1 ? 'colonnes : ' + champsLongs.join(', ') : 'colonne : ' + champsLongs[0];
+            document.getElementById('export-format').value = 'csv';
+        }
+        else {
+            alerteDiv.style.display = 'none';
+        }
+    }
+    etat.tablesRetenuesExport = tablesToExport.slice();
+    majAlerteFormatCsv();
+    ouvrirDialogue('wExportOverlay', inputNom ? inputNom.id : 'wExportConfirmer');
+}
+function _paragrapheAlerte(avant, nomFort, apres) {
+    var pEl = el('p', { style: { margin: '0 0 .5rem' } });
+    if (avant)
+        pEl.appendChild(document.createTextNode(avant));
+    if (nomFort)
+        pEl.appendChild(el('strong', { text: nomFort }));
+    if (apres)
+        pEl.appendChild(document.createTextNode(apres));
+    return pEl;
+}
+function majAlerteFormatCsv() {
+    var alerte = document.getElementById('export-alerte-csv');
+    var titre = document.getElementById('export-alerte-csv-titre');
+    var corps = document.getElementById('export-alerte-csv-corps');
+    var selFormat = document.getElementById('export-format');
+    if (!alerte || !titre || !corps || !selFormat)
+        return;
+    var retenues = etat.tablesRetenuesExport || [];
+    var active = etat.baseSelectionnee || '';
+    var horsSelection = Boolean(active) && retenues.indexOf(active) === -1;
+    var plusieurs = retenues.length > 1;
+    if (selFormat.value !== 'csv' || (!horsSelection && !plusieurs)) {
+        alerte.style.display = 'none';
+        return;
+    }
+    viderElement(corps);
+    if (horsSelection) {
+        titre.textContent = "La table exportée n'est pas celle que vous avez cochée";
+        corps.appendChild(_paragrapheAlerte("Un fichier CSV ne contient qu'une seule table, et c'est celle affichée à l'écran qui part, soit ", active, '. ' + (retenues.length > 1
+            ? 'Les tables cochées (' + retenues.join(', ') + ') ne seront pas exportées.'
+            : 'La table cochée (' + retenues.join(', ') + ') ne sera pas exportée.')));
+        corps.appendChild(_paragrapheAlerte('Pour obtenir les tables cochées, choisissez le format Excel : chacune aura sa feuille.', '', ''));
+    }
+    else {
+        titre.textContent = "Un fichier CSV ne contient qu'une seule table";
+        corps.appendChild(_paragrapheAlerte('Seule la table ', active, " sera exportée. Ce format ne permet pas de regrouper plusieurs tables : ouvert dans Excel, un CSV donne toujours une feuille unique."));
+        corps.appendChild(_paragrapheAlerte('Pour obtenir vos ' + retenues.length + ' tables en un seul fichier, choisissez le format Excel : chaque table aura sa feuille.', '', ''));
+    }
+    var dernier = _paragrapheAlerte(horsSelection
+        ? "Pour exporter une table en CSV, ouvrez son onglet avant de relancer l'export : votre paramétrage de chaque table est conservé."
+        : "Pour les obtenir en CSV, exportez-les une par une : votre paramétrage de chaque table est conservé, il suffit de changer d'onglet et de relancer l'export.", '', '');
+    dernier.style.marginBottom = '0';
+    corps.appendChild(dernier);
+    alerte.style.display = '';
+}
+function fermerModaleExport() {
+    fermerDialogue('wExportOverlay');
+}
+function detecterChampsLongsDansDonnees(tablesToExport) {
+    var LIMITE = 32767;
+    var alertes = [];
+    tablesToExport.forEach(function (tid) {
+        var colonnesMeta = etat.metadonneesColonnes[tid];
+        if (!colonnesMeta)
+            return;
+        var param = etat.parametragesParBase[tid];
+        var champs = param ? param.champsSelectionnes : [];
+        champs.forEach(function (colId) {
+            var colMeta = colonnesMeta.find(function (c) { return c.colId === colId; });
+            var label = colMeta ? colMeta.label : colId;
+            if (tid === etat.baseSelectionnee && etat.donneesBaseCourante && etat.donneesBaseCourante.lignes) {
+                for (var i = 0; i < etat.donneesBaseCourante.lignes.length; i++) {
+                    var v = etat.donneesBaseCourante.lignes[i][colId];
+                    if (typeof v === 'string' && v.length > LIMITE) {
+                        if (alertes.indexOf(label) === -1)
+                            alertes.push(label);
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    return alertes;
+}
+var _exportEnCours = false;
+async function lancerExportDepuisModale() {
+    if (_exportEnCours)
+        return;
+    _exportEnCours = true;
+    var _bE = document.getElementById('wExportConfirmer');
+    if (_bE)
+        _bE.disabled = true;
+    try {
+        var format = document.getElementById('export-format').value;
+        var nom = document.getElementById('export-nom-fichier').value;
+        etat.options.nomFichier = nom;
+        fermerModaleExport();
+        if (format === 'csv') {
+            await telechargerCSV();
+        }
+        else {
+            await telechargerExcel();
+        }
+    }
+    finally {
+        _exportEnCours = false;
+        if (_bE)
+            _bE.disabled = false;
+    }
+}
+async function selectionnerTable(tableId) {
+    if (!tableId)
+        return;
+    if (etat.baseSelectionnee) {
+        etat.parametragesParBase[etat.baseSelectionnee] = {
+            champsSelectionnes: etat.champsSelectionnes.slice(),
+            champsDisponibles: etat.champsDisponibles.slice(),
+            filtres: JSON.parse(JSON.stringify(etat.filtres)),
+            triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
+        };
+    }
+    etat.baseSelectionnee = tableId;
+    var ancien = etat.parametragesParBase[tableId];
+    afficherLoader('Chargement de ' + tableId + '…');
+    try {
+        var data = await chargerDonneesBase(tableId);
+        etat.donneesBaseCourante = data;
+        await chargerLibellesReferences([tableId]);
+        if (ancien) {
+            var colIdsExistants = data.colonnes.map(function (c) { return c.colId; });
+            etat.champsSelectionnes = ancien.champsSelectionnes.filter(function (c) { return colIdsExistants.indexOf(c) !== -1; });
+            etat.champsDisponibles = colIdsExistants.filter(function (c) { return etat.champsSelectionnes.indexOf(c) === -1; });
+            etat.filtres = ancien.filtres;
+            etat.triCourant = { colId: '', ordre: 'none' };
+        }
+        else {
+            etat.champsSelectionnes = data.colonnes.map(function (c) { return c.colId; });
+            etat.champsDisponibles = [];
+            etat.filtres = { groupes: [] };
+            etat.triCourant = { colId: '', ordre: 'none' };
+        }
+        etat.rechercheColonnes = '';
+        var inputRech = document.getElementById('recherche-colonnes');
+        if (inputRech)
+            inputRech.value = '';
+        var btnEffacer = document.getElementById('btn-effacer-recherche-colonnes');
+        if (btnEffacer)
+            btnEffacer.classList.add('csnc-section-cachee');
+        var barreActions = document.getElementById('barre-actions');
+        if (barreActions)
+            barreActions.style.display = '';
+        afficherBarreTables();
+        afficherSidebar();
+        afficherFiltres();
+        rafraichirPreview();
+        sauverBrouillon();
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur sélection table :', error);
+        afficherErreur("Impossible de charger cette table.");
+    }
+    finally {
+        masquerLoader();
+    }
+}
+function brancherEvenements() {
+    ecouter('wErreurFermer', 'click', masquerErreur);
+    var inputRech = document.getElementById('recherche-colonnes');
+    var btnEffacer = document.getElementById('btn-effacer-recherche-colonnes');
+    if (inputRech) {
+        inputRech.addEventListener('input', function () {
+            etat.rechercheColonnes = inputRech.value;
+            if (btnEffacer) {
+                if (inputRech.value)
+                    btnEffacer.classList.remove('csnc-section-cachee');
+                else
+                    btnEffacer.classList.add('csnc-section-cachee');
+            }
+            afficherSidebar();
+        });
+    }
+    if (btnEffacer) {
+        btnEffacer.addEventListener('click', function () {
+            if (inputRech)
+                inputRech.value = '';
+            etat.rechercheColonnes = '';
+            btnEffacer.classList.add('csnc-section-cachee');
+            afficherSidebar();
+        });
+    }
+    ecouter('btn-tout-cocher', 'click', function () {
+        var cb = document.getElementById('cb-tout-cocher');
+        if (!cb)
+            return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change'));
+    });
+    ecouter('btn-ouvrir-recherche', 'click', function () {
+        var zone = document.getElementById('zone-recherche-colonnes');
+        var btn = document.getElementById('btn-ouvrir-recherche');
+        if (!zone || !btn)
+            return;
+        var ouverte = !zone.classList.contains('csnc-section-cachee');
+        zone.classList.toggle('csnc-section-cachee', ouverte);
+        btn.setAttribute('aria-expanded', ouverte ? 'false' : 'true');
+        if (!ouverte) {
+            var champ = document.getElementById('recherche-colonnes');
+            if (champ)
+                champ.focus();
+        }
+        else {
+            var champ2 = document.getElementById('recherche-colonnes');
+            if (champ2 && champ2.value) {
+                champ2.value = '';
+                afficherSidebar();
+            }
+        }
+    });
+    ecouter('btn-trier-colonnes', 'click', function () {
+        if (!etat.donneesBaseCourante)
+            return;
+        var btn = document.getElementById('btn-trier-colonnes');
+        if (etat.ordreAvantTri) {
+            etat.champsSelectionnes = etat.ordreAvantTri.slice();
+            etat.ordreAvantTri = null;
+            if (btn) {
+                btn.setAttribute('data-infobulle', 'Trier de A à Z');
+                btn.setAttribute('aria-label', 'Trier les colonnes de A à Z');
+            }
+        }
+        else {
+            etat.ordreAvantTri = etat.champsSelectionnes.slice();
+            var libelles = {};
+            etat.donneesBaseCourante.colonnes.forEach(function (c) { libelles[c.colId] = c.label || c.colId; });
+            etat.champsSelectionnes = etat.champsSelectionnes.slice().sort(function (a, b) {
+                return String(libelles[a] || a).localeCompare(String(libelles[b] || b), 'fr');
+            });
+            if (btn) {
+                btn.setAttribute('data-infobulle', 'Rétablir l’ordre d’origine');
+                btn.setAttribute('aria-label', 'Rétablir l’ordre d’origine');
+            }
+        }
+        afficherSidebar();
+        rafraichirPreview();
+    });
+    ecouter('cb-tout-cocher', 'change', function () {
+        if (!etat.donneesBaseCourante)
+            return;
+        if (this.checked) {
+            etat.champsSelectionnes = etat.donneesBaseCourante.colonnes.map(function (c) { return c.colId; });
+            etat.champsDisponibles = [];
+        }
+        else {
+            etat.champsDisponibles = etat.donneesBaseCourante.colonnes.map(function (c) { return c.colId; });
+            etat.champsSelectionnes = [];
+        }
+        afficherSidebar();
+        rafraichirPreview();
+    });
+    ecouter('btn-toggle-filtres', 'click', function () {
+        var panneau = document.getElementById('filtres-panneau');
+        var btn = document.getElementById('btn-toggle-filtres');
+        panneau.classList.toggle('actif');
+        btn.setAttribute('aria-expanded', panneau.classList.contains('actif') ? 'true' : 'false');
+    });
+    ecouter('btn-ajouter-condition', 'click', ajouterCondition);
+    ecouter('btn-ajouter-groupe', 'click', ajouterGroupe);
+    ecouter('btn-exporter', 'click', ouvrirModaleExport);
+    ecouter('wExportAnnuler', 'click', fermerModaleExport);
+    ecouter('export-format', 'change', majAlerteFormatCsv);
+    ecouter('wExportConfirmer', 'click', lancerExportDepuisModale);
+    ecouter('btn-enregistrer-barre', 'click', enregistrerDisposition);
+}
+var _brouillonRowId = null;
+var _brouillonTimer = null;
+var _brouillonDernier = null;
+function sauverBrouillon() {
+    if (!etat.tableSauvegardePresente)
+        return;
+    if (_brouillonTimer)
+        clearTimeout(_brouillonTimer);
+    _brouillonTimer = setTimeout(function () { _sauverBrouillonAsync(); }, 1500);
+}
+async function _sauverBrouillonAsync() {
+    try {
+        if (etat.baseSelectionnee) {
+            etat.parametragesParBase[etat.baseSelectionnee] = {
+                champsSelectionnes: etat.champsSelectionnes.slice(),
+                champsDisponibles: etat.champsDisponibles.slice(),
+                filtres: JSON.parse(JSON.stringify(etat.filtres)),
+                triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
+            };
+        }
+        var brouillon = {
+            tablesAExporter: etat.tablesAExporter.slice(),
+            baseSelectionnee: etat.baseSelectionnee,
+            parametragesParBase: JSON.parse(JSON.stringify(etat.parametragesParBase)),
+            options: JSON.parse(JSON.stringify(etat.options))
+        };
+        var contenu = JSON.stringify(brouillon);
+        if (contenu === _brouillonDernier)
+            return;
+        if (_brouillonRowId) {
+            await ecrireDocument([['UpdateRecord', NOM_TABLE_CENTRALE, _brouillonRowId, { CONFIG: contenu, VERSION_MODIF: VERSION_WIDGET }]]);
+        }
+        else {
+            var r = await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, {
+                        WIDGET: NOM_WIDGET, STATUT: STATUT_BROUILLON, NOM: 'Brouillon', CONFIG: contenu,
+                        DESCRIPTIF: 'Brouillon d’export en cours de saisie',
+                        VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET
+                    }]]);
+            _brouillonRowId = r.retValues[0];
+        }
+        _brouillonDernier = contenu;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Sauvegarde brouillon non possible', e);
+    }
+}
+async function restaurerBrouillon() {
+    if (!etat.tableSauvegardePresente)
+        return false;
+    try {
+        var data = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
+        if (!data || !data.id)
+            return false;
+        for (var i = 0; i < data.id.length; i++) {
+            var wB = data.WIDGET ? data.WIDGET[i] : '';
+            var sB = data.STATUT ? data.STATUT[i] : '';
+            if (wB === NOM_WIDGET_BROUILLON_ANCIEN || (estLigneDuWidget(wB) && sB === STATUT_BROUILLON)) {
+                _brouillonRowId = data.id[i];
+                var config = data.CONFIG ? data.CONFIG[i] : '';
+                if (!config)
+                    return false;
+                _brouillonDernier = config;
+                var b = JSON.parse(config);
+                if (b.parametragesParBase)
+                    etat.parametragesParBase = b.parametragesParBase;
+                if (b.options)
+                    etat.options = Object.assign(etat.options, b.options);
+                etat.tablesAExporter = (b.tablesAExporter || []).filter(function (t) { return etat.basesDisponibles.indexOf(t) !== -1; });
+                afficherBarreTables();
+                if (b.baseSelectionnee && etat.basesDisponibles.indexOf(b.baseSelectionnee) !== -1) {
+                    await selectionnerTable(b.baseSelectionnee);
+                    return true;
+                }
+                if (etat.tablesAExporter.length > 0) {
+                    await selectionnerTable(etat.tablesAExporter[0]);
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Restauration brouillon non possible', e);
+    }
+    return false;
+}
+function afficherEtatVide() {
+    etat.baseSelectionnee = '';
+    etat.donneesBaseCourante = null;
+    etat.champsSelectionnes = [];
+    etat.champsDisponibles = [];
+    etat.tablesAExporter = [];
+    afficherSidebar();
+    rafraichirPreview();
+    var barreActions = document.getElementById('barre-actions');
+    if (barreActions)
+        barreActions.style.display = 'none';
+}
+async function initialiser() {
+    afficherLoader('Initialisation du widget…');
+    try {
+        if (!(await verifierAcces())) {
+            afficherLogoRepli();
+            return;
+        }
+        await chargerListeBases();
+        await chargerMetadonneesColonnes();
+        await chargerNomsPiecesJointes();
+        afficherBarreTables();
+        await detecterTableSauvegarde();
+        var brouillonRestaure = await restaurerBrouillon();
+        if (!brouillonRestaure)
+            afficherEtatVide();
+        relayer(chargerLogoDepuisBiblio(), 'Chargement du logo impossible');
+        logSecurite('INFO', 'Widget Diploexport v' + VERSION_WIDGET + ' - initialisation terminée', { tables: etat.basesDisponibles.length });
+        setTimeout(function () {
+            window.addEventListener('unhandledrejection', function (evt) {
+                logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined);
+            });
+        }, 1500);
+    }
+    catch (error) {
+        logSecurite('ERREUR', 'Erreur initialisation :', error);
+        afficherErreur('Erreur lors de l\'initialisation du widget.');
+    }
+    finally {
+        masquerLoader();
+    }
+}
+brancherEvenements();
+grist.ready({
+    requiredAccess: 'full',
+    columns: [],
+    allowSelectBy: false
+});
+SOCLE.relancer = function () { relayer(initialiser(), 'Nouveau chargement impossible'); };
+brancherSocle();
+(function () {
+    var v = document.getElementById('bandeauVersion');
+    if (v)
+        v.textContent = 'v' + VERSION_WIDGET;
+    var badge = document.getElementById('bandeauHomologue');
+    if (badge)
+        badge.hidden = !HOMOLOGUE;
+})();
+grist.onRecords(function () {
+    if (!etat.baseSelectionnee)
+        return;
+    chargerDonneesBase(etat.baseSelectionnee).then(function (data) {
+        etat.donneesBaseCourante = data;
+        var colIdsExistants = data.colonnes.map(function (c) { return c.colId; });
+        etat.champsSelectionnes = etat.champsSelectionnes.filter(function (c) { return colIdsExistants.indexOf(c) !== -1; });
+        etat.champsDisponibles = colIdsExistants.filter(function (c) { return etat.champsSelectionnes.indexOf(c) === -1; });
+        afficherSidebar();
+        rafraichirPreview();
+    }).catch(function (err) {
+        logSecurite('ERREUR', 'Erreur rafraîchissement onRecords :', err);
+    });
+});
+relayer(initialiser(), 'Initialisation impossible');
+</script>
+</body>
+</html>

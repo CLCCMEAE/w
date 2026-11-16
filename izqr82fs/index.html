@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<head>
+<meta name="robots" content="noindex, nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diplofiltre</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <style>
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height:100%; margin:0; padding:0; overflow:hidden; background:var(--background-contrast-grey); color:var(--text-default-grey); }
+  .w-app { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+  .w-version { text-align:right; color:var(--text-mention-grey); }
+  .w-bandeau__homologue{margin-left:.5rem;white-space:nowrap}
+  .w-bandeau__homologue[hidden]{display:none}
+  .w-dropdown-zone { flex:1; display:flex; flex-direction:column; min-height:0; background:var(--background-contrast-grey); color:var(--text-default-grey); }
+  .fr-select { cursor:pointer; }
+  #skipLink:focus{position:fixed;top:0;left:0;z-index:9999;padding:.5rem 1rem;background:var(--background-default-grey);color:var(--text-action-high-blue-france);clip:auto;width:auto;height:auto;overflow:visible;white-space:nowrap;font-size:.875rem}
+  .w-erreur { display:none; flex-shrink:0; }
+  .w-multi { flex:1; display:flex; flex-direction:column; min-height:0; gap:.375rem; }
+  .w-multi[hidden] { display:none; }
+  .w-multi__barre { display:flex; gap:.5rem; align-items:center; }
+  .w-multi__barre .fr-input { flex:1; margin:0; }
+  .w-multi__choix { display:flex; flex-wrap:wrap; gap:.25rem; }
+  .w-multi__choix:empty { display:none; }
+  .w-multi__etiquette { display:inline-flex; align-items:center; gap:.25rem; font-size:.8125rem; padding:.125rem .25rem .125rem .5rem; background:var(--background-action-low-blue-france); color:var(--text-action-high-blue-france); border-radius:999px; }
+  .w-multi__retirer { border:none; background:transparent; color:inherit; cursor:pointer; line-height:1; padding:0 .125rem; border-radius:999px; }
+  .w-multi__retirer:focus-visible { outline:2px solid var(--border-active-blue-france); outline-offset:1px; }
+  .w-multi__liste { flex:1; min-height:3rem; overflow:auto; margin:0; padding:.25rem .5rem; border:1px solid var(--border-default-grey); background:var(--background-default-grey); }
+  .w-multi__option { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding:.2rem 0; cursor:pointer; }
+  .w-multi__option input { margin:0; }
+  .w-multi__vide { font-size:.8125rem; color:var(--text-mention-grey); margin:.25rem 0; }
+  .w-erreur.actif { display:block; }
+  </style>
+</head>
+<body>
+<a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
+<div class="w-app">
+  <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert">
+    <p id="wErreurMsg"></p>
+    <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button>
+  </div>
+  <h1 class="fr-sr-only">Diplofiltre</h1>
+  <main class="w-dropdown-zone" id="contenu">
+    <label for="dropdown" class="fr-sr-only">Sélection d'un enregistrement</label>
+    <select class="fr-select" id="dropdown" aria-label="Sélection d'un enregistrement" autocomplete="off"></select>
+    <div class="w-multi" id="zoneMulti" hidden>
+      <div class="w-multi__barre">
+        <label for="rechercheMulti" class="fr-sr-only">Rechercher une valeur</label>
+        <input class="fr-input" type="search" id="rechercheMulti" placeholder="Rechercher…" autocomplete="off">
+        <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary" id="btnEffacerMulti">Effacer la sélection</button>
+      </div>
+      <div class="w-multi__choix" id="choixMulti" aria-live="polite"></div>
+      <fieldset class="w-multi__liste">
+        <legend class="fr-sr-only">Valeurs à sélectionner</legend>
+        <div id="optionsMulti"></div>
+      </fieldset>
+    </div>
+    <p class="w-version fr-text--xs fr-mt-1v fr-mr-1v fr-mb-0"><span aria-hidden="true">🔌 </span>Diplofiltre <span id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span></p>
+  </main>
+</div>
+<script>'use strict';
+function logSecurite(niveau, message, details) {
+    var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
+    if (niveau === 'ERREUR') {
+        if (details !== undefined) {
+            console.error(ligne, details);
+        }
+        else {
+            console.error(ligne);
+        }
+    }
+    else if (niveau === 'AVERTISSEMENT') {
+        if (details !== undefined) {
+            console.warn(ligne, details);
+        }
+        else {
+            console.warn(ligne);
+        }
+    }
+    else {
+        if (details !== undefined) {
+            console.log(ligne, details);
+        }
+        else {
+            console.log(ligne);
+        }
+    }
+}
+var _minuterieErreur = null;
+function afficherErreur(message, erreur) {
+    logSecurite('ERREUR', message, erreur);
+    var bandeau = document.getElementById('wErreur');
+    var texte = document.getElementById('wErreurMsg');
+    if (texte) {
+        texte.textContent = message || 'Une erreur est survenue.';
+    }
+    if (bandeau) {
+        bandeau.classList.add('actif');
+    }
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+    }
+    _minuterieErreur = setTimeout(masquerErreur, 10000);
+}
+function masquerErreur() {
+    if (_minuterieErreur) {
+        clearTimeout(_minuterieErreur);
+        _minuterieErreur = null;
+    }
+    var bandeau = document.getElementById('wErreur');
+    if (bandeau) {
+        bandeau.classList.remove('actif');
+    }
+}
+var btnFermerErreur = document.getElementById('wErreurFermer');
+if (btnFermerErreur) {
+    btnFermerErreur.addEventListener('click', masquerErreur);
+}
+var selecteur = document.getElementById('dropdown');
+if (!selecteur) {
+    logSecurite('ERREUR', 'Element de selection introuvable dans le balisage');
+}
+var optionsUniques = [];
+var colonneMapping = '';
+var LIBELLE_CHOISIR = '- Choisir -';
+var _dernierCurseur = null;
+var modeMultiple = false;
+var valeursMulti = [];
+var selectionMulti = Object.create(null);
+var _derniereSelectionMulti = null;
+function cleSynchro() {
+    if (!colonneMapping) {
+        return '';
+    }
+    return 'dropdown_' + colonneMapping;
+}
+function memoriserSelection(valeur) {
+    try {
+        var synchro = cleSynchro();
+        if (!synchro) {
+            return;
+        }
+        if (valeur === '' || valeur === null || valeur === undefined) {
+            sessionStorage.removeItem(synchro);
+        }
+        else {
+            sessionStorage.setItem(synchro, valeur);
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Mémorisation de la sélection impossible, stockage de session indisponible', e);
+    }
+}
+function placerCurseur(rowId) {
+    if (rowId === _dernierCurseur) {
+        return;
+    }
+    _dernierCurseur = rowId;
+    try {
+        var res = grist.setCursorPos({ rowId: rowId });
+        if (res && typeof res.catch === 'function') {
+            res.catch(function (e) { logSecurite('AVERTISSEMENT', 'Déplacement du curseur impossible', e); });
+        }
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Déplacement du curseur impossible', e);
+    }
+}
+function remplirDropdown(records, mapped) {
+    var dropdown = selecteur;
+    if (!dropdown) {
+        return;
+    }
+    dropdown.textContent = '';
+    if (!mapped || mapped.length === 0) {
+        var optAttente = document.createElement('option');
+        optAttente.textContent = 'Aucune option disponible';
+        optAttente.value = '';
+        optAttente.disabled = true;
+        optAttente.selected = true;
+        dropdown.appendChild(optAttente);
+        optionsUniques = [];
+        return;
+    }
+    var dejaVu = Object.create(null);
+    var uniques = [];
+    for (var i = 0; i < mapped.length; i++) {
+        var val = mapped[i].OptionsToSelect;
+        if (val == null) {
+            continue;
+        }
+        var cle = String(val);
+        if (dejaVu[cle]) {
+            dejaVu[cle].rowIds.push(records[i].id);
+            continue;
+        }
+        dejaVu[cle] = {
+            texte: cle || '(vide)',
+            valeur: cle,
+            rowId: records[i].id,
+            rowIds: [records[i].id]
+        };
+        uniques.push(dejaVu[cle]);
+    }
+    uniques.sort(function (a, b) {
+        return a.texte.localeCompare(b.texte, 'fr');
+    });
+    optionsUniques = uniques;
+    var optChoisir = document.createElement('option');
+    optChoisir.value = '';
+    optChoisir.textContent = LIBELLE_CHOISIR;
+    dropdown.appendChild(optChoisir);
+    for (var j = 0; j < uniques.length; j++) {
+        var opt = document.createElement('option');
+        opt.value = uniques[j].valeur;
+        opt.textContent = uniques[j].texte;
+        dropdown.appendChild(opt);
+    }
+    var saved = null;
+    try {
+        var synchro = cleSynchro();
+        if (synchro) {
+            saved = sessionStorage.getItem(synchro);
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Reprise de la sélection impossible, stockage de session indisponible', e);
+    }
+    var match = (saved != null && dejaVu[saved]) ? dejaVu[saved] : null;
+    if (match) {
+        dropdown.value = saved;
+        if (match.rowIds.indexOf(_dernierCurseur) === -1) {
+            placerCurseur(match.rowId);
+        }
+    }
+    else {
+        dropdown.value = '';
+        placerCurseur('new');
+    }
+}
+grist.ready({
+    columns: [
+        { name: 'OptionsToSelect', title: 'Options à sélectionner', type: 'Any' },
+        { name: 'SelectionMultiple', title: 'Sélection multiple (choisir n’importe quelle colonne pour l’activer)', type: 'Any', optional: true }
+    ],
+    requiredAccess: 'read table',
+    allowSelectBy: true
+});
+grist.onRecords(function (records, mappings) {
+    masquerErreur();
+    try {
+        modeMultiple = !!(mappings && mappings.SelectionMultiple);
+        basculerMode();
+        if (!records || records.length === 0) {
+            if (modeMultiple) {
+                remplirMulti([], []);
+            }
+            else {
+                remplirDropdown([], []);
+            }
+            return;
+        }
+        if (mappings && mappings.OptionsToSelect) {
+            colonneMapping = String(mappings.OptionsToSelect);
+        }
+        var mapped = grist.mapColumnNames(records);
+        if (modeMultiple) {
+            remplirMulti(records, mapped);
+        }
+        else {
+            remplirDropdown(records, mapped);
+        }
+        logSecurite('INFO', (mapped ? mapped.length : 0) + ' enregistrement(s) chargé(s)');
+    }
+    catch (err) {
+        afficherErreur('Erreur lors du chargement des options.', err);
+    }
+});
+grist.onRecord(function (record) {
+    if (record && record.id !== undefined) {
+        _dernierCurseur = record.id;
+    }
+    if (modeMultiple) {
+        return;
+    }
+    var mapped = grist.mapColumnNames(record);
+    if (!mapped || mapped.OptionsToSelect == null || !selecteur) {
+        return;
+    }
+    var valeur = String(mapped.OptionsToSelect);
+    for (var i = 0; i < selecteur.options.length; i++) {
+        if (selecteur.options[i].value === valeur) {
+            selecteur.value = valeur;
+            memoriserSelection(valeur);
+            return;
+        }
+    }
+});
+if (selecteur) {
+    selecteur.addEventListener('change', function () {
+        var valeur = this.value;
+        var uniques = optionsUniques;
+        var match = uniques.filter(function (u) { return u.valeur === valeur; })[0];
+        if (match) {
+            placerCurseur(match.rowId);
+        }
+        else {
+            placerCurseur('new');
+        }
+        memoriserSelection(valeur);
+    });
+}
+function basculerMode() {
+    var zone = document.getElementById('zoneMulti');
+    if (selecteur) {
+        selecteur.hidden = modeMultiple;
+    }
+    if (zone) {
+        zone.hidden = !modeMultiple;
+    }
+}
+function cleSynchroMulti() {
+    if (!colonneMapping) {
+        return '';
+    }
+    return 'dropdown_multi_' + colonneMapping;
+}
+function normaliser(t) {
+    return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function remplirMulti(records, mapped) {
+    var index = Object.create(null);
+    var liste = [];
+    for (var i = 0; i < (mapped || []).length; i++) {
+        var val = mapped[i].OptionsToSelect;
+        if (val == null) {
+            continue;
+        }
+        var cle = String(val);
+        if (!index[cle]) {
+            index[cle] = { texte: cle || '(vide)', valeur: cle, rowIds: [] };
+            liste.push(index[cle]);
+        }
+        index[cle].rowIds.push(records[i].id);
+    }
+    liste.sort(function (a, b) { return a.texte.localeCompare(b.texte, 'fr'); });
+    valeursMulti = liste;
+    selectionMulti = Object.create(null);
+    try {
+        var synchro = cleSynchroMulti();
+        var brut = synchro ? sessionStorage.getItem(synchro) : null;
+        var lues = brut ? JSON.parse(brut) : [];
+        if (Array.isArray(lues)) {
+            lues.forEach(function (v) { if (index[String(v)]) {
+                selectionMulti[String(v)] = true;
+            } });
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Reprise de la sélection multiple impossible', e);
+    }
+    afficherMulti();
+    appliquerMulti(false);
+}
+function valeursChoisies() {
+    return valeursMulti.filter(function (v) { return selectionMulti[v.valeur]; });
+}
+function afficherMulti() {
+    var conteneur = document.getElementById('optionsMulti');
+    var choix = document.getElementById('choixMulti');
+    var champ = document.getElementById('rechercheMulti');
+    if (!conteneur || !choix) {
+        return;
+    }
+    var filtre = normaliser(champ ? champ.value : '').trim();
+    conteneur.textContent = '';
+    var visibles = valeursMulti.filter(function (v) { return !filtre || normaliser(v.texte).indexOf(filtre) !== -1; });
+    if (!valeursMulti.length || !visibles.length) {
+        var vide = document.createElement('p');
+        vide.className = 'w-multi__vide';
+        vide.textContent = valeursMulti.length ? 'Aucune valeur ne correspond à la recherche.' : 'Aucune option disponible';
+        conteneur.appendChild(vide);
+    }
+    visibles.forEach(function (v, i) {
+        var lab = document.createElement('label');
+        lab.className = 'w-multi__option';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.autocomplete = 'off';
+        cb.checked = !!selectionMulti[v.valeur];
+        cb.addEventListener('change', function () {
+            if (cb.checked) {
+                selectionMulti[v.valeur] = true;
+            }
+            else {
+                delete selectionMulti[v.valeur];
+            }
+            afficherEtiquettes();
+            appliquerMulti(true);
+        });
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(v.texte));
+        conteneur.appendChild(lab);
+    });
+    afficherEtiquettes();
+}
+function afficherEtiquettes() {
+    var choix = document.getElementById('choixMulti');
+    if (!choix) {
+        return;
+    }
+    choix.textContent = '';
+    valeursChoisies().forEach(function (v) {
+        var et = document.createElement('span');
+        et.className = 'w-multi__etiquette';
+        et.appendChild(document.createTextNode(v.texte));
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-multi__retirer fr-icon-close-line fr-icon--sm';
+        btn.setAttribute('aria-label', 'Retirer ' + v.texte);
+        btn.title = 'Retirer ' + v.texte;
+        btn.addEventListener('click', function () {
+            delete selectionMulti[v.valeur];
+            afficherMulti();
+            appliquerMulti(true);
+            var champ = document.getElementById('rechercheMulti');
+            if (champ) {
+                champ.focus();
+            }
+        });
+        et.appendChild(btn);
+        choix.appendChild(et);
+    });
+}
+function appliquerMulti(memoriser) {
+    var choisies = valeursChoisies();
+    try {
+        var synchro = memoriser ? cleSynchroMulti() : null;
+        if (synchro) {
+            if (choisies.length) {
+                sessionStorage.setItem(synchro, JSON.stringify(choisies.map(function (v) { return v.valeur; })));
+            }
+            else {
+                sessionStorage.removeItem(synchro);
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Mémorisation de la sélection multiple impossible', e);
+    }
+    var ids = null;
+    if (choisies.length) {
+        ids = [];
+        choisies.forEach(function (v) { ids = ids.concat(v.rowIds); });
+    }
+    var cle = ids ? ids.join(',') : 'tous';
+    if (cle === _derniereSelectionMulti) {
+        return;
+    }
+    _derniereSelectionMulti = cle;
+    if (typeof grist.setSelectedRows === 'function') {
+        try {
+            var res = grist.setSelectedRows(ids);
+            if (res && typeof res.catch === 'function') {
+                res.catch(function (e) { logSecurite('AVERTISSEMENT', 'Sélection des vues liées impossible', e); });
+            }
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Sélection des vues liées impossible', e);
+        }
+    }
+    else {
+        logSecurite('INFO', 'Sélection multiple non prise en charge par la plateforme : seul le curseur est déplacé');
+    }
+    if (ids && ids.length) {
+        placerCurseur(ids[0]);
+    }
+}
+(function () {
+    var champ = document.getElementById('rechercheMulti');
+    if (champ) {
+        champ.addEventListener('input', afficherMulti);
+        champ.addEventListener('keydown', function (e) { if (e.key === 'Escape' && champ.value) {
+            e.preventDefault();
+            champ.value = '';
+            afficherMulti();
+        } });
+    }
+    var btn = document.getElementById('btnEffacerMulti');
+    if (btn) {
+        btn.addEventListener('click', function () {
+            selectionMulti = Object.create(null);
+            afficherMulti();
+            appliquerMulti(true);
+        });
+    }
+})();
+if (selecteur) {
+    selecteur.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            this.blur();
+        }
+    });
+}
+var VERSION_WIDGET = '1.2.0';
+var HOMOLOGUE = false;
+(function () {
+    var el = document.getElementById('bandeauVersion');
+    if (el)
+        el.textContent = 'v' + VERSION_WIDGET;
+    var badge = document.getElementById('bandeauHomologue');
+    if (badge)
+        badge.hidden = !HOMOLOGUE;
+})();
+logSecurite('INFO', 'Widget Diplofiltre v' + VERSION_WIDGET + ' - initialisation terminée');
+</script>
+</body>
+</html>
