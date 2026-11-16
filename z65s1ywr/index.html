@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.0.1
+  Version     : 1.0.2
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -45,6 +45,9 @@
 
   HISTORIQUE
   ----------
+  1.0.2 - 16/11/2026 - CSNC - Création : onglet actif « Nouveau tableau blanc »
+          (titre en double retiré) ; assistant et paramétrages en pleine
+          largeur.
   1.0.1 - 16/11/2026 - CSNC - Emoji du widget : 🔀 (flux) au lieu de la pièce de
           puzzle, dans le bandeau et le nom de la table des éléments.
   1.0.0 - 16/11/2026 - CSNC - Version initiale, d'après les maquettes
@@ -422,8 +425,8 @@
     .w-raccourcis dd { margin: 0; }
 
   /* === SECTION : PARAMETRAGE === */
-    .w-param { display: flex; flex-direction: column; gap: 1.25rem; max-width: 76rem; }
-    .w-param__tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .w-param { display: flex; flex-direction: column; gap: 1.25rem; width: 100%; }
+    .w-param__tete { display: flex; align-items: flex-start; justify-content: flex-end; gap: 1rem; flex-wrap: wrap; }
     .w-statut--erreur { color: var(--text-default-error); }
     .w-etapes { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .25rem; }
     .w-etapes__item { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
@@ -591,7 +594,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.0.2';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1921,8 +1924,11 @@ function rendreOnglets() {
       choisirTableau(t.id); etat.param = null; etat.vue = 'principal'; rendrePrincipal();
     } }));
   });
+  if (etat.vue === 'creation') {
+    nav.appendChild(creer('button', { classe: 'w-onglet', texte: 'Nouveau tableau blanc', attrs: { 'aria-current': 'page' } }));
+  }
   if (etat.peutParametrer) {
-    nav.appendChild(creer('button', { classe: 'w-onglet w-bulle', attrs: { 'aria-label': 'Nouveau tableau blanc', 'data-bulle': 'Nouveau tableau blanc', 'aria-current': etat.vue === 'creation' ? 'page' : null },
+    nav.appendChild(creer('button', { classe: 'w-onglet w-bulle', attrs: { 'aria-label': 'Nouveau tableau blanc', 'data-bulle': 'Nouveau tableau blanc' },
       clic: function () { ouvrirCreation(); } }, [iconeSvg('plus', 16)]));
   }
 }
@@ -4201,7 +4207,7 @@ function rendreCreation() {
     c.etape = i; rendreCreation(); var t = document.getElementById('titreVue'); if (t) { t.focus(); } majAideEtape();
   };
   var bloc = creer('div', { classe: 'w-param' });
-  bloc.appendChild(creer('div', { classe: 'w-param__tete' }, [creer('p', { classe: 'fr-text--lead fr-mb-0', texte: 'Nouveau tableau blanc' }),
+  bloc.appendChild(creer('div', { classe: 'w-param__tete' }, [
     bouton('Annuler la création', 'secondaire', null, function () { return annulerCreation(); }, { petit: true, id: 'cAnnuler' })]));
   bloc.appendChild(filAriane(ETAPES_CREATION, c.etape, aller));
   var rien = function () {};
@@ -4405,7 +4411,7 @@ function rendreParametrage() {
   var t = tableauCourant();
   var aller = function (i) { p.etape = i; rendreParametrage(); var h = document.getElementById('titreVue'); if (h) { h.focus(); } majAideEtape(); };
   var bloc = creer('div', { classe: 'w-param' });
-  bloc.appendChild(creer('div', { classe: 'w-param__tete' }, [creer('div', {}, [
+  bloc.appendChild(creer('div', { classe: 'w-param__tete', attrs: { style: 'justify-content:space-between' } }, [creer('div', {}, [
     creer('p', { classe: 'fr-text--lead fr-mb-0', id: 'pTitre', texte: 'Paramétrages de « ' + t.nom + ' »' }),
     creer('p', { classe: 'w-mention', id: 'pStatut', attrs: { role: 'status' }, texte: p.statut })]),
     bouton('Retour à ' + t.nom, 'secondaire', 'arrow-left-line', quitterParametrage, { petit: true, id: 'pRetour' })]));
