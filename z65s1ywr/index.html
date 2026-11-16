@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.3.0
+  Version     : 1.3.1
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,13 @@
 
   HISTORIQUE
   ----------
+  1.3.1 - 16/11/2026 - CSNC - Bouton « + » en tête de la barre d'outils de
+          la toile (et touche A) : menu des types (post-it, forme, texte,
+          section, couloir, image), l'élément choisi se pose au centre de la
+          vue (chemin clavier vers tous les types) ; il remplace le bouton « Ajouter un élément » du volet, retiré ;
+          volet allégé : plus de compteur « N sur N éléments » (seul
+          « Effacer les filtres » reste quand un filtre est actif), plus
+          d'info-bulle sur « Rechercher ».
   1.3.0 - 16/11/2026 - CSNC - Assistant et paramétrages au modèle de
           Diploorganigramme : « Annuler la création » et « Créer le tableau
           blanc » au bout de la ligne des étapes (plus en bas de page), nom
@@ -405,6 +412,8 @@
     .w-outils { position: absolute; left: .75rem; top: .75rem; z-index: 10; display: flex; flex-direction: column; gap: 2px; padding: .25rem;
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 2px 6px rgba(0,0,18,.12); }
     .w-outils hr { width: 100%; margin: .125rem 0; padding: 0; border: 0; border-top: 1px solid var(--border-default-grey); }
+    .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
+    .w-outil--ajouter, .w-outil--ajouter:hover { background-color: var(--background-action-high-blue-france) !important; color: var(--text-inverted-blue-france) !important; }
     .w-outil[aria-pressed="true"] { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
     .w-ctx { position: absolute; z-index: 12; display: flex; gap: 2px; padding: 3px; background: var(--background-default-grey); color: var(--text-default-grey);
       border: 1px solid var(--border-plain-grey); box-shadow: 0 2px 8px rgba(0,0,18,.2); }
@@ -751,7 +760,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -2347,9 +2356,6 @@ function rendrePrincipal() {
   var replie = voletReplie();
   var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'vVolet', attrs: { 'aria-label': 'Recherche et filtres' } });
   var cont = creer('div', { classe: 'w-volet__contenu', id: 'vVoletContenu' });
-  if (etat.peutModifier) {
-    cont.appendChild(bouton('Ajouter un élément', null, 'add-line', function () { return ajouterAuCentre(); }, { id: 'vAjouter', classe: 'w-ajouter' }));
-  }
   var champ = saisie('vRecherche', etat.filtres.texte, { type: 'search', indice: 'Libellé, description...', orthographe: false });
   var minuterie = null;
   champ.addEventListener('input', function () {
@@ -2361,7 +2367,7 @@ function rendrePrincipal() {
     if (e.key === 'Escape' && champ.value) { e.preventDefault(); e.stopPropagation(); champ.value = ''; etat.filtres.texte = ''; majVolet(); majApresFiltre(); }
   });
   cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'vTitreRech' } }, [
-    titreBloc('Rechercher', 'vTitreRech', 'Les éléments qui ne correspondent pas sont estompés sur la toile. Entrée centre la vue sur le résultat suivant.'),
+    titreBloc('Rechercher', 'vTitreRech', null),
     creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'vRecherche' }, texte: 'Rechercher dans le tableau blanc' }), champ,
     bouton(etat.voletMobile ? 'Masquer la recherche et les filtres' : 'Recherche et filtres', 'secondaire', 'filter-line', function () { ouvrirVoletMobile(!etat.voletMobile); },
       { petit: true, id: 'vFiltresMobile', classe: 'w-filtres-mobile', attrs: { 'aria-expanded': etat.voletMobile ? 'true' : 'false', 'aria-controls': 'vRepliable' } })]));
@@ -2484,9 +2490,10 @@ function majVolet() {
       bf.appendChild(groupeListe('Statut', selT));
     }
     var visibles = nonSections.filter(function (e) { return passeFiltres(e, tous); }).length;
-    var lignes = [creer('span', { classe: 'w-mention', texte: visibles + ' sur ' + pluriel(nonSections.length, 'élément', 'éléments') })];
-    if (filtresActifs()) { lignes.push(bouton('Effacer les filtres', 'discret', 'close-circle-line', effacerFiltres, { petit: true, id: 'vEffacer' })); }
-    bf.appendChild(creer('div', { classe: 'w-compteur-filtres' }, lignes));
+    /* Seul « Effacer les filtres » reste, quand un filtre est actif ; le
+       nombre d'elements affiches est annonce aux lecteurs d'ecran. */
+    if (filtresActifs()) { bf.appendChild(creer('div', { classe: 'w-compteur-filtres' }, [creer('span', { classe: 'fr-sr-only', texte: visibles + ' sur ' + pluriel(nonSections.length, 'élément', 'éléments') }),
+      bouton('Effacer les filtres', 'discret', 'close-circle-line', effacerFiltres, { petit: true, id: 'vEffacer' })])); }
   }
   var bl = document.getElementById('vBlocLegende');
   if (bl) {
@@ -2578,6 +2585,12 @@ function construireToile() {
   var toile = creer('div', { classe: 'w-toile', id: 'vToile', attrs: { tabindex: '0', role: 'application', 'aria-roledescription': 'tableau blanc',
     'aria-label': 'Toile du tableau blanc. Tab parcourt les éléments, flèches pour déplacer, Entrée pour modifier le texte, Suppr pour supprimer.' } });
   var outils = creer('div', { classe: 'w-outils', id: 'vOutils', attrs: { role: 'toolbar', 'aria-label': 'Outils', 'aria-orientation': 'vertical' } });
+  /* Bouton « + » : un element au centre de
+     la vue, texte en saisie. */
+  if (etat.peutModifier) {
+    outils.appendChild(bouton('Ajouter un élément (A)', 'discret', null, function (ev) { ouvrirAjout(ev.currentTarget); }, { svg: 'plus', id: 'bOutil_Ajouter', classe: 'w-outil w-outil--ajouter w-btn-ico--grand w-bulle--cote', attrs: { 'aria-haspopup': 'true' } }));
+    outils.appendChild(creer('hr'));
+  }
   OUTILS.forEach(function (o) {
     if (!o) { outils.appendChild(creer('hr')); return; }
     if (o.edition && !etat.peutModifier) { return; }
@@ -3547,6 +3560,7 @@ function surToucheToile(ev) {
   if (k === '+' || k === '=') { ev.preventDefault(); zoomerCentre(1.2); return; }
   if (k === '-') { ev.preventDefault(); zoomerCentre(1 / 1.2); return; }
   if (k === '0') { ev.preventDefault(); recentrer(); return; }
+  if ((k === 'a' || k === 'A') && etat.peutModifier) { ev.preventDefault(); var ba = document.getElementById('bOutil_Ajouter'); if (ba) { ouvrirAjout(ba); } return; }
   var o = OUTILS.filter(function (x) { return x && x.touche.toLowerCase() === String(k).toLowerCase(); })[0];
   if (o && (!o.edition || etat.peutModifier)) { ev.preventDefault(); choisirOutil(o.cle); }
 }
@@ -3683,6 +3697,31 @@ async function creerElement(type, pos, editer, autres) {
 
 /* Bouton « Ajouter un element » du volet : au centre de la vue, post-it
    (ou forme pour un logigramme ou une carte mentale). */
+/* Menu du bouton « + » : chaque type d'element se pose au centre de la
+   vue. C'est le chemin clavier vers tous les types (les outils de la
+   barre demandent un clic sur la toile). */
+var TYPES_AJOUT = [['Post-it', 'Post-it', 'postit'], ['Forme', 'Forme', 'forme'], ['Texte', 'Texte', 'texte'], ['Section', 'Section', 'section'], ['Couloir', 'Couloir', 'couloir'], ['Image', 'Image', 'image']];
+function ouvrirAjout(ancre) {
+  var items = TYPES_AJOUT.map(function (x) {
+    return creer('button', { classe: 'w-pop__item w-pop__item--icone', id: 'cAjout_' + x[0].replace(/[^A-Za-z]/g, ''), clic: function () { fermerPop(); return ajouterTypeAuCentre(x[0]); } },
+      [iconeSvg(x[2], 18), creer('span', { texte: x[1] })]);
+  });
+  ouvrirPopFixe(ancre, 'Ajouter', [creer('p', { classe: 'w-pop__titre', texte: 'Ajouter au centre de la vue' })].concat(items));
+  var pop = document.getElementById('vPop');
+  if (pop) { var r = ancre.getBoundingClientRect(); pop.style.left = (r.right + 8) + 'px'; pop.style.top = r.top + 'px'; }
+}
+
+async function ajouterTypeAuCentre(type) {
+  if (etat.vueType !== 'toile') { changerVue('toile'); }
+  var c = centreVue();
+  if (type === 'Image') { demanderImage({ x: c.x, y: c.y }); return; }
+  var taille = TAILLES[type];
+  var n = elementsDuTableau().length % 5;
+  var champs = { x: aimanter(c.x - taille[0] / 2 + n * 20), y: aimanter(c.y - taille[1] / 2 + n * 20), w: taille[0], h: taille[1] };
+  if (type === 'Couloir') { return creerElement('Section', champs, true, { FORME: 'Couloir', COULEUR: 'blue-ecume' }); }
+  return creerElement(type, champs, true, type === 'Section' ? { FORME: 'Cadre' } : null);
+}
+
 async function ajouterAuCentre() {
   var t = tableauCourant();
   if (etat.vueType !== 'toile') { changerVue('toile'); }
@@ -6027,7 +6066,7 @@ function rendreAide() {
       'Travail à plusieurs : les ajouts des autres apparaissent dès qu\'ils sont enregistrés.', 'Impression, PDF, image et export CSV.'].map(function (t) { return creer('li', { texte: t }); })));
     corps.appendChild(creer('h3', { texte: 'Raccourcis sur la toile' }));
     var dl = creer('dl', { classe: 'w-raccourcis' });
-    [['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['C, I', 'Couloir, image'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
+    [['A', 'Ajouter un élément (menu)'], ['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['C, I', 'Couloir, image'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
       ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
       dl.appendChild(creer('dt', { texte: x[0] })); dl.appendChild(creer('dd', { texte: x[1] }));
     });
