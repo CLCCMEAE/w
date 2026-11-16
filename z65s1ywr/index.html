@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.4.0
+  Version     : 1.4.2
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,13 @@
 
   HISTORIQUE
   ----------
+  1.4.2 - 16/11/2026 - CSNC - « Ajouter à la suite » en dernier dans la barre
+          d'actions, après Supprimer, sur fond bleu comme le « + » de la
+          barre d'outils. Case d'affichage « Légende » (libellé court) ; la
+          légende n'est plus dans le volet, elle s'affiche sur la toile.
+  1.4.1 - 16/11/2026 - CSNC - Barre d'actions : le bouton couleur montre une
+          pastille de la couleur actuelle de l'élément (multicolore si la
+          sélection mélange plusieurs couleurs) au lieu d'une icône abstraite.
   1.4.0 - 16/11/2026 - CSNC - Sept nouvelles formes : hexagone, cylindre,
           nuage, document, cercle, triangle, trapèze (12 au total), avec leur
           sens dans le choix de forme ; toile, export PNG et vignettes.
@@ -452,6 +459,8 @@
     .w-legende-toile__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; font-size: .8125rem; }
     .w-legende-toile__liste li { display: flex; align-items: center; gap: .5rem; padding: 0; }
     .w-legende-toile__pastille { width: 1.25rem; height: .875rem; border-radius: 4px; background: var(--vif-el); box-shadow: inset 0 0 0 1px rgba(22,22,22,.12); flex: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .w-ctx__pastille { display: inline-block; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--vif-el); box-shadow: inset 0 0 0 1.5px rgba(22,22,22,.35); }
+    .w-ctx__pastille--mixte { background: conic-gradient(#fde39c 0 25%, #8bf8e7 0 50%, #dee5fd 0 75%, #fddfda 0); }
     .w-pop__sens { font-size: .75rem; color: var(--text-mention-grey); }
     .w-pop__sep { display: block; height: 1px; margin: .375rem 0; background: var(--border-default-grey); }
     .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
@@ -802,7 +811,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.4.2';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -2421,7 +2430,8 @@ function rendrePrincipal() {
       { petit: true, id: 'vFiltresMobile', classe: 'w-filtres-mobile', attrs: { 'aria-expanded': etat.voletMobile ? 'true' : 'false', 'aria-controls': 'vRepliable' } })]));
   var repliable = creer('div', { classe: 'w-volet__repliable', id: 'vRepliable' });
   repliable.appendChild(creer('section', { classe: 'w-volet__bloc', id: 'vBlocFiltres', attrs: { 'aria-labelledby': 'vTitreFil' } }));
-  repliable.appendChild(creer('section', { classe: 'w-volet__bloc', id: 'vBlocLegende', attrs: { 'aria-labelledby': 'vTitreLeg' } }));
+  /* Pas de legende dans le volet : elle s'affiche sur la toile (case
+     « Légende » de l'affichage). */
   repliable.appendChild(creer('section', { classe: 'w-volet__bloc', id: 'vBlocAffichage', attrs: { 'aria-labelledby': 'vTitreAff' } }));
   var bas = creer('div', { classe: 'w-volet__bas' });
   if (etat.peutParametrer) { bas.appendChild(bouton('Paramétrages de ce tableau blanc', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'vParametrer' })); }
@@ -2568,7 +2578,7 @@ function majVolet() {
   if (ba) {
     vider(ba);
     ba.appendChild(titreBloc('Affichage', 'vTitreAff', null));
-    [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende sur la toile (et à l\'impression)'], ['votes', 'Votes']].forEach(function (x) {
+    [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende'], ['votes', 'Votes']].forEach(function (x) {
       ba.appendChild(caseACocher('vAff_' + x[0], x[1], !!etat.affichage[x[0]], function (v) {
         etat.affichage[x[0]] = v;
         ecrirePref('affichage:' + etat.tableauId, etat.affichage);
@@ -3150,10 +3160,18 @@ function placerCtx() {
     boite = { x: b.x1 * c.z + c.x, y: b.y1 * c.z + c.y, w: (b.x2 - b.x1) * c.z, h: (b.y2 - b.y1) * c.z };
     var un = sel.length === 1 ? sel[0] : null;
     if (etat.peutModifier) {
-      items.push(bouton('Couleur', 'discret', null, function (ev) { ouvrirPop('couleur', ev.currentTarget); }, { svg: 'couleur', id: 'cCouleur', attrs: { 'aria-haspopup': 'true' } }));
+      /* Bouton couleur : une pastille de la couleur actuelle, pour qu'on le
+         reconnaisse d'un coup d'oeil. */
+      var bc = bouton('Couleur', 'discret', null, function (ev) { ouvrirPop('couleur', ev.currentTarget); }, { svg: 'couleur', id: 'cCouleur', attrs: { 'aria-haspopup': 'true' } });
+      var icoC = bc.querySelector('svg'); if (icoC) { icoC.parentNode.removeChild(icoC); }
+      var pastC = creer('span', { classe: 'w-ctx__pastille', attrs: { 'aria-hidden': 'true' } });
+      var c0 = sel[0].couleur, memeC = sel.every(function (e) { return e.couleur === c0; });
+      appliquerCouleur(pastC, memeC ? c0 : 'blanc');
+      if (!memeC) { pastC.classList.add('w-ctx__pastille--mixte'); }
+      bc.insertBefore(pastC, bc.firstChild);
+      items.push(bc);
       if (sel.every(function (e) { return e.type === 'Forme'; }) || sel.every(function (e) { return e.type === 'Section'; })) { items.push(bouton('Forme', 'discret', null, function (ev) { ouvrirPop('forme', ev.currentTarget); }, { svg: 'forme', id: 'cForme', attrs: { 'aria-haspopup': 'true' } })); }
       if (un) { items.push(bouton('Modifier le texte (Entrée)', 'discret', null, function () { editerLibelle(un.id); }, { svg: 'libelle', id: 'cLibelle' })); }
-      if (un && un.type !== 'Section' && un.type !== 'Image') { items.push(bouton('Ajouter à la suite', 'discret', null, function (ev) { ouvrirPop('suite', ev.currentTarget); }, { svg: 'plus', id: 'cSuite', attrs: { 'aria-haspopup': 'true' } })); }
       if (un && t && t.fiche.table && un.type !== 'Section') { items.push(bouton(un.ficheLigne ? 'Changer la fiche liée' : 'Relier à une fiche', 'discret', null, function (ev) { ouvrirPop('fiche', ev.currentTarget); }, { svg: 'fiche', id: 'cRelier', attrs: { 'aria-haspopup': 'true' } })); }
     }
     if (un) { items.push(bouton('Ouvrir la fiche', 'discret', null, function () { ouvrirFiche(un.id); }, { svg: 'ouvrir', id: 'cOuvrir' })); }
@@ -3170,6 +3188,9 @@ function placerCtx() {
       items.push(bouton('Dupliquer (Ctrl+D)', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', id: 'cDupliquer' }));
       items.push(bouton('Premier plan', 'discret', null, function () { return premierPlan(); }, { svg: 'premier', id: 'cPremier' }));
       items.push(bouton('Supprimer (Suppr)', 'discret', null, function () { return supprimerSelection(); }, { svg: 'corbeille', id: 'cSupprimer', classe: 'w-bulle--droite' }));
+      /* « Ajouter à la suite » en dernier, bleu comme le « + » de la barre
+         d'outils. */
+      if (un && un.type !== 'Section' && un.type !== 'Image') { items.push(bouton('Ajouter à la suite', 'discret', null, function (ev) { ouvrirPop('suite', ev.currentTarget); }, { svg: 'plus', id: 'cSuite', classe: 'w-outil--ajouter w-bulle--droite', attrs: { 'aria-haspopup': 'true' } })); }
     }
   } else if (etat.lienSel && etat.lienParId[etat.lienSel]) {
     var l = etat.lienParId[etat.lienSel];
@@ -4801,7 +4822,7 @@ function editeurLegende(cible, apres, idBase) {
     var f = focusId ? document.getElementById(focusId) : null;
     if (f) { f.focus(); }
   };
-  bloc.appendChild(titreColonne('Légende des couleurs', idBase + 'Titre', 'Le sens de chaque couleur : il s\'affiche dans le volet, la fiche et la liste, et sert de filtre. On choisit la couleur d\'un élément dans sa barre d\'actions.'));
+  bloc.appendChild(titreColonne('Légende des couleurs', idBase + 'Titre', 'Le sens de chaque couleur : il s\'affiche sur la toile (case « Légende »), dans la fiche et dans la liste. On choisit la couleur d\'un élément dans sa barre d\'actions.'));
   var ul = creer('ul', { classe: 'w-legende-param', attrs: { 'aria-label': 'Couleurs de la légende' } });
   cible.legende.forEach(function (x, i) {
     var pastille = creer('span', { classe: 'w-legende-param__pastille', attrs: { 'aria-hidden': 'true' } });
@@ -4889,7 +4910,7 @@ function editeurFiche(cible, apres, idBase) {
 
 function editeurAffichage(cible, apres, idBase) {
   var col1 = creer('div', { classe: 'w-colonne' }, [titreColonne('À l\'ouverture', idBase + 'TitreAff', 'Réglages de départ ; chaque personne peut les changer pour elle dans le volet.')]);
-  [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende sur la toile (et à l\'impression)'], ['votes', 'Votes (atelier)']].forEach(function (x) {
+  [['grille', 'Grille magnétique'], ['libellesLiens', 'Libellés des connecteurs'], ['minicarte', 'Mini-carte'], ['legende', 'Légende'], ['votes', 'Votes (atelier)']].forEach(function (x) {
     col1.appendChild(caseACocher(idBase + 'Aff_' + x[0], x[1], !!cible.affichage[x[0]], function (v) { cible.affichage[x[0]] = v; apres(); }));
   });
   var col2 = creer('div', { classe: 'w-colonne' }, [titreColonne('Filtres proposés dans le volet', idBase + 'TitreFil', 'La recherche et la légende sont toujours proposées.')]);
@@ -6194,7 +6215,7 @@ var ONGLETS_AIDE = ['À quoi ça sert', 'Pas à pas', 'Questions'];
 var FICHES_AIDE = [
   { cle: 'creation0', titre: 'Création : Point de départ', texte: 'Sélectionnez un modèle de départ : un tableau vierge, un modèle pour schématiser (logigramme, couloirs, arbre de décision...) ou pour animer un atelier (rétrospective, cadrage, matrice...), ou les lignes d\'une table à placer sur la toile.' },
   { cle: 'creation1', titre: 'Création : Le tableau blanc', texte: 'Donnez un nom au tableau blanc : il nomme son onglet, et il est obligatoire pour continuer. Vous voyez aussi votre point de départ ; vous pouvez en changer.' },
-  { cle: 'creation2', titre: 'Création : Formes et couleurs', texte: 'Donnez un sens à chaque couleur (Décision, Idée, Irritant...). La légende s\'affiche dans le volet et sert de filtre.' },
+  { cle: 'creation2', titre: 'Création : Formes et couleurs', texte: 'Donnez un sens à chaque couleur (Décision, Idée, Irritant...). La légende s\'affiche sur la toile avec la case « Légende » du volet, et à l\'impression.' },
   { cle: 'creation3', titre: 'Création : La fiche', texte: 'Choisissez si une forme peut ouvrir une ligne d\'une table du document, et les champs proposés dans la fiche (responsable, statut, pièces jointes).' },
   { cle: 'creation4', titre: 'Création : Affichage et filtres', texte: 'Réglages de départ (grille, mini-carte, votes) et filtres proposés dans le volet. « Créer le tableau blanc », au bout de la ligne des étapes, est disponible à chaque étape.' },
   { cle: 'principal', titre: 'Dessiner', texte: 'Le bouton « + » à gauche de la toile ajoute un post-it, une forme, un texte, une section, un couloir ou une image au centre de la vue ; le clic droit sur un élément ajoute la suite. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée ; le connecteur peut être droit ou coudé.' },
