@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.0.3
+  Version     : 1.0.4
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -31,7 +31,7 @@
   d'une autre table du document (fiche liée, contenu affiché dans la fiche).
   Plusieurs tableaux blancs par document, en onglets. Vue toile et vue liste.
   Travail à plusieurs : les ajouts des autres personnes apparaissent dès
-  qu'ils sont enregistrés (relecture toutes les quelques secondes).
+  qu'ils sont enregistrés (relecture toutes les 10 secondes).
   Sorties : impression, PDF (par la fenêtre d'impression), image PNG,
   export CSV des éléments.
 
@@ -45,6 +45,11 @@
 
   HISTORIQUE
   ----------
+  1.0.4 - 16/11/2026 - CSNC - Document lent : relecture de fond toutes les
+          10 s (au lieu de 4), un seul essai, jamais tant qu'une lecture
+          precedente attend encore sa reponse ; la toile reste affichee avec
+          un avis discret ; au chargement, message « Le document met du
+          temps a repondre ».
   1.0.3 - 16/11/2026 - CSNC - Onglets au style du systeme de design, comme
           Diploverse : « Nouveau tableau blanc » avec l'icone +, actif pendant
           la creation ; navigation aux fleches.
@@ -595,7 +600,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.0.3';
+var VERSION_WIDGET = '1.0.4';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -604,7 +609,9 @@ var DELAI_API_MS = 30000;
 var DELAI_DEMARRAGE_MS = 800;
 /* Travail a plusieurs : relecture des tables a cet intervalle tant que la
    page est visible et que personne ne manipule la toile. */
-var DELAI_ACTUALISATION_MS = 4000;
+var DELAI_ACTUALISATION_MS = 10000;
+/* Relecture de fond : un seul essai, abandonne apres ce delai. */
+var DELAI_RELECTURE_MS = 20000;
 var DELAI_ANNULER_MS = 12000;
 var DELAI_SAUVEGARDE_MS = 700;
 var TAILLE_MAX_PJ = 20000000;
@@ -804,7 +811,7 @@ var etat = {
   filtres: { texte: '', section: '', responsable: '', statut: '', masquees: {} }, affichage: null,
   vueType: 'toile', fiche: null, edition: null, geste: null, pop: null, voletMobile: false,
   annulation: null, creation: null, param: null, aide: { ouverte: false, onglet: 0 },
-  enCours: false, idSeq: 0, agrandi: false, minuterieRafraichir: null, ecrituresEnCours: 0
+  enCours: false, lecturesEnAttente: 0, dernierAvisLenteur: 0, idSeq: 0, agrandi: false, minuterieRafraichir: null, ecrituresEnCours: 0
 };
 
 /* === SECTION : SOCLE COMMUN ===
@@ -1309,12 +1316,24 @@ function gristAvecTimeout(promesse, delaiMs) {
 
 /* Une lecture sans reponse est relancee avec un delai croissant ; les
    ecritures ne sont jamais rejouees. */
-async function lireTable(tid) {
-  var delais = [10000, 20000, DELAI_API_MS];
+/* Chaque demande est comptee jusqu'a la vraie reponse du serveur (meme
+   apres l'abandon par delai) : la relecture de fond ne part pas tant
+   qu'une demande precedente attend encore, pour ne jamais les empiler. */
+function demanderTable(tid) {
+  etat.lecturesEnAttente++;
+  var p = grist.docApi.fetchTable(tid);
+  var fin = function () { etat.lecturesEnAttente = Math.max(0, etat.lecturesEnAttente - 1); };
+  p.then(fin, fin);
+  return p;
+}
+
+async function lireTable(tid, leger) {
+  var delais = leger ? [DELAI_RELECTURE_MS] : [10000, 20000, DELAI_API_MS];
   var derniere = null;
   for (var essai = 0; essai < delais.length; essai++) {
+    if (essai === 1 && etat.vue === 'chargement') { var t = document.getElementById('loaderMessage'); if (t) { t.textContent = 'Le document met du temps à répondre, nouvel essai…'; } }
     try {
-      return await gristAvecTimeout(grist.docApi.fetchTable(tid), delais[essai]);
+      return await gristAvecTimeout(demanderTable(tid), delais[essai]);
     } catch (e) {
       derniere = e;
       logSecurite('AVERTISSEMENT', 'Lecture de ' + tid + ' sans réponse, nouvel essai', e);
@@ -1706,14 +1725,14 @@ function tableauCourant() {
    Lecture des deux tables du widget (tous les tableaux blancs), et des
    tables liees au tableau courant (fiche liee, source). La signature evite de
    redessiner quand rien n'a change. */
-async function chargerDonnees() {
+async function chargerDonnees(leger) {
   var te = etat.tables.el, tl = etat.tables.li;
   var t = tableauCourant();
   var liees = [];
   if (t && t.fiche.table && etat.meta.tables[t.fiche.table]) { liees.push(t.fiche.table); }
   if (t && t.source.table && etat.meta.tables[t.source.table] && liees.indexOf(t.source.table) === -1) { liees.push(t.source.table); }
-  var lectures = [te ? lireTable(te) : Promise.resolve(null), tl ? lireTable(tl) : Promise.resolve(null)];
-  liees.forEach(function (x) { lectures.push(lireTable(x).catch(function (e) { logSecurite('AVERTISSEMENT', 'Table liée illisible : ' + x, e); return null; })); });
+  var lectures = [te ? lireTable(te, leger) : Promise.resolve(null), tl ? lireTable(tl, leger) : Promise.resolve(null)];
+  liees.forEach(function (x) { lectures.push(lireTable(x, leger).catch(function (e) { logSecurite('AVERTISSEMENT', 'Table liée illisible : ' + x, e); return null; })); });
   var r = await Promise.all(lectures);
   var signature = JSON.stringify(r) + '|' + liees.join(',');
   if (signature === etat.signature) { return false; }
@@ -4744,12 +4763,12 @@ function planifierRafraichissement(delai) {
 async function rafraichir(force) {
   if (etat.vue !== 'principal' && etat.vue !== 'parametrage') { return; }
   if (!etat.tables.el) { return; }
-  if (!force && (etat.enCours || etat.geste || etat.edition || etat.ecrituresEnCours || _deplacementClavier)) { etat.attente = true; return; }
+  if (!force && (etat.enCours || etat.geste || etat.edition || etat.ecrituresEnCours || etat.lecturesEnAttente || _deplacementClavier)) { etat.attente = true; return; }
   etat.attente = false;
   etat.enCours = true;
   try {
     if (force) { etat.signature = ''; }
-    var change = await chargerDonnees();
+    var change = await chargerDonnees(!force);
     if (change && etat.vue === 'principal') {
       if (etat.vueType === 'toile') { rendreMonde(); } else { rendreListe(); }
       majVolet();
@@ -4760,6 +4779,12 @@ async function rafraichir(force) {
     }
   } catch (e) {
     logSecurite('AVERTISSEMENT', 'Relecture des tableaux blancs impossible', e);
+    /* Document lent : la toile reste affichee, un seul avis toutes les
+       deux minutes au plus. */
+    if (Date.now() - etat.dernierAvisLenteur > 120000) {
+      etat.dernierAvisLenteur = Date.now();
+      afficherToast('Le document répond lentement : l\'affichage sera mis à jour dès qu\'il répondra.', null, 8000);
+    }
   } finally {
     etat.enCours = false;
   }
