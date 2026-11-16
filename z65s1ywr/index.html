@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.0.4
+  Version     : 1.1.0
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -21,7 +21,12 @@
   pincement sur tablette), grille magnétique, mini-carte, sections qui
   emportent leur contenu quand on les déplace.
   Outils : Sélectionner, Déplacer la vue, Post-it, Forme (rectangle, pilule,
-  ovale, losange, parallélogramme), Texte, Connecteur, Section.
+  ovale, losange, parallélogramme), Texte, Connecteur, Section, Couloir
+  (bande d'un acteur), Image. Connecteurs droits ou coudés ; aligner et
+  répartir ; repères magnétiques ; copier, couper, coller (même entre deux
+  tableaux blancs) ; copie d'éléments vers une table du document.
+  Atelier : présence des personnes (initiales), votes par personne avec
+  limite, minuteur partagé, commentaires sur chaque élément.
   Sélection au clic, au lasso ou à Ctrl+A ; déplacement à la souris, au doigt
   ou aux flèches du clavier (alternative au glisser-déposer) ; barre
   d'actions sur la sélection (couleur, forme, libellé, fiche liée, votes,
@@ -31,20 +36,37 @@
   d'une autre table du document (fiche liée, contenu affiché dans la fiche).
   Plusieurs tableaux blancs par document, en onglets. Vue toile et vue liste.
   Travail à plusieurs : les ajouts des autres personnes apparaissent dès
-  qu'ils sont enregistrés (relecture toutes les 10 secondes).
+  qu'ils sont enregistrés (relecture toutes les 10 secondes ; présence
+  signalée toutes les 30 secondes).
   Sorties : impression, PDF (par la fenêtre d'impression), image PNG,
   export CSV des éléments.
 
-  Assistant de création : Point de départ (« J'ai déjà des données » : les
-  lignes d'une table deviennent des post-it reliés à leur ligne ; « Je n'ai
-  pas encore de données » : six modèles en tuiles), Les tables, Formes et
-  couleurs, La fiche, Affichage et filtres, Récapitulatif.
+  Assistant de création : Point de départ (« Que voulez-vous faire ? » :
+  feuille blanche, 14 modèles rangés par usage, ou les lignes d'une table
+  placées en post-it reliés à leur ligne), Les tables, Formes et couleurs,
+  La fiche, Affichage et filtres, Récapitulatif.
   Paramétrages : Général (nom, description, tables, droits, suppression),
   Formes et couleurs, La fiche, Affichage et filtres. Enregistrement
   automatique.
 
   HISTORIQUE
   ----------
+  1.1.0 - 16/11/2026 - CSNC - Grande évolution :
+          - assistant : premier écran « Que voulez-vous faire ? » (feuille
+            blanche, Schématiser, Animer un atelier, Partir de vos données),
+            écart à la charte voulu pour ce widget seulement ;
+          - 9 nouveaux modèles : démarche en couloirs, circuit de validation,
+            arbre de décision, SIPOC, matrice urgent / important, parties
+            prenantes, analyse des causes, atelier de cadrage, feuille de
+            route (15 au total) ;
+          - couloirs (sections en bandes), connecteurs coudés (colonne TRACE),
+            aligner et répartir, repères magnétiques, images sur la toile
+            (outil Image, collage), copier, couper, coller entre tableaux,
+            copie d'éléments vers une table du document ;
+          - table 👥 PARTICIPATION DU TABLEAU BLANC ⚡ : présence (initiales
+            des personnes présentes), votes par personne avec limite,
+            minuteur d'atelier partagé, commentaires par élément ;
+          - mise à niveau automatique des tables créées en 1.0.x.
   1.0.4 - 16/11/2026 - CSNC - Document lent : relecture de fond toutes les
           10 s (au lieu de 4), un seul essai, jamais tant qu'une lecture
           precedente attend encore sa reponse ; la toile reste affichee avec
@@ -86,7 +108,13 @@
   FICHE_TABLE et FICHE_LIGNE (ligne liée d'une autre table), PIECES_JOINTES,
   CREE_LE, CREE_PAR, MODIFIE_LE, MODIFIE_PAR.
   🔗 LIENS DU TABLEAU BLANC ⚡ (LIENS_DU_TABLEAU_BLANC_) : TABLEAU, DE et VERS
-  (références vers les éléments), LIBELLE, STYLE, FLECHE, métadonnées.
+  (références vers les éléments), LIBELLE, STYLE, FLECHE, TRACE, métadonnées.
+  👥 PARTICIPATION DU TABLEAU BLANC ⚡ (PARTICIPATION_DU_TABLEAU_BLANC_) :
+  TABLEAU, TYPE (Présence, Vote, Minuteur, Commentaire), AUTEUR, VALEUR,
+  DATE, ELEMENT (référence), métadonnées. L'identité d'une personne est lue
+  dans CREE_PAR de sa ligne de présence.
+  Les tables créées en 1.0.x sont mises à niveau à l'ouverture (colonnes et
+  choix ajoutés, rien de supprimé), pour qui peut paramétrer.
   Réglages : 📦 BIBLIOTHÈQUE CENTRALE ⚡, lignes WIDGET = « Diploworkflow »
   (CLE = CONFIG, ACCES_EDITION, ACCES_PARAMETRAGE). La ligne CONFIG décrit
   tous les tableaux blancs du document (nom, légende, fiche, affichage).
@@ -366,6 +394,39 @@
     .w-source { position: absolute; z-index: 11; left: 50%; top: .75rem; transform: translateX(-50%); padding: .25rem .75rem; font-size: .8125rem;
       background: var(--background-contrast-info); color: var(--text-default-info); border: 1px solid var(--border-plain-info); }
 
+  /* === SECTION : NOUVEAUTES 1.1.0 ===
+     Couloirs, images, reperes, presence, minuteur, commentaires. */
+    .w-el--couloir { border: 1px solid var(--bord-el, var(--border-plain-grey)); border-style: solid; background: var(--fond-section, transparent); color: var(--text-default-grey); }
+    .w-el--couloir .w-el__texte { position: absolute; left: 0; top: 0; bottom: 0; width: 2.5rem; max-width: none; max-height: none; padding: .5rem 0; border: 0;
+      border-right: 1px solid var(--bord-el, var(--border-plain-grey)); writing-mode: vertical-rl; transform: rotate(180deg); display: flex; align-items: center; justify-content: center;
+      text-overflow: ellipsis; white-space: nowrap; background: var(--fond-el); color: var(--text-default-grey); font-size: .875rem; font-weight: 700; line-height: 2.5rem; }
+    .w-el--image { padding: 0; background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-image { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .w-image--attente, .w-image--erreur { background: var(--background-contrast-grey); }
+    .w-el__legende { position: absolute; left: 0; right: 0; top: 100%; margin-top: .25rem; font-size: .8125rem; text-align: center; color: var(--text-mention-grey); pointer-events: none; }
+    .w-repere { position: absolute; z-index: 4000; background: var(--border-plain-warning); pointer-events: none; }
+    .w-vote--mien { box-shadow: 0 0 0 2px var(--background-contrast-yellow-tournesol); }
+    .w-el__badge svg { margin-right: 1px; }
+    .w-presents { display: flex; gap: .25rem; list-style: none; margin: 0 0 0 .25rem; padding: 0; }
+    .w-presents li { margin: 0; padding: 0; }
+    .w-present { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; font-size: .75rem; font-weight: 700;
+      background: var(--background-contrast-blue-ecume, var(--background-contrast-grey)); color: var(--text-title-blue-france); border: 2px solid var(--background-default-grey); }
+    .w-present--moi { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .w-present:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-minuteur { display: inline-flex; align-items: center; min-height: 2rem; padding: 0 .625rem; font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums;
+      background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-minuteur--fin { background: var(--background-contrast-error, var(--background-contrast-grey)); color: var(--text-default-error); }
+    .w-barre__sep { width: 1px; align-self: stretch; margin: .25rem .375rem; background: var(--border-default-grey); }
+    .w-ctx { flex-wrap: wrap; max-width: calc(100% - 8px); }
+    .w-commentaires { list-style: none; margin: 0 0 .5rem; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-commentaires > li { margin: 0; padding: .5rem .625rem; background: var(--background-alt-grey); color: var(--text-default-grey); border-left: 3px solid var(--border-default-grey); }
+    .w-commentaire__tete { display: flex; align-items: center; gap: .5rem; font-size: .8125rem; }
+    .w-commentaire__tete .fr-btn { margin-left: auto; }
+    .w-commentaire__texte { margin: .25rem 0 0; font-size: .875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .w-votes-fiche { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .w-modele__vignette--icone { display: flex; align-items: center; justify-content: center; color: var(--text-title-blue-france); }
+    .w-modele:disabled { cursor: default; opacity: .6; }
+
   /* === SECTION : FICHE DE L'ELEMENT === */
     .w-fiche { flex: 0 0 22rem; width: 22rem; min-height: 0; display: flex; flex-direction: column; margin-left: .75rem;
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
@@ -600,7 +661,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.0.4';
+var VERSION_WIDGET = '1.1.0';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -649,8 +710,19 @@ var COLONNES_META = [
   { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR', formula: 'user.Email', recalcWhen: 2, description: 'Courriel de la dernière personne ayant modifié la ligne, mis à jour à chaque modification. Calculé automatiquement. Ne le modifiez pas.' }
 ];
 
-var TYPES = ['Forme', 'Post-it', 'Texte', 'Section'];
+var TYPES = ['Forme', 'Post-it', 'Texte', 'Section', 'Image'];
 var FORMES = ['Rectangle', 'Pilule', 'Ovale', 'Losange', 'Parallélogramme'];
+/* Une section est un cadre (zone libre) ou un couloir (bande d'un acteur). */
+var FORMES_SECTION = ['Cadre', 'Couloir'];
+var TRACES = ['Droit', 'Coudé'];
+var TYPES_PARTICIPATION = ['Présence', 'Vote', 'Minuteur', 'Commentaire'];
+var VOTES_PAR_PERSONNE = [0, 1, 3, 5, 10];
+/* Presence : signal toutes les 30 s, personne affichee pendant 75 s. */
+var DELAI_PRESENCE_MS = 30000;
+var DUREE_PRESENCE_MS = 75000;
+var DUREES_MINUTEUR = [1, 3, 5, 10, 15, 30];
+var TAILLE_MAX_IMAGE = 10000000;
+var EXTENSIONS_IMAGES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 var STATUTS = ['À faire', 'En cours', 'Fait', 'Bloqué'];
 var STYLES_LIEN = ['Plein', 'Pointillés'];
 var FLECHES = ['Vers la fin', 'Dans les deux sens', 'Sans flèche'];
@@ -668,8 +740,8 @@ var DEF_EL = {
   description: 'Éléments des tableaux blancs du widget Diploworkflow (formes, post-it, textes, sections) : une ligne par élément, avec sa place sur la toile. Partagée par tous les tableaux blancs du document.',
   colonnes: [
     { id: 'TABLEAU', type: 'Text', label: 'TABLEAU', description: 'Identifiant du tableau blanc qui contient l\'élément. Rempli par le widget. Ne le modifiez pas.' },
-    { id: 'TYPE', type: 'Choice', label: 'TYPE', widgetOptions: { widget: 'TextBox', choices: TYPES }, description: 'Nature de l\'élément : Forme, Post-it, Texte ou Section. Choix dans une liste.' },
-    { id: 'FORME', type: 'Choice', label: 'FORME', widgetOptions: { widget: 'TextBox', choices: FORMES }, description: 'Dessin d\'une forme : Rectangle (étape), Pilule (début ou fin), Ovale, Losange (décision), Parallélogramme (donnée). Choix dans une liste.' },
+    { id: 'TYPE', type: 'Choice', label: 'TYPE', widgetOptions: { widget: 'TextBox', choices: TYPES }, description: 'Nature de l\'élément : Forme, Post-it, Texte, Section ou Image. Choix dans une liste.' },
+    { id: 'FORME', type: 'Choice', label: 'FORME', widgetOptions: { widget: 'TextBox', choices: FORMES.concat(FORMES_SECTION) }, description: 'Dessin d\'une forme : Rectangle (étape), Pilule (début ou fin), Ovale, Losange (décision), Parallélogramme (donnée) ; pour une section : Cadre ou Couloir (bande d\'un acteur). Choix dans une liste.' },
     { id: 'LIBELLE', type: 'Text', label: 'LIBELLÉ', widgetOptions: { wrap: true }, description: 'Texte affiché dans l\'élément. Vide pour un élément relié à une fiche : le libellé de la ligne liée s\'affiche alors. Saisie manuelle.' },
     { id: 'DESCRIPTION', type: 'Text', label: 'DESCRIPTION', widgetOptions: { wrap: true }, description: 'Explication détaillée, visible dans la fiche de l\'élément. Saisie manuelle.' },
     { id: 'COULEUR', type: 'Text', label: 'COULEUR', description: 'Nom d\'une couleur du système de design de l\'État (blue-ecume, green-menthe...), dont le sens est donné par la légende du tableau. Se choisit dans le widget.' },
@@ -695,10 +767,23 @@ var DEF_LI = {
     { id: 'STYLE', type: 'Choice', label: 'STYLE', widgetOptions: { widget: 'TextBox', choices: STYLES_LIEN }, description: 'Trait du connecteur : Plein ou Pointillés. Choix dans une liste.' },
     { id: 'FLECHE', type: 'Choice', label: 'FLÈCHE', widgetOptions: { widget: 'TextBox', choices: FLECHES }, description: 'Sens du connecteur : Vers la fin, Dans les deux sens ou Sans flèche. Choix dans une liste.' },
     { id: 'DE', type: 'Ref:@EL', label: 'DE', affichage: 'LIBELLE', description: 'Élément de départ du connecteur. Référence vers la table des éléments.' },
-    { id: 'VERS', type: 'Ref:@EL', label: 'VERS', affichage: 'LIBELLE', description: 'Élément d\'arrivée du connecteur. Référence vers la table des éléments.' }
+    { id: 'VERS', type: 'Ref:@EL', label: 'VERS', affichage: 'LIBELLE', description: 'Élément d\'arrivée du connecteur. Référence vers la table des éléments.' },
+    { id: 'TRACE', type: 'Choice', label: 'TRACÉ', widgetOptions: { widget: 'TextBox', choices: TRACES }, description: 'Dessin du connecteur : Droit, ou Coudé (à angle droit). Choix dans une liste.' }
   ]
 };
-var DEFS = [DEF_EL, DEF_LI];
+var DEF_PA = {
+  cle: 'pa', base: 'PARTICIPATION_DU_TABLEAU_BLANC', titre: '👥 PARTICIPATION DU TABLEAU BLANC ⚡', colRequise: 'AUTEUR',
+  description: 'Participation aux tableaux blancs du widget Diploworkflow : présence des personnes, votes, minuteur d\'atelier et commentaires. Une ligne par signe de participation.',
+  colonnes: [
+    { id: 'TABLEAU', type: 'Text', label: 'TABLEAU', description: 'Identifiant du tableau blanc concerné. Rempli par le widget. Ne le modifiez pas.' },
+    { id: 'TYPE', type: 'Choice', label: 'TYPE', widgetOptions: { widget: 'TextBox', choices: TYPES_PARTICIPATION }, description: 'Nature de la ligne : Présence (personne en train de travailler sur le tableau), Vote, Minuteur ou Commentaire. Rempli par le widget.' },
+    { id: 'AUTEUR', type: 'Text', label: 'AUTEUR', description: 'Personne à l\'origine de la ligne (courriel). Rempli par le widget.' },
+    { id: 'VALEUR', type: 'Text', label: 'VALEUR', widgetOptions: { wrap: true }, description: 'Texte d\'un commentaire, ou réglage du minuteur. Rempli par le widget.' },
+    { id: 'DATE', type: 'Numeric', label: 'DATE', widgetOptions: { decimals: 0 }, description: 'Moment de la dernière activité, en millisecondes depuis 1970 (présence, fin du minuteur). Rempli par le widget.' },
+    { id: 'ELEMENT', type: 'Ref:@EL', label: 'ÉLÉMENT', affichage: 'LIBELLE', description: 'Élément visé par un vote ou un commentaire. Référence vers la table des éléments.' }
+  ]
+};
+var DEFS = [DEF_EL, DEF_LI, DEF_PA];
 
 /* Couleurs proposees : couleurs du systeme de design, appliquees par ses
    variables, jamais par une valeur ecrite en dur. 'blanc' = fond par defaut. */
@@ -718,9 +803,9 @@ var PALETTE_DISTINCTE = ['blue-ecume', 'yellow-tournesol', 'green-menthe', 'pink
 /* Modeles proposes a la creation. Positions en points sur la toile. Les
    liens designent les elements par leur rang dans la liste. */
 var MODELES = [
-  { cle: 'logigramme', nom: 'Logigramme de processus', desc: 'Début, étapes, décisions et fin',
+  { cle: 'logigramme', groupe: 'schema', nom: 'Logigramme de processus', desc: 'Début, étapes, décisions et fin',
     legende: [['green-menthe', 'Début et fin'], ['blanc', 'Étape'], ['yellow-tournesol', 'Décision'], ['yellow-moutarde', 'Commentaire']],
-    affichage: { votes: false },
+    affichage: { votes: false }, traceDefaut: 'Coudé',
     elements: [
       { t: 'Forme', f: 'Pilule', l: 'Début', c: 'green-menthe', x: 0, y: 0, w: 180, h: 56 },
       { t: 'Forme', f: 'Rectangle', l: 'Première étape', c: 'blanc', x: 0, y: 120, w: 180, h: 72 },
@@ -730,7 +815,7 @@ var MODELES = [
       { t: 'Post-it', l: 'Double-cliquez sur un élément pour changer son texte.', c: 'yellow-moutarde', x: 520, y: 100, w: 180, h: 140 }
     ],
     liens: [[0, 1, ''], [1, 2, ''], [2, 3, 'Oui'], [2, 4, 'Non'], [3, 4, '']] },
-  { cle: 'atelier', nom: 'Atelier post-it', desc: 'Idées par thème, votes',
+  { cle: 'atelier', groupe: 'atelier', nom: 'Atelier post-it', desc: 'Idées par thème, votes',
     legende: [['green-menthe', 'Idées'], ['blue-ecume', 'Questions'], ['pink-tuile', 'Points de vigilance']],
     affichage: { votes: true },
     elements: [
@@ -739,7 +824,7 @@ var MODELES = [
       { t: 'Section', l: 'Points de vigilance', c: 'pink-tuile', x: 720, y: 0, w: 320, h: 520 },
       { t: 'Post-it', l: 'Votre idée', c: 'green-menthe', x: 30, y: 40, w: 160, h: 130 }
     ], liens: [] },
-  { cle: 'retro', nom: 'Rétrospective', desc: 'Quatre colonnes à remplir en équipe',
+  { cle: 'retro', groupe: 'atelier', nom: 'Rétrospective', desc: 'Quatre colonnes à remplir en équipe',
     legende: [['green-menthe', 'Ce qui a bien marché'], ['pink-tuile', 'À améliorer'], ['blue-ecume', 'Idées à tester'], ['purple-glycine', 'Actions']],
     affichage: { votes: true },
     elements: [
@@ -748,7 +833,7 @@ var MODELES = [
       { t: 'Section', l: 'Idées à tester', c: 'blue-ecume', x: 680, y: 0, w: 300, h: 520 },
       { t: 'Section', l: 'Actions', c: 'purple-glycine', x: 1020, y: 0, w: 300, h: 520 }
     ], liens: [] },
-  { cle: 'mentale', nom: 'Carte mentale', desc: 'Une idée centrale et ses branches',
+  { cle: 'mentale', groupe: 'schema', nom: 'Carte mentale', desc: 'Une idée centrale et ses branches',
     legende: [['blue-ecume', 'Idée centrale'], ['blanc', 'Branche']],
     affichage: { votes: false },
     elements: [
@@ -759,7 +844,20 @@ var MODELES = [
       { t: 'Forme', f: 'Pilule', l: 'Branche 4', c: 'blanc', x: 560, y: 380, w: 160, h: 48 }
     ],
     liens: [[0, 1, '', 'Sans flèche'], [0, 2, '', 'Sans flèche'], [0, 3, '', 'Sans flèche'], [0, 4, '', 'Sans flèche']] },
-  { cle: 'parcours', nom: 'Parcours usager', desc: 'Étapes, ressentis et irritants',
+  { cle: 'arbre', groupe: 'schema', nom: 'Arbre de décision', desc: 'Des questions qui mènent à une réponse',
+    legende: [['yellow-tournesol', 'Question'], ['green-menthe', 'Réponse'], ['pink-tuile', 'Cas à part']],
+    affichage: { votes: false }, traceDefaut: 'Coudé',
+    elements: [
+      { t: 'Forme', f: 'Losange', l: 'Première question ?', c: 'yellow-tournesol', x: 380, y: 0, w: 200, h: 120 },
+      { t: 'Forme', f: 'Losange', l: 'Deuxième question ?', c: 'yellow-tournesol', x: 120, y: 200, w: 200, h: 120 },
+      { t: 'Forme', f: 'Losange', l: 'Troisième question ?', c: 'yellow-tournesol', x: 640, y: 200, w: 200, h: 120 },
+      { t: 'Forme', f: 'Pilule', l: 'Réponse A', c: 'green-menthe', x: 0, y: 400, w: 160, h: 56 },
+      { t: 'Forme', f: 'Pilule', l: 'Réponse B', c: 'green-menthe', x: 280, y: 400, w: 160, h: 56 },
+      { t: 'Forme', f: 'Pilule', l: 'Réponse C', c: 'green-menthe', x: 520, y: 400, w: 160, h: 56 },
+      { t: 'Forme', f: 'Pilule', l: 'Cas à part', c: 'pink-tuile', x: 800, y: 400, w: 160, h: 56 }
+    ],
+    liens: [[0, 1, 'Oui'], [0, 2, 'Non'], [1, 3, 'Oui'], [1, 4, 'Non'], [2, 5, 'Oui'], [2, 6, 'Non']] },
+  { cle: 'parcours', groupe: 'atelier', nom: 'Parcours usager', desc: 'Étapes, ressentis et irritants',
     legende: [['blue-ecume', 'Étape'], ['yellow-tournesol', 'Action de l\'usager'], ['pink-macaron', 'Irritant'], ['green-bourgeon', 'Opportunité']],
     affichage: { votes: false },
     elements: [
@@ -769,15 +867,104 @@ var MODELES = [
       { t: 'Section', l: 'Suivre', c: 'blue-ecume', x: 780, y: 0, w: 240, h: 520 },
       { t: 'Section', l: 'Recevoir', c: 'blue-ecume', x: 1040, y: 0, w: 240, h: 520 }
     ], liens: [] },
-  { cle: 'vierge', nom: 'Tableau vierge', desc: 'Une toile libre, sans structure',
+  { cle: 'couloirs', groupe: 'schema', nom: 'Démarche en couloirs', desc: 'Une bande par acteur : usager, poste, centrale',
+    legende: [['green-menthe', 'Début et fin'], ['blanc', 'Étape'], ['yellow-tournesol', 'Décision'], ['blue-ecume', 'Couloir']],
+    affichage: { votes: false }, traceDefaut: 'Coudé',
+    elements: [
+      { t: 'Section', f: 'Couloir', l: 'Usager', c: 'blue-ecume', x: 0, y: 0, w: 1240, h: 180 },
+      { t: 'Section', f: 'Couloir', l: 'Poste', c: 'blue-ecume', x: 0, y: 180, w: 1240, h: 180 },
+      { t: 'Section', f: 'Couloir', l: 'Centrale', c: 'blue-ecume', x: 0, y: 360, w: 1240, h: 180 },
+      { t: 'Forme', f: 'Pilule', l: 'Dépôt de la demande', c: 'green-menthe', x: 100, y: 62, w: 180, h: 56 },
+      { t: 'Forme', f: 'Rectangle', l: 'Instruction', c: 'blanc', x: 340, y: 234, w: 180, h: 72 },
+      { t: 'Forme', f: 'Losange', l: 'Dossier complet ?', c: 'yellow-tournesol', x: 580, y: 215, w: 160, h: 110 },
+      { t: 'Forme', f: 'Rectangle', l: 'Validation', c: 'blanc', x: 800, y: 414, w: 180, h: 72 },
+      { t: 'Forme', f: 'Pilule', l: 'Notification', c: 'green-menthe', x: 1020, y: 62, w: 180, h: 56 }
+    ],
+    liens: [[3, 4, ''], [4, 5, ''], [5, 6, 'Oui'], [5, 3, 'Non'], [6, 7, '']] },
+  { cle: 'circuit', groupe: 'schema', nom: 'Circuit de validation', desc: 'Rédaction, relecture, visa, signature',
+    legende: [['green-menthe', 'Début et fin'], ['blanc', 'Étape'], ['yellow-tournesol', 'Visa']],
+    affichage: { votes: false }, traceDefaut: 'Coudé',
+    elements: [
+      { t: 'Forme', f: 'Rectangle', l: 'Rédaction', c: 'blanc', x: 0, y: 0, w: 170, h: 72 },
+      { t: 'Forme', f: 'Rectangle', l: 'Relecture', c: 'blanc', x: 240, y: 0, w: 170, h: 72 },
+      { t: 'Forme', f: 'Losange', l: 'Visa accordé ?', c: 'yellow-tournesol', x: 480, y: -20, w: 160, h: 112 },
+      { t: 'Forme', f: 'Rectangle', l: 'Signature', c: 'blanc', x: 710, y: 0, w: 170, h: 72 },
+      { t: 'Forme', f: 'Pilule', l: 'Diffusion', c: 'green-menthe', x: 950, y: 8, w: 170, h: 56 }
+    ],
+    liens: [[0, 1, ''], [1, 2, ''], [2, 3, 'Oui'], [2, 0, 'À reprendre'], [3, 4, '']] },
+  { cle: 'sipoc', groupe: 'schema', nom: 'SIPOC', desc: 'Fournisseurs, entrées, processus, sorties, clients',
+    legende: [['blue-ecume', 'Fournisseurs et clients'], ['yellow-tournesol', 'Entrées et sorties'], ['green-menthe', 'Étapes du processus']],
+    affichage: { votes: false },
+    elements: [
+      { t: 'Section', l: 'Fournisseurs', c: 'blue-ecume', x: 0, y: 0, w: 230, h: 480 },
+      { t: 'Section', l: 'Entrées', c: 'yellow-tournesol', x: 250, y: 0, w: 230, h: 480 },
+      { t: 'Section', l: 'Processus', c: 'green-menthe', x: 500, y: 0, w: 230, h: 480 },
+      { t: 'Section', l: 'Sorties', c: 'yellow-tournesol', x: 750, y: 0, w: 230, h: 480 },
+      { t: 'Section', l: 'Clients', c: 'blue-ecume', x: 1000, y: 0, w: 230, h: 480 }
+    ], liens: [] },
+  { cle: 'eisenhower', groupe: 'atelier', nom: 'Matrice urgent / important', desc: 'Prioriser en quatre cases',
+    legende: [['pink-tuile', 'À faire tout de suite'], ['green-menthe', 'À planifier'], ['yellow-tournesol', 'À déléguer'], ['beige-gris-galet', 'À abandonner']],
+    affichage: { votes: true },
+    elements: [
+      { t: 'Section', l: 'Urgent et important : faire', c: 'pink-tuile', x: 0, y: 0, w: 420, h: 300 },
+      { t: 'Section', l: 'Important, pas urgent : planifier', c: 'green-menthe', x: 440, y: 0, w: 420, h: 300 },
+      { t: 'Section', l: 'Urgent, pas important : déléguer', c: 'yellow-tournesol', x: 0, y: 320, w: 420, h: 300 },
+      { t: 'Section', l: 'Ni urgent ni important : abandonner', c: 'beige-gris-galet', x: 440, y: 320, w: 420, h: 300 }
+    ], liens: [] },
+  { cle: 'parties', groupe: 'atelier', nom: 'Parties prenantes', desc: 'Influence et intérêt de chaque acteur',
+    legende: [['purple-glycine', 'Acteur interne'], ['blue-ecume', 'Acteur externe']],
+    affichage: { votes: false },
+    elements: [
+      { t: 'Section', l: 'Satisfaire (influence forte, intérêt faible)', c: 'blanc', x: 60, y: 0, w: 420, h: 280 },
+      { t: 'Section', l: 'Associer étroitement (influence et intérêt forts)', c: 'blanc', x: 500, y: 0, w: 420, h: 280 },
+      { t: 'Section', l: 'Surveiller (influence et intérêt faibles)', c: 'blanc', x: 60, y: 300, w: 420, h: 280 },
+      { t: 'Section', l: 'Informer (influence faible, intérêt fort)', c: 'blanc', x: 500, y: 300, w: 420, h: 280 },
+      { t: 'Texte', l: 'Intérêt pour le projet →', c: 'blanc', x: 400, y: 600, w: 200, h: 36 },
+      { t: 'Texte', l: 'Influence ↑', c: 'blanc', x: -70, y: 270, w: 120, h: 36 }
+    ], liens: [] },
+  { cle: 'ishikawa', groupe: 'schema', nom: 'Analyse des causes', desc: 'Les six familles de causes d\'un problème',
+    legende: [['pink-tuile', 'Problème'], ['blanc', 'Famille de causes'], ['yellow-tournesol', 'Cause']],
+    affichage: { votes: true },
+    elements: [
+      { t: 'Forme', f: 'Rectangle', l: 'Problème à analyser', c: 'pink-tuile', x: 820, y: 210, w: 200, h: 80 },
+      { t: 'Forme', f: 'Pilule', l: 'Méthodes', c: 'blanc', x: 40, y: 20, w: 160, h: 48 },
+      { t: 'Forme', f: 'Pilule', l: 'Matériel', c: 'blanc', x: 300, y: 20, w: 160, h: 48 },
+      { t: 'Forme', f: 'Pilule', l: 'Personnes', c: 'blanc', x: 560, y: 20, w: 160, h: 48 },
+      { t: 'Forme', f: 'Pilule', l: 'Environnement', c: 'blanc', x: 40, y: 432, w: 160, h: 48 },
+      { t: 'Forme', f: 'Pilule', l: 'Données', c: 'blanc', x: 300, y: 432, w: 160, h: 48 },
+      { t: 'Forme', f: 'Pilule', l: 'Mesure', c: 'blanc', x: 560, y: 432, w: 160, h: 48 }
+    ],
+    liens: [[1, 0, ''], [2, 0, ''], [3, 0, ''], [4, 0, ''], [5, 0, ''], [6, 0, '']] },
+  { cle: 'cadrage', groupe: 'atelier', nom: 'Atelier de cadrage', desc: 'Objectifs, périmètre, risques, questions',
+    legende: [['green-menthe', 'Objectif'], ['blue-ecume', 'Périmètre'], ['pink-tuile', 'Risque'], ['yellow-tournesol', 'Question']],
+    affichage: { votes: true },
+    elements: [
+      { t: 'Section', l: 'Objectifs', c: 'green-menthe', x: 0, y: 0, w: 360, h: 300 },
+      { t: 'Section', l: 'Périmètre', c: 'blue-ecume', x: 380, y: 0, w: 360, h: 300 },
+      { t: 'Section', l: 'Hors périmètre', c: 'beige-gris-galet', x: 760, y: 0, w: 360, h: 300 },
+      { t: 'Section', l: 'Risques', c: 'pink-tuile', x: 0, y: 320, w: 360, h: 300 },
+      { t: 'Section', l: 'Questions ouvertes', c: 'yellow-tournesol', x: 380, y: 320, w: 360, h: 300 },
+      { t: 'Section', l: 'Parties prenantes', c: 'purple-glycine', x: 760, y: 320, w: 360, h: 300 }
+    ], liens: [] },
+  { cle: 'feuille', groupe: 'atelier', nom: 'Feuille de route', desc: 'Quatre trimestres, un post-it par chantier',
+    legende: [['blue-ecume', 'Chantier'], ['green-menthe', 'Livré'], ['pink-tuile', 'En retard']],
+    affichage: { votes: false },
+    elements: [
+      { t: 'Section', l: 'Trimestre 1', c: 'blanc', x: 0, y: 0, w: 280, h: 480 },
+      { t: 'Section', l: 'Trimestre 2', c: 'blanc', x: 300, y: 0, w: 280, h: 480 },
+      { t: 'Section', l: 'Trimestre 3', c: 'blanc', x: 600, y: 0, w: 280, h: 480 },
+      { t: 'Section', l: 'Trimestre 4', c: 'blanc', x: 900, y: 0, w: 280, h: 480 }
+    ], liens: [] },
+  { cle: 'vierge', groupe: 'vierge', nom: 'Tableau vierge', desc: 'Une toile libre, sans structure',
     legende: [['yellow-tournesol', 'Post-it'], ['blanc', 'Forme']],
     affichage: { votes: false }, elements: [], liens: [] }
 ];
 
 var AFFICHAGE_DEFAUT = { grille: true, libellesLiens: true, minicarte: true, votes: false };
+var ATELIER_DEFAUT = { votesParPersonne: 5, traceDefaut: 'Droit' };
 var CHAMPS_DEFAUT = { responsable: true, statut: true, pj: true };
 var FILTRES_DEFAUT = { section: true, responsable: true, statut: true };
-var TAILLES = { 'Forme': [180, 72], 'Post-it': [160, 130], 'Texte': [200, 40], 'Section': [360, 300] };
+var TAILLES = { 'Forme': [180, 72], 'Post-it': [160, 130], 'Texte': [200, 40], 'Section': [360, 300], 'Couloir': [1200, 200], 'Image': [320, 220] };
 
 var ETAPES_CREATION = ['Point de départ', 'Les tables', 'Formes et couleurs', 'La fiche', 'Affichage et filtres', 'Récapitulatif'];
 var ETAPES_PARAM = ['Général', 'Formes et couleurs', 'La fiche', 'Affichage et filtres'];
@@ -790,7 +977,9 @@ var OUTILS = [
   { cle: 'Forme', nom: 'Forme', icone: 'forme', touche: 'R', edition: true },
   { cle: 'Texte', nom: 'Texte', icone: 'texte', touche: 'T', edition: true },
   { cle: 'connecteur', nom: 'Connecteur', icone: 'lien', touche: 'L', edition: true },
-  { cle: 'Section', nom: 'Section', icone: 'section', touche: 'S', edition: true }
+  { cle: 'Section', nom: 'Section', icone: 'section', touche: 'S', edition: true },
+  { cle: 'Couloir', nom: 'Couloir', icone: 'couloir', touche: 'C', edition: true },
+  { cle: 'Image', nom: 'Image', icone: 'image', touche: 'I', edition: true }
 ];
 
 var _confirm = { resolution: null, retour: null, pieger: null };
@@ -811,6 +1000,7 @@ var etat = {
   filtres: { texte: '', section: '', responsable: '', statut: '', masquees: {} }, affichage: null,
   vueType: 'toile', fiche: null, edition: null, geste: null, pop: null, voletMobile: false,
   annulation: null, creation: null, param: null, aide: { ouverte: false, onglet: 0 },
+  participations: [], moi: null, presenceId: null, minuteurFin: 0, minuteurAnnonce: 0, guides: null, imagePos: null,
   enCours: false, lecturesEnAttente: 0, dernierAvisLenteur: 0, idSeq: 0, agrandi: false, minuterieRafraichir: null, ecrituresEnCours: 0
 };
 
@@ -1117,7 +1307,13 @@ var ICONES_SVG = {
   libelle: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   pointilles: 'M3 12h3M9 12h3M15 12h3M20 12h1',
   sens: 'M4 12h16M15 7l5 5-5 5M9 7l-5 5 5 5',
-  image: 'M3 5h18v14H3zM21 16l-5-5-8 8M10.5 10a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z'
+  image: 'M3 5h18v14H3zM21 16l-5-5-8 8M10.5 10a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z',
+  couloir: 'M3 4h18v16H3zM3 10h18M3 15h18M7 4v16',
+  bulle: 'M4 5h16v11H9l-5 4z',
+  minuteur: 'M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 10v4l2 2M9 2h6',
+  aligner: 'M4 3v18M8 7h12v4H8zM8 14h7v4H8z',
+  table: 'M3 4h18v16H3zM3 10h18M3 15h18M9 4v16',
+  coude: 'M4 6h8v12h8M17 15l3 3-3 3'
 };
 
 function iconeSvg(nom, taille) {
@@ -1461,7 +1657,7 @@ function trouverCentrale() {
 /* Tables de l'utilisatrice proposees comme source ou comme fiche liee. */
 function tablesUtilisatrice() {
   return Object.keys(etat.meta.tables).filter(function (t) {
-    return !estTableExclue(t) && !etat.meta.tables[t].resume && t !== etat.tables.el && t !== etat.tables.li;
+    return !estTableExclue(t) && !etat.meta.tables[t].resume && t !== etat.tables.el && t !== etat.tables.li && t !== etat.tables.pa;
   }).sort(function (a, b) { return libelleTable(a).localeCompare(libelleTable(b), 'fr'); });
 }
 
@@ -1678,6 +1874,8 @@ function normaliserConfig(cfg) {
     t.affichage = Object.assign({}, AFFICHAGE_DEFAUT, t.affichage || {});
     t.champs = Object.assign({}, CHAMPS_DEFAUT, t.champs || {});
     t.filtres = Object.assign({}, FILTRES_DEFAUT, t.filtres || {});
+    if (VOTES_PAR_PERSONNE.indexOf(t.votesParPersonne) === -1) { t.votesParPersonne = ATELIER_DEFAUT.votesParPersonne; }
+    if (TRACES.indexOf(t.traceDefaut) === -1) { t.traceDefaut = ATELIER_DEFAUT.traceDefaut; }
   });
   return cfg;
 }
@@ -1726,15 +1924,30 @@ function tableauCourant() {
    tables liees au tableau courant (fiche liee, source). La signature evite de
    redessiner quand rien n'a change. */
 async function chargerDonnees(leger) {
-  var te = etat.tables.el, tl = etat.tables.li;
+  var te = etat.tables.el, tl = etat.tables.li, tp = etat.tables.pa;
   var t = tableauCourant();
   var liees = [];
   if (t && t.fiche.table && etat.meta.tables[t.fiche.table]) { liees.push(t.fiche.table); }
   if (t && t.source.table && etat.meta.tables[t.source.table] && liees.indexOf(t.source.table) === -1) { liees.push(t.source.table); }
-  var lectures = [te ? lireTable(te, leger) : Promise.resolve(null), tl ? lireTable(tl, leger) : Promise.resolve(null)];
+  var lectures = [te ? lireTable(te, leger) : Promise.resolve(null), tl ? lireTable(tl, leger) : Promise.resolve(null),
+    tp ? lireTable(tp, leger).catch(function (e) { logSecurite('INFO', 'Table de participation pas encore lisible', e); return null; }) : Promise.resolve(null)];
   liees.forEach(function (x) { lectures.push(lireTable(x, leger).catch(function (e) { logSecurite('AVERTISSEMENT', 'Table liée illisible : ' + x, e); return null; })); });
   var r = await Promise.all(lectures);
-  var signature = JSON.stringify(r) + '|' + liees.join(',');
+  var dp = r[2];
+  /* Participation : la presence (signal toutes les 30 s) a sa propre
+     signature, pour ne pas redessiner la toile a chaque signal. */
+  var participations = [];
+  if (dp) {
+    for (var q = 0; q < dp.id.length; q++) {
+      participations.push({ id: dp.id[q], tableau: texteCellule(dp, 'TABLEAU', q), type: texteCellule(dp, 'TYPE', q), auteur: texteCellule(dp, 'AUTEUR', q),
+        valeur: texteCellule(dp, 'VALEUR', q), date: nombreCellule(dp, 'DATE', q, 0), element: refCellule(dp, 'ELEMENT', q),
+        creePar: texteCellule(dp, 'CREE_PAR', q), creeLe: cellule(dp, 'CREE_LE', q) });
+    }
+  }
+  etat.participations = participations;
+  var sigPresence = JSON.stringify(participations.filter(function (p) { return p.type === 'Présence'; }));
+  if (sigPresence !== etat.sigPresence) { etat.sigPresence = sigPresence; setTimeout(majPresents, 0); }
+  var signature = JSON.stringify([r[0], r[1]].concat(r.slice(3))) + '|' + JSON.stringify(participations.filter(function (p) { return p.type !== 'Présence'; })) + '|' + liees.join(',');
   if (signature === etat.signature) { return false; }
   etat.signature = signature;
   var de = r[0], dl = r[1];
@@ -1744,7 +1957,8 @@ async function chargerDonnees(leger) {
       var type = texteCellule(de, 'TYPE', i);
       if (TYPES.indexOf(type) === -1) { type = 'Post-it'; }
       var forme = texteCellule(de, 'FORME', i);
-      if (FORMES.indexOf(forme) === -1) { forme = 'Rectangle'; }
+      if (type === 'Section') { forme = forme === 'Couloir' ? 'Couloir' : 'Cadre'; }
+      else if (FORMES.indexOf(forme) === -1) { forme = 'Rectangle'; }
       var taille = TAILLES[type];
       elements.push({ id: de.id[i], tableau: texteCellule(de, 'TABLEAU', i), type: type, forme: forme,
         libelle: texteCellule(de, 'LIBELLE', i), description: texteCellule(de, 'DESCRIPTION', i), couleur: nomCouleurSur(texteCellule(de, 'COULEUR', i)),
@@ -1761,14 +1975,15 @@ async function chargerDonnees(leger) {
     for (var j = 0; j < dl.id.length; j++) {
       var fl = texteCellule(dl, 'FLECHE', j);
       liens.push({ id: dl.id[j], tableau: texteCellule(dl, 'TABLEAU', j), de: refCellule(dl, 'DE', j), vers: refCellule(dl, 'VERS', j),
-        libelle: texteCellule(dl, 'LIBELLE', j), style: texteCellule(dl, 'STYLE', j) === 'Pointillés' ? 'Pointillés' : 'Plein', fleche: FLECHES.indexOf(fl) === -1 ? 'Vers la fin' : fl });
+        libelle: texteCellule(dl, 'LIBELLE', j), style: texteCellule(dl, 'STYLE', j) === 'Pointillés' ? 'Pointillés' : 'Plein', fleche: FLECHES.indexOf(fl) === -1 ? 'Vers la fin' : fl,
+        trace: texteCellule(dl, 'TRACE', j) === 'Coudé' ? 'Coudé' : 'Droit' });
     }
   }
   etat.elements = elements;
   etat.liens = liens;
   etat.fiches = {};
   liees.forEach(function (x, k) {
-    var d = r[2 + k];
+    var d = r[3 + k];
     if (!d) { return; }
     var parId = {};
     for (var n = 0; n < d.id.length; n++) { parId[d.id[n]] = n; }
@@ -1825,7 +2040,7 @@ function libelleAffiche(e) {
 
 function libelleCourt(e) {
   var l = libelleAffiche(e).replace(/\s+/g, ' ').trim();
-  return l ? (l.length > 60 ? l.slice(0, 57) + '…' : l) : (e.type === 'Section' ? 'Section sans titre' : e.type + ' sans texte');
+  return l ? (l.length > 60 ? l.slice(0, 57) + '…' : l) : (e.type === 'Section' ? (e.forme === 'Couloir' ? 'Couloir sans titre' : 'Section sans titre') : (e.type === 'Image' ? 'Image' : e.type + ' sans texte'));
 }
 
 /* Sens d'une couleur dans la legende du tableau courant. */
@@ -1920,7 +2135,7 @@ function choisirTableau(id) {
   if (etat.edition) { terminerEdition(true); }
   etat.tableauId = id;
   ecrirePref('tableau', id);
-  etat.selection = []; etat.lienSel = null; etat.fiche = null; etat.sourceLien = null;
+  etat.selection = []; etat.lienSel = null; etat.fiche = null; etat.sourceLien = null; etat.presenceId = null;
   etat.filtres = { texte: '', section: '', responsable: '', statut: '', masquees: {} };
   etat.outil = 'selection';
   chargerAffichage();
@@ -2030,21 +2245,30 @@ function rendrePrincipal() {
   var vues = creer('div', { classe: 'w-groupe-vues', attrs: { role: 'group', 'aria-label': 'Type d\'affichage' } }, [
     bouton('Affichage toile', 'discret', null, function () { changerVue('toile'); }, { svg: 'toile', id: 'bVueToile', classe: 'w-bouton-vue', attrs: { 'aria-pressed': etat.vueType === 'toile' ? 'true' : 'false' } }),
     bouton('Affichage liste', 'discret', null, function () { changerVue('liste'); }, { svg: 'liste', id: 'bVueListe', classe: 'w-bouton-vue', attrs: { 'aria-pressed': etat.vueType === 'liste' ? 'true' : 'false' } })]);
-  var droite = creer('div', { classe: 'w-barre__droite', id: 'vBarreDroite' }, [vues,
+  var minuteur = creer('span', { classe: 'w-minuteur', id: 'vMinuteur', attrs: { role: 'timer', 'aria-live': 'off' } });
+  minuteur.hidden = true;
+  var outilsAtelier = [minuteur];
+  if (etat.peutModifier && etat.tables.pa) {
+    outilsAtelier.push(bouton('Minuteur', 'discret', null, function (ev) { ouvrirMinuteur(ev.currentTarget); }, { svg: 'minuteur', id: 'bMinuteur', attrs: { 'aria-haspopup': 'true' } }));
+  }
+  var droite = creer('div', { classe: 'w-barre__droite', id: 'vBarreDroite' }, outilsAtelier.concat([creer('span', { classe: 'w-barre__sep', attrs: { 'aria-hidden': 'true' } }), vues,
     bouton('Dézoomer', 'discret', null, function () { zoomerCentre(1 / 1.2); }, { svg: 'moins', id: 'bDezoomer' }),
     creer('span', { classe: 'w-zoom', id: 'vZoom', attrs: { 'aria-live': 'off' } }),
     bouton('Zoomer', 'discret', null, function () { zoomerCentre(1.2); }, { svg: 'plus', id: 'bZoomer' }),
     bouton('Recentrer', 'discret', null, function () { recentrer(); }, { svg: 'recentrer', id: 'bRecentrer' }),
-    bouton(etat.agrandi ? 'Quitter le plein écran' : 'Plein écran', 'discret', null, basculerPleinEcran, { svg: 'plein', id: 'bPlein', classe: 'w-bulle--droite' })]);
+    bouton(etat.agrandi ? 'Quitter le plein écran' : 'Plein écran', 'discret', null, basculerPleinEcran, { svg: 'plein', id: 'bPlein', classe: 'w-bulle--droite' })]));
   var barre = creer('div', { classe: 'w-barre' }, [creer('div', { classe: 'w-barre__gauche' }, [
     creer('h2', { classe: 'fr-h5 w-titre-vue', id: 'titreVue', texte: t.nom, attrs: { tabindex: '-1' } }),
-    creer('ul', { classe: 'w-compteurs', id: 'vCompteurs', attrs: { 'aria-label': 'Compteurs' } })]), droite]);
+    creer('ul', { classe: 'w-compteurs', id: 'vCompteurs', attrs: { 'aria-label': 'Compteurs' } }),
+    creer('ul', { classe: 'w-presents', id: 'vPresents', attrs: { 'aria-label': 'Personnes présentes sur ce tableau blanc' } })]), droite]);
   var scene = creer('div', { classe: 'w-scene', id: 'vScene' });
   var principal = creer('div', { classe: 'w-principal' }, [barre, creer('p', { classe: 'w-mention-papier', id: 'vPapier' }), scene]);
   zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
   majVolet();
   rendreScene();
   majBarre();
+  majPresents();
+  majMinuteur();
 }
 
 function libellePoignee(replie) {
@@ -2176,8 +2400,10 @@ function majBarre() {
   var nf = els.filter(function (e) { return e.ficheLigne; }).length;
   if (nf) { cpt.appendChild(creer('li', {}, [badge(pluriel(nf, 'fiche liée', 'fiches liées'))])); }
   if (etat.affichage && etat.affichage.votes) {
-    var nv = els.reduce(function (s, e) { return s + e.votes; }, 0);
+    var nv = els.reduce(function (s, e) { return s + compteVotes(e); }, 0);
     cpt.appendChild(creer('li', {}, [badge(pluriel(nv, 'vote', 'votes'))]));
+    var reste = votesRestants();
+    if (reste !== null) { cpt.appendChild(creer('li', {}, [badge('Il vous reste ' + pluriel(reste, 'vote', 'votes'), reste ? 'info' : 'warning')])); }
   }
   var titre = document.getElementById('titreVue');
   if (titre) { titre.textContent = t.nom; }
@@ -2362,29 +2588,41 @@ function dessinForme(forme, w, h) {
 }
 
 function construireElement(e, estompe) {
-  var classes = 'w-el w-el--' + (e.type === 'Post-it' ? 'postit' : e.type.toLowerCase()) + (estompe ? ' w-el--estompe' : '');
+  var classes = 'w-el w-el--' + (e.type === 'Post-it' ? 'postit' : e.type.toLowerCase()) + (e.type === 'Section' && e.forme === 'Couloir' ? ' w-el--couloir' : '') + (estompe ? ' w-el--estompe' : '');
   var texte = libelleAffiche(e);
-  var nomType = e.type === 'Forme' ? e.forme : e.type;
+  var nomType = e.type === 'Forme' ? e.forme : (e.type === 'Section' && e.forme === 'Couloir' ? 'Couloir' : e.type);
+  var nbVotes = compteVotes(e);
+  var nbCom = commentairesDe(e.id).length;
   var desc = [nomType, sensCouleur(e.couleur)].filter(Boolean).join(', ');
   var div = creer('div', { classe: classes, attrs: { 'data-id': String(e.id), tabindex: '0', role: 'button', 'aria-roledescription': nomType,
-    'aria-label': (texte || 'sans texte') + (desc ? ' (' + desc + ')' : '') + (e.ficheLigne ? ', relié à une fiche' : '') + (etat.affichage.votes && e.votes ? ', ' + pluriel(e.votes, 'vote', 'votes') : '') } });
+    'aria-label': (texte || (e.type === 'Image' ? 'image sans légende' : 'sans texte')) + (desc ? ' (' + desc + ')' : '') + (e.ficheLigne ? ', relié à une fiche' : '') + (etat.affichage.votes && nbVotes ? ', ' + pluriel(nbVotes, 'vote', 'votes') : '') + (nbCom ? ', ' + pluriel(nbCom, 'commentaire', 'commentaires') : '') } });
   placerDiv(div, e);
   appliquerCouleur(div, e.couleur);
   if (e.type === 'Section' && e.couleur !== 'blanc') { div.style.setProperty('--fond-section', 'var(--background-alt-' + e.couleur + ', transparent)'); }
+  if (e.type === 'Section' && e.forme === 'Couloir' && e.couleur === 'blanc') { div.style.setProperty('--fond-el', 'var(--background-alt-grey)'); }
   if (e.type === 'Forme') { div.appendChild(dessinForme(e.forme, e.w, e.h)); }
-  div.appendChild(creer('span', { classe: 'w-el__texte', texte: texte || (e.type === 'Section' ? 'Section' : '') }));
-  if (e.type === 'Post-it' && ((etat.affichage.votes && e.votes) || e.responsable)) {
+  if (e.type === 'Image') {
+    var img = creer('img', { classe: 'w-image w-image--attente', attrs: { alt: texte || 'Image', draggable: 'false' } });
+    if (e.pj[0]) { afficherImage(img, e.pj[0]); }
+    div.appendChild(img);
+    if (texte) { div.appendChild(creer('span', { classe: 'w-el__legende', texte: texte })); }
+  } else {
+    div.appendChild(creer('span', { classe: 'w-el__texte', texte: texte || (e.type === 'Section' ? (e.forme === 'Couloir' ? 'Couloir' : 'Section') : '') }));
+  }
+  if (e.type === 'Post-it' && ((etat.affichage.votes && nbVotes) || e.responsable)) {
     var pied = creer('span', { classe: 'w-el__pied', attrs: { 'aria-hidden': 'true' } }, [creer('span', { texte: e.responsable || '' })]);
-    if (etat.affichage.votes && e.votes) {
+    if (etat.affichage.votes && nbVotes) {
       var v = creer('span', { classe: 'w-votes' });
-      for (var k = 0; k < Math.min(e.votes, 8); k++) { v.appendChild(creer('span', { classe: 'w-vote' })); }
-      if (e.votes > 8) { v.appendChild(creer('span', { texte: '+' + (e.votes - 8) })); }
+      var miens = etat.moi ? votesDe(e.id).filter(function (p) { return p.auteur === etat.moi; }).length : 0;
+      for (var k = 0; k < Math.min(nbVotes, 8); k++) { v.appendChild(creer('span', { classe: 'w-vote' + (k < miens ? ' w-vote--mien' : '') })); }
+      if (nbVotes > 8) { v.appendChild(creer('span', { texte: '+' + (nbVotes - 8) })); }
       pied.appendChild(v);
     }
     div.appendChild(pied);
   }
   var badges = [];
-  if (etat.affichage.votes && e.votes && e.type !== 'Post-it' && e.type !== 'Section') { badges.push(creer('span', { classe: 'w-el__badge', texte: String(e.votes) })); }
+  if (etat.affichage.votes && nbVotes && e.type !== 'Post-it' && e.type !== 'Section') { badges.push(creer('span', { classe: 'w-el__badge', texte: String(nbVotes) })); }
+  if (nbCom) { badges.push(creer('span', { classe: 'w-el__badge w-el__badge--fiche' }, [iconeSvg('bulle', 12), creer('span', { texte: String(nbCom) })])); }
   if (e.ficheLigne) { badges.push(creer('span', { classe: 'w-el__badge w-el__badge--fiche' }, [iconeSvg('fiche', 12)])); }
   if (e.pj.length) { badges.push(creer('span', { classe: 'w-el__badge w-el__badge--fiche', texte: String(e.pj.length) })); }
   if (badges.length) { div.appendChild(creer('span', { classe: 'w-el__badges', attrs: { 'aria-hidden': 'true' } }, badges)); }
@@ -2412,11 +2650,25 @@ function pointBord(e, tx, ty) {
   return { x: cx + dx * t, y: cy + dy * t };
 }
 
+/* Trace droit (bord a bord, dans l'axe des centres) ou coude (a angle
+   droit, du milieu d'un cote au milieu du cote oppose). */
 function geometrieLien(l) {
   var a = etat.parId[l.de], b = etat.parId[l.vers];
+  if (l.trace === 'Coudé') {
+    var ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2;
+    var g;
+    if (Math.abs(bx - ax) >= Math.abs(by - ay)) {
+      var x1 = bx > ax ? a.x + a.w : a.x, x2 = bx > ax ? b.x : b.x + b.w, mx = (x1 + x2) / 2;
+      g = { x1: x1, y1: ay, x2: x2, y2: by, mx: mx, my: (ay + by) / 2, d: 'M' + x1 + ' ' + ay + 'H' + mx + 'V' + by + 'H' + x2 };
+    } else {
+      var y1 = by > ay ? a.y + a.h : a.y, y2 = by > ay ? b.y : b.y + b.h, my = (y1 + y2) / 2;
+      g = { x1: ax, y1: y1, x2: bx, y2: y2, mx: (ax + bx) / 2, my: my, d: 'M' + ax + ' ' + y1 + 'V' + my + 'H' + bx + 'V' + y2 };
+    }
+    return g;
+  }
   var p1 = pointBord(a, b.x + b.w / 2, b.y + b.h / 2);
   var p2 = pointBord(b, a.x + a.w / 2, a.y + a.h / 2);
-  return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, mx: (p1.x + p2.x) / 2, my: (p1.y + p2.y) / 2 };
+  return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, mx: (p1.x + p2.x) / 2, my: (p1.y + p2.y) / 2, d: 'M' + p1.x + ' ' + p1.y + 'L' + p2.x + ' ' + p2.y };
 }
 
 function dessinerLiens() {
@@ -2430,7 +2682,7 @@ function dessinerLiens() {
     var g = geometrieLien(l);
     var sel = etat.lienSel === l.id;
     var grp = document.createElementNS(ns, 'g');
-    var d = 'M' + g.x1 + ' ' + g.y1 + 'L' + g.x2 + ' ' + g.y2;
+    var d = g.d;
     var p = document.createElementNS(ns, 'path');
     p.setAttribute('d', d);
     p.setAttribute('class', 'w-lien' + (sel ? ' w-lien--select' : ''));
@@ -2636,7 +2888,7 @@ function placerCtx() {
     var un = sel.length === 1 ? sel[0] : null;
     if (etat.peutModifier) {
       items.push(bouton('Couleur', 'discret', null, function (ev) { ouvrirPop('couleur', ev.currentTarget); }, { svg: 'couleur', id: 'cCouleur', attrs: { 'aria-haspopup': 'true' } }));
-      if (sel.every(function (e) { return e.type === 'Forme'; })) { items.push(bouton('Forme', 'discret', null, function (ev) { ouvrirPop('forme', ev.currentTarget); }, { svg: 'forme', id: 'cForme', attrs: { 'aria-haspopup': 'true' } })); }
+      if (sel.every(function (e) { return e.type === 'Forme'; }) || sel.every(function (e) { return e.type === 'Section'; })) { items.push(bouton('Forme', 'discret', null, function (ev) { ouvrirPop('forme', ev.currentTarget); }, { svg: 'forme', id: 'cForme', attrs: { 'aria-haspopup': 'true' } })); }
       if (un) { items.push(bouton('Modifier le texte (Entrée)', 'discret', null, function () { editerLibelle(un.id); }, { svg: 'libelle', id: 'cLibelle' })); }
       if (un && t && t.fiche.table && un.type !== 'Section') { items.push(bouton(un.ficheLigne ? 'Changer la fiche liée' : 'Relier à une fiche', 'discret', null, function (ev) { ouvrirPop('fiche', ev.currentTarget); }, { svg: 'fiche', id: 'cRelier', attrs: { 'aria-haspopup': 'true' } })); }
     }
@@ -2645,8 +2897,11 @@ function placerCtx() {
       if (un && etat.affichage.votes && un.type !== 'Section') {
         items.push(creer('span', { classe: 'w-ctx__sep' }));
         items.push(bouton('Voter', 'discret', null, function () { return voter(un, 1); }, { svg: 'vote', id: 'cVoter' }));
-        if (un.votes) { items.push(bouton('Retirer un vote', 'discret', null, function () { return voter(un, -1); }, { svg: 'devote', id: 'cDevoter' })); }
+        var aVote = votesDe(un.id).some(function (p) { return p.auteur === etat.moi; }) || (un.votes && !etat.tables.pa);
+        if (aVote || (un.votes && etat.peutParametrer)) { items.push(bouton('Retirer mon vote', 'discret', null, function () { return voter(un, -1); }, { svg: 'devote', id: 'cDevoter' })); }
       }
+      if (sel.length > 1) { items.push(creer('span', { classe: 'w-ctx__sep' })); items.push(bouton('Aligner et répartir', 'discret', null, function (ev) { ouvrirPop('aligner', ev.currentTarget); }, { svg: 'aligner', id: 'cAligner', attrs: { 'aria-haspopup': 'true' } })); }
+      if (sel.some(function (e) { return e.type !== 'Section' && e.type !== 'Image'; })) { items.push(bouton('Copier dans une table', 'discret', null, function (ev) { ouvrirCopieTable(ev.currentTarget); }, { svg: 'table', id: 'cCopierTable', attrs: { 'aria-haspopup': 'true' } })); }
       items.push(creer('span', { classe: 'w-ctx__sep' }));
       items.push(bouton('Dupliquer (Ctrl+D)', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', id: 'cDupliquer' }));
       items.push(bouton('Premier plan', 'discret', null, function () { return premierPlan(); }, { svg: 'premier', id: 'cPremier' }));
@@ -2659,6 +2914,7 @@ function placerCtx() {
     if (etat.peutModifier) {
       items.push(bouton('Libellé du connecteur', 'discret', null, function () { editerLibelleLien(l.id); }, { svg: 'libelle', id: 'cLienLibelle' }));
       items.push(bouton(l.style === 'Pointillés' ? 'Trait plein' : 'Trait en pointillés', 'discret', null, function () { return modifierLien(l, { STYLE: l.style === 'Pointillés' ? 'Plein' : 'Pointillés' }); }, { svg: 'pointilles', id: 'cLienStyle' }));
+      if (infoColonne(etat.tables.li, 'TRACE')) { items.push(bouton(l.trace === 'Coudé' ? 'Tracé droit' : 'Tracé coudé', 'discret', null, function () { return modifierLien(l, { TRACE: l.trace === 'Coudé' ? 'Droit' : 'Coudé' }); }, { svg: 'coude', id: 'cLienTrace' })); }
       items.push(bouton('Sens : ' + l.fleche + ' (changer)', 'discret', null, function () { return modifierLien(l, { FLECHE: FLECHES[(FLECHES.indexOf(l.fleche) + 1) % FLECHES.length] }); }, { svg: 'sens', id: 'cLienSens' }));
       items.push(bouton('Supprimer le connecteur (Suppr)', 'discret', null, function () { return supprimerLien(l); }, { svg: 'corbeille', id: 'cLienSupprimer', classe: 'w-bulle--droite' }));
     }
@@ -2691,7 +2947,7 @@ function ouvrirPop(genre, ancre) {
   if (!toile) { return; }
   var sel = elementsSelectionnes();
   var t = tableauCourant();
-  var pop = creer('div', { classe: 'w-pop', id: 'vPop', attrs: { role: 'dialog', 'aria-label': genre === 'couleur' ? 'Couleur' : (genre === 'forme' ? 'Forme' : 'Fiche liée') } });
+  var pop = creer('div', { classe: 'w-pop', id: 'vPop', attrs: { role: 'dialog', 'aria-label': { couleur: 'Couleur', forme: 'Forme', aligner: 'Aligner et répartir' }[genre] || 'Fiche liée' } });
   if (genre === 'couleur') {
     pop.appendChild(creer('p', { classe: 'w-pop__titre', texte: 'Légende' }));
     t.legende.forEach(function (x) {
@@ -2708,12 +2964,14 @@ function ouvrirPop(genre, ancre) {
       nuancier.appendChild(b);
     });
     pop.appendChild(nuancier);
+  } else if (genre === 'aligner') {
+    ALIGNEMENTS.forEach(function (a) { pop.appendChild(creer('button', { classe: 'w-pop__item', texte: a[1], clic: function () { return aligner(a[0]); } })); });
   } else if (genre === 'forme') {
-    FORMES.forEach(function (f) {
+    (sel[0].type === 'Section' ? FORMES_SECTION : FORMES).forEach(function (f) {
       var ico = creer('span', { attrs: { 'aria-hidden': 'true' } });
       ico.style.position = 'relative'; ico.style.display = 'inline-block'; ico.style.width = '28px'; ico.style.height = '18px';
       appliquerCouleur(ico, 'blanc');
-      ico.appendChild(dessinForme(f, 28, 18));
+      ico.appendChild(dessinForme(f === 'Couloir' || f === 'Cadre' ? 'Rectangle' : f, 28, 18));
       pop.appendChild(creer('button', { classe: 'w-pop__item', attrs: { 'aria-pressed': sel.every(function (e) { return e.forme === f; }) ? 'true' : 'false' },
         clic: function () { fermerPop(true); return modifierSelection({ FORME: f }, 'Forme changée.'); } }, [ico, f]));
     });
@@ -2803,12 +3061,13 @@ function brancherToile(toile) {
   toile.addEventListener('keydown', surToucheToile);
   toile.addEventListener('focusin', function (ev) {
     var d = ev.target.classList && ev.target.classList.contains('w-el') ? ev.target : null;
-    if (!d || etat.geste) { return; }
+    if (!d || etat.geste || _focusSouris) { return; }
     var id = Number(d.getAttribute('data-id'));
     if (etat.selection.indexOf(id) === -1) { selectionner([id], true); }
   });
 }
 
+var _focusSouris = false;
 function surPointeurBas(ev) {
   var cible = ev.target;
   if (cible.closest('.w-outils, .w-ctx, .w-pop, .w-minicarte, .w-edition')) { return; }
@@ -2830,7 +3089,10 @@ function surPointeurBas(ev) {
   var poignee = cible.closest('[data-poignee]');
   var zoneLien = cible.closest('.w-lien-zone');
   var w = versMonde(p);
-  if (d) { d.focus({ preventScroll: true }); } else { toile.focus({ preventScroll: true }); }
+  /* Le focus pose a la souris ne doit pas remplacer la selection
+     (Maj+clic ajoute un element) : focusin l'ignore. */
+  _focusSouris = true;
+  try { if (d) { d.focus({ preventScroll: true }); } else { toile.focus({ preventScroll: true }); } } finally { _focusSouris = false; }
   if (ev.button === 1 || etat.outil === 'main' || (ev.button === 0 && ev.altKey)) {
     ev.preventDefault();
     etat.geste = { type: 'vue', p0: p, cam0: Object.assign({}, etat.cam) };
@@ -2839,7 +3101,7 @@ function surPointeurBas(ev) {
   }
   if (ev.button !== 0 && ev.pointerType === 'mouse') { return; }
   var outil = etat.outil;
-  if (['Post-it', 'Forme', 'Texte', 'Section'].indexOf(outil) !== -1) {
+  if (['Post-it', 'Forme', 'Texte', 'Section', 'Couloir', 'Image'].indexOf(outil) !== -1) {
     etat.geste = { type: 'creer', p0: p, w0: w, bouge: false };
     return;
   }
@@ -2878,7 +3140,8 @@ function surPointeurBas(ev) {
     });
     var depart = {};
     Object.keys(aDeplacer).forEach(function (k2) { var x = etat.parId[k2]; depart[k2] = { x: x.x, y: x.y }; });
-    etat.geste = { type: 'deplacer', p0: p, depart: depart, ref: idEl, bouge: false };
+    var b0 = boiteDe(Object.keys(aDeplacer).map(function (k3) { return etat.parId[k3]; }));
+    etat.geste = { type: 'deplacer', p0: p, depart: depart, ref: idEl, bouge: false, boite0: b0 };
     return;
   }
   if (zoneLien) {
@@ -2920,6 +3183,14 @@ function surPointeurBouge(ev) {
   if (g.type === 'deplacer') {
     var ref = g.depart[g.ref];
     var ddx = aimanter(ref.x + dx / z) - ref.x, ddy = aimanter(ref.y + dy / z) - ref.y;
+    /* Reperes : un accrochage aux autres elements l'emporte sur la grille.
+       Alt maintenu les desactive. */
+    if (!ev.altKey) {
+      var rep = reperes(g, dx / z, dy / z);
+      if (rep.dx !== null) { ddx = Math.round(rep.dx); }
+      if (rep.dy !== null) { ddy = Math.round(rep.dy); }
+      dessinerReperes(g, { dx: rep.dx !== null ? ddx : null, dy: rep.dy !== null ? ddy : null, lx: rep.lx, ly: rep.ly });
+    } else { effacerReperes(); }
     g.delta = { x: ddx, y: ddy };
     Object.keys(g.depart).forEach(function (k) {
       var e = etat.parId[k];
@@ -2974,6 +3245,7 @@ function surPointeurBouge(ev) {
 }
 
 function annulerGesteVisuel() {
+  effacerReperes();
   var l = document.getElementById('vLasso'); if (l) { l.parentNode.removeChild(l); }
   var t = document.getElementById('vLienTmp'); if (t) { t.parentNode.removeChild(t); }
   var toile = document.getElementById('vToile'); if (toile) { toile.classList.remove('w-toile--glisse'); }
@@ -3026,13 +3298,23 @@ function surPointeurHaut(ev) {
     var w0 = g.w0, w1 = versMonde(p);
     var taille = TAILLES[type];
     var champs;
-    if (type === 'Section' && g.bouge && Math.abs(w1.x - w0.x) > 40 && Math.abs(w1.y - w0.y) > 40) {
+    choisirOutil('selection');
+    if (type === 'Image') { demanderImage({ x: w0.x, y: w0.y }); return; }
+    var section = type === 'Section' || type === 'Couloir';
+    if (section && g.bouge && Math.abs(w1.x - w0.x) > 40 && Math.abs(w1.y - w0.y) > 40) {
       champs = { x: aimanter(Math.min(w0.x, w1.x)), y: aimanter(Math.min(w0.y, w1.y)), w: aimanter(Math.abs(w1.x - w0.x)), h: aimanter(Math.abs(w1.y - w0.y)) };
+    } else if (type === 'Couloir') {
+      /* Un couloir s'accroche sous le dernier couloir du tableau, a la meme
+         largeur. */
+      var couloirs = elementsDuTableau().filter(function (e) { return e.type === 'Section' && e.forme === 'Couloir'; }).sort(function (a, b) { return (b.y + b.h) - (a.y + a.h); });
+      var dernier = couloirs[0];
+      champs = dernier && Math.abs(w0.y - (dernier.y + dernier.h)) < 300 && w0.x >= dernier.x - 50 && w0.x <= dernier.x + dernier.w + 50
+        ? { x: dernier.x, y: dernier.y + dernier.h, w: dernier.w, h: dernier.h }
+        : { x: aimanter(w0.x - 60), y: aimanter(w0.y - taille[1] / 2), w: taille[0], h: taille[1] };
     } else {
       champs = { x: aimanter(w0.x - taille[0] / 2), y: aimanter(w0.y - taille[1] / 2), w: taille[0], h: taille[1] };
     }
-    choisirOutil('selection');
-    relayer(creerElement(type, champs, true), 'Création');
+    relayer(creerElement(type === 'Couloir' ? 'Section' : type, champs, true, type === 'Couloir' ? { FORME: 'Couloir', COULEUR: 'blue-ecume' } : (type === 'Section' ? { FORME: 'Cadre' } : null)), 'Création');
     return;
   }
   if (g.type === 'lier') {
@@ -3048,7 +3330,10 @@ function surPointeurHaut(ev) {
 var _deplacementClavier = null;
 
 function surToucheToile(ev) {
-  if (etat.edition || (ev.target.closest && ev.target.closest('.w-pop, .w-ctx, .w-outils'))) {
+  /* Depuis la barre d'actions, les raccourcis Ctrl (copier, coller,
+     dupliquer, annuler) restent actifs. */
+  var depuisBarre = ev.target.closest && ev.target.closest('.w-ctx, .w-outils') && !ev.target.closest('.w-pop') && (ev.ctrlKey || ev.metaKey) && /^[cxvdzaCXVDZA]$/.test(ev.key);
+  if (etat.edition || (!depuisBarre && ev.target.closest && ev.target.closest('.w-pop, .w-ctx, .w-outils'))) {
     if (ev.key === 'Escape' && etat.pop) { ev.preventDefault(); fermerPop(true); }
     return;
   }
@@ -3064,6 +3349,15 @@ function surToucheToile(ev) {
   }
   if (mod && (k === 'z' || k === 'Z')) { ev.preventDefault(); relayer(annulerDerniere(), 'Annuler'); return; }
   if (mod && (k === 'a' || k === 'A')) { ev.preventDefault(); selectionner(elementsDuTableau().map(function (e) { return e.id; }), true); annoncer('Tout est sélectionné.'); return; }
+  if (mod && (k === 'c' || k === 'C')) { if (sel.length) { ev.preventDefault(); copierSelection(false); } return; }
+  if (mod && (k === 'x' || k === 'X')) { if (sel.length && etat.peutModifier) { ev.preventDefault(); copierSelection(true); } return; }
+  if (mod && (k === 'v' || k === 'V')) {
+    /* Le collage passe par l'evenement « coller » (image du presse-papiers
+       du systeme) ; a defaut, le presse-papiers du widget est colle. */
+    _collageTraite = false;
+    setTimeout(function () { if (!_collageTraite && lirePressePapier()) { relayer(collerPressePapier(), 'Coller'); } }, 150);
+    return;
+  }
   if (mod && (k === 'd' || k === 'D')) { ev.preventDefault(); if (etat.peutModifier && sel.length) { relayer(dupliquerSelection(), 'Dupliquer'); } return; }
   if ((k === 'Delete' || k === 'Backspace') && etat.peutModifier) {
     if (sel.length) { ev.preventDefault(); relayer(supprimerSelection(), 'Supprimer'); }
@@ -3179,7 +3473,7 @@ async function enregistrerPositions(depart, quoi) {
   majSelectionVisuelle();
   majMinicarte();
   var actions = [['BulkUpdateRecord', etat.tables.el, ids, { POSITION_X: ids.map(function (id) { return etat.parId[id].x; }), POSITION_Y: ids.map(function (id) { return etat.parId[id].y; }) }]];
-  await ecrire(actions, quoi === 'Déplacement' ? pluriel(ids.length, 'élément déplacé', 'éléments déplacés') + '.' : null, function () {
+  await ecrire(actions, quoi === 'Déplacement' ? pluriel(ids.length, 'élément déplacé', 'éléments déplacés') + '.' : (quoi === 'Alignement' ? 'Éléments alignés.' : null), function () {
     return [['BulkUpdateRecord', etat.tables.el, ids, { POSITION_X: ids.map(function (id) { return depart[id].x; }), POSITION_Y: ids.map(function (id) { return depart[id].y; }) }]];
   });
 }
@@ -3259,18 +3553,6 @@ function appliquerLocal(e, champs) {
   Object.keys(champs).forEach(function (k) { if (m[k]) { e[m[k]] = champs[k] === null ? '' : champs[k]; } });
 }
 
-async function voter(e, sens) {
-  var n = Math.max(0, e.votes + sens);
-  var avant = e.votes;
-  e.votes = n;
-  rendreMonde();
-  majBarre();
-  annoncer(pluriel(n, 'vote', 'votes') + '.');
-  await ecrire([['UpdateRecord', etat.tables.el, e.id, { VOTES: n }]], null, null);
-  if (sens < 0 && !n) { placerCtx(); }
-  logSecurite('INFO', 'Vote : ' + avant + ' -> ' + n);
-}
-
 async function premierPlan() {
   var sel = elementsSelectionnes().filter(function (e) { return e.type !== 'Section'; });
   if (!sel.length) { annoncer('Les sections restent toujours sous les autres éléments.'); return; }
@@ -3291,7 +3573,8 @@ async function dupliquerSelection() {
   var base = ordreMax();
   var lignes = sel.map(function (e, i) {
     return { TABLEAU: e.tableau, TYPE: e.type, FORME: e.forme, LIBELLE: e.libelle, DESCRIPTION: e.description, COULEUR: e.couleur, POSITION_X: e.x + 40, POSITION_Y: e.y + 40,
-      LARGEUR: e.w, HAUTEUR: e.h, ORDRE: e.type === 'Section' ? e.ordre : base + 1 + i, RESPONSABLE: e.responsable, STATUT: e.statut || null, FICHE_TABLE: e.ficheTable, FICHE_LIGNE: e.ficheLigne || 0 };
+      LARGEUR: e.w, HAUTEUR: e.h, ORDRE: e.type === 'Section' ? e.ordre : base + 1 + i, RESPONSABLE: e.responsable, STATUT: e.statut || null, FICHE_TABLE: e.ficheTable, FICHE_LIGNE: e.ficheLigne || 0,
+      PIECES_JOINTES: e.type === 'Image' && e.pj.length ? ['L'].concat(e.pj) : null };
   });
   try {
     var r = await agir([actionAjoutLot(etat.tables.el, lignes)]);
@@ -3300,7 +3583,8 @@ async function dupliquerSelection() {
     sel.forEach(function (e, i) { corresp[e.id] = nouveaux[i]; });
     var liens = liensDuTableau().filter(function (l) { return corresp[l.de] && corresp[l.vers]; });
     if (liens.length) {
-      await agir([actionAjoutLot(etat.tables.li, liens.map(function (l) { return { TABLEAU: l.tableau, DE: corresp[l.de], VERS: corresp[l.vers], LIBELLE: l.libelle, STYLE: l.style, FLECHE: l.fleche }; }))]);
+      var avecTrace = !!infoColonne(etat.tables.li, 'TRACE');
+      await agir([actionAjoutLot(etat.tables.li, liens.map(function (l) { var x = { TABLEAU: l.tableau, DE: corresp[l.de], VERS: corresp[l.vers], LIBELLE: l.libelle, STYLE: l.style, FLECHE: l.fleche }; if (avecTrace) { x.TRACE = l.trace; } return x; }))]);
     }
     etat.signature = '';
     await rafraichir(true);
@@ -3323,6 +3607,8 @@ function supprimerActions(ids) {
   var liens = etat.liens.filter(function (l) { return ids.indexOf(l.de) !== -1 || ids.indexOf(l.vers) !== -1; }).map(function (l) { return l.id; });
   var a = [];
   if (liens.length) { a.push(['BulkRemoveRecord', etat.tables.li, liens]); }
+  var parts = etat.tables.pa ? etat.participations.filter(function (p) { return p.element && ids.indexOf(p.element) !== -1; }).map(function (p) { return p.id; }) : [];
+  if (parts.length) { a.push(['BulkRemoveRecord', etat.tables.pa, parts]); }
   a.push(['BulkRemoveRecord', etat.tables.el, ids.filter(function (id) { return etat.parId[id]; })]);
   return a;
 }
@@ -3332,13 +3618,15 @@ async function supprimerSelection() {
   if (!sel.length || !etat.peutModifier) { return; }
   var ids = sel.map(function (e) { return e.id; });
   var liens = etat.liens.filter(function (l) { return ids.indexOf(l.de) !== -1 || ids.indexOf(l.vers) !== -1; });
-  if (sel.length > 5 || sel.some(function (e) { return e.pj.length; })) {
-    var ok = await confirmer('Supprimer ' + pluriel(sel.length, 'élément', 'éléments') + ' ?', (liens.length ? pluriel(liens.length, 'connecteur est aussi supprimé', 'connecteurs sont aussi supprimés') + '. ' : '') + 'Vous pourrez l\'annuler pendant quelques secondes' + (sel.some(function (e) { return e.pj.length; }) ? ', sauf pour les pièces jointes.' : '.'), 'Supprimer');
+  var nbParts = etat.participations.filter(function (p) { return p.element && ids.indexOf(p.element) !== -1 && p.type === 'Commentaire'; }).length;
+  if (sel.length > 5 || nbParts) {
+    var ok = await confirmer('Supprimer ' + pluriel(sel.length, 'élément', 'éléments') + ' ?', (liens.length ? pluriel(liens.length, 'connecteur est aussi supprimé', 'connecteurs sont aussi supprimés') + '. ' : '') + (nbParts ? pluriel(nbParts, 'commentaire est supprimé', 'commentaires sont supprimés') + ' et ne pourra pas être rétabli. ' : '') + 'Vous pourrez annuler la suppression des éléments pendant quelques secondes.', 'Supprimer');
     if (!ok) { return; }
   }
   var copies = sel.map(function (e) {
     return { TABLEAU: e.tableau, TYPE: e.type, FORME: e.forme, LIBELLE: e.libelle, DESCRIPTION: e.description, COULEUR: e.couleur, POSITION_X: e.x, POSITION_Y: e.y, LARGEUR: e.w, HAUTEUR: e.h,
-      ORDRE: e.ordre, RESPONSABLE: e.responsable, STATUT: e.statut || null, VOTES: e.votes, FICHE_TABLE: e.ficheTable, FICHE_LIGNE: e.ficheLigne || 0 };
+      ORDRE: e.ordre, RESPONSABLE: e.responsable, STATUT: e.statut || null, VOTES: e.votes, FICHE_TABLE: e.ficheTable, FICHE_LIGNE: e.ficheLigne || 0,
+      PIECES_JOINTES: e.pj.length ? ['L'].concat(e.pj) : null };
   });
   var copiesLiens = liens.map(function (l) { return { de: ids.indexOf(l.de), vers: ids.indexOf(l.vers), deId: l.de, versId: l.vers, l: l }; });
   var actions = supprimerActions(ids);
@@ -3353,7 +3641,9 @@ async function supprimerSelection() {
     var r = await agir([actionAjoutLot(etat.tables.el, copies)]);
     var nouveaux = r && r.retValues ? r.retValues[0] : [];
     var lot = copiesLiens.map(function (x) {
-      return { TABLEAU: x.l.tableau, DE: x.de !== -1 ? nouveaux[x.de] : x.deId, VERS: x.vers !== -1 ? nouveaux[x.vers] : x.versId, LIBELLE: x.l.libelle, STYLE: x.l.style, FLECHE: x.l.fleche };
+      var y = { TABLEAU: x.l.tableau, DE: x.de !== -1 ? nouveaux[x.de] : x.deId, VERS: x.vers !== -1 ? nouveaux[x.vers] : x.versId, LIBELLE: x.l.libelle, STYLE: x.l.style, FLECHE: x.l.fleche };
+      if (infoColonne(etat.tables.li, 'TRACE')) { y.TRACE = x.l.trace; }
+      return y;
     });
     return lot.length ? [actionAjoutLot(etat.tables.li, lot)] : [];
   });
@@ -3364,7 +3654,10 @@ async function creerLien(de, vers) {
   if (!etat.peutModifier || de === vers) { return; }
   if (liensDuTableau().some(function (l) { return l.de === de && l.vers === vers; })) { annoncer('Ces éléments sont déjà reliés.'); return; }
   try {
-    var r = await agir([['AddRecord', etat.tables.li, null, { TABLEAU: etat.tableauId, DE: de, VERS: vers, LIBELLE: '', STYLE: 'Plein', FLECHE: 'Vers la fin' }]]);
+    var champs = { TABLEAU: etat.tableauId, DE: de, VERS: vers, LIBELLE: '', STYLE: 'Plein', FLECHE: 'Vers la fin' };
+    var t = tableauCourant();
+    if (infoColonne(etat.tables.li, 'TRACE')) { champs.TRACE = t ? t.traceDefaut : 'Droit'; }
+    var r = await agir([['AddRecord', etat.tables.li, null, champs]]);
     var id = r && r.retValues ? r.retValues[0] : null;
     etat.signature = '';
     await rafraichir(true);
@@ -3376,20 +3669,22 @@ async function creerLien(de, vers) {
 }
 
 async function modifierLien(l, champs) {
-  var avant = { LIBELLE: l.libelle, STYLE: l.style, FLECHE: l.fleche };
+  var avant = { LIBELLE: l.libelle, STYLE: l.style, FLECHE: l.fleche, TRACE: l.trace };
   var a = {};
   Object.keys(champs).forEach(function (k) { a[k] = avant[k]; });
   if ('LIBELLE' in champs) { l.libelle = champs.LIBELLE; }
   if ('STYLE' in champs) { l.style = champs.STYLE; }
   if ('FLECHE' in champs) { l.fleche = champs.FLECHE; }
+  if ('TRACE' in champs) { l.trace = champs.TRACE; }
   dessinerLiens(); placerCtx();
-  var b = document.getElementById(champs.STYLE ? 'cLienStyle' : (champs.FLECHE ? 'cLienSens' : 'cLienLibelle')); if (b) { b.focus(); }
+  var b = document.getElementById(champs.STYLE ? 'cLienStyle' : (champs.FLECHE ? 'cLienSens' : (champs.TRACE ? 'cLienTrace' : 'cLienLibelle'))); if (b) { b.focus(); }
   await ecrire([['UpdateRecord', etat.tables.li, l.id, champs]], 'Connecteur modifié.', function () { return [['UpdateRecord', etat.tables.li, l.id, a]]; });
 }
 
 async function supprimerLien(l) {
   if (!l) { return; }
   var copie = { TABLEAU: l.tableau, DE: l.de, VERS: l.vers, LIBELLE: l.libelle, STYLE: l.style, FLECHE: l.fleche };
+  if (infoColonne(etat.tables.li, 'TRACE')) { copie.TRACE = l.trace; }
   etat.liens = etat.liens.filter(function (x) { return x.id !== l.id; });
   etat.lienSel = null;
   indexer(); dessinerLiens(); placerCtx(); majBarre();
@@ -3416,7 +3711,9 @@ function editerLibelle(id) {
   fermerPop(); fermerCtx();
   var zone = creer('textarea', { classe: 'w-edition', id: 'vEdition', valeur: e.libelle, attrs: { 'aria-label': 'Texte de l\'élément', rows: 2,
     placeholder: e.ficheLigne && !e.libelle ? libelleAffiche(e) : null } });
-  if (e.type === 'Section') { zone.style.left = e.x + 'px'; zone.style.top = (e.y - 18) + 'px'; zone.style.width = Math.max(180, Math.min(e.w, 360)) + 'px'; zone.style.height = '2.25rem'; zone.style.textAlign = 'left'; }
+  if (e.type === 'Section' && e.forme === 'Couloir') { zone.style.left = e.x + 'px'; zone.style.top = (e.y + e.h / 2 - 18) + 'px'; zone.style.width = '220px'; zone.style.height = '2.25rem'; zone.style.textAlign = 'left'; }
+  else if (e.type === 'Image') { zone.style.left = e.x + 'px'; zone.style.top = (e.y + e.h + 4) + 'px'; zone.style.width = Math.max(e.w, 160) + 'px'; zone.style.height = '2.25rem'; zone.setAttribute('aria-label', 'Légende de l\'image'); }
+  else if (e.type === 'Section') { zone.style.left = e.x + 'px'; zone.style.top = (e.y - 18) + 'px'; zone.style.width = Math.max(180, Math.min(e.w, 360)) + 'px'; zone.style.height = '2.25rem'; zone.style.textAlign = 'left'; }
   else { zone.style.left = e.x + 'px'; zone.style.top = e.y + 'px'; zone.style.width = Math.max(e.w, 120) + 'px'; zone.style.height = Math.max(e.h, 40) + 'px'; }
   if (e.type === 'Post-it') { zone.style.textAlign = 'left'; }
   zone.style.zIndex = '5000';
@@ -3549,16 +3846,17 @@ function rendreFiche() {
   var lib = saisie('fLibelle', e.libelle, { multiligne: true, lignes: 2, indice: e.ficheLigne && !e.libelle ? libelleAffiche(e) : null });
   lib.readOnly = ro;
   lib.addEventListener('input', function () { enregistrerChampFiche(e, { LIBELLE: lib.value }, true); var h = document.getElementById('wFicheTitre'); if (h) { h.textContent = libelleCourt(e); } });
-  corps.appendChild(groupeChamp(e.type === 'Section' ? 'Titre de la section' : 'Texte', lib, e.ficheLigne && !e.libelle ? 'Vide : le texte de la fiche liée s\'affiche.' : null));
+  corps.appendChild(groupeChamp(e.type === 'Section' ? (e.forme === 'Couloir' ? 'Nom du couloir' : 'Titre de la section') : (e.type === 'Image' ? 'Légende' : 'Texte'), lib, e.ficheLigne && !e.libelle ? 'Vide : le texte de la fiche liée s\'affiche.' : null));
   var ligne = [];
   var selType = liste('fType', TYPES.map(function (x) { return { valeur: x, libelle: x }; }), e.type);
   selType.disabled = ro;
   selType.addEventListener('change', function () { enregistrerChampFiche(e, { TYPE: selType.value }); rendreFiche(); });
   ligne.push(groupeListe('Type', selType));
-  if (e.type === 'Forme') {
-    var selF = liste('fForme', FORMES.map(function (x) { return { valeur: x, libelle: x }; }), e.forme);
+  if (e.type === 'Forme' || e.type === 'Section') {
+    var selF = liste('fForme', (e.type === 'Section' ? FORMES_SECTION : FORMES).map(function (x) { return { valeur: x, libelle: x }; }), e.forme);
     selF.disabled = ro;
     selF.addEventListener('change', function () { enregistrerChampFiche(e, { FORME: selF.value }); });
+    if (e.type === 'Section') { selF.setAttribute('aria-describedby', 'fFormeAide'); }
     ligne.push(groupeListe('Forme', selF));
   }
   corps.appendChild(creer('div', { classe: 'w-deux' }, ligne));
@@ -3596,16 +3894,21 @@ function rendreFiche() {
   }
   if (ligne2.length) { corps.appendChild(creer('div', { classe: 'w-deux' }, ligne2)); }
   if (etat.affichage.votes && e.type !== 'Section') {
-    corps.appendChild(creer('div', { classe: 'fr-mb-2w', attrs: { style: 'display:flex;align-items:center;gap:.5rem' } }, [creer('span', { classe: 'w-texte', texte: pluriel(e.votes, 'vote', 'votes') }),
+    var nv = compteVotes(e);
+    var votants = votesDe(e.id).map(function (p) { return nomPersonne(p.auteur || p.creePar); });
+    var mien = votesDe(e.id).some(function (p) { return p.auteur === etat.moi; });
+    corps.appendChild(creer('div', { classe: 'fr-mb-2w w-votes-fiche' }, [creer('span', { classe: 'w-texte', texte: pluriel(nv, 'vote', 'votes') }),
       ro ? null : bouton('Voter', 'secondaire', null, function () { return voter(e, 1).then(rendreFiche); }, { petit: true, id: 'fVoter' }),
-      ro || !e.votes ? null : bouton('Retirer un vote', 'tertiaire', null, function () { return voter(e, -1).then(rendreFiche); }, { petit: true, id: 'fDevoter' })]));
+      ro || !(mien || (e.votes && (etat.peutParametrer || !etat.tables.pa))) ? null : bouton('Retirer mon vote', 'tertiaire', null, function () { return voter(e, -1).then(rendreFiche); }, { petit: true, id: 'fDevoter' })]));
+    if (votants.length) { corps.appendChild(creer('p', { classe: 'w-mention fr-mb-2w', texte: 'Votes de : ' + votants.join(', ') + (e.votes ? ' (et ' + pluriel(e.votes, 'vote anonyme', 'votes anonymes') + ')' : '') })); }
   }
   var desc = saisie('fDescription', e.description, { multiligne: true, lignes: 4 });
   desc.readOnly = ro;
   desc.addEventListener('input', function () { enregistrerChampFiche(e, { DESCRIPTION: desc.value }, true); });
   corps.appendChild(groupeChamp('Description', desc));
   if (t.fiche.table && e.type !== 'Section') { corps.appendChild(blocFicheLiee(e, t)); }
-  if (t.champs.pj && e.type !== 'Section') { corps.appendChild(blocPiecesJointes(e)); }
+  if (t.champs.pj && e.type !== 'Section' && e.type !== 'Image') { corps.appendChild(blocPiecesJointes(e)); }
+  if (e.type !== 'Section' && (etat.tables.pa || commentairesDe(e.id).length)) { corps.appendChild(blocCommentaires(e)); }
   f.appendChild(corps);
   var trace = [];
   if (e.creeLe || e.creePar) { trace.push('Créé' + (formaterDate(e.creeLe) ? ' le ' + formaterDate(e.creeLe) : '') + (e.creePar ? ' par ' + e.creePar : '')); }
@@ -3729,16 +4032,7 @@ async function envoyerPj(e, fichiers) {
   }
   afficherLoader('Envoi des fichiers…');
   try {
-    var ids = [];
-    for (var k = 0; k < fichiers.length; k++) {
-      var j = await obtenirJeton(true);
-      var form = new FormData();
-      form.append('upload', fichiers[k], fichiers[k].name);
-      var rep = await fetch(j.baseUrl + '/attachments?auth=' + encodeURIComponent(j.token), { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-      if (!rep.ok) { throw new Error('Envoi refusé : ' + rep.status); }
-      var r = await rep.json();
-      (Array.isArray(r) ? r : []).forEach(function (x) { if (typeof x === 'number') { ids.push(x); } });
-    }
+    var ids = await televerser(fichiers);
     var tous = e.pj.concat(ids.filter(function (x) { return e.pj.indexOf(x) === -1; }));
     await agir([['UpdateRecord', etat.tables.el, e.id, { PIECES_JOINTES: ['L'].concat(tous) }]]);
     masquerLoader();
@@ -3784,6 +4078,7 @@ function rendreListe() {
   if (t.champs.statut) { cols.push('Statut'); }
   if (etat.affichage.votes) { cols.push('Votes'); }
   if (t.fiche.table) { cols.push('Fiche liée'); }
+  if (etat.tables.pa) { cols.push('Commentaires'); }
   cols.push('Connecteurs');
   var table = creer('table', { classe: 'w-tableau' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Éléments du tableau blanc ' + t.nom }),
     creer('thead', {}, [creer('tr', {}, cols.map(function (c) { return creer('th', { texte: c, attrs: { scope: 'col' } }); }))])]);
@@ -3797,8 +4092,9 @@ function rendreListe() {
       creer('td', { texte: s ? libelleCourt(s) : '' })];
     if (t.champs.responsable) { cel.push(creer('td', { texte: e.responsable })); }
     if (t.champs.statut) { cel.push(creer('td', {}, [e.statut ? badge(e.statut, BADGE_STATUT[e.statut] || null) : null])); }
-    if (etat.affichage.votes) { cel.push(creer('td', { texte: String(e.votes) })); }
+    if (etat.affichage.votes) { cel.push(creer('td', { texte: String(compteVotes(e)) })); }
     if (t.fiche.table) { cel.push(creer('td', { texte: e.ficheLigne ? (texteLigneLiee(e.ficheTable, e.ficheLigne, colonneAffichee(e.ficheTable)) || 'Ligne ' + e.ficheLigne) : '' })); }
+    if (etat.tables.pa) { var nc = commentairesDe(e.id).length; cel.push(creer('td', { texte: nc ? String(nc) : '' })); }
     cel.push(creer('td', { texte: nbLiens ? String(nbLiens) : '' }));
     tb.appendChild(creer('tr', { classe: etat.fiche === e.id ? 'w-ligne--select' : '' }, cel));
   });
@@ -3857,12 +4153,13 @@ function nomFichier(ext) {
 function exporterCsv() {
   var t = tableauCourant();
   var tous = elementsDuTableau();
-  var lignes = [['Texte', 'Type', 'Forme', 'Couleur', 'Sens de la couleur', 'Section', 'Responsable', 'Statut', 'Votes', 'Fiche liée', 'Description', 'Connecteurs sortants'].join(';')];
+  var lignes = [['Texte', 'Type', 'Forme', 'Couleur', 'Sens de la couleur', 'Section', 'Responsable', 'Statut', 'Votes', 'Fiche liée', 'Description', 'Connecteurs sortants', 'Commentaires'].join(';')];
   tous.filter(function (e) { return e.type !== 'Section'; }).sort(function (a, b) { return a.y - b.y || a.x - b.x; }).forEach(function (e) {
     var s = sectionDe(e, tous);
     var sortants = liensDuTableau().filter(function (l) { return l.de === e.id; }).map(function (l) { return (l.libelle ? l.libelle + ' : ' : '') + libelleCourt(etat.parId[l.vers]); }).join(' | ');
-    lignes.push([libelleAffiche(e), e.type, e.type === 'Forme' ? e.forme : '', nomCouleur(e.couleur), sensCouleur(e.couleur), s ? libelleCourt(s) : '', e.responsable, e.statut, e.votes,
-      e.ficheLigne ? texteLigneLiee(e.ficheTable, e.ficheLigne, colonneAffichee(e.ficheTable)) : '', e.description, sortants].map(champCsv).join(';'));
+    var coms = commentairesDe(e.id).map(function (c) { return nomPersonne(c.auteur || c.creePar) + ' : ' + c.valeur; }).join(' | ');
+    lignes.push([libelleAffiche(e), e.type, e.type === 'Forme' ? e.forme : '', nomCouleur(e.couleur), sensCouleur(e.couleur), s ? libelleCourt(s) : '', e.responsable, e.statut, compteVotes(e),
+      e.ficheLigne ? texteLigneLiee(e.ficheTable, e.ficheLigne, colonneAffichee(e.ficheTable)) : '', e.description, sortants, coms].map(champCsv).join(';'));
   });
   telechargerBlob(new Blob(['﻿' + lignes.join('\r\n')], { type: 'text/csv;charset=utf-8' }), nomFichier('csv'));
   afficherToast(pluriel(lignes.length - 1, 'élément exporté', 'éléments exportés') + ' en CSV' + (t ? ' (« ' + t.nom + ' »)' : '') + '.');
@@ -3914,6 +4211,18 @@ function construireSvgExport() {
   var textes = [];
   tries.forEach(function (e) {
     var x = e.x + ox, y = e.y + oy, fond = couleurResolue(fondCouleur(e.couleur)), bord = couleurResolue(bordCouleur(e.couleur));
+    if (e.type === 'Section' && e.forme === 'Couloir') {
+      var fondC = e.couleur === 'blanc' ? couleurResolue('var(--background-alt-grey)') : fond;
+      parts.push('<rect x="' + x + '" y="' + y + '" width="' + e.w + '" height="' + e.h + '" fill="none" stroke="' + bord + '" stroke-width="1"/>');
+      parts.push('<rect x="' + x + '" y="' + y + '" width="40" height="' + e.h + '" fill="' + fondC + '" stroke="' + bord + '" stroke-width="1"/>');
+      textes.push('<text transform="translate(' + (x + 25) + ' ' + (y + e.h / 2) + ') rotate(-90)" font-size="14" font-weight="700" text-anchor="middle" fill="' + texte + '">' + echapperXml(libelleAffiche(e) || 'Couloir') + '</text>');
+      return;
+    }
+    if (e.type === 'Image') {
+      parts.push('<rect x="' + x + '" y="' + y + '" width="' + e.w + '" height="' + e.h + '" fill="' + couleurResolue('var(--background-contrast-grey)') + '" stroke="' + bord + '" stroke-width="1" stroke-dasharray="4 4"/>');
+      textes.push('<text x="' + (x + e.w / 2) + '" y="' + (y + e.h / 2 + 5) + '" font-size="13" text-anchor="middle" fill="' + texte + '">' + echapperXml('Image' + (libelleAffiche(e) ? ' : ' + libelleAffiche(e) : '')) + '</text>');
+      return;
+    }
     if (e.type === 'Section') {
       parts.push('<rect x="' + x + '" y="' + y + '" width="' + e.w + '" height="' + e.h + '" fill="none" stroke="' + bord + '" stroke-width="2" stroke-dasharray="8 6"/>');
       textes.push('<text x="' + (x + 12) + '" y="' + (y - 6) + '" font-size="14" font-weight="700" fill="' + texte + '">' + echapperXml(libelleAffiche(e) || 'Section') + '</text>');
@@ -3938,7 +4247,7 @@ function construireSvgExport() {
     var g = geometrieLien(l);
     var att = l.fleche !== 'Sans flèche' ? ' marker-end="url(#f)"' : '';
     if (l.fleche === 'Dans les deux sens') { att += ' marker-start="url(#f)"'; }
-    parts.push('<path d="M' + (g.x1 + ox) + ' ' + (g.y1 + oy) + 'L' + (g.x2 + ox) + ' ' + (g.y2 + oy) + '" stroke="' + texte + '" stroke-width="1.5" fill="none"' + (l.style === 'Pointillés' ? ' stroke-dasharray="6 5"' : '') + att + '/>');
+    parts.push('<path transform="translate(' + ox + ' ' + oy + ')" d="' + g.d + '" stroke="' + texte + '" stroke-width="1.5" fill="none"' + (l.style === 'Pointillés' ? ' stroke-dasharray="6 5"' : '') + att + '/>');
     if (l.libelle) {
       var lw = l.libelle.length * 7.5 + 8;
       parts.push('<rect x="' + (g.mx + ox - lw / 2) + '" y="' + (g.my + oy - 10) + '" width="' + lw + '" height="20" fill="' + fondPage + '"/>');
@@ -4177,12 +4486,20 @@ function editeurAffichage(cible, apres, idBase) {
   [['section', 'Section'], ['responsable', 'Responsable'], ['statut', 'Statut']].forEach(function (x) {
     col2.appendChild(caseACocher(idBase + 'Fil_' + x[0], x[1], !!cible.filtres[x[0]], function (v) { cible.filtres[x[0]] = v; apres(); }));
   });
-  return creer('div', { classe: 'w-grille-param' }, [col1, col2]);
+  var col3 = creer('div', { classe: 'w-colonne' }, [titreColonne('Atelier et connecteurs', idBase + 'TitreAtelier', null)]);
+  var selV = liste(idBase + 'Votes', VOTES_PAR_PERSONNE.map(function (n) { return { valeur: n, libelle: n ? pluriel(n, 'vote', 'votes') + ' par personne' : 'Sans limite' }; }), cible.votesParPersonne);
+  selV.addEventListener('change', function () { cible.votesParPersonne = parseInt(selV.value, 10) || 0; apres(); });
+  col3.appendChild(groupeListe('Votes', selV, 'Chaque personne voit combien de votes il lui reste.'));
+  var selTr = liste(idBase + 'Trace', TRACES.map(function (x) { return { valeur: x, libelle: x === 'Coudé' ? 'Coudé (à angle droit)' : 'Droit' }; }), cible.traceDefaut);
+  selTr.addEventListener('change', function () { cible.traceDefaut = selTr.value; apres(); });
+  col3.appendChild(groupeListe('Tracé des nouveaux connecteurs', selTr));
+  if (cible.id && etat.tables.pa) { col3.appendChild(creer('div', {}, [bouton('Remettre les votes à zéro', 'secondaire', 'refresh-line', function () { return reinitialiserVotes(cible); }, { petit: true, id: idBase + 'RazVotes' })])); }
+  return creer('div', { classe: 'w-grille-param' }, [col1, col2, col3]);
 }
 
 /* === SECTION : ASSISTANT DE CREATION === */
 function nouveauReglage() {
-  return { etape: 0, depart: null, modele: 'logigramme', nom: '', description: '',
+  return { etape: 0, depart: null, modele: 'logigramme', nom: '', description: '', traceDefaut: MODELES[0].traceDefaut || 'Droit', votesParPersonne: ATELIER_DEFAUT.votesParPersonne,
     legende: MODELES[0].legende.map(function (x) { return { couleur: x[0], libelle: x[1] }; }),
     fiche: { table: '', colonne: '' }, source: { table: '', colonne: '', couleur: '' },
     affichage: Object.assign({}, AFFICHAGE_DEFAUT, MODELES[0].affichage), champs: Object.assign({}, CHAMPS_DEFAUT), filtres: Object.assign({}, FILTRES_DEFAUT) };
@@ -4204,6 +4521,7 @@ function choisirModele(c, cle) {
   c.modele = cle;
   c.legende = m.legende.map(function (x) { return { couleur: x[0], libelle: x[1] }; });
   c.affichage = Object.assign({}, AFFICHAGE_DEFAUT, m.affichage);
+  c.traceDefaut = m.traceDefaut || 'Droit';
   if (!c.nom || MODELES.some(function (x) { return x.nom === c.nom; })) { c.nom = m.nom; }
 }
 
@@ -4228,7 +4546,9 @@ function vignetteModele(cle) {
     n.style.position = 'absolute';
     n.style.left = (ox + e.x * k) + 'px'; n.style.top = (oy + e.y * k) + 'px'; n.style.width = (e.w * k) + 'px'; n.style.height = (e.h * k) + 'px';
     appliquerCouleur(n, e.c);
-    if (e.t === 'Section') { n.style.border = '1px dashed var(--bord-el)'; }
+    if (e.t === 'Texte') { return; }
+    if (e.t === 'Section' && e.f === 'Couloir') { n.style.border = '1px solid var(--bord-el)'; n.style.borderLeftWidth = '6px'; }
+    else if (e.t === 'Section') { n.style.border = '1px dashed var(--bord-el)'; }
     else if (e.t === 'Post-it') { n.style.background = 'var(--fond-el)'; }
     else { n.appendChild(dessinForme(e.f, Math.max(4, e.w * k), Math.max(4, e.h * k))); }
     v.appendChild(n);
@@ -4244,7 +4564,7 @@ function rendreCreation() {
   zone.className = 'w-contenu';
   var c = etat.creation;
   var aller = function (i) {
-    if (i > 0 && !c.depart) { signalerSaisie('Choisissez d\'abord un point de départ.'); return; }
+    if (i > 0 && !c.depart) { signalerSaisie('Choisissez d\'abord ce que vous voulez faire : une feuille blanche, un modèle ou vos données.'); return; }
     if (i > 0 && c.depart === 'donnees' && !c.source.table) { signalerSaisie('Choisissez la table de vos données.'); return; }
     c.etape = i; rendreCreation(); var t = document.getElementById('titreVue'); if (t) { t.focus(); } majAideEtape();
   };
@@ -4254,29 +4574,39 @@ function rendreCreation() {
   bloc.appendChild(filAriane(ETAPES_CREATION, c.etape, aller));
   var rien = function () {};
   if (c.etape === 0) {
+    /* Premier choix : ce que l'on veut faire. Feuille blanche en tete, puis
+       les modeles par usage, puis le depart depuis ses donnees. */
     var possibles = tablesUtilisatrice();
-    var tuile = function (id, icone, titre, texte, libelle, choix) {
-      return creer('div', { classe: 'w-tuile' + (c.depart === choix ? ' w-tuile--choisie' : '') }, [creer('span', { classe: 'w-tuile__icone fr-icon-' + icone + ' fr-icon--lg', attrs: { 'aria-hidden': 'true' } }),
-        creer('h3', { classe: 'fr-h6 fr-mb-0', texte: titre }), creer('p', { classe: 'w-texte', texte: texte }),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton(libelle, c.depart === choix ? null : 'secondaire', null, function () {
-          c.depart = choix;
-          if (choix === 'donnees') { c.source.table = c.source.table || possibles[0] || ''; c.source.colonne = c.source.colonne || colonneParDefaut(c.source.table); legendeDepuisSource(c); c.fiche = { table: c.source.table, colonne: c.source.colonne }; c.modele = 'donnees'; c.affichage = Object.assign({}, AFFICHAGE_DEFAUT); if (!c.nom) { c.nom = libelleTable(c.source.table); } }
-          else { choisirModele(c, c.modele && c.modele !== 'donnees' ? c.modele : 'logigramme'); c.fiche = { table: '', colonne: '' }; }
-          rendreCreation(); var f = document.getElementById(id); if (f) { f.focus(); }
-        }, { id: id, desactive: choix === 'donnees' && !possibles.length, attrs: { 'aria-pressed': c.depart === choix ? 'true' : 'false' } })])]);
+    var choisir = function (cle) {
+      c.depart = 'modele';
+      choisirModele(c, cle);
+      c.fiche = { table: '', colonne: '' };
+      rendreCreation();
+      var f = document.getElementById('cModele_' + cle); if (f) { f.focus(); }
     };
-    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, [
-      tuile('cDonnees', 'table-line', 'J\'ai déjà des données', possibles.length ? 'Les lignes d\'une table du document deviennent des post-it, chacun relié à sa ligne. La table n\'est jamais modifiée.' : 'Aucune table dans ce document pour l\'instant.', 'Partir de mes données', 'donnees'),
-      tuile('cModele', 'add-circle-line', 'Je n\'ai pas encore de données', 'Le widget crée ses tables, puis vous dessinez à partir d\'un modèle.', 'Partir d\'un modèle', 'modele')]));
-    if (c.depart === 'modele') {
-      var grille = creer('div', { classe: 'w-modeles', attrs: { role: 'group', 'aria-labelledby': 'cTitreModeles' } });
-      MODELES.forEach(function (m) {
-        grille.appendChild(creer('button', { classe: 'w-modele', id: 'cModele_' + m.cle, attrs: { 'aria-pressed': c.modele === m.cle ? 'true' : 'false' },
-          clic: function () { choisirModele(c, m.cle); rendreCreation(); var f = document.getElementById('cModele_' + m.cle); if (f) { f.focus(); } } },
-          [vignetteModele(m.cle), creer('span', { classe: 'w-modele__texte' }, [creer('span', { classe: 'w-modele__nom', texte: m.nom }), creer('span', { classe: 'w-modele__desc', texte: m.desc })])]));
-      });
-      bloc.appendChild(creer('div', { classe: 'w-colonne' }, [titreColonne('Choisissez un modèle', 'cTitreModeles', null), grille]));
-    }
+    var tuileModele = function (m) {
+      var choisi = c.depart === 'modele' && c.modele === m.cle;
+      return creer('button', { classe: 'w-modele', id: 'cModele_' + m.cle, attrs: { 'aria-pressed': choisi ? 'true' : 'false' }, clic: function () { choisir(m.cle); } },
+        [vignetteModele(m.cle), creer('span', { classe: 'w-modele__texte' }, [creer('span', { classe: 'w-modele__nom', texte: m.nom }), creer('span', { classe: 'w-modele__desc', texte: m.desc })])]);
+    };
+    var groupe = function (id, titre, aideTexte, tuiles) {
+      return creer('div', { classe: 'w-colonne' }, [titreColonne(titre, id, aideTexte), creer('div', { classe: 'w-modeles', attrs: { role: 'group', 'aria-labelledby': id } }, tuiles)]);
+    };
+    bloc.appendChild(creer('p', { classe: 'w-texte fr-text--lg fr-mb-0', texte: 'Que voulez-vous faire ?' }));
+    bloc.appendChild(groupe('cGrVierge', 'Partir de rien', null, MODELES.filter(function (m) { return m.groupe === 'vierge'; }).map(tuileModele)));
+    bloc.appendChild(groupe('cGrSchema', 'Schématiser', 'Un processus, une démarche, une décision : formes reliées par des connecteurs.', MODELES.filter(function (m) { return m.groupe === 'schema'; }).map(tuileModele)));
+    bloc.appendChild(groupe('cGrAtelier', 'Animer un atelier', 'Des post-it rangés par colonnes ou par cases, avec des votes.', MODELES.filter(function (m) { return m.groupe === 'atelier'; }).map(tuileModele)));
+    var tuileDonnees = creer('button', { classe: 'w-modele', id: 'cDonnees', attrs: { 'aria-pressed': c.depart === 'donnees' ? 'true' : 'false', disabled: possibles.length ? null : true },
+      clic: function () {
+        c.depart = 'donnees';
+        c.source.table = c.source.table || possibles[0] || ''; c.source.colonne = c.source.colonne || colonneParDefaut(c.source.table);
+        legendeDepuisSource(c); c.fiche = { table: c.source.table, colonne: c.source.colonne }; c.modele = 'donnees';
+        c.affichage = Object.assign({}, AFFICHAGE_DEFAUT); c.traceDefaut = 'Droit'; c.nom = libelleTable(c.source.table);
+        rendreCreation(); var f = document.getElementById('cDonnees'); if (f) { f.focus(); }
+      } }, [creer('span', { classe: 'w-modele__vignette w-modele__vignette--icone', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-table-line fr-icon--lg' })]),
+        creer('span', { classe: 'w-modele__texte' }, [creer('span', { classe: 'w-modele__nom', texte: 'Placer les lignes d\'une table' }),
+          creer('span', { classe: 'w-modele__desc', texte: possibles.length ? 'Chaque ligne devient un post-it relié à sa ligne. La table n\'est jamais modifiée.' : 'Aucune table dans ce document pour l\'instant.' })])]);
+    bloc.appendChild(groupe('cGrDonnees', 'Partir de vos données', null, [tuileDonnees]));
     if (c.depart === 'donnees' && possibles.length) {
       var selT = liste('cSourceTable', possibles.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), c.source.table);
       selT.addEventListener('change', function () { c.source.table = selT.value; c.source.colonne = colonneParDefaut(selT.value); c.source.couleur = ''; legendeDepuisSource(c); c.fiche = { table: selT.value, colonne: c.source.colonne }; c.nom = libelleTable(selT.value); rendreCreation(); var f = document.getElementById('cSourceTable'); if (f) { f.focus(); } });
@@ -4286,12 +4616,10 @@ function rendreCreation() {
       var choix = cols.filter(function (x) { return /^Choice/.test(x.type); });
       var selK = liste('cSourceCouleur', choix.map(function (x) { return { valeur: x.colId, libelle: x.label }; }), c.source.couleur, { vide: 'Une seule couleur' });
       selK.addEventListener('change', function () { c.source.couleur = selK.value; legendeDepuisSource(c); });
-      var nb = etat.fiches[c.source.table] ? etat.fiches[c.source.table].d.id.length : null;
       bloc.appendChild(creer('div', { classe: 'w-grille-param' }, [creer('div', { classe: 'w-colonne' }, [
-        titreColonne('Vos données', 'cTitreSource', 'Chaque ligne devient un post-it relié à sa ligne. Le texte affiché suit la ligne : une correction dans la table se voit aussitôt sur le tableau blanc.'),
+        titreColonne('Vos données', 'cTitreSource', 'Le texte affiché suit la ligne : une correction dans la table se voit aussitôt sur le tableau blanc.'),
         groupeListe('Table', selT), groupeListe('Texte des post-it', selC),
-        choix.length ? groupeListe('Couleur selon', selK, 'Une colonne de choix : une couleur par valeur.') : null,
-        nb !== null ? creer('p', { classe: 'w-mention', texte: pluriel(nb, 'ligne', 'lignes') + ' dans cette table.' }) : null])]));
+        choix.length ? groupeListe('Couleur selon', selK, 'Une colonne de choix : une couleur par valeur.') : null])]));
     }
   }
   if (c.etape === 1) {
@@ -4320,6 +4648,7 @@ function rendreCreation() {
     var m = MODELES.filter(function (x) { return x.cle === c.modele; })[0];
     var recap = [
       c.depart === 'donnees' ? 'Point de départ : vos données (' + libelleTable(c.source.table) + ')' : 'Modèle : ' + (m ? m.nom : ''),
+      'Connecteurs : tracé ' + (c.traceDefaut === 'Coudé' ? 'coudé' : 'droit'),
       'Légende : ' + (c.legende.length ? c.legende.map(function (x) { return x.libelle || nomCouleur(x.couleur); }).join(', ') : 'aucune couleur'),
       'Fiche liée : ' + (c.fiche.table ? libelleTable(c.fiche.table) : 'aucune'),
       'Champs : ' + ['texte', 'couleur', 'description'].concat(c.champs.responsable ? ['responsable'] : [], c.champs.statut ? ['statut'] : [], c.champs.pj ? ['pièces jointes'] : []).join(', '),
@@ -4352,7 +4681,8 @@ async function lancerCreation() {
     resoudreTables();
     var id = 't' + Date.now().toString(36);
     var t = normaliserConfig({ tableaux: [{ id: id, nom: c.nom.trim(), description: c.description.trim(), modele: c.modele, legende: c.legende.map(function (x) { return { couleur: x.couleur, libelle: x.libelle.trim() }; }),
-      fiche: c.fiche, source: c.depart === 'donnees' ? c.source : { table: '', colonne: '', couleur: '' }, affichage: c.affichage, champs: c.champs, filtres: c.filtres }] }).tableaux[0];
+      fiche: c.fiche, source: c.depart === 'donnees' ? c.source : { table: '', colonne: '', couleur: '' }, affichage: c.affichage, champs: c.champs, filtres: c.filtres,
+      traceDefaut: c.traceDefaut, votesParPersonne: c.votesParPersonne }] }).tableaux[0];
     etat.config = normaliserConfig(etat.config || {});
     etat.config.tableaux.push(t);
     await ecrireConfig();
@@ -4396,12 +4726,17 @@ async function semer(t, c) {
   var m = MODELES.filter(function (x) { return x.cle === c.modele; })[0];
   if (!m || !m.elements.length) { return; }
   var lot = m.elements.map(function (e, i) {
-    return { TABLEAU: t.id, TYPE: e.t, FORME: e.f || '', LIBELLE: e.l, COULEUR: e.c, POSITION_X: e.x, POSITION_Y: e.y, LARGEUR: e.w, HAUTEUR: e.h, ORDRE: e.t === 'Section' ? 0 : i + 1 };
+    return { TABLEAU: t.id, TYPE: e.t, FORME: e.f || (e.t === 'Section' ? 'Cadre' : ''), LIBELLE: e.l, COULEUR: e.c, POSITION_X: e.x, POSITION_Y: e.y, LARGEUR: e.w, HAUTEUR: e.h, ORDRE: e.t === 'Section' ? 0 : i + 1 };
   });
   var r = await agir([actionAjoutLot(etat.tables.el, lot)]);
   var ids = r && r.retValues ? r.retValues[0] : [];
   if (m.liens.length && ids.length === lot.length) {
-    await agir([actionAjoutLot(etat.tables.li, m.liens.map(function (l) { return { TABLEAU: t.id, DE: ids[l[0]], VERS: ids[l[1]], LIBELLE: l[2] || '', STYLE: 'Plein', FLECHE: l[3] || 'Vers la fin' }; }))]);
+    var avecTrace = !!infoColonne(etat.tables.li, 'TRACE');
+    await agir([actionAjoutLot(etat.tables.li, m.liens.map(function (l) {
+      var x = { TABLEAU: t.id, DE: ids[l[0]], VERS: ids[l[1]], LIBELLE: l[2] || '', STYLE: 'Plein', FLECHE: l[3] || 'Vers la fin' };
+      if (avecTrace) { x.TRACE = t.traceDefaut; }
+      return x;
+    }))]);
   }
 }
 
@@ -4581,18 +4916,645 @@ function marquerInvalide(id, message) {
   annoncer(message);
 }
 
+/* === SECTION : MISE A NIVEAU DES TABLES (1.1.0) ===
+   A l'ouverture, pour qui peut parametrer : table de participation, colonne
+   TRACE des liens et nouveaux choix (Image, Cadre, Couloir) ajoutes aux
+   tables creees par une version precedente. Rien n'est supprime. */
+async function assurerChoix(tid, colId, valeurs) {
+  var info = tid ? infoColonne(tid, colId) : null;
+  if (!info) { return false; }
+  var opts = Object.assign({}, info.options || {});
+  var choix = Array.isArray(opts.choices) ? opts.choices.slice() : [];
+  var manquants = valeurs.filter(function (v) { return choix.indexOf(v) === -1; });
+  if (!manquants.length) { return false; }
+  opts.choices = choix.concat(manquants);
+  if (!opts.widget) { opts.widget = 'TextBox'; }
+  await agir([['ModifyColumn', tid, colId, { widgetOptions: JSON.stringify(opts) }]]);
+  return true;
+}
+
+function choixObsoletes() {
+  var a = function (tid, col, valeurs) {
+    var info = tid ? infoColonne(tid, col) : null;
+    var c = info && info.options && Array.isArray(info.options.choices) ? info.options.choices : [];
+    return !!info && valeurs.some(function (v) { return c.indexOf(v) === -1; });
+  };
+  return a(etat.tables.el, 'TYPE', TYPES) || a(etat.tables.el, 'FORME', FORMES.concat(FORMES_SECTION)) || a(etat.tables.li, 'TRACE', TRACES);
+}
+
+async function mettreANiveau() {
+  if (!tableaux().length || !etat.peutParametrer || !(etat.niveauAcces === null || etat.niveauAcces === 'full')) { return; }
+  if (!etat.tables.el) { return; }
+  if (structureManquante().vide && !choixObsoletes()) { return; }
+  afficherLoader('Mise à niveau des tables…');
+  try {
+    if (!structureManquante().vide) { await completerStructure(); }
+    await chargerMeta();
+    resoudreTables();
+    await assurerChoix(etat.tables.el, 'TYPE', TYPES);
+    await assurerChoix(etat.tables.el, 'FORME', FORMES.concat(FORMES_SECTION));
+    await assurerChoix(etat.tables.li, 'TRACE', TRACES);
+    await chargerMeta();
+    resoudreTables();
+    if (etat.config) { await ecrireConfig(); }
+    logSecurite('INFO', 'Tables mises à niveau pour la version ' + VERSION_WIDGET);
+  } catch (e) {
+    logSecurite('AVERTISSEMENT', 'Mise à niveau des tables non aboutie : les nouveautés qui en dépendent restent masquées', e);
+  } finally { masquerLoader(); }
+}
+
+/* === SECTION : PARTICIPATION ===
+   Presence, votes, minuteur et commentaires : une ligne par signe dans la
+   table de participation. L'identite d'une personne est lue dans CREE_PAR
+   (formule de la plateforme) de sa ligne de presence. */
+function participationsDu(type, tableau) {
+  var t = tableau || etat.tableauId;
+  return etat.participations.filter(function (p) { return p.type === type && p.tableau === t; });
+}
+
+function nomPersonne(auteur) {
+  var a = String(auteur || '');
+  if (!a) { return 'Personne'; }
+  if (a.indexOf('anonyme:') === 0) { return 'Invité ' + a.slice(-4).toUpperCase(); }
+  var local = a.split('@')[0];
+  return local.split(/[._-]+/).filter(Boolean).map(function (m) { return m.charAt(0).toUpperCase() + m.slice(1); }).join(' ') || a;
+}
+
+function initiales(auteur) {
+  var n = nomPersonne(auteur).split(' ').filter(Boolean);
+  return ((n[0] || '?').charAt(0) + (n.length > 1 ? n[n.length - 1].charAt(0) : '')).toUpperCase();
+}
+
+function participationActive() { return !!etat.tables.pa && etat.peutModifier; }
+
+/* Ligne de presence de cette personne pour ce tableau : retrouvee par le
+   navigateur, sinon creee ; l'identite est lue dans CREE_PAR. */
+async function assurerIdentite() {
+  if (!participationActive() || !etat.tableauId) { return etat.moi; }
+  var cle = 'presence:' + etat.tableauId;
+  var id = lirePref(cle, null);
+  var ligne = id ? etat.participations.filter(function (p) { return p.id === id && p.type === 'Présence' && p.tableau === etat.tableauId; })[0] : null;
+  if (ligne && (ligne.auteur || ligne.creePar)) {
+    etat.presenceId = ligne.id;
+    if (!etat.moi) { etat.moi = ligne.auteur || ligne.creePar; }
+    return etat.moi;
+  }
+  var r = await agir([['AddRecord', etat.tables.pa, null, { TABLEAU: etat.tableauId, TYPE: 'Présence', AUTEUR: etat.moi || '', DATE: Date.now() }]]);
+  var nid = r && r.retValues ? r.retValues[0] : null;
+  if (!nid) { return etat.moi; }
+  etat.presenceId = nid;
+  ecrirePref(cle, nid);
+  if (!etat.moi) {
+    try {
+      var d = await lireTable(etat.tables.pa, true);
+      var i = d.id.indexOf(nid);
+      etat.moi = i !== -1 ? texteCellule(d, 'CREE_PAR', i) : '';
+    } catch (e) { logSecurite('INFO', 'Identité non lue', e); }
+    if (!etat.moi) {
+      var anon = lirePref('anonyme', null);
+      if (!anon) { anon = 'anonyme:' + Math.random().toString(36).slice(2, 10); ecrirePref('anonyme', anon); }
+      etat.moi = anon;
+    }
+    await agir([['UpdateRecord', etat.tables.pa, nid, { AUTEUR: etat.moi }]]);
+  }
+  return etat.moi;
+}
+
+var _presenceEnCours = false;
+async function signalerPresence() {
+  if (!participationActive() || etat.vue !== 'principal' || document.visibilityState !== 'visible' || _presenceEnCours) { return; }
+  _presenceEnCours = true;
+  try {
+    var id = lirePref('presence:' + etat.tableauId, null);
+    var existe = id && etat.participations.some(function (p) { return p.id === id && p.type === 'Présence'; });
+    if (!existe || !etat.moi) { await assurerIdentite(); }
+    else { await agir([['UpdateRecord', etat.tables.pa, id, { DATE: Date.now() }]]); }
+  } catch (e) { logSecurite('INFO', 'Signal de présence non envoyé', e); }
+  finally { _presenceEnCours = false; majPresents(); }
+}
+
+function presents() {
+  var limite = Date.now() - DUREE_PRESENCE_MS;
+  var vus = {}, l = [];
+  participationsDu('Présence').forEach(function (p) {
+    var a = p.auteur || p.creePar;
+    if (!a || p.date < limite || vus[a]) { return; }
+    vus[a] = true; l.push(a);
+  });
+  if (etat.moi && !vus[etat.moi] && participationActive()) { l.unshift(etat.moi); }
+  return l;
+}
+
+function majPresents() {
+  var ul = document.getElementById('vPresents');
+  if (!ul) { return; }
+  vider(ul);
+  var l = presents();
+  ul.hidden = !l.length;
+  l.slice(0, 6).forEach(function (a) {
+    var moi = a === etat.moi;
+    ul.appendChild(creer('li', {}, [creer('span', { classe: 'w-present w-bulle' + (moi ? ' w-present--moi' : ''), texte: initiales(a),
+      attrs: { 'data-bulle': nomPersonne(a) + (moi ? ' (vous)' : ''), tabindex: '0', 'aria-label': nomPersonne(a) + (moi ? ' (vous)' : '') } })]));
+  });
+  if (l.length > 6) { ul.appendChild(creer('li', {}, [creer('span', { classe: 'w-present', texte: '+' + (l.length - 6) })])); }
+}
+
+/* === SECTION : VOTES PAR PERSONNE === */
+function votesDe(id) { return etat.participations.filter(function (p) { return p.type === 'Vote' && p.element === id; }); }
+function compteVotes(e) { return (e.votes || 0) + votesDe(e.id).length; }
+function mesVotes() { return etat.moi ? participationsDu('Vote').filter(function (p) { return p.auteur === etat.moi && etat.parId[p.element]; }) : []; }
+
+function votesRestants() {
+  var t = tableauCourant();
+  if (!t || !t.votesParPersonne || !participationActive()) { return null; }
+  return Math.max(0, t.votesParPersonne - mesVotes().length);
+}
+
+async function voter(e, sens) {
+  if (!etat.peutModifier) { return; }
+  if (!etat.tables.pa) {
+    /* Table de participation absente (mise a niveau pas encore faite) :
+       compteur simple, comme en 1.0. */
+    var n = Math.max(0, e.votes + sens);
+    e.votes = n; rendreMonde(); majBarre();
+    await ecrire([['UpdateRecord', etat.tables.el, e.id, { VOTES: n }]], null, null);
+    return;
+  }
+  try {
+    await assurerIdentite();
+    var t = tableauCourant();
+    if (sens > 0) {
+      var restants = votesRestants();
+      if (restants !== null && restants <= 0) { signalerSaisie('Vous avez utilisé vos ' + pluriel(t.votesParPersonne, 'vote', 'votes') + ' sur ce tableau blanc. Retirez un vote pour voter ailleurs.'); return; }
+      await agir([['AddRecord', etat.tables.pa, null, { TABLEAU: etat.tableauId, TYPE: 'Vote', AUTEUR: etat.moi, ELEMENT: e.id, DATE: Date.now() }]]);
+    } else {
+      var mien = votesDe(e.id).filter(function (p) { return p.auteur === etat.moi; })[0];
+      if (mien) { await agir([['RemoveRecord', etat.tables.pa, mien.id]]); }
+      else if (e.votes > 0) { await agir([['UpdateRecord', etat.tables.el, e.id, { VOTES: e.votes - 1 }]]); }
+      else { signalerSaisie('Vous n\'avez pas voté pour cet élément.'); return; }
+    }
+    etat.signature = '';
+    await rafraichir(true);
+    var r = votesRestants();
+    annoncer(pluriel(compteVotes(etat.parId[e.id] || e), 'vote', 'votes') + '.' + (r !== null ? ' Il vous reste ' + pluriel(r, 'vote', 'votes') + '.' : ''));
+    placerCtx();
+  } catch (err) { erreurEcriture(err, 'Le vote n\'a pas été enregistré.'); }
+}
+
+async function reinitialiserVotes(t) {
+  var ok = await confirmer('Remettre les votes à zéro ?', 'Tous les votes du tableau blanc « ' + t.nom + ' » sont supprimés, pour toutes les personnes.', 'Remettre à zéro');
+  if (!ok) { return; }
+  try {
+    var ids = etat.participations.filter(function (p) { return p.type === 'Vote' && p.tableau === t.id; }).map(function (p) { return p.id; });
+    var els = etat.elements.filter(function (e) { return e.tableau === t.id && e.votes; });
+    var a = [];
+    if (ids.length) { a.push(['BulkRemoveRecord', etat.tables.pa, ids]); }
+    if (els.length) { a.push(['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { VOTES: els.map(function () { return 0; }) }]); }
+    if (a.length) { await agir(a); }
+    etat.signature = '';
+    await chargerDonnees();
+    afficherToast('Votes remis à zéro.');
+  } catch (e) { erreurEcriture(e, 'La remise à zéro n\'a pas abouti.'); }
+}
+
+/* === SECTION : MINUTEUR D'ATELIER ===
+   Une ligne Minuteur par tableau : DATE = fin en millisecondes (0 = arrete).
+   Chacun voit le compte a rebours ; l'heure de fin vient de la personne qui
+   l'a lance. */
+function ligneMinuteur() {
+  var l = participationsDu('Minuteur');
+  return l.length ? l[l.length - 1] : null;
+}
+
+function finMinuteur() { var m = ligneMinuteur(); return m ? m.date : 0; }
+
+async function lancerMinuteur(minutes) {
+  fermerPop();
+  try {
+    await assurerIdentite();
+    var fin = minutes ? Date.now() + minutes * 60000 : 0;
+    var m = ligneMinuteur();
+    if (m) { await agir([['UpdateRecord', etat.tables.pa, m.id, { DATE: fin, VALEUR: String(minutes || 0), AUTEUR: etat.moi }]]); }
+    else { await agir([['AddRecord', etat.tables.pa, null, { TABLEAU: etat.tableauId, TYPE: 'Minuteur', DATE: fin, VALEUR: String(minutes || 0), AUTEUR: etat.moi }]]); }
+    etat.signature = '';
+    await rafraichir(true);
+    majMinuteur();
+    annoncer(minutes ? 'Minuteur lancé : ' + pluriel(minutes, 'minute', 'minutes') + '.' : 'Minuteur arrêté.');
+  } catch (e) { erreurEcriture(e, 'Le minuteur n\'a pas pu être lancé.'); }
+}
+
+function majMinuteur() {
+  var z = document.getElementById('vMinuteur');
+  if (!z) { return; }
+  var fin = finMinuteur();
+  var reste = fin - Date.now();
+  if (!fin || reste < -60000) { z.hidden = true; return; }
+  z.hidden = false;
+  if (reste > 0) {
+    var s = Math.ceil(reste / 1000);
+    z.textContent = Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+    z.classList.toggle('w-minuteur--fin', s <= 30);
+    z.setAttribute('aria-label', 'Minuteur : ' + Math.floor(s / 60) + ' min ' + (s % 60) + ' s');
+  } else {
+    z.textContent = 'Temps écoulé';
+    z.classList.add('w-minuteur--fin');
+    if (etat.minuteurAnnonce !== fin) { etat.minuteurAnnonce = fin; afficherToast('Temps écoulé.', null, 8000); annoncer('Temps écoulé.'); }
+  }
+}
+
+function ouvrirMinuteur(ancre) {
+  var items = DUREES_MINUTEUR.map(function (m) {
+    return creer('button', { classe: 'w-pop__item', texte: pluriel(m, 'minute', 'minutes'), clic: function () { return lancerMinuteur(m); } });
+  });
+  if (finMinuteur() > Date.now()) { items.push(creer('button', { classe: 'w-pop__item', texte: 'Arrêter le minuteur', clic: function () { return lancerMinuteur(0); } })); }
+  ouvrirPopFixe(ancre, 'Minuteur', [creer('p', { classe: 'w-pop__titre', texte: 'Lancer un minuteur pour tous' })].concat(items));
+}
+
+/* Menu pose sous un bouton hors de la toile (barre au-dessus). */
+function ouvrirPopFixe(ancre, titre, enfants) {
+  var deja = etat.pop && etat.pop.genre === titre;
+  fermerPop();
+  if (deja) { return; }
+  var pop = creer('div', { classe: 'w-pop', id: 'vPop', attrs: { role: 'dialog', 'aria-label': titre } }, enfants);
+  pop.style.position = 'fixed';
+  pop.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermerPop(true); } });
+  document.body.appendChild(pop);
+  etat.pop = { genre: titre, retour: ancre };
+  var r = ancre.getBoundingClientRect();
+  pop.style.left = Math.max(4, Math.min(window.innerWidth - pop.offsetWidth - 4, r.right - pop.offsetWidth)) + 'px';
+  pop.style.top = (r.bottom + 6) + 'px';
+  var f = pop.querySelector('button, input, select'); if (f) { f.focus(); }
+}
+
+/* === SECTION : COMMENTAIRES === */
+function commentairesDe(id) {
+  return etat.participations.filter(function (p) { return p.type === 'Commentaire' && p.element === id; }).sort(function (a, b) { return a.date - b.date || a.id - b.id; });
+}
+
+function blocCommentaires(e) {
+  var l = commentairesDe(e.id);
+  var bloc = creer('div', { classe: 'fr-mb-2w' }, [creer('p', { classe: 'fr-label fr-mb-1v', texte: 'Commentaires' + (l.length ? ' (' + l.length + ')' : '') })]);
+  var ul = creer('ul', { classe: 'w-commentaires' });
+  if (!l.length) { ul.appendChild(creer('li', { classe: 'w-mention', texte: 'Aucun commentaire.' })); }
+  l.forEach(function (c) {
+    var date = c.date ? formaterDate(c.date / 1000) : formaterDate(c.creeLe);
+    var peut = etat.peutModifier && (c.auteur === etat.moi || etat.peutParametrer);
+    ul.appendChild(creer('li', {}, [
+      creer('div', { classe: 'w-commentaire__tete' }, [creer('strong', { texte: nomPersonne(c.auteur || c.creePar) }), creer('span', { classe: 'w-mention', texte: date }),
+        peut ? bouton('Supprimer ce commentaire', 'discret', 'delete-line', function () { return supprimerCommentaire(c); }, { petit: true, iconeSeule: true, classe: 'w-bulle--droite' }) : null]),
+      creer('p', { classe: 'w-commentaire__texte', texte: c.valeur })]));
+  });
+  bloc.appendChild(ul);
+  if (etat.peutModifier && etat.tables.pa) {
+    var champ = saisie('fCommentaire', '', { multiligne: true, lignes: 2, indice: 'Votre commentaire' });
+    bloc.appendChild(creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'fCommentaire' }, texte: 'Nouveau commentaire' }));
+    bloc.appendChild(champ);
+    bloc.appendChild(creer('div', { classe: 'fr-mt-1w' }, [bouton('Ajouter le commentaire', 'secondaire', 'chat-3-line', function () { return ajouterCommentaire(e, champ.value); }, { petit: true, id: 'fCommenter' })]));
+  }
+  return bloc;
+}
+
+async function ajouterCommentaire(e, texte) {
+  var t = String(texte || '').trim();
+  if (!t) { marquerInvalide('fCommentaire', 'Écrivez votre commentaire.'); return; }
+  try {
+    await assurerIdentite();
+    await agir([['AddRecord', etat.tables.pa, null, { TABLEAU: e.tableau, TYPE: 'Commentaire', AUTEUR: etat.moi, ELEMENT: e.id, VALEUR: t, DATE: Date.now() }]]);
+    etat.signature = '';
+    await rafraichir(true);
+    rendreFiche();
+    var f = document.getElementById('fCommentaire'); if (f) { f.focus(); }
+    annoncer('Commentaire ajouté.');
+  } catch (err) { erreurEcriture(err, 'Le commentaire n\'a pas été enregistré.'); }
+}
+
+async function supprimerCommentaire(c) {
+  var ok = await confirmer('Supprimer ce commentaire ?', '« ' + (c.valeur.length > 80 ? c.valeur.slice(0, 77) + '…' : c.valeur) + ' »', 'Supprimer le commentaire');
+  if (!ok) { return; }
+  try {
+    await agir([['RemoveRecord', etat.tables.pa, c.id]]);
+    etat.signature = '';
+    await rafraichir(true);
+    rendreFiche();
+  } catch (e) { erreurEcriture(e, 'La suppression n\'a pas abouti.'); }
+}
+
+/* === SECTION : ALIGNER ET REPARTIR === */
+var ALIGNEMENTS = [['gauche', 'Aligner à gauche'], ['centreH', 'Centrer horizontalement'], ['droite', 'Aligner à droite'],
+  ['haut', 'Aligner en haut'], ['milieu', 'Centrer verticalement'], ['bas', 'Aligner en bas'],
+  ['repartirH', 'Répartir horizontalement'], ['repartirV', 'Répartir verticalement']];
+
+async function aligner(mode) {
+  fermerPop(true);
+  var sel = elementsSelectionnes();
+  if (sel.length < 2) { return; }
+  var depart = {};
+  sel.forEach(function (e) { depart[e.id] = { x: e.x, y: e.y }; });
+  var b = boiteDe(sel);
+  if (mode === 'gauche') { sel.forEach(function (e) { e.x = b.x1; }); }
+  if (mode === 'droite') { sel.forEach(function (e) { e.x = b.x2 - e.w; }); }
+  if (mode === 'centreH') { sel.forEach(function (e) { e.x = Math.round((b.x1 + b.x2) / 2 - e.w / 2); }); }
+  if (mode === 'haut') { sel.forEach(function (e) { e.y = b.y1; }); }
+  if (mode === 'bas') { sel.forEach(function (e) { e.y = b.y2 - e.h; }); }
+  if (mode === 'milieu') { sel.forEach(function (e) { e.y = Math.round((b.y1 + b.y2) / 2 - e.h / 2); }); }
+  if (mode === 'repartirH' || mode === 'repartirV') {
+    if (sel.length < 3) { signalerSaisie('Sélectionnez au moins trois éléments pour les répartir.'); return; }
+    var h = mode === 'repartirH';
+    var tri = sel.slice().sort(function (p, q) { return h ? p.x - q.x : p.y - q.y; });
+    var total = tri.reduce(function (s, e) { return s + (h ? e.w : e.h); }, 0);
+    var espace = ((h ? b.x2 - b.x1 : b.y2 - b.y1) - total) / (tri.length - 1);
+    var pos = h ? b.x1 : b.y1;
+    tri.forEach(function (e) { if (h) { e.x = Math.round(pos); pos += e.w + espace; } else { e.y = Math.round(pos); pos += e.h + espace; } });
+  }
+  rendreMonde();
+  await enregistrerPositions(depart, 'Alignement');
+}
+
+/* === SECTION : REPERES MAGNETIQUES ===
+   Pendant un deplacement, les bords et le centre de la selection
+   s'accrochent a ceux des autres elements (6 points a l'ecran). */
+function reperes(g, dx, dy) {
+  var b = g.boite0;
+  var seuil = 6 / etat.cam.z;
+  var autres = elementsDuTableau().filter(function (e) { return !g.depart[e.id]; });
+  var res = { dx: null, dy: null, lignes: [] };
+  var meilleurX = seuil + 1, meilleurY = seuil + 1;
+  var mx = [b.x1 + dx, (b.x1 + b.x2) / 2 + dx, b.x2 + dx], my = [b.y1 + dy, (b.y1 + b.y2) / 2 + dy, b.y2 + dy];
+  autres.forEach(function (e) {
+    [e.x, e.x + e.w / 2, e.x + e.w].forEach(function (o) {
+      mx.forEach(function (m) { var d = Math.abs(m - o); if (d < meilleurX) { meilleurX = d; res.dx = dx + (o - m); res.lx = { x: o, e: e }; } });
+    });
+    [e.y, e.y + e.h / 2, e.y + e.h].forEach(function (o) {
+      my.forEach(function (m) { var d = Math.abs(m - o); if (d < meilleurY) { meilleurY = d; res.dy = dy + (o - m); res.ly = { y: o, e: e }; } });
+    });
+  });
+  return res;
+}
+
+function dessinerReperes(g, r) {
+  effacerReperes();
+  var monde = document.getElementById('vMonde');
+  if (!monde) { return; }
+  var b = { x1: g.boite0.x1 + (r.dx !== null ? r.dx : 0), y1: g.boite0.y1 + (r.dy !== null ? r.dy : 0) };
+  b.x2 = b.x1 + (g.boite0.x2 - g.boite0.x1); b.y2 = b.y1 + (g.boite0.y2 - g.boite0.y1);
+  if (r.dx !== null && r.lx) {
+    var y1 = Math.min(b.y1, r.lx.e.y) - 10, y2 = Math.max(b.y2, r.lx.e.y + r.lx.e.h) + 10;
+    var v = creer('div', { classe: 'w-repere' }); v.style.left = r.lx.x + 'px'; v.style.top = y1 + 'px'; v.style.width = '1px'; v.style.height = (y2 - y1) + 'px';
+    monde.appendChild(v);
+  }
+  if (r.dy !== null && r.ly) {
+    var x1 = Math.min(b.x1, r.ly.e.x) - 10, x2 = Math.max(b.x2, r.ly.e.x + r.ly.e.w) + 10;
+    var hz = creer('div', { classe: 'w-repere' }); hz.style.left = x1 + 'px'; hz.style.top = r.ly.y + 'px'; hz.style.height = '1px'; hz.style.width = (x2 - x1) + 'px';
+    monde.appendChild(hz);
+  }
+}
+
+function effacerReperes() {
+  var m = document.getElementById('vMonde');
+  if (m) { Array.prototype.slice.call(m.querySelectorAll('.w-repere')).forEach(function (n) { m.removeChild(n); }); }
+}
+
+/* === SECTION : IMAGES SUR LA TOILE ===
+   Le fichier est une piece jointe de l'element (PIECES_JOINTES) ; il est lu
+   par le widget avec un jeton demande juste avant, et garde en memoire
+   (adresse locale de blob) pendant la session. */
+var _images = {};
+function chargerImage(id) {
+  if (_images[id]) { return _images[id]; }
+  _images[id] = (async function () {
+    var j = await obtenirJeton(_jetonComplet);
+    var rep = await fetch(j.baseUrl + '/attachments/' + id + '/download?auth=' + encodeURIComponent(j.token));
+    if ((rep.status === 401 || rep.status === 403) && !_jetonComplet) {
+      _jetonComplet = true;
+      j = await obtenirJeton(true);
+      rep = await fetch(j.baseUrl + '/attachments/' + id + '/download?auth=' + encodeURIComponent(j.token));
+    }
+    if (!rep.ok) { throw new Error('Image refusée : ' + rep.status); }
+    var blob = await rep.blob();
+    if (!/^image\/(png|jpeg|gif|webp)$/.test(blob.type) && !(await signatureImage(blob))) { throw new Error('Fichier qui n\'est pas une image'); }
+    return URL.createObjectURL(blob);
+  })();
+  _images[id].catch(function (e) { logSecurite('AVERTISSEMENT', 'Image ' + id + ' illisible', e); });
+  return _images[id];
+}
+
+/* Signature des premiers octets : PNG, JPEG, GIF ou WEBP. */
+async function signatureImage(blob) {
+  var b = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+  var h = function (i, v) { return b[i] === v; };
+  if (h(0, 0x89) && h(1, 0x50) && h(2, 0x4E) && h(3, 0x47)) { return 'png'; }
+  if (h(0, 0xFF) && h(1, 0xD8) && h(2, 0xFF)) { return 'jpeg'; }
+  if (h(0, 0x47) && h(1, 0x49) && h(2, 0x46)) { return 'gif'; }
+  if (h(0, 0x52) && h(1, 0x49) && h(2, 0x46) && h(3, 0x46) && h(8, 0x57) && h(9, 0x45) && h(10, 0x42) && h(11, 0x50)) { return 'webp'; }
+  return null;
+}
+
+function afficherImage(img, id) {
+  chargerImage(id).then(function (url) { img.src = url; img.classList.remove('w-image--attente'); }, function () {
+    img.alt = 'Image illisible'; img.classList.add('w-image--erreur');
+  });
+}
+
+function demanderImage(pos) {
+  etat.imagePos = pos;
+  var f = document.getElementById('wFichierImage');
+  if (!f) {
+    f = creer('input', { id: 'wFichierImage', classe: 'fr-sr-only', attrs: { type: 'file', accept: 'image/png,image/jpeg,image/gif,image/webp', tabindex: '-1', 'aria-hidden': 'true' } });
+    f.addEventListener('change', function () {
+      var fichier = f.files && f.files[0];
+      f.value = '';
+      if (fichier) { relayer(recevoirImage(fichier, etat.imagePos), 'Image'); }
+    });
+    document.body.appendChild(f);
+  }
+  f.click();
+}
+
+/* Image deposee ou collee : controle du type (extension, type annonce,
+   octets), envoi, puis element a la taille de l'image (bornee). */
+async function recevoirImage(fichier, pos) {
+  if (!etat.peutModifier) { return; }
+  var ext = String(fichier.name || 'image.png').split('.').pop().toLowerCase();
+  var sig = await signatureImage(fichier);
+  if (!sig || (fichier.name && EXTENSIONS_IMAGES.indexOf(ext) === -1) || (fichier.type && !/^image\//.test(fichier.type))) { signalerSaisie('Seules les images PNG, JPEG, GIF ou WEBP sont acceptées.'); return; }
+  if (fichier.size > TAILLE_MAX_IMAGE) { signalerSaisie('L\'image dépasse ' + tailleLisible(TAILLE_MAX_IMAGE) + '.'); return; }
+  afficherLoader('Envoi de l\'image…');
+  try {
+    var w = 320, h = 220;
+    try {
+      var bm = await createImageBitmap(fichier);
+      var k = Math.min(1, 360 / Math.max(bm.width, bm.height));
+      w = Math.max(40, Math.round(bm.width * k)); h = Math.max(40, Math.round(bm.height * k));
+      if (bm.close) { bm.close(); }
+    } catch (e) { logSecurite('INFO', 'Taille de l\'image non lue', e); }
+    var ids = await televerser([fichier.name ? fichier : new File([fichier], 'image.' + sig, { type: 'image/' + sig })]);
+    masquerLoader();
+    if (!ids.length) { throw new Error('Aucun identifiant de pièce jointe'); }
+    var p = pos || centreVue();
+    await creerElement('Image', { x: aimanter(p.x - w / 2), y: aimanter(p.y - h / 2), w: w, h: h }, false, { PIECES_JOINTES: ['L'].concat(ids), COULEUR: 'blanc' });
+  } catch (e) { masquerLoader(); erreurEcriture(e, 'L\'image n\'a pas pu être ajoutée.'); }
+}
+
+/* Envoi de fichiers en pieces jointes ; renvoie leurs identifiants. */
+async function televerser(fichiers) {
+  var ids = [];
+  for (var k = 0; k < fichiers.length; k++) {
+    var j = await obtenirJeton(true);
+    var form = new FormData();
+    form.append('upload', fichiers[k], fichiers[k].name);
+    var rep = await fetch(j.baseUrl + '/attachments?auth=' + encodeURIComponent(j.token), { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    if (!rep.ok) { throw new Error('Envoi refusé : ' + rep.status); }
+    var r = await rep.json();
+    (Array.isArray(r) ? r : []).forEach(function (x) { if (typeof x === 'number') { ids.push(x); } });
+  }
+  return ids;
+}
+
+function centreVue() { var ts = tailleToile(); return versMonde({ x: ts.w / 2, y: ts.h / 2 }); }
+
+/* === SECTION : COPIER, COUPER, COLLER ===
+   Presse-papiers propre au widget (navigateur) : on colle dans un autre
+   tableau blanc, ou un autre document (sans fiche liee ni fichier). */
+var CLE_PRESSE = 'diploworkflow:pressepapier';
+function copierSelection(couper) {
+  var sel = elementsSelectionnes();
+  if (!sel.length) { return; }
+  var b = boiteDe(sel);
+  var ids = sel.map(function (e) { return e.id; });
+  var donnees = { v: 1, doc: etat.nomDoc || '', el: sel.map(function (e) {
+    return { type: e.type, forme: e.forme, libelle: e.libelle, description: e.description, couleur: e.couleur, dx: e.x - b.x1, dy: e.y - b.y1, w: e.w, h: e.h,
+      responsable: e.responsable, statut: e.statut, ficheTable: e.ficheTable, ficheLigne: e.ficheLigne, pj: e.pj };
+  }), li: liensDuTableau().filter(function (l) { return ids.indexOf(l.de) !== -1 && ids.indexOf(l.vers) !== -1; }).map(function (l) {
+    return [ids.indexOf(l.de), ids.indexOf(l.vers), l.libelle, l.style, l.fleche, l.trace];
+  }) };
+  try { window.localStorage.setItem(CLE_PRESSE, JSON.stringify(donnees)); } catch (e) { logSecurite('INFO', 'Presse-papiers du navigateur indisponible', e); }
+  etat.pressePapier = donnees;
+  if (couper && etat.peutModifier) { relayer(supprimerSelection(), 'Couper'); }
+  else { afficherToast(pluriel(sel.length, 'élément copié', 'éléments copiés') + '. Ctrl+V pour coller, ici ou dans un autre tableau blanc.'); }
+}
+
+function lirePressePapier() {
+  try { var v = JSON.parse(window.localStorage.getItem(CLE_PRESSE) || 'null'); if (v && v.v === 1 && Array.isArray(v.el)) { return v; } } catch (e) { logSecurite('INFO', 'Presse-papiers illisible', e); }
+  return etat.pressePapier || null;
+}
+
+async function collerPressePapier() {
+  var p = lirePressePapier();
+  if (!p || !p.el.length || !etat.peutModifier) { return; }
+  var memeDoc = p.doc === (etat.nomDoc || '');
+  var c = centreVue();
+  var largeur = p.el.reduce(function (m, e) { return Math.max(m, e.dx + e.w); }, 0), hauteur = p.el.reduce(function (m, e) { return Math.max(m, e.dy + e.h); }, 0);
+  var x0 = aimanter(c.x - largeur / 2), y0 = aimanter(c.y - hauteur / 2);
+  var base = ordreMax();
+  var lignes = p.el.map(function (e, i) {
+    var l = { TABLEAU: etat.tableauId, TYPE: TYPES.indexOf(e.type) === -1 ? 'Post-it' : e.type, FORME: e.forme || '', LIBELLE: e.libelle || '', DESCRIPTION: e.description || '',
+      COULEUR: nomCouleurSur(e.couleur), POSITION_X: x0 + e.dx, POSITION_Y: y0 + e.dy, LARGEUR: e.w, HAUTEUR: e.h, ORDRE: e.type === 'Section' ? 0 : base + 1 + i,
+      RESPONSABLE: e.responsable || '', STATUT: e.statut || null };
+    if (memeDoc) { l.FICHE_TABLE = e.ficheTable || ''; l.FICHE_LIGNE = e.ficheLigne || 0; if (e.pj && e.pj.length) { l.PIECES_JOINTES = ['L'].concat(e.pj); } }
+    return l;
+  }).filter(function (l) { return memeDoc || l.TYPE !== 'Image'; });
+  if (!lignes.length) { signalerSaisie('Les images ne se collent pas dans un autre document.'); return; }
+  try {
+    var r = await agir([actionAjoutLot(etat.tables.el, lignes)]);
+    var nouveaux = r && r.retValues ? r.retValues[0] : [];
+    if (memeDoc || lignes.length === p.el.length) {
+      var lot = p.li.filter(function (x) { return nouveaux[x[0]] && nouveaux[x[1]]; }).map(function (x) {
+        var l = { TABLEAU: etat.tableauId, DE: nouveaux[x[0]], VERS: nouveaux[x[1]], LIBELLE: x[2] || '', STYLE: x[3] || 'Plein', FLECHE: x[4] || 'Vers la fin' };
+        if (infoColonne(etat.tables.li, 'TRACE')) { l.TRACE = x[5] || 'Droit'; }
+        return l;
+      });
+      if (lot.length) { await agir([actionAjoutLot(etat.tables.li, lot)]); }
+    }
+    etat.signature = '';
+    await rafraichir(true);
+    selectionner(nouveaux.filter(function (id) { return etat.parId[id]; }));
+    proposerAnnulation(pluriel(nouveaux.length, 'élément collé', 'éléments collés') + (memeDoc ? '.' : ' (sans fiche liée ni fichier : autre document).'), function () { return supprimerActions(nouveaux); });
+  } catch (e) { erreurEcriture(e, 'Le collage n\'a pas abouti.'); }
+}
+
+var _collageTraite = false;
+function surColler(ev) {
+  if (etat.vue !== 'principal' || etat.edition) { return; }
+  var cible = ev.target;
+  if (cible && cible.closest && (cible.closest('input, textarea, select, .w-fiche, .w-volet') || cible.isContentEditable)) { return; }
+  var items = ev.clipboardData && ev.clipboardData.items ? Array.prototype.slice.call(ev.clipboardData.items) : [];
+  var image = items.filter(function (i) { return i.kind === 'file' && /^image\//.test(i.type); })[0];
+  if (image && etat.peutModifier) {
+    ev.preventDefault();
+    _collageTraite = true;
+    if (etat.vueType !== 'toile') { changerVue('toile'); }
+    relayer(recevoirImage(image.getAsFile(), centreVue()), 'Image collée');
+    return;
+  }
+  if (lirePressePapier()) { ev.preventDefault(); _collageTraite = true; relayer(collerPressePapier(), 'Coller'); }
+}
+
+/* === SECTION : COPIER DANS UNE TABLE ===
+   Les elements choisis deviennent des lignes d'une table du document (ex.
+   les actions d'une retrospective vers la table d'un Kanban), puis sont
+   relies a ces lignes. */
+function ouvrirCopieTable(ancre) {
+  var sel = elementsSelectionnes().filter(function (e) { return e.type !== 'Section' && e.type !== 'Image'; });
+  if (!sel.length) { return; }
+  var tables = tablesUtilisatrice();
+  if (!tables.length) { signalerSaisie('Aucune table du document ne peut recevoir ces éléments.'); return; }
+  var texteCols = function (tid) { return colonnesVisibles(tid).filter(function (c) { return /^Text/.test(c.type) && !c.formule && !c.formuleVide; }); };
+  var zone = creer('div', { classe: 'w-colonne' });
+  var selT = liste('cpTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+  var remplir = function () {
+    vider(zone);
+    var cols = texteCols(selT.value);
+    if (!cols.length) { zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Cette table n\'a pas de colonne de texte.' })); return; }
+    var selC = liste('cpColonne', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), cols[0].colId);
+    var selD = liste('cpDescription', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), '', { vide: 'Aucune' });
+    var relier = caseACocher('cpRelier', 'Relier chaque élément à sa nouvelle ligne', true, function () {});
+    zone.appendChild(groupeListe('Colonne du texte', selC));
+    zone.appendChild(groupeListe('Colonne de la description', selD));
+    zone.appendChild(relier);
+    zone.appendChild(bouton('Copier ' + pluriel(sel.length, 'élément', 'éléments'), null, 'check-line', function () {
+      var cb = document.getElementById('cpRelier');
+      return copierDansTable(sel, selT.value, selC.value, selD.value, cb && cb.checked);
+    }, { petit: true, id: 'cpCopier' }));
+  };
+  selT.addEventListener('change', remplir);
+  remplir();
+  ouvrirPopFixe(ancre, 'Copier dans une table', [creer('p', { classe: 'w-pop__titre', texte: 'Copier dans une table du document' }), groupeListe('Table', selT), zone]);
+}
+
+async function copierDansTable(sel, tid, col, colDesc, relier) {
+  fermerPop(true);
+  if (!tid || !col) { return; }
+  var lignes = sel.map(function (e) { var l = {}; l[col] = libelleAffiche(e); if (colDesc && colDesc !== col) { l[colDesc] = e.description; } return l; });
+  try {
+    var r = await agir([actionAjoutLot(tid, lignes)]);
+    var nouvelles = r && r.retValues ? r.retValues[0] : [];
+    var avant = sel.map(function (e) { return { FICHE_TABLE: e.ficheTable, FICHE_LIGNE: e.ficheLigne || 0 }; });
+    if (relier && nouvelles.length === sel.length) {
+      await agir(sel.map(function (e, i) { return ['UpdateRecord', etat.tables.el, e.id, { FICHE_TABLE: tid, FICHE_LIGNE: nouvelles[i] }]; }));
+    }
+    etat.signature = '';
+    await rafraichir(true);
+    proposerAnnulation(pluriel(nouvelles.length, 'ligne ajoutée', 'lignes ajoutées') + ' dans « ' + libelleTable(tid) + ' ».', function () {
+      var a = [['BulkRemoveRecord', tid, nouvelles]];
+      if (relier) { sel.forEach(function (e, i) { a.unshift(['UpdateRecord', etat.tables.el, e.id, avant[i]]); }); }
+      return a;
+    });
+  } catch (e) { erreurEcriture(e, 'La copie dans la table n\'a pas abouti.'); }
+}
+
 /* === SECTION : PANNEAU D'AIDE ===
    Trois onglets : À quoi ça sert, Pas à pas (une fiche par étape, l'étape
    courante mise en évidence), Questions. Etat retenu par le navigateur. */
 var ONGLETS_AIDE = ['À quoi ça sert', 'Pas à pas', 'Questions'];
 var FICHES_AIDE = [
-  { cle: 'creation0', titre: 'Création : Point de départ', texte: '« Partir de mes données » : les lignes d\'une table deviennent des post-it reliés à leur ligne. « Partir d\'un modèle » : logigramme, atelier post-it, rétrospective, carte mentale, parcours usager ou tableau vierge.' },
+  { cle: 'creation0', titre: 'Création : Point de départ', texte: 'Choisissez ce que vous voulez faire : une feuille blanche, un modèle pour schématiser (logigramme, couloirs, arbre de décision...) ou pour animer un atelier (rétrospective, cadrage, matrice...), ou les lignes d\'une table à placer sur la toile.' },
   { cle: 'creation1', titre: 'Création : Les tables', texte: 'Le widget range les éléments et les connecteurs dans deux tables partagées par tous les tableaux blancs du document. Il les crée si elles n\'existent pas.' },
   { cle: 'creation2', titre: 'Création : Formes et couleurs', texte: 'Donnez un sens à chaque couleur (Décision, Idée, Irritant...). La légende s\'affiche dans le volet et sert de filtre.' },
   { cle: 'creation3', titre: 'Création : La fiche', texte: 'Choisissez si une forme peut ouvrir une ligne d\'une table du document, et les champs proposés dans la fiche (responsable, statut, pièces jointes).' },
   { cle: 'creation4', titre: 'Création : Affichage et filtres', texte: 'Réglages de départ (grille, mini-carte, votes) et filtres proposés dans le volet.' },
   { cle: 'creation5', titre: 'Création : Récapitulatif', texte: 'Nommez le tableau blanc puis cliquez sur « Créer le tableau blanc ».' },
-  { cle: 'principal', titre: 'Dessiner', texte: 'Choisissez un outil à gauche de la toile (Post-it, Forme, Texte, Section), puis cliquez sur la toile. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée.' },
+  { cle: 'principal', titre: 'Dessiner', texte: 'Choisissez un outil à gauche de la toile (Post-it, Forme, Texte, Section, Couloir, Image), puis cliquez sur la toile. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée ; le connecteur peut être droit ou coudé.' },
+  { cle: 'atelier', titre: 'Animer un atelier', texte: 'Les initiales des personnes présentes s\'affichent au-dessus de la toile. « Minuteur » lance un compte à rebours visible par tous. Chacun vote avec les pastilles de la barre d\'actions, dans la limite fixée ; les commentaires se laissent dans la fiche de l\'élément.' },
   { cle: 'selection', titre: 'Modifier la sélection', texte: 'Un clic sélectionne, Maj+clic ajoute, un glisser sur le fond sélectionne au lasso. La barre d\'actions au-dessus de la sélection change la couleur, la forme, relie à une fiche, duplique ou supprime. « Annuler » reste disponible quelques secondes en bas à droite.' },
   { cle: 'fiche', titre: 'La fiche d\'un élément', texte: '« Ouvrir la fiche » affiche à droite le texte, la description, le responsable, le statut, la fiche liée et les pièces jointes. Tout est enregistré automatiquement.' },
   { cle: 'param0', titre: 'Paramétrages : Général', texte: 'Nom et description du tableau blanc, tables utilisées, réservation du paramétrage aux propriétaires et suppression du tableau.' },
@@ -4620,6 +5582,7 @@ function etapeAideCourante() {
   if (etat.vue === 'parametrage' && etat.param) { return 'param' + etat.param.etape; }
   if (etat.fiche) { return 'fiche'; }
   if (etat.selection.length) { return 'selection'; }
+  if (finMinuteur() > Date.now() || (tableauCourant() && tableauCourant().affichage.votes)) { return 'atelier'; }
   return 'principal';
 }
 
@@ -4652,13 +5615,14 @@ function rendreAide() {
     corps.appendChild(creer('h3', { texte: 'Deux usages, un même widget' }));
     corps.appendChild(creer('ul', {}, ['Logigramme : début, étapes, décisions et fin, reliés par des connecteurs avec un libellé (Oui, Non).', 'Atelier : post-it par colonnes, couleurs par thème, votes.'].map(function (t) { return creer('li', { texte: t }); })));
     corps.appendChild(creer('h3', { texte: 'Fonctionnalités' }));
-    corps.appendChild(creer('ul', {}, ['Toile sans limite : déplacement, zoom, grille magnétique, mini-carte.', 'Formes, post-it, textes et sections ; une section emporte son contenu quand on la déplace.',
+    corps.appendChild(creer('ul', {}, ['Toile sans limite : déplacement, zoom, grille magnétique, repères d\'alignement, mini-carte.', 'Formes, post-it, textes, images, sections et couloirs ; une section ou un couloir emporte son contenu quand on le déplace.',
+      'Connecteurs droits ou coudés ; aligner et répartir ; copier-coller, même vers un autre tableau blanc.', 'Atelier : présence, votes par personne, minuteur partagé, commentaires.', 'Copie d\'éléments vers une table du document (par exemple les actions d\'une rétrospective).',
       'Fiche de chaque élément : description, responsable, statut, pièces jointes, ligne liée d\'une autre table.', 'Plusieurs tableaux blancs par document, en onglets ; vue toile et vue liste.',
       'Travail à plusieurs : les ajouts des autres apparaissent dès qu\'ils sont enregistrés.', 'Impression, PDF, image et export CSV.'].map(function (t) { return creer('li', { texte: t }); })));
     corps.appendChild(creer('h3', { texte: 'Raccourcis sur la toile' }));
     var dl = creer('dl', { classe: 'w-raccourcis' });
-    [['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
-      ['Suppr', 'Supprimer'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
+    [['V, H', 'Sélectionner, déplacer la vue'], ['N, R, T, S', 'Post-it, forme, texte, section'], ['C, I', 'Couloir, image'], ['L', 'Connecteur'], ['Entrée', 'Modifier le texte'], ['Flèches', 'Déplacer la sélection'],
+      ['Suppr', 'Supprimer'], ['Ctrl+C, X, V', 'Copier, couper, coller'], ['Ctrl+D', 'Dupliquer'], ['Ctrl+Z', 'Annuler'], ['Alt en glissant', 'Sans repères'], ['Ctrl+molette', 'Zoomer'], ['0', 'Recentrer'], ['Échap', 'Désélectionner']].forEach(function (x) {
       dl.appendChild(creer('dt', { texte: x[0] })); dl.appendChild(creer('dd', { texte: x[1] }));
     });
     corps.appendChild(dl);
@@ -4683,7 +5647,10 @@ function rendreAide() {
     });
   } else {
     var q = [['Je ne vois pas les outils pour dessiner.', 'Vos droits sur ce document ne le permettent pas, ou ils ont été réservés. Vous pouvez tout de même parcourir la toile et ouvrir les fiches.'],
-      ['Puis-je voir les autres personnes travailler en direct ?', 'Leurs ajouts et modifications apparaissent dès qu\'ils sont enregistrés, après quelques secondes. Les curseurs des autres personnes ne sont pas affichés.'],
+      ['Puis-je voir les autres personnes travailler en direct ?', 'Leurs initiales s\'affichent au-dessus de la toile, et leurs ajouts apparaissent après une dizaine de secondes. Les curseurs des autres personnes ne sont pas affichés.'],
+      ['Combien de votes ai-je ?', 'La limite est fixée dans les paramétrages (étape Affichage et filtres). Le nombre de votes qui vous restent s\'affiche au-dessus de la toile.'],
+      ['Comment transformer les post-it en tâches ?', 'Sélectionnez-les, puis « Copier dans une table » dans la barre d\'actions : chaque post-it devient une ligne de la table choisie (par exemple celle d\'un Kanban), reliée au post-it.'],
+      ['Comment ajouter une image ?', 'Outil Image, puis cliquez sur la toile ; ou collez une capture d\'écran avec Ctrl+V.'],
       ['Comment relier une forme à une démarche, un projet... ?', 'Dans les paramétrages, étape « La fiche », choisissez la table. Puis sélectionnez la forme et cliquez sur « Relier à une fiche » dans sa barre d\'actions.'],
       ['Comment déplacer une section avec ce qu\'elle contient ?', 'Faites glisser la section : les éléments entièrement à l\'intérieur suivent.'],
       ['Comment déplacer un élément sans souris ?', 'Tab jusqu\'à l\'élément, puis les flèches (Maj+flèche pour un déplacement fin). La vue liste donne aussi accès à chaque élément.'],
@@ -4726,6 +5693,7 @@ async function chargerTout() {
     majDroits();
     resoudreTables();
     if (!etat.config) { etat.config = normaliserConfig({}); }
+    await mettreANiveau();
     var l = tableaux();
     if (!l.length) {
       masquerLoader();
@@ -4847,7 +5815,18 @@ function demarrer() {
   _minuterieActualisation = setInterval(function () {
     if (document.visibilityState === 'visible' && etat.vue === 'principal') { relayer(rafraichir(false), 'Relecture'); }
   }, DELAI_ACTUALISATION_MS);
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && etat.vue === 'principal') { planifierRafraichissement(); } });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && etat.vue === 'principal') { planifierRafraichissement(); relayer(signalerPresence(), 'Présence'); } });
+  /* Presence toutes les 30 s ; minuteur affiche a la seconde. */
+  setInterval(function () { relayer(signalerPresence(), 'Présence'); }, DELAI_PRESENCE_MS);
+  setTimeout(function () { relayer(signalerPresence(), 'Présence'); }, 4000);
+  setInterval(function () { if (etat.vue === 'principal') { majMinuteur(); } }, 1000);
+  document.addEventListener('paste', surColler);
+  /* Focus perdu apres un nouveau rendu (barre d'actions redessinee) : les
+     raccourcis de la toile restent actifs. */
+  document.addEventListener('keydown', function (ev) {
+    var a = document.activeElement;
+    if ((!a || a === document.body || a === document.documentElement) && etat.vue === 'principal' && etat.vueType === 'toile' && !etat.fiche) { surToucheToile(ev); }
+  });
   setTimeout(function () {
     window.addEventListener('unhandledrejection', function (evt) { logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined); });
   }, 1500);
