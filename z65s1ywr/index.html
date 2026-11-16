@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.0.2
+  Version     : 1.0.3
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -45,6 +45,9 @@
 
   HISTORIQUE
   ----------
+  1.0.3 - 16/11/2026 - CSNC - Onglets au style du systeme de design, comme
+          Diploverse : « Nouveau tableau blanc » avec l'icone +, actif pendant
+          la creation ; navigation aux fleches.
   1.0.2 - 16/11/2026 - CSNC - Création : onglet actif « Nouveau tableau blanc »
           (titre en double retiré) ; assistant et paramétrages en pleine
           largeur.
@@ -166,14 +169,12 @@
     .w-bandeau__aide { margin-left: auto; flex-shrink: 0; }
 
   /* === SECTION : ONGLETS DES TABLEAUX BLANCS ===
-     Sous le bandeau, comme les onglets des modeles des autres widgets. */
-    .w-onglets { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0; padding: 0 .75rem; flex-shrink: 0;
-      background: var(--background-alt-grey); color: var(--text-default-grey); border-bottom: 1px solid var(--border-default-grey); }
-    .w-onglet { border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-size: .875rem; font-weight: 700;
-      padding: .5rem .875rem; cursor: pointer; color: var(--text-mention-grey); border-radius: 0; }
-    .w-onglet:hover { background: var(--background-default-grey-hover); color: var(--text-default-grey); }
-    .w-onglet[aria-current="page"] { color: var(--text-action-high-blue-france); border-bottom-color: var(--border-active-blue-france); background: var(--background-default-grey); }
-    .w-onglet:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+     Onglets du systeme de design (fr-tabs__list, fr-tabs__tab) sans le
+     conteneur fr-tabs, dont le JavaScript n'est pas charge : meme rendu que
+     les onglets de Diploverse. */
+    .w-onglets { flex-shrink: 0; padding: .75rem 1.5rem 0; background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-onglets .fr-tabs__list { margin: 0; padding: 0; flex-wrap: wrap; }
+    .w-onglets .fr-tabs__tab { cursor: pointer; }
 
   /* === SECTION : LOADER ET MESSAGES ===
      Messages ponctuels en bas a droite, a la meme place dans toute la serie. */
@@ -575,7 +576,7 @@
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bAide" aria-expanded="false" aria-controls="wAide">Aide</button>
   </div>
 
-  <nav class="w-onglets" id="wOnglets" aria-label="Tableaux blancs" hidden></nav>
+  <nav class="tab-nav w-onglets" id="wOnglets" aria-label="Tableaux blancs" hidden></nav>
 
   <div class="w-messages" id="wMessages">
     <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert"><p id="wErreurMsg"></p><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button></div>
@@ -594,7 +595,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.0.2';
+var VERSION_WIDGET = '1.0.3';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1908,29 +1909,51 @@ function choisirTableau(id) {
   etat.cam = cam && isFinite(cam.x) && isFinite(cam.y) && isFinite(cam.z) ? cam : null;
 }
 
-/* === SECTION : ONGLETS DES TABLEAUX BLANCS === */
+/* === SECTION : ONGLETS DES TABLEAUX BLANCS ===
+   Onglets du systeme de design, comme Diploverse et Diplokanban : un onglet
+   par tableau blanc, puis « Nouveau tableau blanc » (icone +), actif pendant
+   la creation. Fleches, Debut et Fin passent d'un onglet a l'autre. */
 function rendreOnglets() {
   var nav = document.getElementById('wOnglets');
   if (!nav) { return; }
   vider(nav);
   var l = tableaux();
-  var visible = (etat.vue === 'principal' || etat.vue === 'parametrage' || etat.vue === 'creation') && (l.length || etat.peutParametrer);
+  var creation = etat.vue === 'creation';
+  var visible = (etat.vue === 'principal' || etat.vue === 'parametrage' || creation) && (l.length || etat.peutParametrer);
   nav.hidden = !visible;
   if (!visible) { return; }
-  l.forEach(function (t) {
-    var courant = t.id === etat.tableauId && etat.vue !== 'creation';
-    nav.appendChild(creer('button', { classe: 'w-onglet', texte: t.nom, attrs: { 'aria-current': courant ? 'page' : null }, clic: function () {
-      if (etat.vue === 'creation') { etat.creation = null; }
-      choisirTableau(t.id); etat.param = null; etat.vue = 'principal'; rendrePrincipal();
-    } }));
+  var ul = creer('ul', { classe: 'fr-tabs__list', attrs: { role: 'tablist', 'aria-label': 'Tableaux blancs du document' } });
+  var onglets = [], activer = [];
+  l.forEach(function (t, i) {
+    var actif = !creation && t.id === etat.tableauId;
+    onglets.push(creer('button', { classe: 'fr-tabs__tab w-onglet', id: 'wOnglet' + i, texte: t.nom,
+      attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'contenu', tabindex: actif ? '0' : '-1' } }));
+    activer.push(function () {
+      if (creation) { etat.creation = null; }
+      choisirTableau(t.id); etat.param = null; etat.vue = 'principal';
+      etat.signature = '';
+      relayer(chargerDonnees().then(rendrePrincipal), 'Changement de tableau');
+    });
   });
-  if (etat.vue === 'creation') {
-    nav.appendChild(creer('button', { classe: 'w-onglet', texte: 'Nouveau tableau blanc', attrs: { 'aria-current': 'page' } }));
-  }
   if (etat.peutParametrer) {
-    nav.appendChild(creer('button', { classe: 'w-onglet w-bulle', attrs: { 'aria-label': 'Nouveau tableau blanc', 'data-bulle': 'Nouveau tableau blanc' },
-      clic: function () { ouvrirCreation(); } }, [iconeSvg('plus', 16)]));
+    onglets.push(creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet', id: 'wOngletNouveau', texte: 'Nouveau tableau blanc',
+      attrs: { role: 'tab', 'aria-selected': creation ? 'true' : 'false', 'aria-controls': 'contenu', tabindex: creation ? '0' : '-1' } }));
+    activer.push(function () { if (!creation) { ouvrirCreation(); } });
   }
+  if (!onglets.some(function (b) { return b.getAttribute('tabindex') === '0'; }) && onglets.length) { onglets[0].setAttribute('tabindex', '0'); }
+  onglets.forEach(function (b, i) {
+    b.addEventListener('click', function () { activer[i](); var f = document.getElementById(b.id); if (f) { f.focus(); } });
+    b.addEventListener('keydown', function (e) {
+      var n = onglets.length;
+      var k = { ArrowRight: (i + 1) % n, ArrowLeft: (i + n - 1) % n, Home: 0, End: n - 1 }[e.key];
+      if (k === undefined) { return; }
+      e.preventDefault();
+      onglets[k].focus();
+      activer[k]();
+    });
+    ul.appendChild(creer('li', { attrs: { role: 'presentation' } }, [b]));
+  });
+  nav.appendChild(ul);
 }
 
 /* === SECTION : ECRAN PRINCIPAL === */
