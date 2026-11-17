@@ -38,6 +38,13 @@
       background: var(--border-plain-grey); color: var(--text-default-grey); }
     .w-poignee-fiche:hover::before, .w-poignee-fiche:focus-visible::before, .w-poignee-fiche.w-poignee-fiche--active::before { background: var(--border-action-high-blue-france); color: var(--text-default-grey); }
     .w-poignee-fiche:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-general { display: flex; flex-direction: column; gap: 1rem; }
+    .w-section-page { display: flex; flex-direction: column; gap: .75rem; }
+    .w-section-page__bas { margin-top: auto; }
+    .w-description-carte { margin: 0 0 .5rem; white-space: pre-line; }
     .w-ordre-fiche { list-style: none; margin: 0 0 1rem; padding: 0; }
     .w-ordre-fiche__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); font-size: .875rem; }
     .w-ordre-fiche__nom { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -625,7 +632,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.8.0';
+var VERSION_WIDGET = '3.8.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -796,7 +803,7 @@ var etat = {
     biblio: null, config: null, cleConfig: null, biblioLigne: null, cartes: [], nomDoc: null,
     meta: { tables: {}, colonnes: {}, colParRef: {} }, refs: {},
     lieux: [], signature: '', categories: [], couleurs: {},
-    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false, consultation: false, pageProtegee: false,
+    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false, consultation: false, pageProtegee: false, nomsPages: {},
     recherche: '', catsMasquees: {}, filtresExtra: {}, periode: { du: '', au: '' },
     visibles: [], masques: [], choisi: null, fiche: null, placement: null,
     carte: null, fond: null, couche: null, marqueurs: {}, marqueurEdition: null,
@@ -2271,12 +2278,24 @@ function vueDuBadge(d, badge) {
 }
 async function majPageProtegee() {
     etat.pageProtegee = false;
-    var o = trouverOwner();
-    if (!etat.badge || !o || etat.consultation || etat.carteFixe) {
+    etat.nomsPages = {};
+    if (etat.consultation || etat.carteFixe) {
         return;
     }
     try {
         var d = await lireTable('_grist_Views_section');
+        var v = await lireTable('_grist_Views');
+        Object.keys(etat.copies).forEach(function (x) {
+            var vx = etat.copies[x].consultation ? vueDuBadge(d, x) : null;
+            var k = vx ? v.id.indexOf(vx) : -1;
+            if (k !== -1) {
+                etat.nomsPages[x] = String((v.name || [])[k] || '');
+            }
+        });
+        var o = trouverOwner();
+        if (!etat.badge || !o) {
+            return;
+        }
         var vue = vueDuBadge(d, etat.badge);
         var ref = etat.meta.tables[o].ref;
         etat.pageProtegee = !!vue && d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; });
@@ -2406,6 +2425,7 @@ async function creerPageConsultation() {
         await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: nom }],
             ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: c.nom || '', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
         await lireCartes();
+        await majPageProtegee();
         masquerLoader();
         afficherSucces('La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.');
         redessinerEtape('aPageConsultation');
@@ -3874,7 +3894,8 @@ function rendreVueCarte(zone) {
         poigneeFiche()
     ]);
     zoneCarte.style.setProperty('--largeur-fiche', largeurFicheDepart());
-    var principal = creer('div', { classe: 'w-principal' }, [identite, creer('div', { classe: 'w-impression', id: 'vImpression' }), zoneCarte]);
+    var principal = creer('div', { classe: 'w-principal' }, [identite, c.description ? creer('p', { classe: 'w-texte w-description-carte', id: 'vDescription', texte: c.description }) : null,
+        creer('div', { classe: 'w-impression', id: 'vImpression' }), zoneCarte]);
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
 }
 function peutAjouter() {
@@ -8329,7 +8350,7 @@ function ouvrirParametrage(nomEtape) {
         mode: 'personnalisation', parcours: c.mode === 'vierge' ? 'vierge' : 'donnees', etape: 0, etapeMax: 9,
         table: c.tableLieux, ajoutCoords: false, colLat: c.colLat || '', colLon: c.colLon || '', colAdresse: c.colAdresse || '', colPays: c.colPays || '',
         colNom: c.colNom, colCategorie: c.colCategorie || '', categories: (c.categories || []).slice(), champsFiche: (c.champsFiche || []).slice(), ordreFiche: (c.ordreFiche || []).slice(),
-        filtres: (c.filtres || []).slice(), nom: c.nom || '', apparence: Object.assign({}, APPARENCE_DEFAUT, c.apparence || {}),
+        filtres: (c.filtres || []).slice(), nom: c.nom || '', description: c.description || '', apparence: Object.assign({}, APPARENCE_DEFAUT, c.apparence || {}),
         colImage: c.colImage || '', colIcone: c.colIcone || '', colDate: c.colDate || '', colDateFin: c.colDateFin || '', approximatif: !!c.approximatif, colAfficher: c.colAfficher || '', etiquette: Object.assign({}, ETIQUETTE_DEFAUT, c.etiquette || {})
     };
     etat.brouillon.initial = JSON.stringify(etatComparable(etat.brouillon));
@@ -8342,7 +8363,7 @@ function ouvrirParametrage(nomEtape) {
     afficherVue('assistant');
 }
 function etatComparable(b) {
-    return [b.table, b.ajoutCoords, b.colLat, b.colLon, b.colAdresse, b.colPays, b.colNom, b.colCategorie, b.categories, b.champsFiche, b.filtres, b.nom, b.apparence, b.colImage || '', b.colIcone || '', b.colDate || '', b.colDateFin || '', !!b.approximatif, b.colAfficher || '', b.etiquette || null, b.ordreFiche || []];
+    return [b.table, b.ajoutCoords, b.colLat, b.colLon, b.colAdresse, b.colPays, b.colNom, b.colCategorie, b.categories, b.champsFiche, b.filtres, b.nom, b.apparence, b.colImage || '', b.colIcone || '', b.colDate || '', b.colDateFin || '', !!b.approximatif, b.colAfficher || '', b.etiquette || null, b.ordreFiche || [], b.description || ''];
 }
 function rendreAssistant(zone) {
     var b = etat.brouillon;
@@ -8915,46 +8936,49 @@ function etapeGeneral() {
     var b = etat.brouillon;
     var nom = saisie('aNomCarte', b.nom, { indice: 'Réseau des postes en Europe' });
     nom.addEventListener('input', function () { b.nom = nom.value; majAttente(); });
+    var desc = saisie('aDescCarte', b.description || '', { multiligne: true, lignes: 3, indice: 'À quoi sert cette carte, d\'où viennent ses lieux…' });
+    desc.addEventListener('input', function () { b.description = desc.value; majAttente(); });
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecCarte' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecCarte', texte: 'La carte' })]),
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecCarte', texte: '1. Nom de la carte' })]),
         groupeChamp('Nom de la carte', nom, 'Affiché en titre et dans son onglet.', true),
-        creer('p', { classe: 'w-mention', texte: 'Table utilisée : « ' + libelleTable(tableDuContenu(b)) + ' ».' }),
-        encartDroits(Object.assign({}, TEXTES_DROITS, { complement: complementDroitsCarte() }))
+        creer('p', { classe: 'w-mention', texte: 'Table utilisée : « ' + libelleTable(tableDuContenu(b)) + ' ».' })
+    ]);
+    var sectionDesc = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecDesc' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecDesc', texte: '2. Description de la carte' })]),
+        groupeChamp('Description (facultatif)', desc, 'Affichée sous le titre de la carte.')
     ]);
     var perso = b.mode === 'personnalisation' && !!etat.cleConfig;
     var seule = !!etat.carteFixe && etat.carteFixe === etat.cleConfig;
-    var page = perso && seule ? creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPage' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPage', texte: 'Cette page' })]),
-        creer('p', { classe: 'w-texte', texte: 'Cette page n\'affiche que cette carte, sans les onglets des autres cartes.' }),
-        creer('div', {}, [bouton('Afficher toutes les cartes sur cette page', 'secondaire', 'layout-grid-line', function () { return fixerCarte(null); }, { petit: true, id: 'aPageToutes' })])
-    ]) : null;
-    var admin = perso && !seule ? creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecAdmin' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecAdmin', texte: 'Page d\'administration', attrs: { tabindex: '-1' } })]),
-        creer('p', { classe: 'w-texte', texte: etat.pageProtegee
-                ? 'Cette page porte une vue de la table « ' + TITRE_OWNER + ' » : seules les personnes qui peuvent lire cette table la voient dans la liste des pages.'
-                : 'Cette page affiche toutes les cartes et leurs paramétrages. Réservez-la aux personnes qui gèrent les cartes : les autres ne la verront plus dans la liste des pages.' }),
-        etat.pageProtegee ? null : creer('div', {}, [bouton('Réserver cette page', 'secondaire', 'lock-line', reserverPage, { petit: true, id: 'aReserverPage' })]),
-        creer('p', { classe: 'w-mention', texte: 'Pour choisir qui la voit : dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table « ' + TITRE_OWNER + ' » la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in ["adresse1", "adresse2"] » pour nommer les personnes). Sans cette règle, la page reste visible de tous.' })
-    ]) : null;
     var danger = blocSupprimer('Supprimer la carte', b.parcours === 'vierge'
         ? 'La carte disparaît des onglets et ses lieux sont supprimés de la table des lieux. Cette action est définitive.'
         : 'La carte disparaît des onglets. Votre table et ses lignes restent dans le document.', supprimerCarte);
-    var nbConsult = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === etat.cleConfig; }).length;
-    var consult = perso ? creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecConsult' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecConsult', texte: 'Pages de consultation' })]),
-        creer('p', { classe: 'w-texte', texte: 'Une page de consultation montre cette carte seule, sans onglets ni paramétrages. Elle s\'ajoute à la liste des pages du document.' }),
-        creer('p', { classe: 'w-mention', texte: nbConsult ? (nbConsult > 1 ? nbConsult + ' pages de consultation pour cette carte.' : 'Une page de consultation pour cette carte.') : 'Aucune page de consultation pour cette carte.' }),
-        creer('div', {}, [bouton('Créer une page de consultation', 'secondaire', 'file-add-line', creerPageConsultation, { petit: true, id: 'aPageConsultation' })])
-    ]) : null;
-    return grilleParam([[section, page, admin, consult], [danger]], '2-1');
-}
-function complementDroitsCarte() {
-    var c = etat.config;
-    if (!c || !etat.cleConfig) {
-        return null;
+    var titreDanger = danger.querySelector('.w-c3__titre');
+    if (titreDanger) {
+        titreDanger.textContent = (perso && !seule ? '5. ' : (perso ? '4. ' : '3. ')) + titreDanger.textContent;
     }
-    return 'Réserver cette carte à certaines personnes : ajoutez sur ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + ' la règle « Condition : rec.CLE == "' + etat.cleConfig + '" and user.Email not in ["adresse1", "adresse2"]. Refuser la Lecture. » Son onglet disparaît pour les autres personnes. Pour masquer aussi ses lieux, posez une règle de lecture sur '
-        + (c.colCarte ? 'la table « ' + libelleTable(c.tableLieux) + ' », avec la condition rec.' + c.colCarte + ' == "' + c.idCarte + '".' : 'votre table « ' + libelleTable(c.tableLieux) + ' ».');
+    var pages = perso ? sectionsPages(seule) : [null, null];
+    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [sectionDesc]], '1-1'), grilleParam([[pages[0]], [pages[1]], [danger]], '1-1-1')]);
+}
+function sectionPage(id, titre, noeuds, action) {
+    return creer('section', { classe: 'w-section w-section-page', attrs: { 'aria-labelledby': id } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: id, texte: titre, attrs: { tabindex: '-1' } })])].concat(noeuds, [action ? creer('div', { classe: 'w-section-page__bas' }, [action]) : null]));
+}
+function sectionsPages(seule) {
+    if (seule) {
+        return [sectionPage('aSecAdmin', '3. Cette page', [creer('p', { classe: 'w-texte', texte: 'Cette page n\'affiche que cette carte, sans les onglets des autres cartes.' })],
+                bouton('Afficher toutes les cartes', 'secondaire', 'layout-grid-line', function () { return fixerCarte(null); }, { petit: true, id: 'aPageToutes' })), null];
+    }
+    var r = aide('aAideReserver', 'Réserver cette page', 'La page réservée porte une vue de la table « ' + TITRE_OWNER + ' ». Pour choisir qui la voit : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in ["adresse1", "adresse2"] »). Pour protéger aussi les réglages : sur ' + LABEL_CENTRALE + ', la règle « Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression. »');
+    var admin = sectionPage('aSecAdmin', '3. Page d\'administration', [
+        creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec toutes les cartes et leurs paramétrages, est réservée.' : 'Cette page affiche toutes les cartes et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
+    ], etat.pageProtegee ? null : bouton('Réserver cette page', 'secondaire', 'lock-line', reserverPage, { petit: true, id: 'aReserverPage' }));
+    var noms = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === etat.cleConfig && etat.nomsPages[x]; })
+        .map(function (x) { return '« ' + etat.nomsPages[x] + ' »'; });
+    var consult = sectionPage('aSecConsult', '4. Pages de consultation', [
+        creer('p', { classe: 'w-texte', texte: 'Cette carte seule, sans onglets ni paramétrages, sur une page à part.' }),
+        creer('p', { classe: 'w-mention', texte: noms.length ? 'Déjà créée' + (noms.length > 1 ? 's' : '') + ' : ' + noms.join(', ') + '.' : 'Aucune page pour l\'instant.' })
+    ], bouton('Créer une page de consultation', 'secondaire', 'file-add-line', creerPageConsultation, { petit: true, id: 'aPageConsultation' }));
+    return [admin, consult];
 }
 function apercuReperes(a, couleurs) {
     var z = creer('div', { classe: 'w-apercu-boite', attrs: { 'aria-hidden': 'true' } });
@@ -9224,16 +9248,16 @@ var AIDE = {
                 '« Modifier » ramène à l\'étape concernée.',
                 '« Créer ma carte » enregistre la carte ; tout reste modifiable ensuite dans « Paramétrages de cette carte ».'
             ] },
-        'Général': { titre: 'le nom, la page, les droits et la suppression.', points: [
-                '« Nom de la carte » : affiché en titre et dans son onglet.',
+        'Général': { titre: 'le nom, les pages et la suppression.', points: [
+                '« Nom de la carte » : affiché en titre et dans son onglet ; « Description » (facultatif) s\'affiche dessous.',
                 '« Page d\'administration » : « Réserver cette page » pose sur la page une vue de la table « ' + TITRE_OWNER + ' » ; une règle d\'accès sur cette table choisit qui voit la page.',
                 '« Pages de consultation » : « Créer une page de consultation » ajoute au document une page qui montre cette carte seule, sans onglets ni paramétrages.',
-                '« Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
                 '« Supprimer la carte » : elle disparaît des onglets. Votre table et ses lignes restent dans le document ; une carte partie de zéro perd aussi ses lieux.'
             ] }
     },
     questions: [
-        { q: 'Qui peut paramétrer une carte ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Général » des paramétrages : « Réserver le paramétrage aux propriétaires », puis « Voir la marche à suivre ».' },
+        { q: 'Qui peut paramétrer une carte ?', r: 'Toute personne qui voit la page d\'administration et peut modifier le document. Pour la réserver : étape « Général », « Réserver cette page » ; le bouton « i » voisin donne les règles d\'accès à poser.' },
+        { q: 'Comment réserver une carte à certaines personnes ?', r: 'Dans « Permissions avancées », sur ' + LABEL_CENTRALE + ', refusez la Lecture avec la condition rec.CLE == clé de la carte (colonne CLÉ de sa ligne) and user.Email not in [...] : son onglet disparaît pour les autres. Pour masquer aussi ses lieux, posez la même restriction sur sa table de lieux.' },
         { q: 'Pourquoi un lieu n\'apparaît-il pas sur la carte ?', r: 'Il n\'a pas encore de coordonnées, ou il est masqué par un filtre, par la légende ou par la colonne « afficher ». La vue en liste permet de le retrouver.' },
         { q: 'Comment placer les lieux qui n\'ont qu\'une adresse ?', r: 'Choisissez la « Colonne d\'adresse » à l\'étape « La localisation ». Sur la carte, « Placer les lieux sans coordonnées » les place d\'un coup ; seule l\'adresse est envoyée au service de recherche.' },
         { q: 'Pourquoi une information ne se modifie-t-elle pas ?', r: 'Elle vient d\'une colonne calculée par une formule : elle s\'affiche dans la fiche, mais se modifie dans la table, pas depuis la carte.' },
@@ -9533,6 +9557,7 @@ function raisonNonEnregistrable(b) {
 function configDepuisBrouillon(b, base) {
     var cfg = JSON.parse(JSON.stringify(base || {}));
     cfg.nom = b.nom.trim();
+    cfg.description = String(b.description || '').trim() || null;
     cfg.apparence = Object.assign({}, APPARENCE_DEFAUT, b.apparence || {});
     cfg.champsFiche = b.champsFiche.slice();
     cfg.ordreFiche = (b.ordreFiche || []).slice();
