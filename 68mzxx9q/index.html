@@ -618,7 +618,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.5.0';
+var VERSION_WIDGET = '3.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -785,7 +785,7 @@ var etat = {
     biblio: null, config: null, cleConfig: null, biblioLigne: null, cartes: [], nomDoc: null,
     meta: { tables: {}, colonnes: {}, colParRef: {} }, refs: {},
     lieux: [], signature: '', categories: [], couleurs: {},
-    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false,
+    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false, consultation: false,
     recherche: '', catsMasquees: {}, filtresExtra: {}, periode: { du: '', au: '' },
     visibles: [], masques: [], choisi: null, fiche: null, placement: null,
     carte: null, fond: null, couche: null, marqueurs: {}, marqueurEdition: null,
@@ -2163,7 +2163,7 @@ async function lireCartes() {
         }
         var cle = colonneDe(d, 'CLE', i);
         if (typeof cle === 'string' && cle.indexOf(CLE_COPIE + ':') === 0) {
-            etat.copies[cle.slice(CLE_COPIE.length + 1)] = { ligne: d.id[i], carte: String(colonneDe(d, 'VALEUR', i) || '') };
+            etat.copies[cle.slice(CLE_COPIE.length + 1)] = Object.assign({ ligne: d.id[i] }, lireCopie(colonneDe(d, 'VALEUR', i)));
             continue;
         }
         if (cle === CLE_ACCES_EDITION) {
@@ -2192,14 +2192,109 @@ async function lireCartes() {
     var copie = etat.badge ? etat.copies[etat.badge] : null;
     etat.carteFixe = copie && l.some(function (x) { return x.cle === copie.carte; }) ? copie.carte : null;
     etat.copieOrpheline = !!copie && !etat.carteFixe;
+    etat.consultation = !!copie && copie.consultation;
     if (temE || temP) {
         etat.peutModifier = temE;
         etat.peutParametrer = temP;
+    }
+    if (etat.consultation) {
+        etat.peutParametrer = false;
     }
     return l;
 }
 function nouvelleCle() {
     return CLE_CONFIG + ':' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+}
+function lireCopie(v) {
+    var t = String(v || '');
+    if (t.charAt(0) === '{') {
+        try {
+            var o = JSON.parse(t);
+            return { carte: String(o.carte || ''), consultation: o.consultation === true };
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Réglage de page illisible', e);
+        }
+    }
+    return { carte: t, consultation: false };
+}
+async function referenceWidget() {
+    var ici = location.origin + location.pathname;
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var badges = Object.keys(etat.copies);
+        for (var i = 0; i < d.id.length; i++) {
+            var cv = null;
+            try {
+                cv = JSON.parse(JSON.parse((d.options || [])[i] || '{}').customView || '{}');
+            }
+            catch (e1) {
+                continue;
+            }
+            var memeAdresse = typeof cv.url === 'string' && cv.url.split(/[?#]/)[0] === ici;
+            var copie = cv.widgetOptions && badges.indexOf(cv.widgetOptions.copie) !== -1;
+            if (memeAdresse || copie) {
+                var r = { mode: cv.mode || 'url', url: cv.url || ici, widgetDef: cv.widgetDef || null, pluginId: cv.pluginId || '', sectionId: '', renderAfterReady: !!cv.renderAfterReady };
+                if (cv.widgetId) {
+                    r.widgetId = cv.widgetId;
+                }
+                return r;
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Référence du widget non retrouvée dans les vues : adresse du fichier utilisée', e);
+    }
+    return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
+}
+async function creerPageConsultation() {
+    var c = etat.config;
+    var cle = etat.cleConfig;
+    var t = c ? etat.meta.tables[c.tableLieux] : null;
+    if (!c || !cle || !t) {
+        return;
+    }
+    var badge = nouveauBadge();
+    var nom = '🗺️ ' + (c.nom || 'Carte');
+    var ligne = null, vue = null;
+    afficherLoader('Création de la page…');
+    try {
+        var cv = await referenceWidget();
+        cv.access = 'full';
+        cv.widgetOptions = { copie: badge };
+        var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ carte: cle, consultation: true }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
+        if (etat.biblioCentrale) {
+            champs.WIDGET = NOM_WIDGET;
+        }
+        var ret = await agir([['AddRecord', etat.biblio, null, champs]]);
+        ligne = ret && ret.retValues ? ret.retValues[0] : null;
+        var r = await agir([['CreateViewSection', t.ref, 0, 'custom', null, null]]);
+        var res = r && r.retValues ? r.retValues[0] || {} : {};
+        if (!res.viewRef || !res.sectionRef) {
+            throw new Error('Page non créée');
+        }
+        vue = res.viewRef;
+        await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: nom }],
+            ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: c.nom || '', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
+        await lireCartes();
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.');
+        redessinerEtape('aPageConsultation');
+    }
+    catch (e) {
+        masquerLoader();
+        var annuler = [];
+        if (vue) {
+            annuler.push(['RemoveRecord', '_grist_Views', vue]);
+        }
+        if (ligne) {
+            annuler.push(['RemoveRecord', etat.biblio, ligne]);
+        }
+        if (annuler.length) {
+            await agir(annuler).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Création de page non annulée', eA); });
+        }
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
+    }
 }
 function nouveauBadge() {
     var a = new Uint32Array(2);
@@ -8640,7 +8735,14 @@ function etapeGeneral() {
     var danger = blocSupprimer('Supprimer la carte', b.parcours === 'vierge'
         ? 'La carte disparaît des onglets et ses lieux sont supprimés de la table des lieux. Cette action est définitive.'
         : 'La carte disparaît des onglets. Votre table et ses lignes restent dans le document.', supprimerCarte);
-    return grilleParam([[section, page], [danger]], '2-1');
+    var nbConsult = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === etat.cleConfig; }).length;
+    var consult = page ? creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecConsult' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecConsult', texte: 'Pages de consultation' })]),
+        creer('p', { classe: 'w-texte', texte: 'Une page de consultation montre cette carte seule, sans onglets ni paramétrages. Elle s\'ajoute à la liste des pages du document.' }),
+        creer('p', { classe: 'w-mention', texte: nbConsult ? (nbConsult > 1 ? nbConsult + ' pages de consultation pour cette carte.' : 'Une page de consultation pour cette carte.') : 'Aucune page de consultation pour cette carte.' }),
+        creer('div', {}, [bouton('Créer une page de consultation', 'secondaire', 'file-add-line', creerPageConsultation, { petit: true, id: 'aPageConsultation' })])
+    ]) : null;
+    return grilleParam([[section, page, consult], [danger]], '2-1');
 }
 function complementDroitsCarte() {
     var c = etat.config;
@@ -8919,7 +9021,8 @@ var AIDE = {
             ] },
         'Général': { titre: 'le nom, la page, les droits et la suppression.', points: [
                 '« Nom de la carte » : affiché en titre et dans son onglet.',
-                '« Cette page » : « N\'afficher que cette carte sur cette page » retire les onglets des autres cartes de cette page seulement. Pour une carte par page, ajoutez le widget sur chaque page et faites ce réglage dans chacune.',
+                '« Cette page » : « N\'afficher que cette carte sur cette page » retire les onglets des autres cartes de cette page seulement.',
+                '« Pages de consultation » : « Créer une page de consultation » ajoute au document une page qui montre cette carte seule, sans onglets ni paramétrages.',
                 '« Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
                 '« Supprimer la carte » : elle disparaît des onglets. Votre table et ses lignes restent dans le document ; une carte partie de zéro perd aussi ses lieux.'
             ] }
@@ -8930,7 +9033,7 @@ var AIDE = {
         { q: 'Comment placer les lieux qui n\'ont qu\'une adresse ?', r: 'Choisissez la « Colonne d\'adresse » à l\'étape « La localisation ». Sur la carte, « Placer les lieux sans coordonnées » les place d\'un coup ; seule l\'adresse est envoyée au service de recherche.' },
         { q: 'Pourquoi une information ne se modifie-t-elle pas ?', r: 'Elle vient d\'une colonne calculée par une formule : elle s\'affiche dans la fiche, mais se modifie dans la table, pas depuis la carte.' },
         { q: 'Supprimer une carte supprime-t-il mes données ?', r: 'Non pour une carte faite sur votre table : elle disparaît des onglets, la table et ses lignes restent dans le document. Une carte partie de zéro supprime aussi ses lieux.' },
-        { q: 'Comment montrer une seule carte sur une page ?', r: 'Ajoutez le widget sur la page, ouvrez la carte voulue, puis « Paramétrages de cette carte », étape « Général », « N\'afficher que cette carte sur cette page ». Les autres pages ne changent pas. Pour créer une nouvelle carte, utilisez une page qui affiche toutes les cartes.' },
+        { q: 'Comment montrer une seule carte sur une page ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Créer une page de consultation » ajoute une page qui montre cette carte seule. Les paramétrages restent sur la page qui affiche toutes les cartes.' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du panneau de gauche ; l\'icône voisine enregistre en PDF. La carte s\'imprime telle qu\'elle est affichée, avec les filtres en cours.' }
     ]
 };
@@ -9502,14 +9605,35 @@ async function sortirParametrages(afficher) {
     }
     return true;
 }
+async function vuesDeConsultation(badges) {
+    if (!badges.length) {
+        return [];
+    }
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vues = [];
+        for (var i = 0; i < d.id.length; i++) {
+            var o = String((d.options || [])[i] || '');
+            var v = (d.parentId || [])[i];
+            if (v && vues.indexOf(v) === -1 && badges.some(function (b) { return o.indexOf(b) !== -1; })) {
+                vues.push(v);
+            }
+        }
+        return vues;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Pages de consultation non retrouvées', e);
+        return [];
+    }
+}
 async function supprimerCarte() {
     var c = etat.config;
     if (!c || !etat.biblioLigne) {
         return;
     }
     var ok = await confirmerAction('Supprimer la carte « ' + (c.nom || '') + ' » ?', c.colCarte
-        ? 'La carte disparaît des onglets et ses lieux sont supprimés. Les autres cartes ne sont pas touchées. Cette action ne peut pas être annulée ici.'
-        : 'La carte disparaît des onglets. Votre table « ' + libelleTable(c.tableLieux) + ' » et ses lignes restent dans le document.', 'Supprimer la carte');
+        ? 'La carte disparaît des onglets et ses lieux sont supprimés, ainsi que ses pages de consultation. Les autres cartes ne sont pas touchées. Cette action ne peut pas être annulée ici.'
+        : 'La carte disparaît des onglets, ainsi que ses pages de consultation. Votre table « ' + libelleTable(c.tableLieux) + ' » et ses lignes restent dans le document.', 'Supprimer la carte');
     if (!ok) {
         return;
     }
@@ -9524,10 +9648,13 @@ async function supprimerCarte() {
             }
         }
         actions.push(['RemoveRecord', etat.biblio, etat.biblioLigne]);
-        var pages = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].carte === etat.cleConfig; }).map(function (x) { return etat.copies[x].ligne; });
+        var copiesCarte = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].carte === etat.cleConfig; });
+        var pages = copiesCarte.map(function (x) { return etat.copies[x].ligne; });
         if (pages.length) {
             actions.push(['BulkRemoveRecord', etat.biblio, pages]);
         }
+        var vuesConsult = await vuesDeConsultation(copiesCarte.filter(function (x) { return etat.copies[x].consultation; }));
+        vuesConsult.forEach(function (v) { actions.push(['RemoveRecord', '_grist_Views', v]); });
         await agir(actions);
         var nom = c.nom;
         etat.brouillon = null;
