@@ -58,6 +58,10 @@
     .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
     .w-section-page .w-aide { margin: 0; vertical-align: middle; }
     .w-description-carte { margin: 0 0 .5rem; white-space: pre-line; }
+    .w-filtres-page { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .5rem; margin: 0 0 .5rem; }
+    .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
+    .w-filtres-page__liste li { margin: 0; padding: 0; }
+    .w-filtres-page__liste .fr-tag { overflow-wrap: anywhere; }
     .w-ordre-fiche { list-style: none; margin: 0 0 1rem; padding: 0; }
     .w-ordre-fiche__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); font-size: .875rem; }
     .w-ordre-fiche__nom { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -645,7 +649,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.10.0';
+var VERSION_WIDGET = '3.11.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -2544,6 +2548,23 @@ function filtresValides(f) {
     return r;
 }
 function filtresVides(f) { return !Object.keys(f.colonnes).length && !f.du && !f.au; }
+function etiquettesFiltresPage(f) {
+    var res = Object.keys(f.colonnes).filter(function (k) { return colLieux(k); }).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].join(', '); });
+    if (f.du || f.au) {
+        res.push('Période : ' + (f.du && f.au ? 'du ' + formaterDate(jourVersSecondes(f.du)) + ' au ' + formaterDate(jourVersSecondes(f.au)) : (f.du ? 'à partir du ' + formaterDate(jourVersSecondes(f.du)) : 'jusqu\'au ' + formaterDate(jourVersSecondes(f.au)))));
+    }
+    return res;
+}
+function blocFiltresPage() {
+    var t = etat.filtrePage ? etiquettesFiltresPage(etat.filtrePage) : [];
+    if (!t.length) {
+        return null;
+    }
+    return creer('div', { classe: 'w-filtres-page', id: 'vFiltresPage' }, [
+        creer('span', { classe: 'w-mention', texte: 'Cette page montre :' }),
+        creer('ul', { classe: 'w-filtres-page__liste', attrs: { 'aria-label': 'Filtres appliqués par cette page' } }, t.map(function (x) { return creer('li', {}, [creer('p', { classe: 'fr-tag fr-tag--sm', texte: x })]); }))
+    ]);
+}
 function retiresValides(r) {
     if (!r || typeof r !== 'object') {
         return null;
@@ -4139,7 +4160,7 @@ function rendreVueCarte(zone) {
     ]);
     zoneCarte.style.setProperty('--largeur-fiche', largeurFicheDepart());
     var principal = creer('div', { classe: 'w-principal' }, [identite, c.description ? creer('p', { classe: 'w-texte w-description-carte', id: 'vDescription', texte: c.description }) : null,
-        creer('div', { classe: 'w-impression', id: 'vImpression' }), zoneCarte]);
+        blocFiltresPage(), creer('div', { classe: 'w-impression', id: 'vImpression' }), zoneCarte]);
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
 }
 function peutAjouter() {
@@ -5361,6 +5382,10 @@ function imprimer() {
     var filtres = descriptionFiltres();
     var vis = etat.visibles.length;
     z.appendChild(creer('p', { texte: 'Imprimé le ' + formaterDate(Math.floor(Date.now() / 1000)) + '. ' + (vis === etat.lieux.length ? vis + (vis > 1 ? ' lieux.' : ' lieu.') : vis + ' lieux affichés sur ' + etat.lieux.length + '.') }));
+    var dePage = etat.filtrePage ? etiquettesFiltresPage(etat.filtrePage) : [];
+    if (dePage.length) {
+        z.appendChild(creer('p', { texte: 'Cette page montre : ' + dePage.join(' ; ') + '.' }));
+    }
     z.appendChild(creer('p', { texte: filtres.length ? 'Filtres : ' + filtres.join(' ; ') + '.' : 'Aucun filtre.' }));
     if (etat.config.approximatif) {
         z.appendChild(creer('p', { texte: 'Positions approximatives (à environ 1 km près).' }));
