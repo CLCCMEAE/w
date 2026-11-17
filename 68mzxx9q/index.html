@@ -24,13 +24,20 @@
     .w-contenu { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.75rem; color: var(--text-default-grey); }
     .w-titre-vue { margin: 0 0 .25rem; }
     @media (min-width: 48.01em) {
-      .w-zone-carte:has(> .w-fiche:not([hidden])) .leaflet-right { right: 26rem; }
       .w-zone-carte:has(> .w-import-suivi) .leaflet-right { right: 22.5rem; }
-      .w-fiche.w-fiche--large { width: 36rem; }
-      .w-fiche.w-fiche--tres-large { width: 50%; }
-      .w-zone-carte:has(> .w-fiche--large:not([hidden])) .leaflet-right { right: 36rem; }
-      .w-zone-carte:has(> .w-fiche--tres-large:not([hidden])) .leaflet-right { right: 50%; }
     }
+    @media screen and (min-width: 48.01em) {
+      .w-zone-carte > .w-fiche { width: min(var(--largeur-fiche, 26rem), 60%); max-width: 60%; }
+      body:not(.w-mode-impression) .w-zone-carte:has(> .w-fiche:not([hidden])) > .w-carte-leaflet,
+      body:not(.w-mode-impression) .w-zone-carte:has(> .w-fiche:not([hidden])) > .w-vue-liste { right: min(var(--largeur-fiche, 26rem), 60%); }
+      body:not(.w-mode-impression) .w-zone-carte:has(> .w-fiche:not([hidden])) > .w-poignee-fiche { display: block; }
+    }
+    .w-poignee-fiche { display: none; position: absolute; z-index: 1002; top: 0; bottom: 0; right: calc(min(var(--largeur-fiche, 26rem), 60%) - .375rem); width: .75rem;
+      cursor: col-resize; touch-action: none; background: transparent; color: var(--text-default-grey); }
+    .w-poignee-fiche::before { content: ''; position: absolute; top: 50%; left: 50%; width: .25rem; height: 3rem; transform: translate(-50%, -50%);
+      background: var(--border-plain-grey); color: var(--text-default-grey); }
+    .w-poignee-fiche:hover::before, .w-poignee-fiche:focus-visible::before, .w-poignee-fiche.w-poignee-fiche--active::before { background: var(--border-action-high-blue-france); color: var(--text-default-grey); }
+    .w-poignee-fiche:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
     .w-ordre-fiche { list-style: none; margin: 0 0 1rem; padding: 0; }
     .w-ordre-fiche__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); font-size: .875rem; }
     .w-ordre-fiche__nom { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -618,7 +625,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.7.0';
+var VERSION_WIDGET = '3.8.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -744,6 +751,8 @@ var FORMES = [{ valeur: 'goutte', libelle: 'Goutte' }, { valeur: 'cercle', libel
 var TAILLES = [{ valeur: 's', libelle: 'Petite' }, { valeur: 'm', libelle: 'Moyenne' }, { valeur: 'l', libelle: 'Grande' }];
 var FACTEURS_TAILLE = { s: 0.8, m: 1, l: 1.25 };
 var APPARENCE_DEFAUT = { forme: 'goutte', taille: 'm', regrouper: true, fond: 'osm', couleursChoix: true, representation: 'reperes', couleurDefaut: '', rattachement: '', largeurFiche: 'standard' };
+var LARGEURS_FICHE_CSS = { standard: '26rem', large: '36rem', 'tres-large': '50%' };
+var PAS_POIGNEE_PX = 32;
 var LARGEURS_FICHE = [{ valeur: 'standard', libelle: 'Standard' }, { valeur: 'large', libelle: 'Large' }, { valeur: 'tres-large', libelle: 'Très large (moitié de la carte)' }];
 var TAILLE_CASE_REGROUPEMENT = 56;
 var ZOOM_SANS_REGROUPEMENT = 17;
@@ -2416,6 +2425,71 @@ async function creerPageConsultation() {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
     }
 }
+function largeurFicheDepart() {
+    var px = lirePref('largeurFiche', null, true);
+    return typeof px === 'number' && px > 0 && px < 4000 ? Math.round(px) + 'px' : (LARGEURS_FICHE_CSS[apparence().largeurFiche] || LARGEURS_FICHE_CSS.standard);
+}
+function poigneeFiche() {
+    var p = creer('div', { classe: 'w-poignee-fiche', id: 'vPoigneeFiche', attrs: { role: 'separator', tabindex: '0', 'aria-orientation': 'vertical', 'aria-controls': 'vFiche',
+            'aria-label': 'Largeur de la fiche : glisser, ou flèches gauche et droite' } });
+    var zone = function () { return document.getElementById('vZoneCarte'); };
+    var bornes = function () {
+        var z = zone();
+        var base = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        return { min: Math.round(26 * base), max: Math.max(Math.round(26 * base), Math.round((z ? z.clientWidth : 0) * 0.6)) };
+    };
+    var actuelle = function () { var f = document.getElementById('vFiche'); return f ? f.getBoundingClientRect().width : bornes().min; };
+    var poser = function (px, garder) {
+        var b = bornes();
+        var v = Math.round(Math.min(b.max, Math.max(b.min, px)));
+        var z = zone();
+        if (z) {
+            z.style.setProperty('--largeur-fiche', v + 'px');
+        }
+        p.setAttribute('aria-valuemin', String(b.min));
+        p.setAttribute('aria-valuemax', String(b.max));
+        p.setAttribute('aria-valuenow', String(v));
+        p.setAttribute('aria-valuetext', v + ' pixels');
+        if (garder) {
+            ecrirePref('largeurFiche', v, true);
+        }
+    };
+    p.addEventListener('pointerdown', function (e) {
+        var z = zone();
+        if (!z || e.button !== 0) {
+            return;
+        }
+        e.preventDefault();
+        p.setPointerCapture(e.pointerId);
+        p.classList.add('w-poignee-fiche--active');
+        var bouger = function (ev) { poser(z.getBoundingClientRect().right - ev.clientX, false); };
+        var lacher = function (ev) {
+            p.removeEventListener('pointermove', bouger);
+            p.removeEventListener('pointerup', lacher);
+            p.removeEventListener('pointercancel', lacher);
+            p.classList.remove('w-poignee-fiche--active');
+            poser(z.getBoundingClientRect().right - ev.clientX, true);
+        };
+        p.addEventListener('pointermove', bouger);
+        p.addEventListener('pointerup', lacher);
+        p.addEventListener('pointercancel', lacher);
+    });
+    p.addEventListener('keydown', function (e) {
+        var b = bornes();
+        var cible = { ArrowLeft: actuelle() + PAS_POIGNEE_PX, ArrowRight: actuelle() - PAS_POIGNEE_PX, Home: b.min, End: b.max }[e.key];
+        if (cible === undefined) {
+            return;
+        }
+        e.preventDefault();
+        poser(cible, true);
+        annoncer('Fiche de ' + p.getAttribute('aria-valuenow') + ' pixels de large.');
+    });
+    p.addEventListener('focus', function () { poser(actuelle(), false); });
+    p.addEventListener('dblclick', function () { ecrirePref('largeurFiche', null, true); var z = zone(); if (z) {
+        z.style.setProperty('--largeur-fiche', largeurFicheDepart());
+    } });
+    return p;
+}
 function nouveauBadge() {
     var a = new Uint32Array(2);
     window.crypto.getRandomValues(a);
@@ -3796,8 +3870,10 @@ function rendreVueCarte(zone) {
         creer('div', { id: 'vMessageCarte' }),
         creer('div', { id: 'vLegende', classe: 'w-legende-carte', attrs: { hidden: true, role: 'region', 'aria-label': 'Légende de la carte' } }),
         creer('div', { id: 'vBasCarte', classe: 'w-bas-carte', attrs: { hidden: true } }),
-        creer('aside', { id: 'vFiche', classe: 'w-fiche' + (apparence().largeurFiche !== 'standard' ? ' w-fiche--' + apparence().largeurFiche : ''), attrs: { hidden: true, 'aria-labelledby': 'vFicheTitre' } })
+        creer('aside', { id: 'vFiche', classe: 'w-fiche', attrs: { hidden: true, 'aria-labelledby': 'vFicheTitre' } }),
+        poigneeFiche()
     ]);
+    zoneCarte.style.setProperty('--largeur-fiche', largeurFicheDepart());
     var principal = creer('div', { classe: 'w-principal' }, [identite, creer('div', { classe: 'w-impression', id: 'vImpression' }), zoneCarte]);
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
 }
@@ -8995,7 +9071,7 @@ function etapeAffichage() {
     var sLarg = liste('aLargeurFiche', LARGEURS_FICHE, LARGEURS_FICHE.some(function (x) { return x.valeur === a.largeurFiche; }) ? a.largeurFiche : 'standard');
     sLarg.addEventListener('change', function () { maj('largeurFiche', sLarg.value, 'aLargeurFiche'); });
     col2.push(titreColonne('Fiche d\'un lieu', null));
-    col2.push(creer('div', { classe: 'fr-select-group' }, [libelleAide('aLargeurFiche', 'Largeur de la fiche', 'La fiche s\'ouvre à droite de la carte au clic sur un repère. Sur téléphone, elle s\'ouvre toujours en bas de l\'écran.'), sLarg]));
+    col2.push(creer('div', { classe: 'fr-select-group' }, [libelleAide('aLargeurFiche', 'Largeur de la fiche', 'Largeur à l\'ouverture de la fiche, à droite de la carte. Chaque personne peut ensuite l\'élargir avec la poignée de son bord gauche (double-clic pour revenir à cette largeur) ; le navigateur s\'en souvient. Sur téléphone, la fiche s\'ouvre en bas de l\'écran.'), sLarg]));
     var fsEt = creer('fieldset', { classe: 'fr-fieldset fr-mb-0' }, [creer('legend', { classe: 'fr-sr-only', texte: 'Informations de l\'étiquette au survol d\'un repère' })]);
     col2.push(titreColonne('Étiquette au survol d\'un repère', 'Le nom du lieu, puis les informations cochées.', 'aAideEtiq'));
     dispo.forEach(function (x) {
@@ -9090,6 +9166,7 @@ var AIDE = {
         'Voir les lieux sur la carte ou en liste, et passer de l\'une à l\'autre en haut à droite.',
         'Chercher un lieu et filtrer depuis le panneau de gauche ; un clic sur une catégorie de la légende la masque ou la réaffiche.',
         'Ajouter un lieu, le placer d\'après son adresse ou d\'un clic sur la carte, et modifier sa fiche.',
+        'Ouvrir la fiche d\'un lieu à côté de la carte et l\'élargir avec la poignée de son bord gauche.',
         'Placer d\'un coup les lieux qui ont une adresse mais pas encore de coordonnées.',
         'Compter les lieux par pays, par département ou par région.',
         'Ajouter des ambassades, des consulats et le réseau culturel à l\'étape « Imports de listes » des paramétrages.',
@@ -9132,7 +9209,7 @@ var AIDE = {
                 '« Forme des repères » et « Taille des repères » : l\'aperçu les montre aussitôt.',
                 '« Représentation » : un repère par lieu, ou le nombre de lieux par pays, par département ou par région.',
                 '« Position approximative » : pour des sites sensibles, la position est montrée à 1 km près environ.',
-                '« Largeur de la fiche » : Standard, Large ou Très large, pour les fiches riches en texte.',
+                '« Largeur de la fiche » : la largeur à l\'ouverture ; chacun l\'ajuste ensuite avec la poignée.',
                 '« Étiquette au survol d\'un repère » : le nom, puis les informations cochées.',
                 '« Filtres du panneau » : les colonnes proposées comme filtre à gauche de la carte.'
             ] },
