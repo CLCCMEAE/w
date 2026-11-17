@@ -44,6 +44,19 @@
     .w-general { display: flex; flex-direction: column; gap: 1rem; }
     .w-section-page { display: flex; flex-direction: column; gap: .75rem; }
     .w-section-page__bas { margin-top: auto; }
+    .w-pages-liste { list-style: none; margin: 0; padding: 0; }
+    .w-pages-liste__item { display: flex; align-items: flex-start; gap: .25rem; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .w-pages-liste__texte { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .w-pages-liste__nom { display: block; font-weight: 700; font-size: .875rem; color: var(--text-title-grey); }
+    .w-page-filtre { margin: 0; padding: 0; border: 0; min-width: 0; }
+    .w-page-filtre legend { font-size: .875rem; font-weight: 700; padding: 0; margin-bottom: .25rem; color: var(--text-title-grey); }
+    .w-page-filtre__valeurs { max-height: 10rem; overflow-y: auto; padding: .25rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-page-periode { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .w-page-periode .fr-input-group { flex: 1 1 8rem; margin: 0; }
+    .w-page-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-page-propose { margin-top: .5rem; }
+    .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
+    .w-section-page .w-aide { margin: 0; vertical-align: middle; }
     .w-description-carte { margin: 0 0 .5rem; white-space: pre-line; }
     .w-ordre-fiche { list-style: none; margin: 0 0 1rem; padding: 0; }
     .w-ordre-fiche__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); font-size: .875rem; }
@@ -632,7 +645,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.8.1';
+var VERSION_WIDGET = '3.10.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -803,7 +816,7 @@ var etat = {
     biblio: null, config: null, cleConfig: null, biblioLigne: null, cartes: [], nomDoc: null,
     meta: { tables: {}, colonnes: {}, colParRef: {} }, refs: {},
     lieux: [], signature: '', categories: [], couleurs: {},
-    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false, consultation: false, pageProtegee: false, nomsPages: {},
+    tableLiee: null, derniersIds: null, idsVisibles: null, badge: null, copies: {}, carteFixe: null, copieOrpheline: false, consultation: false, pageProtegee: false, nomsPages: {}, nomsVues: [], filtrePage: null, retiresPage: null, editionPage: null,
     recherche: '', catsMasquees: {}, filtresExtra: {}, periode: { du: '', au: '' },
     visibles: [], masques: [], choisi: null, fiche: null, placement: null,
     carte: null, fond: null, couche: null, marqueurs: {}, marqueurEdition: null,
@@ -2211,6 +2224,8 @@ async function lireCartes() {
     etat.carteFixe = copie && l.some(function (x) { return x.cle === copie.carte; }) ? copie.carte : null;
     etat.copieOrpheline = !!copie && !!copie.carte && !etat.carteFixe;
     etat.consultation = !!copie && copie.consultation;
+    etat.filtrePage = etat.consultation && copie.filtres && !filtresVides(copie.filtres) ? copie.filtres : null;
+    etat.retiresPage = etat.consultation ? retiresEffectifs(copie) : null;
     if (temE || temP) {
         etat.peutModifier = temE;
         etat.peutParametrer = temP;
@@ -2228,7 +2243,7 @@ function lireCopie(v) {
     if (t.charAt(0) === '{') {
         try {
             var o = JSON.parse(t);
-            return { carte: String(o.carte || ''), consultation: o.consultation === true, admin: o.admin === true };
+            return { carte: String(o.carte || ''), consultation: o.consultation === true, admin: o.admin === true, filtres: filtresValides(o.filtres), retires: retiresValides(o.retires) };
         }
         catch (e) {
             logSecurite('AVERTISSEMENT', 'Réglage de page illisible', e);
@@ -2285,6 +2300,7 @@ async function majPageProtegee() {
     try {
         var d = await lireTable('_grist_Views_section');
         var v = await lireTable('_grist_Views');
+        etat.nomsVues = (v.name || []).map(function (x) { return String(x || '').trim(); });
         Object.keys(etat.copies).forEach(function (x) {
             var vx = etat.copies[x].consultation ? vueDuBadge(d, x) : null;
             var k = vx ? v.id.indexOf(vx) : -1;
@@ -2395,7 +2411,7 @@ async function reserverPage() {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être réservée. Réessayez.', e);
     }
 }
-async function creerPageConsultation() {
+async function creerPageConsultation(nomPage, filtres, retires) {
     var c = etat.config;
     var cle = etat.cleConfig;
     var t = c ? etat.meta.tables[c.tableLieux] : null;
@@ -2403,14 +2419,14 @@ async function creerPageConsultation() {
         return;
     }
     var badge = nouveauBadge();
-    var nom = '🗺️ ' + (c.nom || 'Carte');
+    var nom = String(nomPage || '').trim() || '🗺️ ' + (c.nom || 'Carte');
     var ligne = null, vue = null;
     afficherLoader('Création de la page…');
     try {
         var cv = await referenceWidget();
         cv.access = 'full';
         cv.widgetOptions = { copie: badge };
-        var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ carte: cle, consultation: true }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
+        var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ carte: cle, consultation: true, filtres: filtresValides(filtres), retires: retiresValides(retires) }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
         if (etat.biblioCentrale) {
             champs.WIDGET = NOM_WIDGET;
         }
@@ -2426,6 +2442,7 @@ async function creerPageConsultation() {
             ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: c.nom || '', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
         await lireCartes();
         await majPageProtegee();
+        etat.editionPage = null;
         masquerLoader();
         afficherSucces('La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.');
         redessinerEtape('aPageConsultation');
@@ -2509,6 +2526,225 @@ function poigneeFiche() {
         z.style.setProperty('--largeur-fiche', largeurFicheDepart());
     } });
     return p;
+}
+function filtresValides(f) {
+    var r = { colonnes: {}, du: '', au: '' };
+    if (!f || typeof f !== 'object') {
+        return r;
+    }
+    var cols = f.colonnes && typeof f.colonnes === 'object' ? f.colonnes : {};
+    Object.keys(cols).forEach(function (k) {
+        var v = Array.isArray(cols[k]) ? cols[k].map(String).filter(Boolean) : [];
+        if (v.length) {
+            r.colonnes[k] = v;
+        }
+    });
+    r.du = /^\d{4}-\d{2}-\d{2}$/.test(f.du || '') ? f.du : '';
+    r.au = /^\d{4}-\d{2}-\d{2}$/.test(f.au || '') ? f.au : '';
+    return r;
+}
+function filtresVides(f) { return !Object.keys(f.colonnes).length && !f.du && !f.au; }
+function retiresValides(r) {
+    if (!r || typeof r !== 'object') {
+        return null;
+    }
+    return { colonnes: Array.isArray(r.colonnes) ? r.colonnes.map(String) : [], periode: r.periode === true };
+}
+function retiresEffectifs(copie) {
+    if (copie && copie.retires) {
+        return copie.retires;
+    }
+    var f = copie && copie.filtres ? copie.filtres : filtresValides(null);
+    return { colonnes: Object.keys(f.colonnes), periode: !!(f.du || f.au) };
+}
+function colonnesProposables() {
+    var c = etat.config;
+    return c ? (c.filtres || []).filter(function (k) { return colLieux(k); }) : [];
+}
+function filtreProposeAuxLecteurs(k) {
+    var r = etat.retiresPage;
+    return !r || r.colonnes.indexOf(k) === -1;
+}
+function periodeProposee() {
+    var c = etat.config;
+    return !!c && !!c.colDate && !(etat.retiresPage && etat.retiresPage.periode);
+}
+function resumeProposes(copie) {
+    var r = retiresEffectifs(copie);
+    var noms = colonnesProposables().filter(function (k) { return r.colonnes.indexOf(k) === -1; }).map(libelleCol);
+    var total = colonnesProposables().length + (etat.config.colDate ? 1 : 0);
+    if (etat.config.colDate && !r.periode) {
+        noms.push('Période');
+    }
+    return total ? (noms.length ? noms.join(', ') : 'aucun filtre') : '';
+}
+function resumePage(badge) {
+    var copie = etat.copies[badge];
+    var t = resumeFiltresPage(copie.filtres || filtresValides(null));
+    var p = resumeProposes(copie);
+    return p ? t + '. Laissé aux lecteurs : ' + p : t;
+}
+function poserRetire(ed, k, retire) {
+    var l = ed.retires.colonnes.filter(function (x) { return x !== k; });
+    ed.retires.colonnes = retire ? l.concat([k]) : l;
+}
+function passeFiltrePage(l) {
+    var f = etat.filtrePage;
+    var ok = Object.keys(f.colonnes).every(function (k) { return !colLieux(k) || f.colonnes[k].some(function (v) { return passeFiltre(l, k, v); }); });
+    return ok && (!(f.du || f.au) || !etat.config.colDate || passePeriodeEntre(l, f.du, f.au));
+}
+function resumeFiltresPage(f) {
+    var parts = Object.keys(f.colonnes).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].join(', '); });
+    if (f.du || f.au) {
+        parts.push('période ' + (f.du && f.au ? 'du ' + formaterDate(jourVersSecondes(f.du)) + ' au ' + formaterDate(jourVersSecondes(f.au)) : (f.du ? 'à partir du ' + formaterDate(jourVersSecondes(f.du)) : 'jusqu\'au ' + formaterDate(jourVersSecondes(f.au)))));
+    }
+    return parts.length ? parts.join(' ; ') : 'Tous les lieux de la carte';
+}
+function colonnesFiltrePage() {
+    var c = etat.config;
+    return [c.colCategorie].concat(c.filtres || []).filter(function (k, i, t) { return k && t.indexOf(k) === i && colLieux(k); });
+}
+function pagesDeLaCarte() {
+    return Object.keys(etat.copies).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === etat.cleConfig && etat.nomsPages[x]; });
+}
+function editerPage(badge, dupliquer) {
+    var f = badge ? etat.copies[badge].filtres || filtresValides(null) : filtresValides(null);
+    var copie = badge ? etat.copies[badge] : null;
+    var r = copie ? retiresEffectifs(copie) : { colonnes: [], periode: false };
+    etat.editionPage = { badge: dupliquer ? null : badge, nomInitial: badge && !dupliquer ? etat.nomsPages[badge] : '',
+        nom: badge ? etat.nomsPages[badge] + (dupliquer ? ' (copie)' : '') : '🗺️ ' + (etat.config.nom || 'Carte'),
+        colonnes: JSON.parse(JSON.stringify(f.colonnes)), du: f.du, au: f.au,
+        retires: { colonnes: r.colonnes.slice(), periode: r.periode }, manuel: {}, manuelTout: !!(copie && copie.retires), manuelPeriode: false };
+    redessinerEtape('aPageNom');
+}
+async function enregistrerPage() {
+    var ed = etat.editionPage;
+    var nom = String(ed.nom || '').trim();
+    if (!nom) {
+        marquerInvalide('aPageNom', 'Donnez un nom à la page.');
+        return;
+    }
+    if (nom !== ed.nomInitial && etat.nomsVues.indexOf(nom) !== -1) {
+        marquerInvalide('aPageNom', 'Une page porte déjà ce nom dans le document.');
+        return;
+    }
+    if (ed.du && ed.au && ed.du > ed.au) {
+        marquerInvalide('aPageAu', 'La fin de la période est avant son début.');
+        return;
+    }
+    var filtres = filtresValides(ed);
+    var retires = retiresValides({ colonnes: ed.retires.colonnes.filter(function (k) { return colonnesProposables().indexOf(k) !== -1; }), periode: ed.retires.periode && !!etat.config.colDate });
+    if (!ed.badge) {
+        await creerPageConsultation(nom, filtres, retires);
+        return;
+    }
+    var copie = etat.copies[ed.badge];
+    afficherLoader('Enregistrement de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadge(d, ed.badge);
+        var actions = [['UpdateRecord', etat.biblio, copie.ligne, { VALEUR: JSON.stringify({ carte: copie.carte, consultation: true, filtres: filtres, retires: retires }), VERSION_MODIF: VERSION_WIDGET }]];
+        if (vue && nom !== ed.nomInitial) {
+            actions.push(['UpdateRecord', '_grist_Views', vue, { name: nom }]);
+        }
+        await agir(actions);
+        await lireCartes();
+        await majPageProtegee();
+        etat.editionPage = null;
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses lecteurs verront le changement à la prochaine ouverture.');
+        redessinerEtape('aSecConsult');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier cette page.' : 'La page n\'a pas été enregistrée. Réessayez.', e);
+    }
+}
+async function supprimerPageConsultation(badge) {
+    var nom = etat.nomsPages[badge] || '';
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. La carte et ses lieux ne sont pas touchés.', 'Supprimer la page');
+    if (!ok) {
+        return;
+    }
+    afficherLoader('Suppression de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadge(d, badge);
+        var actions = [['RemoveRecord', etat.biblio, etat.copies[badge].ligne]];
+        if (vue) {
+            actions.unshift(['RemoveRecord', '_grist_Views', vue]);
+        }
+        await agir(actions);
+        await lireCartes();
+        await majPageProtegee();
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est supprimée.');
+        redessinerEtape('aSecConsult');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée. Réessayez.', e);
+    }
+}
+function formulairePage() {
+    var ed = etat.editionPage;
+    var c = etat.config;
+    var nom = saisie('aPageNom', ed.nom);
+    nom.addEventListener('input', function () { ed.nom = nom.value; });
+    var noeuds = [groupeChamp('Nom de la page', nom, 'Affiché dans la liste des pages du document.', true)];
+    colonnesFiltrePage().forEach(function (k, i) {
+        var boite = creer('div', { classe: 'w-page-filtre__valeurs' });
+        var proposable = colonnesProposables().indexOf(k) !== -1;
+        var propose = proposable ? creer('input', { attrs: { type: 'checkbox', id: 'aPfOk' + i }, coche: ed.retires.colonnes.indexOf(k) === -1 }) : null;
+        if (propose) {
+            propose.addEventListener('change', function () {
+                ed.manuel[k] = true;
+                poserRetire(ed, k, !propose.checked);
+            });
+        }
+        valeursFiltre(k).forEach(function (v, j) {
+            var cb = creer('input', { attrs: { type: 'checkbox', id: 'aPf' + i + '_' + j }, coche: (ed.colonnes[k] || []).indexOf(v) !== -1 });
+            cb.addEventListener('change', function () {
+                var l = ed.colonnes[k] || [];
+                ed.colonnes[k] = cb.checked ? l.concat([v]) : l.filter(function (x) { return x !== v; });
+                if (propose && !ed.manuelTout && !ed.manuel[k]) {
+                    var fixe = ed.colonnes[k].length > 0;
+                    poserRetire(ed, k, fixe);
+                    propose.checked = !fixe;
+                }
+            });
+            boite.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPf' + i + '_' + j }, texte: v })]));
+        });
+        noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: libelleCol(k) }), boite].concat(propose ? [
+            creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm w-page-propose' }, [propose, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPfOk' + i }, texte: 'Proposer ce filtre aux lecteurs' })])] : [])));
+    });
+    if (c.colDate) {
+        var du = saisie('aPageDu', ed.du, { type: 'date' });
+        var au = saisie('aPageAu', ed.au, { type: 'date' });
+        var proposePer = creer('input', { attrs: { type: 'checkbox', id: 'aPfPer' }, coche: !ed.retires.periode });
+        var majPer = function () {
+            if (!ed.manuelTout && !ed.manuelPeriode) {
+                ed.retires.periode = !!(ed.du || ed.au);
+                proposePer.checked = !ed.retires.periode;
+            }
+        };
+        du.addEventListener('change', function () { ed.du = du.value; majPer(); });
+        au.addEventListener('change', function () { ed.au = au.value; majPer(); });
+        proposePer.addEventListener('change', function () {
+            ed.manuelPeriode = true;
+            ed.retires.periode = !proposePer.checked;
+        });
+        noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Période' }), creer('div', { classe: 'w-page-periode' }, [
+                creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageDu' }, texte: 'Du' }), du]),
+                creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAu' }, texte: 'Au' }), au])]),
+            creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm w-page-propose' }, [proposePer, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPfPer' }, texte: 'Proposer la période aux lecteurs' })])]));
+    }
+    noeuds.push(creer('p', { classe: 'w-mention', texte: colonnesFiltrePage().length || c.colDate ? 'Rien de coché dans une liste : toutes ses valeurs. Un filtre coché « Proposer aux lecteurs » reste dans le panneau de la page, limité aux valeurs retenues ; un filtre décoché disparaît du panneau.' : 'Cette carte n\'a pas de filtre : la page montrera tous ses lieux. Les filtres se choisissent à l\'étape « Affichage et filtres ».' }));
+    noeuds.push(creer('div', { classe: 'w-page-actions' }, [
+        bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerEtape('aSecConsult'); }, { petit: true, id: 'aPageAnnuler' }),
+        bouton(ed.badge ? 'Enregistrer la page' : 'Créer la page', null, 'check-line', enregistrerPage, { petit: true, id: 'aPageEnregistrer' })
+    ]));
+    return noeuds;
 }
 function nouveauBadge() {
     var a = new Uint32Array(2);
@@ -3385,6 +3621,9 @@ async function chargerDonnees() {
         lieu.recherche = normaliser([lieu.nom, lieu.adresse, lieu.pays, cats.join(' ')].concat((c.champsFiche || []).map(function (k) { return texteValeur(k, valeurs[k]); })).join(' '));
         lieux.push(lieu);
     }
+    if (etat.filtrePage) {
+        lieux = lieux.filter(passeFiltrePage);
+    }
     var signature = JSON.stringify(lieux.map(function (l) { return [l.id, l.valeurs]; })) + '|' + JSON.stringify(choixDe(colLieux(c.colCategorie))) + '|' + JSON.stringify((colLieux(c.colCategorie) || {}).options || {});
     var change = signature !== etat.signature;
     etat.signature = signature;
@@ -3408,8 +3647,10 @@ function calculerCategories() {
         res.push(k);
     } };
     if (c.colCategorie) {
-        (c.categories || []).forEach(ajouter);
-        choixDe(colLieux(c.colCategorie)).forEach(function (v) { if (compte[v] || (c.categories || []).indexOf(v) !== -1) {
+        (c.categories || []).forEach(function (k) { if (!etat.filtrePage || compte[k]) {
+            ajouter(k);
+        } });
+        choixDe(colLieux(c.colCategorie)).forEach(function (v) { if (compte[v] || (!etat.filtrePage && (c.categories || []).indexOf(v) !== -1)) {
             ajouter(v);
         } });
         Object.keys(compte).filter(function (k) { return k !== CLE_SANS_CATEGORIE; }).sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); }).forEach(ajouter);
@@ -3484,7 +3725,6 @@ function valeursFiltre(colId) {
         vus[t] = true;
         res.push(t);
     } };
-    choixDe(colLieux(colId)).forEach(ajouter);
     var trouvees = [];
     etat.lieux.forEach(function (l) {
         var v = l.valeurs[colId];
@@ -3495,6 +3735,10 @@ function valeursFiltre(colId) {
             trouvees.push(texteValeur(colId, v));
         }
     });
+    var presentes = trouvees.map(function (t) { return String(t || '').trim(); });
+    choixDe(colLieux(colId)).forEach(function (t) { if (!etat.filtrePage || presentes.indexOf(String(t || '').trim()) !== -1) {
+        ajouter(t);
+    } });
     trouvees.sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); }).forEach(ajouter);
     return res;
 }
@@ -3910,10 +4154,13 @@ function majBlocFiltres(focusId) {
     var c = etat.config;
     vider(bloc);
     bloc.appendChild(titreVolet('filter-line', 'Filtres', 'vTitreFil', null));
-    if (c.colDate) {
+    if (periodeProposee()) {
         bloc.appendChild(blocPeriode());
     }
     (c.filtres || []).forEach(function (colId, i) {
+        if (!filtreProposeAuxLecteurs(colId)) {
+            return;
+        }
         var vals = valeursFiltre(colId);
         var cur = etat.filtresExtra[colId] || '';
         if (cur && vals.indexOf(cur) === -1) {
@@ -3924,7 +4171,7 @@ function majBlocFiltres(focusId) {
         sel.addEventListener('change', function () { etat.filtresExtra[colId] = sel.value; surFiltrage('vFil' + i); });
         bloc.appendChild(creer('div', { classe: 'fr-select-group fr-mb-0' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'vFil' + i }, texte: libelleCol(colId) }), sel]));
     });
-    if (!c.colDate && !(c.filtres || []).length) {
+    if (!periodeProposee() && !(c.filtres || []).some(filtreProposeAuxLecteurs)) {
         bloc.appendChild(creer('p', { classe: 'w-mention', texte: etat.peutParametrer ? 'Aucun filtre proposé. Ajoutez-en dans les paramétrages, étape « Affichage et filtres ».' : 'Aucun filtre proposé pour cette carte.' }));
     }
     var pastilles = creer('ul', { classe: 'w-pastilles', attrs: { 'aria-label': 'Filtres actifs' } });
@@ -4514,9 +4761,10 @@ function aujourdhuiIso() {
     return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (j < 10 ? '0' : '') + j;
 }
 function periodeActive() { return !!(etat.config && etat.config.colDate && (etat.periode.du || etat.periode.au)); }
-function passePeriode(l) {
-    var du = jourVersSecondes(etat.periode.du);
-    var au = jourVersSecondes(etat.periode.au);
+function passePeriode(l) { return passePeriodeEntre(l, etat.periode.du, etat.periode.au); }
+function passePeriodeEntre(l, jourDu, jourAu) {
+    var du = jourVersSecondes(jourDu);
+    var au = jourVersSecondes(jourAu);
     if (l.debut === null) {
         return false;
     }
@@ -8208,6 +8456,14 @@ async function chargerTout() {
             await nettoyerCopies();
             await lireCartes();
         }
+        var btnAide = document.getElementById('bandeauAide');
+        if (btnAide) {
+            btnAide.hidden = etat.consultation;
+        }
+        if (etat.consultation && _aide.ouvert) {
+            _aide.ouvert = false;
+            panneauAide();
+        }
         if (etat.copieOrpheline) {
             masquerLoader();
             afficherVue('reservee');
@@ -8345,6 +8601,7 @@ function ouvrirParametrage(nomEtape) {
     var c = etat.config;
     etat.fiche = null;
     etat.choisi = null;
+    etat.editionPage = null;
     etat.donneesAssistant = {};
     etat.brouillon = {
         mode: 'personnalisation', parcours: c.mode === 'vierge' ? 'vierge' : 'donnees', etape: 0, etapeMax: 9,
@@ -8972,12 +9229,25 @@ function sectionsPages(seule) {
     var admin = sectionPage('aSecAdmin', '3. Page d\'administration', [
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec toutes les cartes et leurs paramétrages, est réservée.' : 'Cette page affiche toutes les cartes et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? null : bouton('Réserver cette page', 'secondaire', 'lock-line', reserverPage, { petit: true, id: 'aReserverPage' }));
-    var noms = Object.keys(etat.copies).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === etat.cleConfig && etat.nomsPages[x]; })
-        .map(function (x) { return '« ' + etat.nomsPages[x] + ' »'; });
+    var ic = aide('aAideConsult', 'Pages de consultation', 'Chaque page de consultation montre cette carte seule, sans onglets ni paramétrages, limitée aux lieux de ses filtres. Ces filtres règlent ce que la page montre, et vous choisissez ceux qui restent proposés aux lecteurs. Ce ne sont pas des droits : une personne qui a accès à la table des lieux par ailleurs voit tous les lieux. Pour une vraie confidentialité, posez des règles d\'accès sur la table des lieux.');
+    if (etat.editionPage) {
+        var consultForm = sectionPage('aSecConsult', '4. Pages de consultation', [creer('p', { classe: 'w-texte', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null);
+        return [admin, consultForm];
+    }
+    var liste = creer('ul', { classe: 'w-pages-liste' });
+    pagesDeLaCarte().forEach(function (x, k) {
+        var nom = etat.nomsPages[x];
+        liste.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
+            boutonIcone('Modifier « ' + nom + ' »', 'edit-line', function () { editerPage(x, false); }, { variante: 'discret', id: 'aPageModif' + k }),
+            boutonIcone('Dupliquer « ' + nom + ' »', 'file-copy-line', function () { editerPage(x, true); }, { variante: 'discret', id: 'aPageDupl' + k }),
+            boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k })
+        ]));
+    });
     var consult = sectionPage('aSecConsult', '4. Pages de consultation', [
-        creer('p', { classe: 'w-texte', texte: 'Cette carte seule, sans onglets ni paramétrages, sur une page à part.' }),
-        creer('p', { classe: 'w-mention', texte: noms.length ? 'Déjà créée' + (noms.length > 1 ? 's' : '') + ' : ' + noms.join(', ') + '.' : 'Aucune page pour l\'instant.' })
-    ], bouton('Créer une page de consultation', 'secondaire', 'file-add-line', creerPageConsultation, { petit: true, id: 'aPageConsultation' }));
+        creer('p', { classe: 'w-texte' }, ['Cette carte seule, sans paramétrages, limitée aux lieux choisis. ', ic.bouton]), ic.panneau,
+        liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'Aucune page pour l\'instant.' })
+    ], bouton('Créer une page de consultation', 'secondaire', 'file-add-line', function () { editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
     return [admin, consult];
 }
 function apercuReperes(a, couleurs) {
@@ -9251,7 +9521,7 @@ var AIDE = {
         'Général': { titre: 'le nom, les pages et la suppression.', points: [
                 '« Nom de la carte » : affiché en titre et dans son onglet ; « Description » (facultatif) s\'affiche dessous.',
                 '« Page d\'administration » : « Réserver cette page » pose sur la page une vue de la table « ' + TITRE_OWNER + ' » ; une règle d\'accès sur cette table choisit qui voit la page.',
-                '« Pages de consultation » : « Créer une page de consultation » ajoute au document une page qui montre cette carte seule, sans onglets ni paramétrages.',
+                '« Pages de consultation » : « Créer une page de consultation », puis son nom et ses filtres (catégories, valeurs, période) ; chaque page se modifie, se duplique ou se supprime depuis la liste.',
                 '« Supprimer la carte » : elle disparaît des onglets. Votre table et ses lignes restent dans le document ; une carte partie de zéro perd aussi ses lieux.'
             ] }
     },
@@ -9262,7 +9532,7 @@ var AIDE = {
         { q: 'Comment placer les lieux qui n\'ont qu\'une adresse ?', r: 'Choisissez la « Colonne d\'adresse » à l\'étape « La localisation ». Sur la carte, « Placer les lieux sans coordonnées » les place d\'un coup ; seule l\'adresse est envoyée au service de recherche.' },
         { q: 'Pourquoi une information ne se modifie-t-elle pas ?', r: 'Elle vient d\'une colonne calculée par une formule : elle s\'affiche dans la fiche, mais se modifie dans la table, pas depuis la carte.' },
         { q: 'Supprimer une carte supprime-t-il mes données ?', r: 'Non pour une carte faite sur votre table : elle disparaît des onglets, la table et ses lignes restent dans le document. Une carte partie de zéro supprime aussi ses lieux.' },
-        { q: 'Comment montrer une seule carte sur une page ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Créer une page de consultation » ajoute une page qui montre cette carte seule. Les paramétrages restent sur la page qui affiche toutes les cartes.' },
+        { q: 'Comment montrer une seule carte sur une page ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Créer une page de consultation » : donnez-lui un nom et, si besoin, des filtres. Pour une autre sélection de lieux, dupliquez la page et changez ses filtres. Les paramétrages restent sur la page qui affiche toutes les cartes.' },
         { q: 'Comment réserver la page des paramétrages ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Réserver cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ' + TITRE_OWNER + ' » aux personnes qui ne gèrent pas les cartes : la page disparaît de leur liste des pages.' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du panneau de gauche ; l\'icône voisine enregistre en PDF. La carte s\'imprime telle qu\'elle est affichée, avec les filtres en cours.' }
     ]
