@@ -664,7 +664,7 @@ function confirmerAction(titre, contenu, avertissement) {
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.4.3';
+var VERSION_WIDGET = '1.4.4';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Gestion des utilisateurs';
 var NOM_WIDGET_ANCIEN = 'utilisateurs';
@@ -798,7 +798,7 @@ function setRowClass(tr, cls) {
     tr.classList.add(cls);
 }
 function labelToColId(label) {
-    var id = label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    var id = label.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
     if (!id || /^\d/.test(id))
         id = 'C_' + id;
     return id;
@@ -1352,39 +1352,86 @@ function findTable(tableList) {
     }
     return null;
 }
-async function reparerSchemaCentrale() {
-    if (!NOM_TABLE_CENTRALE)
-        return;
+async function lireColonnesCentrale() {
     try {
         var metaT = await grist.docApi.fetchTable('_grist_Tables');
         var refTable = null;
         for (var t = 0; t < (metaT.tableId || []).length; t++) {
-            if (metaT.tableId[t] === NOM_TABLE_CENTRALE) {
+            if (String(metaT.tableId[t]).toUpperCase() === String(NOM_TABLE_CENTRALE).toUpperCase()) {
                 refTable = metaT.id[t];
                 break;
             }
         }
         if (refTable === null)
-            return;
+            return null;
         var cols = await grist.docApi.fetchTable('_grist_Tables_column');
-        var presentes = {};
+        var sortie = [];
         for (var c = 0; c < (cols.id || []).length; c++) {
-            if (cols.parentId[c] === refTable) {
-                presentes[cols.colId[c]] = {
-                    type: cols.type[c],
-                    formule: String((cols.formula || [])[c] || ''),
-                    estFormule: Boolean((cols.isFormula || [])[c])
-                };
-            }
+            if (cols.parentId[c] !== refTable)
+                continue;
+            sortie.push({
+                ref: cols.id[c],
+                colId: String(cols.colId[c]),
+                label: String((cols.label || [])[c] || ''),
+                type: String((cols.type || [])[c] || ''),
+                formule: String((cols.formula || [])[c] || '').trim(),
+                estFormule: Boolean((cols.isFormula || [])[c])
+            });
         }
+        return sortie.length ? sortie : null;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Colonnes de la bibliothèque illisibles', e);
+        return null;
+    }
+}
+function cleColonne(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+function trouverColonne(cols, colId) {
+    var cible = cleColonne(colId);
+    return cols.find(function (c) { return cleColonne(c.colId) === cible || cleColonne(c.label) === cible; }) || null;
+}
+async function ajouterColonneSure(colId) {
+    var ret = await ecrireDocument([['AddColumn', NOM_TABLE_CENTRALE, colId, {}]]);
+    var cree = (ret && ret.retValues && ret.retValues[0]) ? ret.retValues[0].colId : null;
+    if (cree && cree !== colId) {
+        try {
+            await ecrireDocument([['RemoveColumn', NOM_TABLE_CENTRALE, cree]]);
+        }
+        catch (eRm) {
+            logSecurite('ERREUR', 'Colonne ' + cree + ' créée par erreur et non supprimée : à supprimer à la main', eRm);
+        }
+        throw new Error('Colonne ' + colId + ' déjà présente : Grist a proposé ' + cree + ', création annulée');
+    }
+    return colId;
+}
+async function reparerSchemaCentrale() {
+    if (!NOM_TABLE_CENTRALE)
+        return;
+    try {
+        var colsLues = await lireColonnesCentrale();
+        if (!colsLues) {
+            logSecurite('INFO', 'Schéma de la bibliothèque non vérifié : colonnes illisibles');
+            return;
+        }
+        var presentes = {};
+        colsLues.forEach(function (c) {
+            presentes[c.colId] = { type: c.type, formule: c.formule, estFormule: c.estFormule };
+        });
         var ajoutees = [], formulesPosees = [], divergentes = [];
         for (var k = 0; k < COLONNES_CENTRALE.length; k++) {
             var col = COLONNES_CENTRALE[k];
             var etat = presentes[col.id];
             if (etat === undefined) {
+                var homonyme = trouverColonne(colsLues, col.id);
+                if (homonyme) {
+                    divergentes.push(col.id + ' : présente sous l’identifiant ' + homonyme.colId);
+                    continue;
+                }
                 var creee = false;
                 try {
-                    await ecrireDocument([['AddColumn', NOM_TABLE_CENTRALE, col.id, {}]]);
+                    await ajouterColonneSure(col.id);
                     creee = true;
                 }
                 catch (eCol) {
@@ -1633,27 +1680,39 @@ async function assurerColonneModeAdmin() {
     if (_colonneModeAdminTentee)
         return;
     _colonneModeAdminTentee = true;
+    var cols = await lireColonnesCentrale();
+    if (!cols) {
+        logSecurite('INFO', 'MODE_ADMIN : colonnes illisibles, aucune création');
+        return;
+    }
+    var existante = trouverColonne(cols, 'MODE_ADMIN');
+    if (existante) {
+        if (existante.colId !== 'MODE_ADMIN') {
+            logSecurite('AVERTISSEMENT', 'Colonne du mode admin trouvée sous l’identifiant ' + existante.colId + ' : renommer son ID en MODE_ADMIN dans les données source');
+        }
+        return;
+    }
     try {
-        await ecrireDocument([['AddColumn', NOM_TABLE_CENTRALE, 'MODE_ADMIN', {}]]);
+        await ajouterColonneSure('MODE_ADMIN');
         await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, 'MODE_ADMIN', { type: 'Bool', label: 'MODE ADMIN' }]]);
         existingCols.add('MODE_ADMIN');
         logSecurite('INFO', 'Colonne MODE_ADMIN créée');
     }
     catch (e) {
-        logSecurite('INFO', 'Colonne MODE_ADMIN non créée (structure verrouillée ou droits insuffisants)', e);
+        logSecurite('INFO', 'Colonne MODE_ADMIN non créée (déjà présente, structure verrouillée ou droits insuffisants)', e);
     }
 }
 var DUREE_MODE_ADMIN_HEURES = 2;
 var COLONNES_EXPIRATION_ADMIN = [
     { id: 'MODE_ADMIN_DEPART', label: 'MODE ADMIN DÉPART', type: 'DateTime:Europe/Paris', declenchement: true,
         formula: 'NOW() if $MODE_ADMIN else None',
-        description: 'Heure d\u2019activation du mode admin, posée automatiquement quand la case MODE ADMIN est cochée, vidée quand elle est décochée.' },
+        description: 'Heure d’activation du mode admin, posée automatiquement quand la case MODE ADMIN est cochée, vidée quand elle est décochée.' },
     { id: 'MODE_ADMIN_FIN', label: 'MODE ADMIN FIN', type: 'DateTime:Europe/Paris',
         formula: '$MODE_ADMIN_DEPART + datetime.timedelta(hours=' + DUREE_MODE_ADMIN_HEURES + ') if $MODE_ADMIN and $MODE_ADMIN_DEPART else None',
         description: 'Heure à laquelle le mode admin se referme : départ + ' + DUREE_MODE_ADMIN_HEURES + ' heures. Modifier la formule pour changer la durée.' },
     { id: 'MODE_ADMIN_VALIDE', label: 'MODE ADMIN VALIDE', type: 'Bool',
         formula: 'bool($MODE_ADMIN and $MODE_ADMIN_FIN and NOW() < $MODE_ADMIN_FIN)',
-        description: 'Vrai tant que le mode admin est activé et que l\u2019heure de fin n\u2019est pas passée. C\u2019est cette colonne que teste la règle de structure des permissions avancées.' }
+        description: 'Vrai tant que le mode admin est activé et que l’heure de fin n’est pas passée. C’est cette colonne que teste la règle de structure des permissions avancées.' }
 ];
 function estColonneExpirationAdmin(colId) {
     return COLONNES_EXPIRATION_ADMIN.some(function (c) { return c.id === colId; });
@@ -1667,34 +1726,32 @@ async function assurerColonnesExpirationAdmin() {
         return false;
     _colonnesExpirationTentees = true;
     try {
-        var metaT = await grist.docApi.fetchTable('_grist_Tables');
-        var refTable = null;
-        for (var t = 0; t < (metaT.tableId || []).length; t++) {
-            if (metaT.tableId[t] === NOM_TABLE_CENTRALE) {
-                refTable = metaT.id[t];
-                break;
-            }
-        }
-        if (refTable === null)
+        var cols = await lireColonnesCentrale();
+        if (!cols)
             return false;
-        var cols = await grist.docApi.fetchTable('_grist_Tables_column');
-        var presentes = {}, refModeAdmin = null;
-        for (var c = 0; c < (cols.id || []).length; c++) {
-            if (cols.parentId[c] !== refTable)
-                continue;
-            presentes[cols.colId[c]] = String((cols.formula || [])[c] || '').trim();
-            if (cols.colId[c] === 'MODE_ADMIN')
-                refModeAdmin = cols.id[c];
-        }
-        if (refModeAdmin === null)
+        var colAdmin = cols.find(function (c) { return c.colId === 'MODE_ADMIN'; });
+        if (!colAdmin)
             return false;
+        var refModeAdmin = colAdmin.ref;
         var actions = [], descriptions = [], traitees = [];
-        COLONNES_EXPIRATION_ADMIN.forEach(function (col) {
-            var formule = presentes[col.id];
-            if (formule !== undefined && formule !== '')
-                return;
-            if (formule === undefined)
-                actions.push(['AddColumn', NOM_TABLE_CENTRALE, col.id, {}]);
+        for (var i = 0; i < COLONNES_EXPIRATION_ADMIN.length; i++) {
+            var col = COLONNES_EXPIRATION_ADMIN[i];
+            var trouvee = trouverColonne(cols, col.id);
+            if (trouvee && trouvee.colId !== col.id) {
+                logSecurite('AVERTISSEMENT', col.id + ' présente sous l’identifiant ' + trouvee.colId + ' : laissée en l’état, renommer son ID à la main');
+                continue;
+            }
+            if (trouvee && trouvee.formule)
+                continue;
+            if (!trouvee) {
+                try {
+                    await ajouterColonneSure(col.id);
+                }
+                catch (eAdd) {
+                    logSecurite('INFO', 'Colonnes d\'expiration : ' + col.id + ' non créée', eAdd);
+                    continue;
+                }
+            }
             var propr = { type: col.type, label: col.label };
             if (col.declenchement) {
                 propr.isFormula = false;
@@ -1709,7 +1766,7 @@ async function assurerColonnesExpirationAdmin() {
             actions.push(['ModifyColumn', NOM_TABLE_CENTRALE, col.id, propr]);
             descriptions.push(['ModifyColumn', NOM_TABLE_CENTRALE, col.id, { description: col.description }]);
             traitees.push(col.id);
-        });
+        }
         if (!actions.length)
             return false;
         try {
@@ -1746,8 +1803,8 @@ function texteFinModeAdmin(r) {
             return '';
         var heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', ' h ');
         if (d.toDateString() === new Date().toDateString())
-            return 'jusqu\u2019à ' + heure;
-        return 'jusqu\u2019au ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + heure;
+            return 'jusqu’à ' + heure;
+        return 'jusqu’au ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + heure;
     }
     catch (e) {
         logSecurite('AVERTISSEMENT', 'Heure de fin du mode admin illisible', e);
@@ -2339,7 +2396,7 @@ function renderTableBody() {
                     }).catch(function (e) {
                         cb.checked = !etat;
                         flashError(cb);
-                        afficherErreur('Le mode admin n\u2019a pas pu être modifié.', e);
+                        afficherErreur('Le mode admin n’a pas pu être modifié.', e);
                     });
                 });
             })(r.id, cbAdmin, r, spFin);
@@ -2479,7 +2536,7 @@ function renderTableBody() {
             fort.textContent = label;
             frag.appendChild(fort);
             frag.appendChild(document.createTextNode(' du registre ?'));
-            var avert = 'La ligne est retirée du registre : les règles d’accès qui s’appuient sur le statut Actif ne pourront plus s’y référer. N’oubliez pas de supprimer également cet utilisateur dans « Gérer les utilisateurs » (icône de partage en haut à droites.';
+            var avert = 'La ligne est retirée du registre : les règles d’accès qui s’appuient sur le statut Actif ne pourront plus s’y référer. N’oubliez pas de supprimer également cet utilisateur dans « Gérer les utilisateurs » (icône de partage en haut à droite).';
             if (!await confirmerAction('Supprimer du registre', frag, avert))
                 return;
             btnD.disabled = true;
@@ -3649,7 +3706,7 @@ async function loadAndRenderACL() {
         pVerrou.textContent = toutesLesFormules.indexOf('MODE_ADMIN_VALIDE') !== -1
             ? 'Verrou de structure (mode admin) : activé dans ce document, fermeture automatique après ' + DUREE_MODE_ADMIN_HEURES + ' heures.'
             : (toutesLesFormules.indexOf('MODE_ADMIN') !== -1
-                ? 'Verrou de structure (mode admin) : activé dans ce document, sans fermeture automatique. Pour l\u2019obtenir, remplacez MODE_ADMIN par MODE_ADMIN_VALIDE dans la règle de structure.'
+                ? 'Verrou de structure (mode admin) : activé dans ce document, sans fermeture automatique. Pour l’obtenir, remplacez MODE_ADMIN par MODE_ADMIN_VALIDE dans la règle de structure.'
                 : 'Verrou de structure (mode admin) : non activé dans ce document.');
         infoTxt.appendChild(pVerrou);
         var socleManquant = [];
