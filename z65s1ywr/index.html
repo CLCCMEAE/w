@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.5.0
+  Version     : 1.7.0
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,15 @@
 
   HISTORIQUE
   ----------
+  1.7.0 - 17/11/2026 - CSNC - Export en texte Mermaid (icône à côté des
+          exports du volet) : formes, connecteurs avec libellés et
+          pointillés, sections et couloirs en zones ; copier ou télécharger
+          (.mmd) ; le texte se réimporte avec « Importer un schéma ».
+  1.6.0 - 17/11/2026 - CSNC - « Ranger le schéma » (barre au-dessus de la
+          toile) et « Ranger la sélection » (barre d'actions) : les éléments
+          reliés se rangent en suivant les flèches, de haut en bas ou de
+          gauche à droite ; cadres ajustés, éléments gardés dans leur
+          couloir ; annulable en un clic.
   1.5.0 - 17/11/2026 - CSNC - « Importer un schéma » (menu « + ») : un schéma
           au format texte Mermaid (flowchart, graph) devient formes,
           connecteurs avec libellés et sections (subgraph), rangés
@@ -467,7 +476,7 @@
     .w-ctx__pastille--mixte { background: conic-gradient(#fde39c 0 25%, #8bf8e7 0 50%, #dee5fd 0 75%, #fddfda 0); }
     .w-pop--large { max-width: min(36rem, 92vw) !important; width: 36rem; }
     .w-import__texte { font-family: ui-monospace, Consolas, monospace; font-size: .8125rem; min-height: 14rem; }
-    .w-import__actions { display: flex; justify-content: flex-end; }
+    .w-import__actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
     .w-pop__sens { font-size: .75rem; color: var(--text-mention-grey); }
     .w-pop__sep { display: block; height: 1px; margin: .375rem 0; background: var(--border-default-grey); }
     .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
@@ -818,7 +827,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.7.0';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1504,6 +1513,7 @@ var ICONES_SVG = {
   bulle: 'M4 5h16v11H9l-5 4z',
   minuteur: 'M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 10v4l2 2M9 2h6',
   aligner: 'M4 3v18M8 7h12v4H8zM8 14h7v4H8z',
+  ranger: 'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4',
   table: 'M3 4h18v16H3zM3 10h18M3 15h18M9 4v16',
   coude: 'M4 6h8v12h8M17 15l3 3-3 3'
 };
@@ -2446,7 +2456,8 @@ function rendrePrincipal() {
     bouton('Imprimer', 'discret', 'printer-line', function () { imprimer(false); }, { petit: true, iconeSeule: true, id: 'vImprimer' }),
     bouton('Télécharger en PDF', 'discret', 'file-pdf-line', function () { imprimer(true); }, { petit: true, iconeSeule: true, id: 'vPdf' }),
     bouton('Télécharger en image (PNG)', 'discret', 'image-line', function () { return exporterImage(); }, { petit: true, iconeSeule: true, id: 'vImage' }),
-    bouton('Exporter les éléments (CSV)', 'discret', 'file-download-line', exporterCsv, { petit: true, iconeSeule: true, id: 'vCsv' })]));
+    bouton('Exporter les éléments (CSV)', 'discret', 'file-download-line', exporterCsv, { petit: true, iconeSeule: true, id: 'vCsv' }),
+    bouton('Exporter le schéma en texte Mermaid', 'discret', 'code-s-slash-line', function (ev) { ouvrirExportMermaid(ev.currentTarget); }, { petit: true, iconeSeule: true, id: 'vMermaid', attrs: { 'aria-haspopup': 'true' } })]));
   repliable.appendChild(bas);
   cont.appendChild(repliable);
   volet.appendChild(cont);
@@ -2469,6 +2480,7 @@ function rendrePrincipal() {
     creer('span', { classe: 'w-zoom', id: 'vZoom', attrs: { 'aria-live': 'off' } }),
     bouton('Zoomer', 'discret', null, function () { zoomerCentre(1.2); }, { svg: 'plus', id: 'bZoomer' }),
     bouton('Recentrer', 'discret', null, function () { recentrer(); }, { svg: 'recentrer', id: 'bRecentrer' }),
+    etat.peutModifier ? bouton('Ranger le schéma', 'discret', null, function (ev) { ouvrirRanger(ev.currentTarget); }, { svg: 'ranger', id: 'bRanger', attrs: { 'aria-haspopup': 'true' } }) : null,
     bouton(etat.agrandi ? 'Quitter le plein écran' : 'Plein écran', 'discret', null, basculerPleinEcran, { svg: 'plein', id: 'bPlein', classe: 'w-bulle--droite' })]));
   var barre = creer('div', { classe: 'w-barre' }, [creer('div', { classe: 'w-barre__gauche' }, [
     creer('h2', { classe: 'fr-h5 w-titre-vue', id: 'titreVue', texte: t.nom, attrs: { tabindex: '-1' } }),
@@ -2515,7 +2527,7 @@ function changerVue(v) {
   var bt = document.getElementById('bVueToile'), bl = document.getElementById('bVueListe');
   if (bt) { bt.setAttribute('aria-pressed', v === 'toile' ? 'true' : 'false'); }
   if (bl) { bl.setAttribute('aria-pressed', v === 'liste' ? 'true' : 'false'); }
-  ['bDezoomer', 'bZoomer', 'bRecentrer', 'vZoom'].forEach(function (id) { var n = document.getElementById(id); if (n) { n.hidden = v === 'liste'; } });
+  ['bDezoomer', 'bZoomer', 'bRecentrer', 'bRanger', 'vZoom'].forEach(function (id) { var n = document.getElementById(id); if (n) { n.hidden = v === 'liste'; } });
   rendreScene();
   annoncer(v === 'liste' ? 'Affichage en liste.' : 'Affichage en toile.');
 }
@@ -3189,7 +3201,7 @@ function placerCtx() {
         var aVote = votesDe(un.id).some(function (p) { return p.auteur === etat.moi; }) || (un.votes && !etat.tables.pa);
         if (aVote || (un.votes && etat.peutParametrer)) { items.push(bouton('Retirer mon vote', 'discret', null, function () { return voter(un, -1); }, { svg: 'devote', id: 'cDevoter' })); }
       }
-      if (sel.length > 1) { items.push(creer('span', { classe: 'w-ctx__sep' })); items.push(bouton('Aligner et répartir', 'discret', null, function (ev) { ouvrirPop('aligner', ev.currentTarget); }, { svg: 'aligner', id: 'cAligner', attrs: { 'aria-haspopup': 'true' } })); }
+      if (sel.length > 1) { items.push(creer('span', { classe: 'w-ctx__sep' })); items.push(bouton('Aligner et répartir', 'discret', null, function (ev) { ouvrirPop('aligner', ev.currentTarget); }, { svg: 'aligner', id: 'cAligner', attrs: { 'aria-haspopup': 'true' } })); items.push(bouton('Ranger la sélection', 'discret', null, function (ev) { ouvrirRanger(ev.currentTarget, true); }, { svg: 'ranger', id: 'cRanger', attrs: { 'aria-haspopup': 'true' } })); }
       if (sel.some(function (e) { return e.type !== 'Section' && e.type !== 'Image'; })) { items.push(bouton('Copier dans une table', 'discret', null, function (ev) { ouvrirCopieTable(ev.currentTarget); }, { svg: 'table', id: 'cCopierTable', attrs: { 'aria-haspopup': 'true' } })); }
       items.push(creer('span', { classe: 'w-ctx__sep' }));
       items.push(bouton('Dupliquer (Ctrl+D)', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', id: 'cDupliquer' }));
@@ -6625,6 +6637,187 @@ function ouvrirImport(ancre) {
   zone.focus();
 }
 
+
+/* ==========================================================================
+   SECTION : RANGER UN SCHEMA (1.6.0)
+   Recalcule la place des elements relies par des connecteurs, en suivant
+   les fleches : meme rangement que l'import. Les sections s'ajustent autour
+   de leurs elements ; dans des couloirs, chaque element reste dans son
+   couloir. Les elements sans connecteur ne bougent pas.
+   ========================================================================== */
+function ouvrirRanger(ancre, selection) {
+  var t = tableauCourant();
+  if (!t) { return; }
+  var aCouloirs = elementsDuTableau().some(function (e) { return e.type === 'Section' && e.forme === 'Couloir'; });
+  var choix = [['TD', 'De haut en bas', 'logigramme, arbre de décision'], ['LR', 'De gauche à droite', 'frise, parcours, couloirs']];
+  var items = [creer('p', { classe: 'w-pop__titre', texte: selection ? 'Ranger la sélection' : 'Ranger le schéma' })];
+  choix.forEach(function (c) {
+    items.push(creer('button', { classe: 'w-pop__item', id: 'cRanger_' + c[0], attrs: { 'aria-pressed': (aCouloirs ? 'LR' : 'TD') === c[0] ? 'true' : 'false' },
+      clic: function () { fermerPop(true); return rangerTableau(c[0], selection); } }, [creer('span', {}, [c[1], creer('span', { classe: 'w-pop__sens', texte: ' ' + c[2] })])]));
+  });
+  items.push(creer('p', { classe: 'w-mention fr-mb-0', texte: 'Seuls les éléments reliés par des connecteurs bougent. « Annuler » remet tout en place.' }));
+  ouvrirPopFixe(ancre, 'Ranger', items);
+}
+
+async function rangerTableau(sens, selection) {
+  var t = tableauCourant();
+  if (!t) { return; }
+  var tous = elementsDuTableau();
+  var sections = tous.filter(function (e) { return e.type === 'Section'; });
+  var couloirs = sections.filter(function (e) { return e.forme === 'Couloir'; });
+  var cadres = sections.filter(function (e) { return e.forme !== 'Couloir'; });
+  var choisis = selection ? elementsSelectionnes().filter(function (e) { return e.type !== 'Section'; }) : tous.filter(function (e) { return e.type !== 'Section'; });
+  var ids = {}; choisis.forEach(function (e) { ids[e.id] = true; });
+  var liens = etat.liens.filter(function (l) { return l.tableau === t.id && ids[l.de] && ids[l.vers]; });
+  var relies = {}; liens.forEach(function (l) { relies[l.de] = true; relies[l.vers] = true; });
+  var noeudsEl = choisis.filter(function (e) { return relies[e.id]; });
+  if (noeudsEl.length < 2) { signalerSaisie(selection ? 'Sélectionnez des éléments reliés par des connecteurs.' : 'Il n\'y a rien à ranger : reliez des éléments par des connecteurs.'); return; }
+  /* Zone de chaque element : le plus petit cadre ou couloir qui le
+     contient. */
+  var dedans = function (e, s) { var cx = e.x + e.w / 2, cy = e.y + e.h / 2; return cx >= s.x && cx <= s.x + s.w && cy >= s.y && cy <= s.y + s.h; };
+  var zone = function (e, liste) { var z = liste.filter(function (s) { return dedans(e, s); }).sort(function (a, b) { return a.w * a.h - b.w * b.h; }); return z[0] || null; };
+  var ordreZones = cadres.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+  var g = {
+    sens: sens,
+    groupes: ordreZones.map(function (s) { return { id: 's' + s.id, titre: s.libelle, parent: null }; }),
+    noeuds: noeudsEl.map(function (e) { var z = zone(e, cadres); return { id: String(e.id), el: e, texte: e.libelle, forme: e.forme, w: e.w, h: e.h, groupe: z ? 's' + z.id : null, couloir: zone(e, couloirs) }; }),
+    liens: liens.map(function (l) { return { de: String(l.de), vers: String(l.vers), fleche: l.fleche || 'Vers la fin' }; })
+  };
+  var avantB = boiteDe(noeudsEl);
+  rangerTout(g);
+  /* Couloirs : chaque element reste dans la bande de son couloir. */
+  if (couloirs.length) {
+    var parCouloir = {};
+    g.noeuds.forEach(function (n) {
+      if (!n.couloir) { return; }
+      var c = n.couloir, horizontal = c.w >= c.h;
+      var cle = c.id + ':' + Math.round(horizontal ? n.x : n.y);
+      var k = parCouloir[cle] = (parCouloir[cle] || 0) + 1;
+      if (horizontal) { n.y = c.y + (c.h - n.h) / 2 + (k - 1) * (n.h + 20) - 0; } else { n.x = c.x + (c.w - n.w) / 2 + (k - 1) * (n.w + 20); }
+    });
+  }
+  /* Recaler le schema la ou il etait. */
+  var apresB = boiteDe(g.noeuds.map(function (n) { return { x: n.x, y: n.y, w: n.w, h: n.h }; }));
+  var dx = avantB.x1 - apresB.x1, dy = avantB.y1 - apresB.y1;
+  if (couloirs.length) { if (couloirs[0].w >= couloirs[0].h) { dy = 0; } else { dx = 0; } }
+  g.noeuds.forEach(function (n) { n.x = Math.round((n.x + dx) / 20) * 20; n.y = Math.round((n.y + dy) / 20) * 20; });
+  /* Cadres : ajustes autour de leurs elements ranges. */
+  var maj = [], avant = [];
+  var ajouter = function (e, v) {
+    avant.push({ id: e.id, POSITION_X: e.x, POSITION_Y: e.y, LARGEUR: e.w, HAUTEUR: e.h });
+    maj.push({ id: e.id, POSITION_X: v.x, POSITION_Y: v.y, LARGEUR: v.w, HAUTEUR: v.h });
+  };
+  g.noeuds.forEach(function (n) { ajouter(n.el, { x: n.x, y: n.y, w: n.el.w, h: n.el.h }); });
+  cadres.forEach(function (s) {
+    var membres = g.noeuds.filter(function (n) { return n.groupe === 's' + s.id; });
+    if (!membres.length) { return; }
+    var b = boiteDe(membres.map(function (n) { return { x: n.x, y: n.y, w: n.w, h: n.h }; }));
+    ajouter(s, { x: b.x1 - 30, y: b.y1 - 56, w: b.x2 - b.x1 + 60, h: b.y2 - b.y1 + 86 });
+  });
+  /* Couloirs : allonges pour contenir tout le schema. */
+  if (couloirs.length) {
+    var bt = boiteDe(g.noeuds.map(function (n) { return { x: n.x, y: n.y, w: n.w, h: n.h }; }));
+    couloirs.forEach(function (c) {
+      if (c.w >= c.h) { var x1 = Math.min(c.x, bt.x1 - 80), x2 = Math.max(c.x + c.w, bt.x2 + 40); ajouter(c, { x: x1, y: c.y, w: x2 - x1, h: c.h }); }
+      else { var y1 = Math.min(c.y, bt.y1 - 80), y2 = Math.max(c.y + c.h, bt.y2 + 40); ajouter(c, { x: c.x, y: y1, w: c.w, h: y2 - y1 }); }
+    });
+  }
+  var colonnes = function (l) { return { POSITION_X: l.map(function (x) { return x.POSITION_X; }), POSITION_Y: l.map(function (x) { return x.POSITION_Y; }), LARGEUR: l.map(function (x) { return x.LARGEUR; }), HAUTEUR: l.map(function (x) { return x.HAUTEUR; }) }; };
+  try {
+    await agir([['BulkUpdateRecord', etat.tables.el, maj.map(function (x) { return x.id; }), colonnes(maj)]]);
+    etat.signature = '';
+    await rafraichir(true);
+    proposerAnnulation(pluriel(g.noeuds.length, 'élément rangé', 'éléments rangés') + '.', function () {
+      return [['BulkUpdateRecord', etat.tables.el, avant.map(function (x) { return x.id; }), colonnes(avant)]];
+    });
+  } catch (e) { erreurEcriture(e, 'Le schéma n\'a pas été rangé.'); }
+}
+
+
+/* ==========================================================================
+   SECTION : EXPORTER EN MERMAID (1.7.0)
+   Le schema devient un texte Mermaid (flowchart) : formes, connecteurs avec
+   libelles et pointilles, sections et couloirs en zones (subgraph). Ce texte
+   se colle dans un wiki, un ticket, draw.io, ou se reimporte ici.
+   ========================================================================== */
+var FORME_VERS_MERMAID = { 'Rectangle': ['[', ']'], 'Pilule': ['([', '])'], 'Ovale': ['(', ')'], 'Cercle': ['((', '))'], 'Losange': ['{', '}'],
+  'Hexagone': ['{{', '}}'], 'Cylindre': ['[(', ')]'], 'Parallélogramme': ['[/', '/]'], 'Trapèze': ['[/', '\\]'], 'Document': ['>', ']'], 'Nuage': ['(', ')'], 'Triangle': ['[', ']'] };
+
+function texteMermaid(t) {
+  return '"' + String(t || ' ').replace(/\s+/g, ' ').trim().replace(/"/g, '#quot;') + '"';
+}
+
+function construireMermaid() {
+  var t = tableauCourant();
+  if (!t) { return ''; }
+  var tous = elementsDuTableau().filter(function (e) { return e.type !== 'Image'; });
+  var sections = tous.filter(function (e) { return e.type === 'Section'; });
+  var elements = tous.filter(function (e) { return e.type !== 'Section'; });
+  var ids = {}; elements.forEach(function (e) { ids[e.id] = true; });
+  var liens = etat.liens.filter(function (l) { return l.tableau === t.id && ids[l.de] && ids[l.vers]; });
+  /* Sens : celui que suivent le plus les connecteurs. */
+  var parId = {}; tous.forEach(function (e) { parId[e.id] = e; });
+  var dx = 0, dy = 0;
+  liens.forEach(function (l) { var a = parId[l.de], b = parId[l.vers]; dx += Math.abs((b.x + b.w / 2) - (a.x + a.w / 2)); dy += Math.abs((b.y + b.h / 2) - (a.y + a.h / 2)); });
+  var sens = dx > dy * 1.2 ? 'LR' : 'TD';
+  /* Zone de chaque element et de chaque section : la plus petite section
+     qui la contient. */
+  var dans = function (e, s) { var cx = e.x + e.w / 2, cy = e.y + e.h / 2; return s !== e && cx >= s.x && cx <= s.x + s.w && cy >= s.y && cy <= s.y + s.h && s.w * s.h > e.w * e.h; };
+  var parent = function (e) { var z = sections.filter(function (s) { return dans(e, s); }).sort(function (a, b) { return a.w * a.h - b.w * b.h; }); return z[0] || null; };
+  var parentDe = {}; tous.forEach(function (e) { var p = parent(e); parentDe[e.id] = p ? p.id : null; });
+  var ordre = function (a, b) { return sens === 'LR' ? (a.x - b.x || a.y - b.y) : (a.y - b.y || a.x - b.x); };
+  var lignes = ['flowchart ' + sens];
+  var noeud = function (e) {
+    var f = e.type === 'Forme' ? (FORME_VERS_MERMAID[e.forme] || ['[', ']']) : ['[', ']'];
+    return 'n' + e.id + f[0] + texteMermaid(libelleAffiche(e) || e.type) + f[1];
+  };
+  var ecrireZone = function (pid, retrait) {
+    elements.filter(function (e) { return parentDe[e.id] === pid; }).sort(ordre).forEach(function (e) { lignes.push(retrait + noeud(e)); });
+    sections.filter(function (s) { return parentDe[s.id] === pid; }).sort(ordre).forEach(function (s) {
+      lignes.push(retrait + 'subgraph z' + s.id + ' [' + texteMermaid(libelleAffiche(s) || (s.forme === 'Couloir' ? 'Couloir' : 'Section')) + ']');
+      ecrireZone(s.id, retrait + '  ');
+      lignes.push(retrait + 'end');
+    });
+  };
+  ecrireZone(null, '  ');
+  liens.slice().sort(function (a, b) { return ordre(parId[a.de], parId[b.de]); }).forEach(function (l) {
+    var pointille = l.style === 'Pointillés';
+    var trait = l.fleche === 'Sans flèche' ? (pointille ? '-.-' : '---') : (l.fleche === 'Dans les deux sens' ? (pointille ? '<-.->' : '<-->') : (pointille ? '-.->' : '-->'));
+    var lib = String(l.libelle || '').replace(/\s+/g, ' ').trim().replace(/\|/g, '/').replace(/"/g, '#quot;');
+    lignes.push('  n' + l.de + ' ' + trait + (lib ? '|' + lib + '|' : '') + ' n' + l.vers);
+  });
+  return lignes.join('\n') + '\n';
+}
+
+function ouvrirExportMermaid(ancre) {
+  var t = tableauCourant();
+  if (!t) { return; }
+  var texte = construireMermaid();
+  var zone = saisie('cMermaidTexte', texte, { multiligne: true, lignes: 12 });
+  zone.readOnly = true;
+  zone.setAttribute('spellcheck', 'false');
+  zone.classList.add('w-import__texte');
+  var nomFichier = (t.nom || 'schema').replace(/[^\wÀ-ÿ -]+/g, '').trim().replace(/\s+/g, '_') + '.mmd';
+  ouvrirPopFixe(ancre, 'Exporter en Mermaid', [creer('p', { classe: 'w-pop__titre', texte: 'Exporter le schéma en texte Mermaid' }),
+    creer('p', { classe: 'w-mention', texte: 'Formes, connecteurs, libellés et zones. Le texte s\'affiche en schéma dans un wiki, un ticket ou draw.io, et se réimporte ici avec « + », « Importer un schéma ». Positions et couleurs ne sont pas reprises.' }),
+    groupeChamp('Texte du schéma', zone, null),
+    creer('div', { classe: 'w-import__actions' }, [
+      bouton('Télécharger (.mmd)', 'secondaire', 'download-line', function () { telechargerBlob(new Blob([texte], { type: 'text/plain;charset=utf-8' }), nomFichier); }, { petit: true, id: 'cMermaidTelecharger' }),
+      bouton('Copier', null, 'file-copy-line', async function () {
+        try { await navigator.clipboard.writeText(texte); }
+        catch (e) { zone.focus(); zone.select(); try { document.execCommand('copy'); } catch (e2) { logSecurite('INFO', 'Copie refusée', e2); } }
+        afficherToast('Texte Mermaid copié.');
+      }, { petit: true, id: 'cMermaidCopier' })])]);
+  var pop = document.getElementById('vPop');
+  if (pop) {
+    pop.classList.add('w-pop--large');
+    var r = ancre.getBoundingClientRect();
+    pop.style.left = Math.min(window.innerWidth - pop.offsetWidth - 8, r.right + 8) + 'px';
+    pop.style.top = Math.max(8, Math.min(window.innerHeight - pop.offsetHeight - 8, r.top - pop.offsetHeight / 2)) + 'px';
+  }
+  zone.focus(); zone.select(); zone.scrollTop = 0;
+}
+
 /* === SECTION : PANNEAU D'AIDE ===
    Trois onglets : À quoi ça sert, Pas à pas (une fiche par étape, l'étape
    courante mise en évidence), Questions. Etat retenu par le navigateur. */
@@ -6733,6 +6926,7 @@ function rendreAide() {
       ['Combien de votes ai-je ?', 'La limite est fixée dans les paramétrages (étape Affichage et filtres). Le nombre de votes qui vous restent s\'affiche au-dessus de la toile.'],
       ['Comment transformer les post-it en tâches ?', 'Sélectionnez-les, puis « Copier dans une table » dans la barre d\'actions : chaque post-it devient une ligne de la table choisie (par exemple celle d\'un Kanban), reliée au post-it.'],
       ['Comment reprendre un schéma fait dans un autre outil ?', 'Bouton « + » puis « Importer un schéma » : collez le schéma au format texte Mermaid (flowchart). Étapes, décisions, flèches, libellés et zones deviennent des formes, des connecteurs et des sections, rangés automatiquement. « Annuler » retire tout l\'import.'],
+      ['Comment partager le schéma en texte ?', 'Icône « Exporter le schéma en texte Mermaid », à côté des exports du volet : copiez le texte ou téléchargez-le (.mmd). Il s\'affiche en schéma dans un wiki, un ticket ou draw.io, et se réimporte ici.'],
       ['Comment ajouter une image ?', 'Outil Image, puis cliquez sur la toile ; ou collez une capture d\'écran avec Ctrl+V.'],
       ['Comment relier une forme à une démarche, un projet... ?', 'Dans les paramétrages, étape « La fiche », choisissez la table. Puis sélectionnez la forme et cliquez sur « Relier à une fiche » dans sa barre d\'actions.'],
       ['Comment déplacer une section avec ce qu\'elle contient ?', 'Faites glisser la section : les éléments entièrement à l\'intérieur suivent.'],
