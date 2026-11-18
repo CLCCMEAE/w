@@ -44,7 +44,7 @@
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -192,12 +192,11 @@
       color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); }
     .w-aide__texte--droite { left: auto; right: 0; }
     .w-volet .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
-    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
-    .w-toast--succes { border-left-color: var(--border-plain-success); }
-    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
     @media print { .w-toast, .w-panneau-aide { display: none; } }
@@ -599,14 +598,14 @@
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.1';
+var VERSION_WIDGET = '1.7.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -1362,7 +1361,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les Kanbans et leurs cartes ne sont pas touchés.', 'Supprimer la page');
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les Kanbans et leurs cartes ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -1708,7 +1707,7 @@ function masquerLoader() {
 }
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function masquerErreur() { if (_toast.type === 'erreur') {
     fermerToast(true);
@@ -1920,7 +1919,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -1936,7 +1936,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -3349,7 +3349,7 @@ async function allerAuKanban(cle) {
         }
     }
     if (creationCommencee()) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour le nouveau Kanban ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour le nouveau Kanban ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             var f = document.getElementById('kOngletNouveau');
             if (f) {
@@ -4319,7 +4319,9 @@ function fermerModale() {
         planifierRafraichissement();
     }
 }
-function confirmerAction(titre, message, libelleOui, saisieInitiale) {
+function confirmerAction(titre, message, libelleOui, opts) {
+    opts = opts || {};
+    var saisieInitiale = opts.saisie;
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -4339,7 +4341,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
         void ov.offsetHeight;
@@ -4354,7 +4358,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -4441,7 +4445,7 @@ function majTitreBandeau() {
 }
 async function annulerAssistant() {
     if (etat.assistant && etat.assistant.etape > 0) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour le nouveau Kanban ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour le nouveau Kanban ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -4829,7 +4833,7 @@ function marquerInvalide(id, message, sansFocus) {
 }
 function signalerSaisie(message) {
     logSecurite('INFO', 'Saisie refusée : ' + message);
-    toast(message, { type: 'erreur', duree: 10000 });
+    toast(message, { type: 'erreur' });
 }
 function uid() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 'u' + etat.uidSeq; }
 function genreStocke(code) { return genreParCode(code).stocke || code; }
@@ -5042,7 +5046,7 @@ async function ouvrirPersonnalisation() {
 async function quitterAssistant() {
     var b = etat.brouillon;
     if (b && b.etape > 0) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -5290,7 +5294,7 @@ async function sortirParametrages(afficher) {
     var ok = await enregistrerMaintenant();
     if (!ok) {
         var raison = raisonNonEnregistrable(b);
-        var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter');
+        var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter', { destructif: true });
         if (!quitter) {
             return false;
         }
@@ -5398,7 +5402,7 @@ async function supprimerColonneParametrage(x) {
         return;
     }
     if (!x.nb) {
-        var ok = await confirmerAction('Supprimer la colonne « ' + nom + ' » ?', 'Elle ne contient aucune carte. La suppression est enregistrée aussitôt.', 'Supprimer');
+        var ok = await confirmerAction('Supprimer la colonne « ' + nom + ' » ?', 'Elle ne contient aucune carte. La suppression est enregistrée aussitôt et ne peut pas être annulée.', 'Supprimer', { danger: true });
         if (!ok) {
             return;
         }
@@ -5776,7 +5780,7 @@ function detailInformation(info, i) {
                 }
                 if (b.mode === 'personnalisation') {
                     return (async function () {
-                        var ok = await confirmerAction('Supprimer l\'information « ' + (info.libelleInitial || info.libelle) + ' » ?', 'Son contenu sera effacé de toutes les cartes. La suppression est enregistrée aussitôt et ne peut pas être annulée.', 'Supprimer');
+                        var ok = await confirmerAction('Supprimer l\'information « ' + (info.libelleInitial || info.libelle) + ' » ?', 'Son contenu sera effacé de toutes les cartes. La suppression est enregistrée aussitôt et ne peut pas être annulée.', 'Supprimer', { danger: true });
                         if (!ok) {
                             return;
                         }
@@ -9401,7 +9405,7 @@ function editeurPiecesJointes(ch, carte, idx, modifiable) {
                 creer('span', { classe: 'w-pj__taille', texte: formaterTaille(meta.taille) }),
                 apercu ? bouton('Consulter', 'discret', 'eye-line', function () { return consulterPJ(fid); }, { petit: true, aria: 'Consulter ' + meta.nom }) : null,
                 bouton('Télécharger', 'discret', 'download-line', function () { return telechargerPJ(fid); }, { petit: true, iconeSeule: true, aria: 'Télécharger ' + meta.nom }),
-                modifiable ? bouton('Retirer', 'discret', 'delete-line', function () { return retirerPJ(carte, ch.col, fid, dessiner); }, { petit: true, iconeSeule: true, aria: 'Retirer ' + meta.nom }) : null
+                modifiable ? bouton('Retirer', 'discret', 'close-line', function () { return retirerPJ(carte, ch.col, fid, dessiner); }, { petit: true, iconeSeule: true, aria: 'Retirer ' + meta.nom }) : null
             ]));
         });
     };
@@ -9443,7 +9447,7 @@ async function ajouterValeursDepuisFiche(colId, nouvelle) {
         return;
     }
     if (nouvelle) {
-        var ok = await confirmerAction('Quitter la nouvelle carte ?', 'La carte n\'est pas encore ajoutée : ce que vous avez saisi ne sera pas conservé. Les paramétrages s\'ouvrent à l\'étape « Les informations ».', 'Ouvrir les paramétrages');
+        var ok = await confirmerAction('Quitter la nouvelle carte ?', 'La carte n\'est pas encore ajoutée : ce que vous avez saisi ne sera pas conservé. Les paramétrages s\'ouvrent à l\'étape « Les informations ».', 'Ouvrir les paramétrages', { destructif: true });
         if (!ok) {
             return;
         }
@@ -10095,7 +10099,7 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
         });
     }
     var supprimer = async function () {
-        var ok = await confirmerAction('Supprimer la carte ?', 'La carte « ' + (carte.titre || 'Sans titre') + ' » sera définitivement supprimée.', 'Supprimer');
+        var ok = await confirmerAction('Supprimer la carte « ' + (carte.titre || 'Sans titre') + ' » ?', 'La carte, ses informations' + (c.historique ? ', ses commentaires et son activité' : '') + ' seront supprimés. Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true });
         if (!ok) {
             return;
         }
@@ -10105,12 +10109,17 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
         }
         afficherLoader('Suppression…');
         try {
+            await sauver();
+            var copie = await copieCarte(c.tableCartes, carte.id);
             await agir([['RemoveRecord', c.tableCartes, carte.id]]);
             masquerLoader();
             _modale.surFermeture = null;
             fermerModale();
             annoncer('Carte supprimée.');
             await rafraichirMaintenant();
+            if (copie) {
+                toast('Carte « ' + (carte.titre || 'Sans titre') + ' » supprimée.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () { return retablirCarte(c.tableCartes, carte.id, copie); } } });
+            }
         }
         catch (e) {
             masquerLoader();
@@ -10123,6 +10132,49 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
         surFermeture: function () { relayer(sauver(), 'Enregistrement à la fermeture'); },
         fermerDehors: true,
         pied: [etat.peutModifier ? bouton('Supprimer la carte', 'discret', 'delete-line', supprimer) : null, boutonCourriel(carte), statut] });
+}
+async function copieCarte(tid, rid) {
+    try {
+        var d = await lireTable(tid);
+        var i = d.id.indexOf(rid);
+        if (i === -1) {
+            return null;
+        }
+        var v = {};
+        Object.keys(d).forEach(function (col) {
+            if (col === 'id' || col.indexOf('gristHelper_') === 0) {
+                return;
+            }
+            var info = infoColonne(tid, col);
+            if (col !== 'manualSort' && (!info || info.formule || info.formuleVide)) {
+                return;
+            }
+            v[col] = d[col][i];
+        });
+        return v;
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Copie de la carte avant suppression', e);
+        return null;
+    }
+}
+async function retablirCarte(tid, rid, valeurs) {
+    afficherLoader('Rétablissement de la carte…');
+    try {
+        try {
+            await agir([['AddRecord', tid, rid, valeurs]]);
+        }
+        catch (e) {
+            await agir([['AddRecord', tid, null, valeurs]]);
+        }
+        masquerLoader();
+        await rafraichirMaintenant();
+        afficherSucces('Carte rétablie.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(messageRefus(e, 'La carte n\'a pas pu être rétablie.'), e);
+    }
 }
 function brancherTriListe(ol, surFin) {
     if (typeof Sortable === 'undefined') {
@@ -10153,7 +10205,7 @@ async function recommencer() {
     var ok = await confirmerAction('Supprimer le Kanban « ' + ((c && c.nom) || '') + ' » ?', (partagee
         ? 'Le Kanban disparaît des onglets' + (nb ? ' et ses ' + nb + ' carte' + (nb > 1 ? 's sont supprimées' : ' est supprimée') : '') + '. Les autres Kanbans du document ne sont pas touchés.'
         : (tableAbsente ? 'Le Kanban disparaît des onglets et ses réglages sont effacés. Sa table n\'existe plus dans le document.'
-            : 'Le Kanban disparaît des onglets et ses réglages sont effacés. Votre table et ses lignes sont conservées.')) + avertPages, 'Supprimer le Kanban');
+            : 'Le Kanban disparaît des onglets et ses réglages sont effacés. Votre table et ses lignes sont conservées.')) + avertPages + ' Cette action est définitive.', 'Supprimer le Kanban', { danger: true });
     if (!ok) {
         return;
     }
@@ -10205,7 +10257,7 @@ async function recommencer() {
 function rendreInvalide(zone) {
     zone.appendChild(creer('div', { classe: 'w-centre' }, [titreVue('Le Kanban ne trouve plus ses données'),
         creer('p', { classe: 'w-texte', texte: 'La table ou l\'une des colonnes principales du Kanban n\'existe plus dans ce document, ou a été renommée.' }),
-        etat.peutParametrer ? bouton('Supprimer ce Kanban', null, 'delete-line', recommencer)
+        etat.peutParametrer ? bouton('Supprimer le Kanban', 'secondaire', 'delete-line', recommencer, { classe: 'w-bouton-danger' })
             : creer('p', { classe: 'w-texte', texte: 'Signalez-le à un propriétaire du document.' })]));
 }
 function rendreAucun(zone) {
