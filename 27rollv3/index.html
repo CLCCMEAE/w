@@ -709,6 +709,16 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
 .sd-tele--message { justify-content: center; text-align: center; }
 .sd-pages__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-top: .75rem; }
 
+.sd-bm__ligne { font-family: Marianne, Arial, sans-serif; font-weight: 700; }
+.sd-partenaire { position: absolute; display: flex; align-items: flex-start; justify-content: flex-start; z-index: 2; }
+.sd-partenaire img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sd-bm__grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: .5rem; align-items: end; }
+.sd-bm__grille .fr-select-group, .sd-bm__grille .fr-input-group { margin-bottom: 0; }
+.sd-bm__erreur:empty { display: none; }
+.sd-partenaire-param { margin-top: 1rem; }
+.sd-partenaire-param__img { display: block; max-height: 4rem; max-width: 12rem; margin: .5rem 0; }
+@media (max-width: 36em) { .sd-bm__grille { grid-template-columns: minmax(0, 1fr); } }
+
   </style>
 </head>
 <body>
@@ -753,7 +763,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.2';
+var VERSION_WIDGET = '1.2.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -782,6 +792,9 @@ var COLONNES_DIAPOS = [
     { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE', formula: 'NOW()', recalcWhen: 2, description: 'Date de la dernière modification.' },
     { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR', formula: 'user.Email', recalcWhen: 2, description: 'Personne qui a fait la dernière modification.' }
 ];
+var POSTES = ['Ambassade de France', 'Consulat général de France', 'Consulat de France'];
+var LIAISONS = ['en', 'au', 'aux', 'à', 'auprès de'];
+var BM_MAX_LIGNES = 6;
 var ID_TELECOMMANDE = 'TELECOMMANDE';
 var LABEL_TELECOMMANDE = '📡 TÉLÉCOMMANDE ⚡';
 var DELAI_TELECOMMANDE_MS = 1000;
@@ -2406,7 +2419,8 @@ function configValide(o) {
         couleur1: couleurValide(o.couleur1, ancien || '#000091'), couleur2: couleurValide(o.couleur2, '#E1000F'),
         fondForts: o.fondForts === 'blanc' ? 'blanc' : 'couleur', habillage: HABILLAGES.some(function (h) { return h.cle === o.habillage; }) ? o.habillage : 'bandeau',
         logo: o.logo !== false, pied: o.pied !== false, numeros: o.numeros !== false, logoTaille: [50, 75, 100].indexOf(taille) !== -1 ? taille : 100,
-        vuePresentateur: o.vuePresentateur === true, depart: o.depart === 'premiere' ? 'premiere' : 'ouverte' };
+        vuePresentateur: o.vuePresentateur === true, depart: o.depart === 'premiere' ? 'premiere' : 'ouverte',
+        blocMarque: blocMarqueValide(o.blocMarque), partenaire: partenaireValide(o.partenaire) };
 }
 function mepValide(m) { return MISES_EN_PAGE.some(function (x) { return x.cle === m; }) ? m : 'contenu'; }
 function zoneValide(z) {
@@ -2863,7 +2877,7 @@ function placer(el, g) {
     el.style.width = g.l + 'px';
     el.style.height = g.h + 'px';
 }
-function ajouterDevise(svg) {
+function ajouterDevise(svg, ref) {
     if (!svg || svg.nodeName.toLowerCase() !== 'svg') {
         return;
     }
@@ -2873,7 +2887,8 @@ function ajouterDevise(svg) {
     }
     var ns = 'http://www.w3.org/2000/svg';
     var w = vb[2];
-    var taille = w * 0.046, pas = w * 0.054, haut = vb[1] + vb[3];
+    var r = ref || w;
+    var taille = r * 0.046, pas = r * 0.054, haut = vb[1] + vb[3];
     var fond = document.createElementNS(ns, 'rect');
     fond.setAttribute('x', String(vb[0]));
     fond.setAttribute('y', String(haut));
@@ -2883,7 +2898,7 @@ function ajouterDevise(svg) {
     svg.appendChild(fond);
     ['Liberté', 'Égalité', 'Fraternité'].forEach(function (m, i) {
         var t = document.createElementNS(ns, 'text');
-        t.setAttribute('x', String(vb[0] + w * 0.104));
+        t.setAttribute('x', String(vb[0] + r * 0.104));
         t.setAttribute('y', String(haut + pas * (i + 0.6)));
         t.setAttribute('font-size', String(taille));
         t.setAttribute('class', 'sd-devise');
@@ -2892,15 +2907,15 @@ function ajouterDevise(svg) {
     });
     svg.setAttribute('viewBox', vb[0] + ' ' + vb[1] + ' ' + w + ' ' + (vb[3] + pas * 3.6));
 }
-function noeudLogo(classe, devise, g) {
-    var l = logoClone();
+function noeudLogo(classe, devise, g, cfg) {
+    var l = noeudBlocMarque(cfg);
     if (!l) {
         return null;
     }
     if (devise) {
-        ajouterDevise(l.querySelector('svg') || l);
+        ajouterDevise(l.querySelector('svg') || l, blocPoste(cfg) ? BM_REF : null);
     }
-    var el = creer('div', { classe: 'sd-logo ' + classe, attrs: { 'aria-hidden': 'true' } }, [l]);
+    var el = creer('div', { classe: 'sd-logo ' + classe, attrs: blocPoste(cfg) ? { role: 'img', 'aria-label': 'Bloc-marque : ' + libelleBloc(cfg) } : { 'aria-hidden': 'true' } }, [l]);
     placer(el, g);
     return el;
 }
@@ -3141,11 +3156,12 @@ function rendreDiapo(d, o) {
     }
     var gl = g === 'officiel' || cfg.logo ? geoLogo(cfg, d) : null;
     if (gl) {
-        var lg = noeudLogo(g === 'officiel' ? (d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit')) : (d.mep === 'couverture' ? 'sd-logo--plaque' : 'sd-logo--petit'), g === 'officiel', gl);
+        var lg = noeudLogo(g === 'officiel' ? (d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit')) : (d.mep === 'couverture' ? 'sd-logo--plaque' : 'sd-logo--petit'), g === 'officiel' || !!blocPoste(cfg), gl, cfg);
         if (lg && o.edition) {
             brancherLogo(lg, d, gl);
         }
         ajouterSi(racine, lg);
+        ajouterSi(racine, noeudPartenaire(cfg, gl));
     }
     ajouterSi(racine, enteteDiapo(d, o));
     if (d.mep === 'sommaire') {
@@ -4491,6 +4507,10 @@ function imagesUtilisees(d) {
     (d.contenu.formes || []).forEach(function (f) { if (f.type === 'image' && l.indexOf(f.pj) === -1) {
         l.push(f.pj);
     } });
+    var part = etat.pres && etat.pres.id === d.pres && etat.pres.cfg.partenaire ? etat.pres.cfg.partenaire.pj : null;
+    if (part && l.indexOf(part) === -1) {
+        l.push(part);
+    }
     return l;
 }
 function signatureImage(octets) {
@@ -5015,7 +5035,7 @@ function etapeApparence(b) {
     majApercu();
     var colApercu = creer('section', { classe: 'w-section sd-apercu-colonne', attrs: { 'aria-labelledby': 'aSecApercu' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecApercu', texte: 'Aperçu' })]), apercu]);
-    return grilleParam([[section], [colApercu]], '1-1');
+    return grilleParam([[section, sectionBlocMarque(cfg, changer)], [colApercu]], '1-1');
 }
 function blocGabarits(cfg, surChoix, idTitre) {
     var zone = creer('div', { classe: 'sd-gabarits', attrs: { role: 'group', 'aria-labelledby': idTitre } });
@@ -5140,7 +5160,7 @@ async function creerPresentation() {
             champs.WIDGET = NOM_WIDGET;
         }
         var actions = [['AddRecord', etat.biblio, null, champs]].concat(diapositivesInitiales(b).map(function (p, i) {
-            return ['AddRecord', etat.tableDiapos, null, { PRESENTATION: id, ORDRE: i + 1, MISE_EN_PAGE: p.mep, CONTENU: JSON.stringify(p.contenu), NOTES: '', MASQUEE: false, IMAGES: ['L'] }];
+            return ['AddRecord', etat.tableDiapos, null, { PRESENTATION: id, ORDRE: i + 1, MISE_EN_PAGE: p.mep, CONTENU: JSON.stringify(p.contenu), NOTES: '', MASQUEE: false, IMAGES: ['L'].concat(cfg.partenaire ? [cfg.partenaire.pj] : []) }];
         }));
         await agir(actions);
         await lirePresentations();
@@ -5191,6 +5211,12 @@ async function ecrireConfig() {
         var p = presParId(etat.pres.id);
         if (p) {
             p.cfg = etat.pres.cfg;
+        }
+        try {
+            await rattacherPartenaire();
+        }
+        catch (eP) {
+            logSecurite('AVERTISSEMENT', 'Logo partenaire non rattaché aux diapositives', eP);
         }
         if (st) {
             st.textContent = 'Les modifications sont enregistrées automatiquement.';
@@ -5624,6 +5650,8 @@ var AIDE = {
     questions: [
         { q: 'Comment ajouter du texte ?', r: 'Cliquez dans une zone en pointillés de la diapositive (« Titre », « Texte »…) et tapez. Pour un texte ailleurs, « Ajouter », puis « Cadre de texte » : il se place où vous voulez.' },
         { q: 'Comment me servir de mon téléphone comme télécommande ?', r: '1. Une fois pour toutes : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ». Deux pages apparaissent dans le document : « Projection » et « Télécommande ». 2. Le jour J, sur l\'ordinateur relié au grand écran, ouvrez la page « Projection » et cliquez sur « Projeter en plein écran ». C\'est cette page, et elle seule, que vous partagez aux invités. 3. Sur votre téléphone, ouvrez le même document, puis la page « Télécommande ». 4. Le point vert « Grand écran relié » confirme la liaison. Avancez avec « Suivante » et « Précédente », ou en faisant glisser le doigt : le grand écran suit en une seconde environ, et vos notes restent sur le téléphone. Il faut pouvoir ouvrir le document sur le téléphone et avoir le droit de le modifier. Sans les pages, le bouton « Télécommande » de l\'éditeur fait la même chose avec « Présenter ».' },
+        { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: '« Paramétrages de cette présentation », étape « Apparence », rubrique « Bloc-marque et logo partenaire » : choisissez « Poste à l\'étranger », puis le poste (ambassade, consulat général, consulat), la liaison (en, au, aux, à, auprès de) et le pays ou la ville. Le widget propose le découpage en lignes, en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Le bloc garde la Marianne et la devise, comme le veut la charte de l\'État. L\'intitulé ne se traduit pas : écrivez-le exactement comme l\'intitulé officiel du poste.' },
+        { q: 'Puis-je ajouter le logo d\'un partenaire ?', r: 'Oui, dans la même rubrique : « Ajouter un logo partenaire » (PNG, JPEG, GIF ou WebP). Il se place à droite du bloc-marque sur toutes les diapositives, jamais à sa place. Indiquez le nom du partenaire : il est lu par les lecteurs d\'écran.' },
         { q: 'Pourquoi une page « Projection » à part ?', r: 'Elle n\'affiche que les diapositives : ni outils, ni notes, ni paramétrages. En la partageant, vous ne risquez pas de montrer autre chose que la présentation. Elle ne modifie jamais les diapositives. Si vous renommez la présentation, les pages sont renommées en quittant les paramétrages.' },
         { q: 'Mes participants voient-ils la vue présentateur ?', r: 'Non, si vous partagez la fenêtre du document (« Partager une fenêtre » dans la visioconférence) : la vue présentateur est une autre fenêtre. Si vous partagez tout l\'écran, elle se voit dès qu\'elle passe devant ; avec deux écrans, gardez-la sur l\'écran non partagé.' },
         { q: 'La vue présentateur ne s\'ouvre pas.', r: 'Le navigateur bloque les fenêtres surgissantes : autorisez-les pour ce site, puis cliquez de nouveau sur le bouton.' },
@@ -5744,6 +5772,7 @@ async function initialiser() {
         }
         await chargerMeta();
         await chargerLogoSlides();
+        await chargerPoliceMarianne();
         var mode = modePage();
         if (mode) {
             await chargerPageSpeciale(mode);
@@ -6819,6 +6848,317 @@ function reveillerBarre() {
             o.classList.remove('sd-pres--actif');
         }
     }, 2500);
+}
+var BM_REF = 301.3;
+var BM_X = 31.4;
+var BM_BASE1 = 91.5;
+var BM_PAS = 31.2;
+var BM_BAS = 14.9;
+var BM_TAILLE = 29.5;
+var _blocs = {};
+function majuscules(s) { return String(s || '').toLocaleUpperCase('fr-FR'); }
+function intituleBloc(b) { return (b.poste + ' ' + b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim(); }
+function decouperIntitule(b) {
+    var tete = majuscules(b.poste.replace(/ de France$/, ''));
+    var reste = majuscules((b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim()).split(' ');
+    var lignes = [tete, 'DE FRANCE'];
+    var cur = '';
+    var petits = ['DE', 'DU', 'DES', 'D\'', 'LA', 'LE', 'LES', 'L\'', 'AU', 'AUX', 'EN', 'À', 'AUPRÈS', 'ET', 'SUR'];
+    reste.forEach(function (m) {
+        var essai = cur ? cur + ' ' + m : m;
+        var dernier = cur.split(' ').pop();
+        if (!cur || essai.length <= 16 || petits.indexOf(dernier) !== -1) {
+            cur = essai;
+        }
+        else {
+            lignes.push(cur);
+            cur = m;
+        }
+    });
+    if (cur) {
+        lignes.push(cur);
+    }
+    while (lignes.length > BM_MAX_LIGNES) {
+        var a = lignes.pop();
+        lignes[lignes.length - 1] += ' ' + a;
+    }
+    return lignes;
+}
+function blocMarqueValide(b) {
+    if (!b || typeof b !== 'object') {
+        return { type: 'ministere', poste: POSTES[0], liaison: 'en', lieu: '', lignes: [] };
+    }
+    var r = { type: b.type === 'poste' ? 'poste' : 'ministere', poste: POSTES.indexOf(b.poste) !== -1 ? b.poste : POSTES[0], liaison: LIAISONS.indexOf(b.liaison) !== -1 ? b.liaison : 'en',
+        lieu: typeof b.lieu === 'string' ? b.lieu.replace(/\s+/g, ' ').trim().slice(0, 80) : '' };
+    var l = Array.isArray(b.lignes) ? b.lignes.filter(function (x) { return typeof x === 'string'; }).map(function (x) { return majuscules(x.replace(/\s+/g, ' ').trim()).slice(0, 48); }).filter(Boolean) : [];
+    r.lignes = l.length && l.length <= BM_MAX_LIGNES ? l : (r.lieu ? decouperIntitule(r) : []);
+    if (r.type === 'ministere') {
+        r.lignes = [];
+    }
+    return r;
+}
+function partenaireValide(p) {
+    if (!p || typeof p !== 'object' || !(typeof p.pj === 'number' && p.pj > 0)) {
+        return null;
+    }
+    return { pj: p.pj, alt: typeof p.alt === 'string' ? p.alt.slice(0, 120) : '' };
+}
+function blocPoste(cfg) {
+    var b = cfg && cfg.blocMarque;
+    return b && b.type === 'poste' && b.lieu && b.lignes.length ? b : null;
+}
+function largeurTexte(t) {
+    var c = largeurTexte.c || (largeurTexte.c = document.createElement('canvas').getContext('2d'));
+    if (!c) {
+        return t.length * BM_TAILLE * 0.72;
+    }
+    c.font = '700 ' + BM_TAILLE + 'px Marianne, Arial, sans-serif';
+    return c.measureText(t).width;
+}
+function mariannePaths() {
+    var c = document.createElement('div');
+    if (!injecterSvgSecurise(c, genererLogoMEAE())) {
+        return null;
+    }
+    var svg = c.querySelector('svg');
+    var groupes = svg ? svg.querySelectorAll('g') : [];
+    for (var i = 0; i < groupes.length; i++) {
+        if (groupes[i].querySelector('path[fill]')) {
+            return groupes[i];
+        }
+    }
+    return null;
+}
+function svgBlocPoste(b) {
+    var police = document.fonts && document.fonts.check ? document.fonts.check('700 30px Marianne') : false;
+    var cle = b.lignes.join('|') + (police ? ':m' : ':r');
+    if (!_blocs[cle]) {
+        var ns = 'http://www.w3.org/2000/svg';
+        var w = BM_REF;
+        b.lignes.forEach(function (l) { w = Math.max(w, BM_X * 2 + largeurTexte(l) * 1.04); });
+        var h = BM_BASE1 + (b.lignes.length - 1) * BM_PAS + BM_BAS;
+        var svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1));
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var fond = document.createElementNS(ns, 'rect');
+        fond.setAttribute('width', w.toFixed(1));
+        fond.setAttribute('height', h.toFixed(1));
+        fond.setAttribute('fill', 'white');
+        svg.appendChild(fond);
+        var m = mariannePaths();
+        if (m) {
+            svg.appendChild(document.importNode(m, true));
+        }
+        b.lignes.forEach(function (l, i) {
+            var t = document.createElementNS(ns, 'text');
+            t.setAttribute('x', String(BM_X));
+            t.setAttribute('y', (BM_BASE1 + i * BM_PAS).toFixed(1));
+            t.setAttribute('font-size', String(BM_TAILLE));
+            t.setAttribute('class', 'sd-bm__ligne');
+            t.textContent = l;
+            svg.appendChild(t);
+        });
+        _blocs[cle] = svg;
+    }
+    return _blocs[cle].cloneNode(true);
+}
+function noeudBlocMarque(cfg) {
+    var b = blocPoste(cfg);
+    if (!b) {
+        return logoClone();
+    }
+    return creer('div', { classe: 'w-bandeau__logo-wrap' }, [svgBlocPoste(b)]);
+}
+function libelleBloc(cfg) {
+    var b = blocPoste(cfg);
+    return b ? b.lignes.join(' ') : 'Ministère de l\'Europe et des Affaires étrangères';
+}
+async function chargerPoliceMarianne() {
+    if (!document.fonts || !document.fonts.load) {
+        return;
+    }
+    try {
+        await Promise.race([document.fonts.load('700 30px Marianne'), new Promise(function (ok) { setTimeout(ok, 2500); })]);
+    }
+    catch (e) {
+        logSecurite('INFO', 'Police Marianne non chargée', e);
+    }
+}
+function noeudPartenaire(cfg, gl) {
+    var p = cfg.partenaire;
+    if (!p) {
+        return null;
+    }
+    var pl = Math.round(gl.l * 0.85), ph = Math.round(gl.l * 0.55);
+    var x = gl.x + gl.l + 16;
+    if (x + pl > 1264) {
+        x = Math.max(16, gl.x - 16 - pl);
+    }
+    var img = creer('img', { attrs: { alt: p.alt || 'Logo partenaire', 'data-pj': String(p.pj), draggable: 'false' } });
+    var el = creer('div', { classe: 'sd-partenaire' }, [img]);
+    el.style.left = x + 'px';
+    el.style.top = gl.y + 'px';
+    el.style.width = pl + 'px';
+    el.style.height = ph + 'px';
+    relayer(chargerImage(p.pj).then(function (url) { if (url) {
+        img.src = url;
+    } }), 'Affichage du logo partenaire');
+    return el;
+}
+function sectionBlocMarque(cfg, changer) {
+    var zone = creer('div', { id: 'aBmZone' });
+    var aideBm = aide('aAideBm', 'Bloc-marque', 'Les ambassades et les consulats ont leur propre bloc-marque : la Marianne, l\'intitulé officiel du poste, puis la devise. Le widget le compose selon la charte de l\'État, en Marianne Bold et en capitales, sur 6 lignes au plus. Écrivez l\'intitulé exactement comme l\'intitulé officiel du poste ; il ne se traduit pas. En cas de doute, demandez au service de communication du ministère.');
+    var dessiner = function (focusId) {
+        vider(zone);
+        var bm = cfg.blocMarque;
+        var fs = creer('fieldset', { classe: 'sd-radios' }, [creer('legend', { classe: 'fr-label', texte: 'Bloc-marque des diapositives' })]);
+        [['ministere', 'Ministère de l\'Europe et des Affaires étrangères'], ['poste', 'Poste à l\'étranger (ambassade, consulat)']].forEach(function (x) {
+            var r = creer('input', { id: 'aBm_' + x[0], attrs: { type: 'radio', name: 'aBm' }, coche: bm.type === x[0] });
+            r.addEventListener('change', function () {
+                if (!r.checked) {
+                    return;
+                }
+                cfg.blocMarque = blocMarqueValide({ type: x[0], poste: bm.poste, liaison: bm.liaison, lieu: bm.lieu });
+                changer();
+                dessiner('aBm_' + x[0]);
+            });
+            fs.appendChild(creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': 'aBm_' + x[0] }, texte: x[1] })]));
+        });
+        zone.appendChild(fs);
+        if (bm.type !== 'poste') {
+            zone.appendChild(creer('div', { classe: 'w-champ-aide w-opt' }, [creer('p', { classe: 'w-mention', texte: 'Pour une ambassade ou un consulat, choisissez « Poste à l\'étranger ».' }), aideBm.bouton]));
+            zone.appendChild(aideBm.panneau);
+            dessinerPartenaire();
+            return;
+        }
+        var recomposer = function () {
+            cfg.blocMarque.lignes = [];
+            cfg.blocMarque = blocMarqueValide(cfg.blocMarque);
+            lignes.value = cfg.blocMarque.lignes.join('\n');
+            erreur.textContent = '';
+            changer();
+        };
+        var poste = liste('aBmPoste', POSTES.map(function (p) { return { valeur: p, libelle: p }; }), bm.poste, {});
+        poste.addEventListener('change', function () { cfg.blocMarque.poste = poste.value; recomposer(); });
+        var liaison = liste('aBmLiaison', LIAISONS.map(function (p) { return { valeur: p, libelle: p }; }), bm.liaison, {});
+        liaison.addEventListener('change', function () { cfg.blocMarque.liaison = liaison.value; recomposer(); });
+        var lieu = creer('input', { classe: 'fr-input', id: 'aBmLieu', attrs: { type: 'text', maxlength: '80', autocomplete: 'off', value: bm.lieu, 'aria-describedby': 'aBmLieuAide' } });
+        lieu.value = bm.lieu;
+        var minuterie = null;
+        lieu.addEventListener('input', function () {
+            clearTimeout(minuterie);
+            minuterie = setTimeout(function () { cfg.blocMarque.lieu = lieu.value; recomposer(); }, 350);
+        });
+        var lignes = creer('textarea', { classe: 'fr-input', id: 'aBmLignes', attrs: { rows: '5', spellcheck: 'false', 'aria-describedby': 'aBmLignesAide aBmErreur' } });
+        lignes.value = bm.lignes.join('\n');
+        var erreur = creer('p', { classe: 'fr-error-text sd-bm__erreur', id: 'aBmErreur', attrs: { 'aria-live': 'polite' } });
+        lignes.addEventListener('input', function () {
+            var l = lignes.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+            if (l.length > BM_MAX_LIGNES) {
+                erreur.textContent = BM_MAX_LIGNES + ' lignes au plus : regroupez deux lignes.';
+                return;
+            }
+            erreur.textContent = '';
+            cfg.blocMarque.lignes = l;
+            cfg.blocMarque = blocMarqueValide(cfg.blocMarque);
+            changer();
+        });
+        lignes.addEventListener('blur', function () { if (!erreur.textContent) {
+            lignes.value = cfg.blocMarque.lignes.join('\n');
+        } });
+        zone.appendChild(creer('div', { classe: 'sd-bm__grille' }, [
+            creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aBmPoste' }, texte: 'Poste' }), poste]),
+            creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aBmLiaison' }, texte: 'Liaison' }), liaison]),
+            creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aBmLieu' }, texte: 'Pays ou ville' }), lieu])
+        ]));
+        zone.appendChild(creer('p', { classe: 'fr-hint-text', id: 'aBmLieuAide', texte: 'Comme dans l\'intitulé officiel : « en Italie », « au Japon », « aux États-Unis », « à New York ».' }));
+        zone.appendChild(creer('div', { classe: 'fr-input-group' }, [
+            creer('label', { classe: 'fr-label', attrs: { 'for': 'aBmLignes' } }, ['Lignes du bloc-marque', creer('span', { classe: 'fr-hint-text', id: 'aBmLignesAide', texte: 'Proposées par le widget, ' + BM_MAX_LIGNES + ' au plus, une ligne par ligne. Vous pouvez déplacer un retour à la ligne ; les capitales sont posées par le widget.' })]),
+            lignes, erreur
+        ]));
+        zone.appendChild(creer('div', { classe: 'w-champ-aide w-opt' }, [creer('p', { classe: 'w-mention', texte: 'Intitulé : ' + (bm.lieu ? intituleBloc(bm) : 'à compléter') }), aideBm.bouton]));
+        zone.appendChild(aideBm.panneau);
+        dessinerPartenaire();
+        var f = focusId ? document.getElementById(focusId) : null;
+        if (f) {
+            f.focus();
+        }
+    };
+    var dessinerPartenaire = function () {
+        var p = cfg.partenaire;
+        var bloc = creer('div', { classe: 'sd-partenaire-param', id: 'aPartZone' }, [creer('p', { classe: 'fr-label', texte: 'Logo partenaire (facultatif)' }),
+            creer('p', { classe: 'fr-hint-text', texte: 'Il se place à droite du bloc-marque, jamais à sa place.' })]);
+        if (!p) {
+            if (peutEcrire()) {
+                var fichier = creer('input', { classe: 'fr-sr-only', id: 'aPartFichier', attrs: { type: 'file', accept: 'image/png,image/jpeg,image/gif,image/webp', tabindex: '-1', 'aria-hidden': 'true' } });
+                fichier.addEventListener('change', function () {
+                    var f = fichier.files && fichier.files[0];
+                    fichier.value = '';
+                    if (f) {
+                        relayer(envoyerPartenaire(f), 'Envoi du logo partenaire');
+                    }
+                });
+                bloc.appendChild(fichier);
+                bloc.appendChild(bouton('Ajouter un logo partenaire', 'secondaire', 'add-line', function () { fichier.click(); }, { id: 'aPartAjouter', petit: true }));
+            }
+            zone.appendChild(bloc);
+            return;
+        }
+        var vignette = creer('img', { classe: 'sd-partenaire-param__img', attrs: { alt: '' } });
+        relayer(chargerImage(p.pj).then(function (url) { if (url) {
+            vignette.src = url;
+        } }), 'Vignette du logo partenaire');
+        var alt = creer('input', { classe: 'fr-input', id: 'aPartAlt', attrs: { type: 'text', maxlength: '120' } });
+        alt.value = p.alt;
+        alt.addEventListener('input', function () { cfg.partenaire.alt = alt.value.slice(0, 120); changer(); });
+        bloc.appendChild(vignette);
+        bloc.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aPartAlt' } }, ['Nom du partenaire', creer('span', { classe: 'fr-hint-text', texte: 'Lu par les lecteurs d\'écran à la place du logo.' })]), alt]));
+        bloc.appendChild(creer('div', { classe: 'sd-pages__actions' }, [bouton('Retirer le logo partenaire', 'secondaire', 'delete-line', function () { cfg.partenaire = null; changer(); dessiner('aPartAjouter'); }, { id: 'aPartRetirer', petit: true })]));
+        zone.appendChild(bloc);
+    };
+    var envoyerPartenaire = async function (f) {
+        var err = await verifierImage(f);
+        if (err) {
+            afficherErreur(err);
+            return;
+        }
+        afficherLoader('Envoi du logo…');
+        try {
+            var pj = await envoyerImage(f);
+            masquerLoader();
+            cfg.partenaire = { pj: pj, alt: '' };
+            changer();
+            dessiner('aPartAlt');
+            annoncer('Logo partenaire ajouté. Indiquez le nom du partenaire.');
+        }
+        catch (e) {
+            masquerLoader();
+            noterRefus(e);
+            afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas d\'ajouter une image.' : 'Le logo n\'a pas été envoyé. Réessayez.', e);
+        }
+    };
+    dessiner(null);
+    return creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecBm' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecBm', texte: 'Bloc-marque et logo partenaire' })]), zone
+    ]);
+}
+async function rattacherPartenaire() {
+    if (!etat.pres || !etat.tableDiapos || !peutEcrire()) {
+        return;
+    }
+    var ids = [], vals = [];
+    etat.toutesDiapos.filter(function (d) { return d.pres === etat.pres.id; }).forEach(function (d) {
+        var l = imagesUtilisees(d);
+        if (l.slice().sort().join(',') !== (d.images || []).slice().sort().join(',')) {
+            ids.push(d.id);
+            vals.push(['L'].concat(l));
+            d.images = l;
+        }
+    });
+    if (ids.length) {
+        await agir([['BulkUpdateRecord', etat.tableDiapos, ids, { IMAGES: vals }]]);
+    }
 }
 document.getElementById('bandeauVersion').textContent = 'v' + VERSION_WIDGET;
 (function () { var b = document.getElementById('bandeauHomologue'); if (b) {
