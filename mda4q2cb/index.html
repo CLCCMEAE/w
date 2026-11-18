@@ -366,6 +366,9 @@
     .w-page-condition__tete { display: flex; gap: .25rem; align-items: center; }
     .w-page-condition__tete .fr-select { flex: 1; margin: 0; }
     .w-page-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-page-sous-actions { display: flex; flex-direction: column; gap: .25rem; padding-left: 1.75rem; }
+    .w-page-sous-actions[hidden] { display: none; }
+    .w-page-filtre .fr-radio-group { margin: 0; }
     .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
     .w-section-page .w-aide { margin: 0; vertical-align: middle; }
     .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
@@ -651,7 +654,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.5.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocalendrier';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOCALENDRIER';
@@ -686,8 +689,16 @@ function pageValide(o) {
         fenetre: FENETRES_PAGE.some(function (x) { return x.valeur === o.fenetre; }) ? o.fenetre : '',
         conditions: (Array.isArray(o.conditions) ? o.conditions : []).filter(function (c) { return c && typeof c.col === 'string' && c.col && Array.isArray(c.valeurs) && c.valeurs.length; })
             .map(function (c) { return { col: c.col, valeurs: c.valeurs.map(String) }; }),
-        aPlanifier: o.aPlanifier !== false, ajouter: o.ajouter !== false, modifier: o.modifier !== false, exporter: o.exporter !== false,
+        aPlanifier: o.aPlanifier !== false, lectureSeule: lectureSeuleDe(o), ajouter: !lectureSeuleDe(o) && o.ajouter !== false, modifier: !lectureSeuleDe(o) && o.modifier !== false, exporter: o.exporter !== false,
         lecteurs: lecteurs };
+}
+function lectureSeuleDe(o) { return o.lectureSeule === true || (o.ajouter === false && o.modifier === false); }
+function radioPage(nom, id, libelle, coche, surChange, indice) {
+    var r = creer('input', { attrs: { type: 'radio', name: nom, id: id }, coche: coche });
+    r.addEventListener('change', function () { if (r.checked) {
+        surChange();
+    } });
+    return creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, indice ? creer('span', { classe: 'fr-hint-text', texte: indice }) : null])]);
 }
 function lireCopie(v) {
     try {
@@ -834,6 +845,9 @@ function blocPageVolet() {
         return null;
     }
     var e = etiquettesPage(etat.page);
+    if (etat.page.lectureSeule) {
+        e.push('Lecture seule');
+    }
     if (!e.length && !etat.page.orpheline) {
         return null;
     }
@@ -846,6 +860,9 @@ function blocPageVolet() {
 }
 function noteLecturePage() {
     var p = etat.page;
+    if (p.lectureSeule) {
+        return 'Lecture seule : rien ne se modifie depuis cette page.';
+    }
     return p.ajouter && etat.peutAjouterPage ? 'Cette page permet d\'ajouter des événements, pas de modifier ceux qui existent.' : 'Cette page permet de consulter les événements.';
 }
 async function creerTableOwner() {
@@ -888,7 +905,7 @@ function resumePage(x) {
     }
     var e = etiquettesPage(p);
     parts.push(e.length ? 'Montre : ' + e.join(' ; ') : 'Tous les événements');
-    parts.push(p.ajouter && p.modifier ? 'Ajout et modification' : (p.ajouter ? 'Ajout seulement' : (p.modifier ? 'Modification, sans ajout' : 'Consultation seulement')));
+    parts.push(p.lectureSeule ? 'Lecture seule' : (p.ajouter && p.modifier ? 'Ajout et modification' : (p.ajouter ? 'Ajout seulement' : 'Modification, sans ajout')));
     return parts.join('. ');
 }
 function colonnesConditionPossibles() {
@@ -941,7 +958,7 @@ async function editerPage(badge, dupliquer) {
         titre: p ? p.titre : nomPage, titreManuel: !!p && p.titre !== etat.nomsPages[badge],
         plans: p ? p.plans.filter(function (cle) { return !!trouverPlan(cle); }) : [etat.cleConfig],
         vue: p ? p.vue : '', fenetre: p ? p.fenetre : '', conditions: p ? copieJson(p.conditions) : [], aPlanifier: p ? p.aPlanifier : true,
-        ajouter: p ? p.ajouter : true, modifier: p ? p.modifier : true, exporter: p ? p.exporter : true, lecteurs: p ? copieJson(p.lecteurs) : {} };
+        lectureSeule: p ? p.lectureSeule : false, ajouter: p && !p.lectureSeule ? p.ajouter : true, modifier: p && !p.lectureSeule ? p.modifier : true, exporter: p ? p.exporter : true, lecteurs: p ? copieJson(p.lecteurs) : {} };
     afficherLoader('Lecture des valeurs…');
     try {
         await chargerRefsConditions(etat.editionPage);
@@ -1063,11 +1080,16 @@ function formulairePage() {
         groupeChamp('Dates des événements', fen, 'Les événements entièrement en dehors de ces dates ne sont pas montrés.'),
         creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Événements montrés' }), editeurConditionsPage(ed),
             casePage('aPageAPlanifier', 'Montrer les événements à planifier', ed.aPlanifier, function (v) { ed.aPlanifier = v; }, 'Les lignes sans date, dans le panneau de gauche.')])]));
-    noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Ce que les personnes peuvent faire sur la page' }),
+    var actions = creer('div', { classe: 'w-page-sous-actions', id: 'aPageActions' }, [
         casePage('aPageAjouter', 'Ajouter des événements', ed.ajouter, function (v) { ed.ajouter = v; }),
-        casePage('aPageModifier', 'Déplacer et modifier les événements', ed.modifier, function (v) { ed.modifier = v; }, 'Avec la fiche, la répétition, la duplication et la suppression.'),
+        casePage('aPageModifier', 'Déplacer et modifier les événements', ed.modifier, function (v) { ed.modifier = v; }, 'Avec la fiche, la répétition, la duplication et la suppression.')]);
+    actions.hidden = ed.lectureSeule;
+    noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Ce que les personnes peuvent faire sur la page' }),
+        radioPage('aPageDroits', 'aPageLecture', 'Lecture seule', ed.lectureSeule, function () { ed.lectureSeule = true; actions.hidden = true; }, 'Rien ne se modifie depuis cette page, quels que soient les droits sur le document.'),
+        radioPage('aPageDroits', 'aPageEcriture', 'Selon les droits du document', !ed.lectureSeule, function () { ed.lectureSeule = false; actions.hidden = false; }, 'Les personnes autorisées sur le document peuvent :'),
+        actions,
         casePage('aPageExporter', 'Exporter en CSV et en .ics', ed.exporter, function (v) { ed.exporter = v; }),
-        creer('p', { classe: 'w-mention', texte: 'Ces cases ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
+        creer('p', { classe: 'w-mention', texte: 'Ces choix ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
     noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' }),
         creer('p', { classe: 'w-mention', texte: 'Un élément coché reste dans le panneau de gauche de la page ; décoché, il disparaît.' })].concat(blocsLecteursPage(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
@@ -1082,7 +1104,7 @@ function valeurPage(ed) {
         lecteurs[cle] = ed.lecteurs[cle];
     } });
     return JSON.stringify(pageValide({ consultation: true, plans: ed.plans.slice(), titre: String(ed.titre || '').trim(), vue: ed.vue, fenetre: ed.fenetre,
-        conditions: ed.conditions, aPlanifier: ed.aPlanifier, ajouter: ed.ajouter, modifier: ed.modifier, exporter: ed.exporter, lecteurs: lecteurs }));
+        conditions: ed.conditions, aPlanifier: ed.aPlanifier, lectureSeule: ed.lectureSeule, ajouter: ed.ajouter, modifier: ed.modifier, exporter: ed.exporter, lecteurs: lecteurs }));
 }
 async function enregistrerPage() {
     var ed = etat.editionPage;
@@ -1097,6 +1119,10 @@ async function enregistrerPage() {
     }
     if (!ed.plans.length) {
         marquerInvalide('aPagePlan0', 'Choisissez au moins un calendrier.');
+        return;
+    }
+    if (!ed.lectureSeule && !ed.ajouter && !ed.modifier) {
+        marquerInvalide('aPageAjouter', 'Cochez au moins une action, ou choisissez « Lecture seule ».');
         return;
     }
     var valeur = valeurPage(ed);
