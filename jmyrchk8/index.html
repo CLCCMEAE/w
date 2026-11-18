@@ -222,7 +222,9 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 .csnc-bloc-resume strong{color:var(--text-default-grey);font-weight:700}
 .csnc-bloc-corps{display:none}
 .csnc-bloc-editeur.ouvert .csnc-bloc-corps{display:block}
-.csnc-spec-bandeau{display:flex;justify-content:flex-end;margin-bottom:.5rem}
+.csnc-spec-bandeau{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:.25rem 1.5rem;margin-bottom:.5rem}
+.csnc-reperer{margin:0}
+.csnc-bloc-editeur--repere{border-left:4px solid var(--border-action-high-blue-france);padding-left:calc(.75rem - 3px)}
 .csnc-bloc-actions{display:flex;gap:.25rem;align-items:center;margin-left:auto}
 .csnc-bloc-duo{display:flex;gap:.75rem;margin-bottom:.5rem;flex-wrap:wrap}
 .csnc-bloc-duo > *{flex:1 1 12rem;min-width:0}
@@ -597,7 +599,7 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 </div>
 <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.1';
+var VERSION_WIDGET = '1.4.0';
 var HOMOLOGUE = false;
 var TAILLE_MAX_SVG = 200000;
 function purifierHTML(contenu, usage) {
@@ -5154,6 +5156,10 @@ function accordBloc(n) {
 }
 function construireEditeurDansCorps(nomPage, corps) {
     corps.textContent = '';
+    if (_pageSpecActive !== nomPage) {
+        _repere.focus = null;
+    }
+    _repere.survol = null;
     _pageSpecActive = nomPage;
     var chkWrap = document.createElement('div');
     chkWrap.className = 'fr-checkbox-group fr-checkbox-group--sm';
@@ -5194,6 +5200,7 @@ function construireEditeurDansCorps(nomPage, corps) {
     blocs.forEach(function (bloc, idx) {
         var div = document.createElement('div');
         div.className = 'csnc-bloc-editeur';
+        brancherEditeurRepere(corps, div, idx);
         var head = document.createElement('div');
         head.className = 'csnc-bloc-editeur-head';
         head.setAttribute('role', 'button');
@@ -5384,7 +5391,13 @@ function construireEditeurDansCorps(nomPage, corps) {
     var prevWrap = document.createElement('div');
     var barreBandeau = document.createElement('div');
     barreBandeau.className = 'csnc-spec-bandeau';
+    barreBandeau.appendChild(caseReperer(corps));
     barreBandeau.appendChild(chkWrap);
+    var annonceRepere = document.createElement('p');
+    annonceRepere.className = 'fr-sr-only';
+    annonceRepere.id = 'dpRepereAnnonce';
+    annonceRepere.setAttribute('aria-live', 'polite');
+    prevWrap.appendChild(annonceRepere);
     prevWrap.appendChild(barreBandeau);
     var iframeWrap = document.createElement('div');
     iframeWrap.style.cssText = 'border:1px solid var(--border-default-grey);padding:0;background:var(--background-default-grey)';
@@ -5458,10 +5471,178 @@ async function deplacerBlocSpec(nomPage, position, sens, corps) {
     planifierSauvegardeHTML();
     logSecurite('INFO', 'Bloc déplace', { page: nomPage, de: position, vers: cible });
 }
+var CLE_REPERER = 'diplodocumentation.reperer';
+var _repere = { focus: null, survol: null };
+function repererActif() {
+    try {
+        return window.localStorage.getItem(CLE_REPERER) !== 'non';
+    }
+    catch (e) {
+        return true;
+    }
+}
+function caseReperer(corps) {
+    var c = document.createElement('input');
+    c.type = 'checkbox';
+    c.id = 'dpReperer';
+    c.checked = repererActif();
+    c.setAttribute('autocomplete', 'off');
+    var l = document.createElement('label');
+    l.className = 'fr-label';
+    l.setAttribute('for', 'dpReperer');
+    l.textContent = 'Repérer dans l’aperçu';
+    var w = document.createElement('div');
+    w.className = 'fr-checkbox-group fr-checkbox-group--sm csnc-reperer';
+    w.appendChild(c);
+    w.appendChild(l);
+    c.addEventListener('change', function () {
+        try {
+            window.localStorage.setItem(CLE_REPERER, c.checked ? 'oui' : 'non');
+        }
+        catch (e) {
+            logSecurite('INFO', 'Choix du repérage non retenu par le navigateur', e);
+        }
+        appliquerRepere(corps, false, false);
+    });
+    return w;
+}
+function cadreApercu(corps) { return corps.querySelector('#speciales-preview-iframe'); }
+function docApercu(corps) {
+    var f = cadreApercu(corps);
+    try {
+        return f ? (f.contentDocument || (f.contentWindow && f.contentWindow.document)) : null;
+    }
+    catch (e) {
+        return null;
+    }
+}
+var LIBELLES_TYPES_BLOC = { titre: 'Titre', texte: 'Texte', champ_projet: 'Champ de la fiche projet', cartes: 'Cartes', contacts: 'Contacts', info: 'Bandeau info', alerte: 'Bandeau alerte', etapes: 'Étapes', chiffres: 'Chiffres clés', liste: 'Liste à puces', citation: 'Citation', sommaire: 'Sommaire', separateur: 'Séparateur', tableau: 'Tableau', liens: 'Liens' };
+function etiquetteBloc(idx) {
+    var b = getBlocsPage(_pageSpecActive)[idx];
+    if (!b) {
+        return 'Bloc ' + (idx + 1);
+    }
+    var nom = b.nomBloc && b.nomBloc !== 'Nouveau bloc' ? b.nomBloc : (LIBELLES_TYPES_BLOC[b.typeBloc] || 'sans titre');
+    return 'Bloc ' + (idx + 1) + ' : ' + nom;
+}
+function annoncerRepere(corps, texte) {
+    var z = corps.querySelector('#dpRepereAnnonce');
+    if (!z) {
+        return;
+    }
+    z.textContent = '';
+    setTimeout(function () { z.textContent = texte; }, 40);
+}
+function styleRepere(doc) {
+    if (doc.getElementById('rpStyle')) {
+        return;
+    }
+    var cs = getComputedStyle(document.documentElement);
+    var v = function (n, d) { return cs.getPropertyValue(n).trim() || d; };
+    var bleu = v('--border-action-high-blue-france', 'currentColor'), inv = v('--text-inverted-blue-france', 'Canvas'), fond = v('--background-alt-blue-france', 'transparent');
+    var st = doc.createElement('style');
+    st.id = 'rpStyle';
+    st.textContent = '[data-bloc]{cursor:pointer}'
+        + '[data-bloc].rp-actif{outline:3px dashed ' + bleu + ';outline-offset:4px;position:relative;min-height:1.25rem}'
+        + '[data-bloc].rp-actif::after{content:attr(data-etiquette);position:absolute;top:0;right:0;font:700 12px/1.5 Marianne,Arial,sans-serif;color:' + inv + ';background:' + bleu + ';padding:0 .375rem;pointer-events:none}'
+        + '@media (prefers-reduced-motion: no-preference){[data-bloc].rp-flash{animation:rpFlash .7s ease-out}}'
+        + '@keyframes rpFlash{from{background-color:' + fond + '}to{background-color:transparent}}';
+    (doc.head || doc.documentElement).appendChild(st);
+}
+function saisieEnCours() {
+    var a = document.activeElement;
+    return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.nodeName) && !!a.closest && !!a.closest('.csnc-bloc-editeur');
+}
+function blocRepere() { return _repere.survol !== null && !saisieEnCours() ? _repere.survol : _repere.focus; }
+function appliquerRepere(corps, defiler, flash) {
+    var actif = repererActif();
+    var idx = blocRepere();
+    Array.prototype.forEach.call(corps.querySelectorAll('.csnc-bloc-editeur'), function (d) {
+        d.classList.toggle('csnc-bloc-editeur--repere', actif && idx !== null && Number(d.getAttribute('data-bloc')) === idx);
+    });
+    var doc = docApercu(corps);
+    if (!doc || !doc.body) {
+        return;
+    }
+    styleRepere(doc);
+    Array.prototype.forEach.call(doc.querySelectorAll('[data-bloc]'), function (el) {
+        el.classList.remove('rp-actif', 'rp-flash');
+        el.removeAttribute('data-etiquette');
+    });
+    if (!actif || idx === null) {
+        return;
+    }
+    var el = doc.querySelector('[data-bloc="' + idx + '"]');
+    if (!el) {
+        return;
+    }
+    var etiq = etiquetteBloc(idx);
+    el.classList.add('rp-actif');
+    el.setAttribute('data-etiquette', etiq);
+    if (flash) {
+        void el.offsetWidth;
+        el.classList.add('rp-flash');
+    }
+    if (defiler) {
+        var vue = doc.defaultView;
+        var rb = el.getBoundingClientRect();
+        if (vue && (rb.top < 0 || rb.bottom > vue.innerHeight)) {
+            vue.scrollTo(0, Math.max(0, rb.top + vue.pageYOffset - 24));
+        }
+        annoncerRepere(corps, 'Dans l’aperçu : ' + etiq);
+    }
+}
+function brancherEditeurRepere(corps, div, idx) {
+    div.setAttribute('data-bloc', String(idx));
+    div.addEventListener('focusin', function () {
+        _repere.survol = null;
+        if (_repere.focus !== idx) {
+            _repere.focus = idx;
+            appliquerRepere(corps, true, false);
+        }
+    });
+    div.addEventListener('mouseenter', function () { _repere.survol = idx; appliquerRepere(corps, false, false); });
+    div.addEventListener('mouseleave', function () { _repere.survol = null; appliquerRepere(corps, false, false); });
+}
+function ouvrirEditeurBloc(corps, idx) {
+    var d = corps.querySelector('.csnc-bloc-editeur[data-bloc="' + idx + '"]');
+    if (!d) {
+        return;
+    }
+    var h = d.querySelector('.csnc-bloc-editeur-head');
+    if (!d.classList.contains('ouvert') && h) {
+        h.click();
+    }
+    _repere.focus = idx;
+    var champ = d.querySelector('textarea') || d.querySelector('input');
+    d.scrollIntoView({ block: 'nearest' });
+    if (champ) {
+        champ.focus();
+    }
+    appliquerRepere(corps, true, false);
+}
+function brancherApercuRepere(corps, flash) {
+    var doc = docApercu(corps);
+    if (!doc || !doc.body) {
+        return;
+    }
+    doc.addEventListener('click', function (e) {
+        if (!repererActif()) {
+            return;
+        }
+        var cible = e.target && e.target.closest ? e.target.closest('[data-bloc]') : null;
+        if (!cible) {
+            return;
+        }
+        e.preventDefault();
+        ouvrirEditeurBloc(corps, Number(cible.getAttribute('data-bloc')));
+    });
+    appliquerRepere(corps, false, !!flash);
+}
 function rafraichirApercuSpecDans(corps, nomPage) {
     if (!nomPage)
         return;
-    var html = genererHTMLPage(nomPage);
+    var html = genererHTMLPage(nomPage, false, true);
     var iframe = corps.querySelector('iframe');
     if (!iframe)
         return;
@@ -5481,6 +5662,7 @@ function rafraichirApercuSpecDans(corps, nomPage) {
         catch (e) {
             logSecurite('AVERTISSEMENT', 'Hauteur de l’apercu non ajustable', e);
         }
+        brancherApercuRepere(corps, true);
     });
 }
 function afficherEditeurPage(nomPage) {
@@ -5625,7 +5807,7 @@ function sommairePages() {
     });
     return liste;
 }
-function genererHTMLPage(nomPage, sansBandeau) {
+function genererHTMLPage(nomPage, sansBandeau, reperes) {
     var blocs = getBlocsPage(nomPage);
     var cs = getComputedStyle(document.documentElement);
     var _b = cs.getPropertyValue('--text-action-high-blue-france').trim();
@@ -5650,7 +5832,9 @@ function genererHTMLPage(nomPage, sansBandeau) {
         h += '</div>';
     }
     h += '<div style="padding:0 .75rem 1rem">';
-    blocs.forEach(function (bloc) {
+    blocs.forEach(function (bloc, idxRepere) {
+        if (reperes)
+            h += '<div data-bloc="' + idxRepere + '">';
         switch (bloc.typeBloc) {
             case 'titre':
                 h += '<div style="font-size:1.5rem;font-weight:700;color:' + _b + ';border-bottom:3px solid ' + _b + ';padding-bottom:.5rem;margin-bottom:1rem">' + echapperHTML(bloc.nomBloc) + '</div>';
@@ -5842,6 +6026,8 @@ function genererHTMLPage(nomPage, sansBandeau) {
                 h += '</div>';
                 break;
         }
+        if (reperes)
+            h += '</div>';
     });
     h += '</div></div>';
     return h;
