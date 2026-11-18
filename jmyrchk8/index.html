@@ -597,7 +597,7 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 </div>
 <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 var HOMOLOGUE = false;
 var TAILLE_MAX_SVG = 200000;
 function purifierHTML(contenu, usage) {
@@ -1636,7 +1636,7 @@ function estRefusDroits(e) {
 }
 function cfgPageValide(o) {
     o = o && typeof o === 'object' ? o : {};
-    return { admin: o.admin === true, consultation: o.consultation === true, page: typeof o.page === 'string' ? o.page : '' };
+    return { admin: o.admin === true, consultation: o.consultation === true, page: typeof o.page === 'string' ? o.page : '', titre: typeof o.titre === 'string' ? o.titre : '' };
 }
 function lirePageLigne(cle, valeur, id) {
     var b = badgeValide(String(cle).slice(CLE_COPIE.length + 1));
@@ -1675,6 +1675,9 @@ function modeDepart() {
 }
 function appliquerModePage() {
     var cons = !!_cfgPage;
+    var bt = document.getElementById('bandeau-titre');
+    if (bt && cons && _cfgPage.titre)
+        bt.textContent = _cfgPage.titre;
     ['btn-composer-accueil', 'completion-barre-zone', 'completion-pastille', 'bandeauAide', 'btn-mode-admin'].forEach(function (id) {
         var e = document.getElementById(id);
         if (e && cons)
@@ -1925,7 +1928,7 @@ async function creerPageConsultation(ed, nom) {
         var cv = await referenceWidget();
         cv.access = 'full';
         cv.widgetOptions = { copie: badge };
-        ligne = await ajouterLignePage(badge, JSON.stringify({ consultation: true, page: ed.page }), 'Page de consultation de la documentation : ' + nom);
+        ligne = await ajouterLignePage(badge, JSON.stringify({ consultation: true, page: ed.page, titre: String(ed.titre || '').trim() }), 'Page de consultation de la documentation : ' + nom);
         var ref = refTableDoc(await grist.docApi.fetchTable('_grist_Tables'));
         if (!ref)
             throw new Error('Table de la documentation introuvable');
@@ -1995,7 +1998,7 @@ async function enregistrerPage() {
         try {
             var d = await grist.docApi.fetchTable('_grist_Views_section');
             var vue = vueDuBadge(d, ed.badge);
-            var actions = [['UpdateRecord', _docTableId, p.ligne, { VALEUR: JSON.stringify({ consultation: true, page: ed.page }), DESCRIPTIF: 'Page de consultation de la documentation : ' + nom, VERSION_MODIF: VERSION_WIDGET }]];
+            var actions = [['UpdateRecord', _docTableId, p.ligne, { VALEUR: JSON.stringify({ consultation: true, page: ed.page, titre: String(ed.titre || '').trim() }), DESCRIPTIF: 'Page de consultation de la documentation : ' + nom, VERSION_MODIF: VERSION_WIDGET }]];
             if (vue && nom !== ed.nomInitial)
                 actions.push(['UpdateRecord', '_grist_Views', vue, { name: nom }]);
             await ecrireDocument(actions);
@@ -2149,8 +2152,8 @@ function rendrePublication() {
         liste.forEach(function (x, k) {
             var n = _nomsPages[x];
             ul.appendChild(creer('li', { classe: 'dp-pages__item' }, [
-                creer('div', { classe: 'dp-pages__texte' }, [creer('span', { classe: 'dp-pages__nom', texte: n }), creer('span', { classe: 'w-mention', texte: 'Page du document' })]),
-                bouton('Renommer', 'discret', 'edit-line', function () { return editerPage(x); }, { petit: true, iconeSeule: true, id: 'dpModif' + k, aria: 'Renommer la page « ' + n + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Renommer' } }),
+                creer('div', { classe: 'dp-pages__texte' }, [creer('span', { classe: 'dp-pages__nom', texte: n }), creer('span', { classe: 'w-mention', texte: _pages[x].titre ? 'Bandeau : ' + _pages[x].titre : 'Page du document' })]),
+                bouton('Modifier', 'discret', 'edit-line', function () { return editerPage(x); }, { petit: true, iconeSeule: true, id: 'dpModif' + k, aria: 'Modifier la page « ' + n + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Modifier' } }),
                 bouton('Supprimer', 'discret', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, iconeSeule: true, id: 'dpSuppr' + k, aria: 'Supprimer la page « ' + n + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Supprimer' } })
             ]));
         });
@@ -2183,6 +2186,8 @@ async function editerPage(badge) {
     var p = badge ? _pages[badge] : null;
     var nomActuel = p ? (_nomsPages[badge] || '') : '';
     _editionPage = { badge: badge || null, nomInitial: nomActuel, page: p ? p.page : _pageSpecActive, nom: p ? nomActuel : nomParDefaut(_pageSpecActive) };
+    _editionPage.titre = p ? p.titre : _editionPage.nom;
+    _editionPage.titreManuel = !!p && p.titre !== nomActuel;
     rendrePublication();
     var n = document.getElementById('dpNom');
     if (n)
@@ -2192,14 +2197,24 @@ function formulairePage() {
     var ed = _editionPage;
     var nom = creer('input', { classe: 'fr-input', id: 'dpNom', attrs: { type: 'text', autocomplete: 'off', maxlength: '100', 'aria-required': 'true', 'aria-describedby': 'dpNomErreur' } });
     nom.value = ed.nom;
-    nom.addEventListener('input', function () { ed.nom = nom.value; });
-    nom.addEventListener('keydown', function (e) { if (e.key === 'Enter') {
+    var titre = creer('input', { classe: 'fr-input', id: 'dpTitre', attrs: { type: 'text', autocomplete: 'off', maxlength: '100' } });
+    titre.value = ed.titre || '';
+    nom.addEventListener('input', function () {
+        ed.nom = nom.value;
+        if (!ed.titreManuel) {
+            ed.titre = nom.value;
+            titre.value = nom.value;
+        }
+    });
+    titre.addEventListener('input', function () { ed.titre = titre.value; ed.titreManuel = true; });
+    [nom, titre].forEach(function (c) { c.addEventListener('keydown', function (e) { if (e.key === 'Enter') {
         e.preventDefault();
         relayer(enregistrerPage(), 'Publication de la page');
-    } });
+    } }); });
     return creer('div', { classe: 'dp-formulaire' }, [
-        creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', texte: ed.badge ? 'Nouveau nom de la page' : 'Nom de la page dans le document', attrs: { 'for': 'dpNom' } }), nom,
+        creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', texte: 'Nom de la page dans le document', attrs: { 'for': 'dpNom' } }), nom,
             creer('p', { classe: 'fr-error-text', id: 'dpNomErreur', attrs: { hidden: true } })]),
+        creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'dpTitre' } }, ['Titre du bandeau ', creer('span', { classe: 'fr-hint-text', texte: 'Le texte en haut de la page. Laissé vide, le bandeau reste celui de l\'accueil.' })]), titre]),
         creer('div', { classe: 'dp-actions' }, [
             bouton('Annuler', 'tertiaire', null, function () { _editionPage = null; rendrePublication(); var t = document.getElementById('dpSecConsult'); if (t)
                 t.focus(); }, { petit: true, id: 'dpAnnuler' }),
@@ -2288,6 +2303,10 @@ function majTitreBandeau() {
     var titre = document.getElementById('bandeau-titre');
     if (!titre)
         return;
+    if (_cfgPage && _cfgPage.titre) {
+        titre.textContent = _cfgPage.titre;
+        return;
+    }
     var contenu = document.getElementById('contenu');
     var modeDoc = Boolean(contenu && !contenu.hidden);
     if (modeDoc) {
@@ -5523,7 +5542,7 @@ function renommerPageSpec(titre) {
         }
         Object.keys(_pages).forEach(function (x) {
             if (_pages[x].consultation && _pages[x].page === ancien && _pages[x].ligne) {
-                actions.push(['UpdateRecord', _docTableId, _pages[x].ligne, { VALEUR: JSON.stringify({ consultation: true, page: v }) }]);
+                actions.push(['UpdateRecord', _docTableId, _pages[x].ligne, { VALEUR: JSON.stringify({ consultation: true, page: v, titre: _pages[x].titre || '' }) }]);
                 _pages[x].page = v;
             }
         });
