@@ -688,6 +688,33 @@
     .w-places--complet { background: var(--background-contrast-warning); color: var(--text-default-warning); border-left-color: var(--border-plain-warning); }
     .w-statuts { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
     .w-statut-dossier--attente { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+    .w-general { display: flex; flex-direction: column; }
+    .w-general > .w-grille + .w-grille { padding-top: 0; }
+    .w-section-page { gap: .75rem; }
+    .w-section-page__bas { margin-top: auto; display: flex; justify-content: flex-end; }
+    .w-pages-liste { list-style: none; margin: 0; padding: 0; }
+    .w-pages-liste__item { display: flex; align-items: flex-start; gap: .25rem; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .w-pages-liste__texte { flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; }
+    .w-pages-liste__nom { font-weight: 700; font-size: .875rem; color: var(--text-title-grey); }
+    .w-page-bloc { display: flex; flex-direction: column; gap: .75rem; }
+    .w-page-filtre { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-page-filtre legend { font-size: .875rem; font-weight: 700; padding: 0; margin-bottom: .25rem; color: var(--text-title-grey); }
+    .w-page-filtre__valeurs { max-height: 10rem; overflow-y: auto; padding: .25rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-page-filtre .fr-checkbox-group, .w-page-filtre .fr-radio-group { margin: 0; }
+    .w-page-sous-titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-page-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-page-sous-actions { display: flex; flex-direction: column; gap: .25rem; padding-left: 1.75rem; }
+    .w-page-sous-actions[hidden] { display: none; }
+    .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
+    .w-section-page .w-aide { margin: 0; vertical-align: middle; }
+    .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
+    .w-filtres-page__liste .fr-tag { margin: 0; }
+    .w-remplir-aides { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; flex: 1; }
+    .w-notices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
+    .w-notices li { padding: 0; }
+    .w-rq--document .fr-link--download { display: inline-flex; flex-wrap: wrap; gap: 0 .375rem; }
+    .w-infobulle--dessus::after { top: auto; bottom: calc(100% + .375rem); }
+    @media print { .w-remplir-aides { display: none; } }
   </style>
 </head>
 <body>
@@ -902,7 +929,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_FORMULAIRES';
@@ -955,6 +982,7 @@ DF.schema = (function () {
         { id: 'titre', libelle: 'Titre et texte', groupe: 'Mise en page', icone: 'H', famille: 'aucune', colonne: null },
         { id: 'encadre', libelle: 'Encadré d\'information', groupe: 'Mise en page', icone: 'ℹ', famille: 'aucune', colonne: null },
         { id: 'image', libelle: 'Image', groupe: 'Mise en page', icone: '🖼', famille: 'aucune', colonne: null },
+        { id: 'document', libelle: 'Document à télécharger', groupe: 'Mise en page', icone: '📄', famille: 'aucune', colonne: null },
         { id: 'separateur', libelle: 'Séparateur', groupe: 'Mise en page', icone: '―', famille: 'aucune', colonne: null },
         { id: 'section', libelle: 'Section repliable', groupe: 'Mise en page', icone: '▸', famille: 'aucune', colonne: null },
         { id: 'chapitre', libelle: 'Section numérotée', groupe: 'Mise en page', icone: '§', famille: 'aucune', colonne: null }
@@ -1092,6 +1120,12 @@ DF.schema = (function () {
         if (typeId === 'image') {
             q.image = '';
             q.texteAlternatif = '';
+        }
+        if (typeId === 'document') {
+            q.piece = 0;
+            q.nomFichier = '';
+            q.taille = 0;
+            q.texte = '';
         }
         if (typeId === 'calcul') {
             q.calcul = '';
@@ -4662,7 +4696,8 @@ var etat = {
     ongletDossier: 'demande',
     remplir: null,
     modaleOuverte: false,
-    uidSeq: 0
+    uidSeq: 0,
+    badge: null, copies: {}, page: null, proprietaire: false, pageProtegee: false, nomsPages: {}, nomsVues: [], editionPage: null, copiesNettoyees: false, dossiersTous: null
 };
 function uid() { etat.uidSeq++; return 'u' + etat.uidSeq; }
 function vider(n) { while (n && n.firstChild) {
@@ -5530,7 +5565,9 @@ var AIDE = {
         'Régler le chemin entre les pages : « si … aller à … », plusieurs fins possibles.',
         'Faire remplir le formulaire page par page, avec la barre d\'étapes, les erreurs sous les champs, une page de vérification et un accusé de réception.',
         'Suivre les réponses : tableau, synthèse, exports, et, si l\'instruction est activée, traiter les dossiers comme une démarche en ligne.',
-        'Partager le formulaire aux personnes du document ou à toute personne qui a le lien : le widget pose et vérifie lui-même les règles d\'accès.'
+        'Partager le formulaire aux personnes du document ou à toute personne qui a le lien : le widget pose et vérifie lui-même les règles d\'accès.',
+        'Joindre une aide pour remplir et des notices PDF, et poser un document à télécharger entre les questions.',
+        'Publier une page pour les personnes qui répondent ou qui instruisent, sans les écrans de conception, avec son titre de bandeau.'
     ],
     avant: [
         'Donnez au widget l\'accès complet au document (réglage du widget, « Accès complet »).',
@@ -5541,7 +5578,7 @@ var AIDE = {
         'Point de départ': { titre: 'choisir comment commencer', points: ['« Partir d\'un modèle » : six formulaires prêts à adapter.', '« Partir de zéro » : un formulaire vide avec une page de questions, la vérification et une fin.', '« Partir d\'une table existante » : une question par colonne de la table choisie, et les réponses arrivent dans cette table.'] },
         'Modèle': { titre: 'choisir le modèle', points: ['Cliquez sur une carte pour la choisir.', 'Tout reste modifiable ensuite : questions, pages, logique, réglages.'] },
         'Les tables': { titre: 'nommer la table des réponses', points: ['Le nom proposé vient du nom du formulaire.', 'Si une table porte déjà ce nom, choisissez de la réutiliser ou donnez un autre nom : le widget ne crée jamais de table numérotée.'] },
-        'Général': { titre: 'nom et description', points: ['Le nom s\'affiche en haut du formulaire et dans l\'onglet.', 'La suppression retire le formulaire de la bibliothèque ; la table et les réponses restent dans le document.'] },
+        'Général': { titre: 'nom, description, aide pour remplir et pages des lecteurs', points: ['Le nom s\'affiche en haut du formulaire et dans l\'onglet.', '« Aide pour remplir » : un texte et des notices PDF, ouverts par un bouton au-dessus du formulaire.', '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ OWNER ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.', '« Où les lecteurs le voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les formulaires, les écrans, les dossiers montrés, ce que les instructeurs peuvent y faire et les filtres laissés dans le panneau.', 'La suppression retire le formulaire de la bibliothèque ; la table et les réponses restent dans le document.'] },
         'Dates et limites': { titre: 'ouverture, clôture, nombre de réponses', points: ['Le formulaire s\'ouvre et se ferme seul aux dates choisies ; la clôture vaut jusqu\'à la fin du dernier jour.', 'Un nombre maximal de réponses ferme aussi le formulaire une fois atteint (0 : illimité).', 'Pour une fermeture stricte, passez le formulaire à l\'état « Fermé » (rubrique Général).'] },
         'Colonnes enregistrées': { titre: 'où vont les réponses', points: ['Chaque question enregistre sa réponse dans une colonne, nommée une fois pour toutes.', 'Renommer le nom du champ dans l\'éditeur renomme la colonne sans toucher aux réponses.'] },
         'Réglages': { titre: 'tous les réglages du formulaire', points: ['Choisissez une rubrique dans le sommaire à gauche : pas d\'ordre à suivre.', 'Chaque modification est enregistrée automatiquement.', '« Supprimer le formulaire » est en bas du sommaire.'] },
@@ -5564,6 +5601,9 @@ var AIDE = {
         { q: 'Une personne sans compte peut-elle voir les autres réponses ?', r: 'Non : les règles posées par le widget ne lui permettent que d\'ajouter une réponse. Le widget relit les règles et refuse d\'afficher le lien si une table resterait lisible.' },
         { q: 'Pourquoi l\'adresse e-mail est-elle demandée en premier ?', r: 'Sans connexion, c\'est le seul moyen de savoir qui répond. Elle est vérifiée (format, faute de frappe probable) et comparée aux adresses acceptées et refusées. Le document refait ce contrôle lui-même.' },
         { q: 'Qui voit un dossier ?', r: 'La personne qui l\'a déposé (connectée), les instructeurs du groupe vers lequel il est fléché, les gestionnaires, les personnes qui le suivent et les experts sollicités (en lecture).' },
+        { q: 'Comment montrer un formulaire sans les écrans de conception ?', r: 'Dans « Réglages », rubrique « Général », « Où les lecteurs le voient », puis « Publier sur une nouvelle page ». La page montre le formulaire à remplir, sans l\'aide du widget ni la conception, même aux propriétaires. Vous pouvez y ajouter « Mes dossiers » et « Dossiers à instruire ». Avec un lien public, c\'est cette page que voient les visiteurs.' },
+        { q: 'Comment cacher la page de conception ?', r: 'Dans « Réglages », rubrique « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ OWNER ONLY ⚡ » aux personnes qui ne gèrent pas les formulaires : la page disparaît de leur liste des pages.' },
+        { q: 'Comment joindre une notice ?', r: 'Dans « Réglages », rubrique « Général », « Aide pour remplir », puis « Joindre une notice (PDF) ». Pour un document à un endroit précis, ajoutez l\'élément « Document à télécharger » de la palette, dans « Mise en page ».' },
         { q: 'Comment réserver le paramétrage ?', r: 'Posez les règles d\'accès depuis l\'onglet « Partager » : seuls les propriétaires verront alors les onglets de conception.' }
     ]
 };
@@ -5670,6 +5710,16 @@ function panneauAide() {
     if (_aide.explication) {
         tabs.unshift({ cle: 'explication', libelle: 'Cette question' });
     }
+    tabs = ongletsAidePage(tabs);
+    if (!tabs.length) {
+        _aide.ouvert = false;
+        p.hidden = true;
+        document.body.classList.remove('w-aide-ouverte');
+        return;
+    }
+    if (!tabs.some(function (o) { return o.cle === courant; })) {
+        courant = tabs[0].cle;
+    }
     p.appendChild(creer('div', { classe: 'w-panneau-aide__tete' }, [
         creer('span', { classe: 'fr-icon-question-line w-panneau-aide__icone', attrs: { 'aria-hidden': 'true' } }),
         creer('h2', { classe: 'w-panneau-aide__titre', id: 'wAideTitre', texte: 'Aide', attrs: { tabindex: '-1' } }),
@@ -5697,7 +5747,7 @@ function panneauAide() {
         var v = creer('div', { classe: 'w-panneau-aide__volet', id: 'wAideVolet_' + o.cle, attrs: { role: 'tabpanel', 'aria-labelledby': 'wAideOnglet_' + o.cle, tabindex: '0' } });
         v.hidden = o.cle !== courant;
         if (o.cle === courant) {
-            var contenu = o.cle === 'explication' ? voletAideExplication() : (o.cle === 'resume' ? voletAideResume() : (o.cle === 'pas' ? voletAidePas(ctx) : voletAideQuestions()));
+            var contenu = o.cle === 'remplir' ? voletAideRemplir() : o.cle === 'explication' ? voletAideExplication() : (o.cle === 'resume' ? voletAideResume() : (o.cle === 'pas' ? voletAidePas(ctx) : voletAideQuestions()));
             contenu.forEach(function (n) { v.appendChild(n); });
         }
         corps.appendChild(v);
@@ -5775,6 +5825,893 @@ function brancherAide() {
     panneauAide();
 }
 var CLE_TEMOIN = 'ACCES_PARAMETRAGE';
+var CLE_COPIE = 'COPIE', ID_OWNER = 'OWNER_ONLY', TITRE_OWNER = '❌ OWNER ONLY ⚡', TITRE_DEFAUT = '📝 Diploformulaire';
+var CLES_LECTEURS = ['recherche', 'groupe', 'statut', 'etiquette'];
+function badgeValide(v) { return typeof v === 'string' && /^[a-z0-9]{6,16}$/.test(v) ? v : null; }
+function nouveauBadge() {
+    var a = new Uint32Array(2);
+    window.crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (x) { return ('000000' + x.toString(36)).slice(-7); }).join('');
+}
+function listeTextes(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return typeof x === 'string' && x; }); }
+function listeNombres(v) { return (Array.isArray(v) ? v : []).filter(function (x) { return typeof x === 'number' && isFinite(x); }); }
+function lectureSeuleDe(o) { return o.lectureSeule === true || (o.instruire === false && o.echanger === false); }
+function pageValide(o) {
+    o = o && typeof o === 'object' ? o : {};
+    var c = o.conditions && typeof o.conditions === 'object' ? o.conditions : {};
+    var l = o.lecteurs && typeof o.lecteurs === 'object' ? o.lecteurs : {};
+    var ls = lectureSeuleDe(o);
+    var lecteurs = {};
+    CLES_LECTEURS.forEach(function (k) { lecteurs[k] = l[k] !== false; });
+    return { admin: o.admin === true, consultation: o.consultation === true,
+        formulaires: listeTextes(o.formulaires), titre: typeof o.titre === 'string' ? o.titre : '',
+        mesDossiers: o.mesDossiers !== false, instruction: o.instruction === true,
+        conditions: { groupes: listeNombres(c.groupes), statuts: listeTextes(c.statuts), etiquettes: listeTextes(c.etiquettes) },
+        lectureSeule: ls, instruire: !ls && o.instruire !== false, echanger: !ls && o.echanger !== false, exporter: o.exporter !== false,
+        lecteurs: lecteurs };
+}
+function lireCopie(v) {
+    try {
+        return pageValide(JSON.parse(String(v || '{}')));
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Réglage de page illisible', e);
+        return pageValide(null);
+    }
+}
+function lireCopies(lignes) {
+    var r = {};
+    (lignes || []).forEach(function (l) {
+        if (l.TYPE !== 'Paramètre' || typeof l.NOM !== 'string' || l.NOM.indexOf(CLE_COPIE + ':') !== 0) {
+            return;
+        }
+        var b = badgeValide(l.NOM.slice(CLE_COPIE.length + 1));
+        if (b) {
+            r[b] = Object.assign({ ligne: l.id }, lireCopie(l.DEFINITION));
+        }
+    });
+    return r;
+}
+var _orphelineSignalee = false;
+function pageLecteurs() {
+    if (!etat.badge) {
+        return null;
+    }
+    var c = etat.copies[etat.badge];
+    if (c) {
+        return c.consultation && !c.admin ? c : null;
+    }
+    if (!_orphelineSignalee) {
+        _orphelineSignalee = true;
+        logSecurite('AVERTISSEMENT', 'Réglage de cette page introuvable : réponse à tous les formulaires publiés');
+    }
+    return Object.assign({ ligne: null, orpheline: true }, pageValide({ consultation: true, lectureSeule: true }));
+}
+function appliquerPageDroits() {
+    etat.copies = lireCopies(etat.lignesBiblio);
+    etat.page = pageLecteurs();
+    etat.proprietaire = false;
+    if (etat.page) {
+        etat.proprietaire = etat.peutParametrer;
+        etat.peutParametrer = false;
+    }
+}
+async function relireCopies() {
+    etat.lignesBiblio = await lireLignes(etat.biblio);
+    etat.copies = lireCopies(etat.lignesBiblio);
+}
+function formulairesPage() {
+    var p = etat.page, l = etat.formulaires;
+    if (!p.formulaires.length) {
+        return p.orpheline ? l : [];
+    }
+    return p.formulaires.map(function (id) { return l.filter(function (f) { return f.def.id === id; })[0]; }).filter(Boolean);
+}
+function ecransPage(def) {
+    var res = [{ cle: 'remplir', libelle: 'Répondre', icone: '✏️' }];
+    if (etat.page.mesDossiers && etat.moi.connu) {
+        res.push({ cle: 'mesdossiers', libelle: 'Mes dossiers', icone: '📂' });
+    }
+    if (etat.page.instruction && def && def.instruction && def.instruction.actif && estInstructeur(def)) {
+        res.push({ cle: 'reponses', libelle: 'Dossiers à instruire', icone: '🗂' });
+    }
+    return res;
+}
+function passeDossierPage(d, def) {
+    if (!etat.page) {
+        return true;
+    }
+    var c = etat.page.conditions;
+    var gs = c.groupes.filter(function (id) { return groupesDe(def).some(function (g) { return g.id === id; }); });
+    if (gs.length && gs.indexOf(d.GROUPE_INSTRUCTEUR) === -1) {
+        return false;
+    }
+    if (c.statuts.length && c.statuts.indexOf(d.STATUT_DOSSIER || 'Brouillon') === -1) {
+        return false;
+    }
+    var et = c.etiquettes.filter(function (e) { return ((def.instruction && def.instruction.etiquettes) || []).some(function (x) { return x.libelle === e; }); });
+    if (et.length && !listeCellule(d.ETIQUETTES).some(function (e) { return et.indexOf(e) !== -1; })) {
+        return false;
+    }
+    return true;
+}
+function pageInstruire() { return !etat.page || (!etat.page.lectureSeule && etat.page.instruire); }
+function pageEchanger() { return !etat.page || (!etat.page.lectureSeule && etat.page.echanger); }
+function pageExporter() { return !etat.page || etat.page.exporter; }
+function pageEcrit() { return !etat.page || !etat.page.lectureSeule; }
+function lecteurPeut(k) { return !etat.page || etat.page.lecteurs[k] !== false; }
+function cleCourant() { return etat.page ? 'courant:p:' + etat.badge : 'courant'; }
+function nomBandeau() { return etat.page && etat.page.titre ? etat.page.titre : 'Diploformulaire'; }
+function appliquerModePage() {
+    var t = document.getElementById('bandeauTitre');
+    if (t) {
+        vider(t);
+        if (etat.page && etat.page.titre) {
+            t.textContent = etat.page.titre;
+        }
+        else {
+            t.appendChild(creer('span', { texte: '📝 ', attrs: { 'aria-hidden': 'true' } }));
+            t.appendChild(document.createTextNode('Diploformulaire'));
+        }
+    }
+    document.title = nomBandeau();
+    var a = document.getElementById('bandeauAide');
+    if (a) {
+        a.hidden = !!etat.page;
+    }
+    if (etat.page && _aide.ouvert) {
+        _aide.ouvert = false;
+        _aide.onglet = null;
+        panneauAide();
+    }
+}
+function libelleStatut(s) { return LIBELLE_STATUT[s] || s; }
+function etiquettesPage(p, def) {
+    var c = p.conditions, res = [];
+    var gs = c.groupes.filter(function (id) { return !def || groupesDe(def).some(function (g) { return g.id === id; }); });
+    if (gs.length) {
+        res.push((gs.length > 1 ? 'Groupes : ' : 'Groupe : ') + gs.map(function (id) { return nomGroupe(id) || ('n° ' + id); }).join(', '));
+    }
+    if (c.statuts.length) {
+        res.push((c.statuts.length > 1 ? 'Statuts : ' : 'Statut : ') + c.statuts.map(libelleStatut).join(', '));
+    }
+    var et = c.etiquettes.filter(function (e) { return !def || ((def.instruction && def.instruction.etiquettes) || []).some(function (x) { return x.libelle === e; }); });
+    if (et.length) {
+        res.push((et.length > 1 ? 'Étiquettes : ' : 'Étiquette : ') + et.join(', '));
+    }
+    return res;
+}
+function blocPageVolet(def) {
+    if (!etat.page) {
+        return null;
+    }
+    var e = etiquettesPage(etat.page, def);
+    if (!e.length) {
+        return null;
+    }
+    return creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('eye-line', 'Cette page montre', 'dAidePage', 'Des réglages fixes de la page : les autres dossiers n\'y apparaissent pas.'),
+        creer('ul', { classe: 'w-filtres-page__liste', id: 'dPageConditions', attrs: { 'aria-label': 'Dossiers montrés par cette page' } },
+            e.map(function (x) { return creer('li', {}, [creer('p', { classe: 'fr-tag fr-tag--sm', texte: x })]); }))]);
+}
+function noticesDe(def) { return def && Array.isArray(def.reglages.notices) ? def.reglages.notices.filter(function (n) { return n && typeof n.piece === 'number'; }) : []; }
+function aideRemplirDe(def) { return def ? String(def.reglages.aideRemplir || '').trim() : ''; }
+function tailleLisible(o) {
+    o = +o || 0;
+    if (!o) {
+        return '';
+    }
+    if (o < 1024) {
+        return o + ' o';
+    }
+    if (o < 1048576) {
+        return Math.max(1, Math.round(o / 1024)) + ' Ko';
+    }
+    return (o / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+}
+function formatFichier(nom) { var m = /\.([a-z0-9]{1,6})$/i.exec(String(nom || '')); return m ? m[1].toUpperCase() : 'Fichier'; }
+function lienTelechargement(piece, nom, taille, libelle, id) {
+    var detail = [formatFichier(nom), tailleLisible(taille)].filter(Boolean).join(', ');
+    var a = creer('a', { classe: 'fr-link fr-link--download', id: id, attrs: { href: '#', rel: 'noopener' } }, [libelle, creer('span', { classe: 'fr-link__detail', texte: detail })]);
+    a.addEventListener('click', function (e) {
+        e.preventDefault();
+        relayer(urlPieceJointe(piece).then(function (u) { window.open(u, '_blank', 'noopener'); }), 'Téléchargement du document');
+    });
+    return a;
+}
+function blocNotices(def, prefixe) {
+    var n = noticesDe(def);
+    if (!n.length) {
+        return null;
+    }
+    return creer('ul', { classe: 'w-notices', id: prefixe + 'Notices', attrs: { 'aria-label': 'Notices à télécharger' } }, n.map(function (x, i) {
+        return creer('li', {}, [lienTelechargement(x.piece, x.nom, x.taille, n.length > 1 ? 'Télécharger « ' + x.nom + ' »' : 'Télécharger la notice', prefixe + 'Notice' + i)]);
+    }));
+}
+function ouvrirAideRemplir(b) {
+    _aide.onglet = 'remplir';
+    _aide.ouvert = true;
+    _aide.retour = b || null;
+    panneauAide();
+    var t = document.getElementById('wAideTitre');
+    if (t) {
+        t.focus();
+    }
+}
+function outilsRemplir(def, prefixe) {
+    var notices = blocNotices(def, prefixe);
+    var aideB = aideRemplirDe(def) ? bouton('Aide pour remplir', 'secondaire', 'question-line', function (e) { ouvrirAideRemplir(e && e.currentTarget); }, { petit: true, id: prefixe + 'AideRemplir' }) : null;
+    if (!notices && !aideB) {
+        return null;
+    }
+    return creer('div', { classe: 'w-remplir-aides', id: prefixe + 'Aides' }, [notices, aideB]);
+}
+function aideRemplirVisible() {
+    var d = defCourante();
+    return !!d && (!!aideRemplirDe(d) || noticesDe(d).length > 0) && ['remplir', 'mesdossiers', 'apercu'].indexOf(etat.vue) !== -1;
+}
+function ongletsAidePage(tabs) {
+    if (etat.page) {
+        tabs = tabs.filter(function (o) { return o.cle === 'explication'; });
+    }
+    if (aideRemplirVisible()) {
+        tabs.unshift({ cle: 'remplir', libelle: 'Aide pour remplir' });
+    }
+    return tabs;
+}
+function voletAideRemplir() {
+    var def = defCourante();
+    var res = [creer('h3', { classe: 'w-panneau-aide__sous-titre', texte: def.nom || 'Aide pour remplir' })];
+    String(aideRemplirDe(def)).split(/\n+/).filter(Boolean).forEach(function (t) { res.push(creer('p', { classe: 'w-texte', texte: t })); });
+    var n = blocNotices(def, 'wAide');
+    if (n) {
+        res.push(n);
+    }
+    return res;
+}
+function piecesDe(def) {
+    var ids = [];
+    var ajouter = function (x) { if (typeof x === 'number' && x > 0 && ids.indexOf(x) === -1) {
+        ids.push(x);
+    } };
+    noticesDe(def).forEach(function (n) { ajouter(n.piece); });
+    DF.schema.toutesQuestions(def).forEach(function (x) {
+        var q = x.q;
+        if (q.type === 'image') {
+            ajouter(q.image);
+        }
+        if (q.type === 'document') {
+            ajouter(q.piece);
+        }
+        if (q.type === 'images') {
+            (q.options || []).forEach(function (o) { ajouter(o.image); });
+        }
+    });
+    return ids.sort(function (a, b) { return a - b; });
+}
+function colonnePieces() { var m = tableMeta(etat.biblio); return !!(m && m.colonnes.PIECES); }
+async function assurerColonnePieces() {
+    if (!etat.biblio || colonnePieces()) {
+        return colonnePieces();
+    }
+    try {
+        await agir([['AddColumn', etat.biblio, 'PIECES', { type: 'Attachments', isFormula: false, label: 'PIÈCES', description: 'Notices, documents à télécharger et images des formulaires, gardés ici pour que le document ne les efface pas. Ne pas modifier à la main.' }]]);
+        await chargerMeta();
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Colonne des pièces non créée', e);
+    }
+    return colonnePieces();
+}
+async function rattacherPieces() {
+    var acts = [];
+    for (var i = 0; i < etat.formulaires.length; i++) {
+        var f = etat.formulaires[i];
+        var p = piecesDe(f.def);
+        if (!p.length || !f.ligne) {
+            continue;
+        }
+        if (!(await assurerColonnePieces())) {
+            return;
+        }
+        var l = etat.lignesBiblio.filter(function (x) { return x.id === f.ligne; })[0];
+        var voulu = ['L'].concat(p);
+        if (!l || JSON.stringify(l.PIECES || null) !== JSON.stringify(voulu)) {
+            acts.push(['UpdateRecord', etat.biblio, f.ligne, { PIECES: voulu }]);
+        }
+    }
+    if (acts.length) {
+        try {
+            await agir(acts);
+            logSecurite('INFO', 'Pièces des formulaires rattachées à la bibliothèque : ' + acts.length);
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Pièces des formulaires non rattachées', e);
+        }
+    }
+}
+function editeurNotices(def) {
+    var rg = def.reglages;
+    var z = creer('div', { classe: 'w-pile', id: 'aNoticesZone' });
+    var n = noticesDe(def);
+    if (n.length) {
+        z.appendChild(creer('ul', { classe: 'w-pages-liste' }, n.map(function (x, i) {
+            return creer('li', { classe: 'w-pages-liste__item' }, [
+                creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: x.nom }), creer('span', { classe: 'w-mention', texte: [formatFichier(x.nom), tailleLisible(x.taille)].filter(Boolean).join(', ') })]),
+                boutonIcone('Retirer « ' + x.nom + ' »', 'delete-line', function () {
+                    rg.notices = noticesDe(def).filter(function (y) { return y !== x; });
+                    planifierSauvegarde();
+                    redessinerParam('#aNoticeAjout');
+                }, { variante: 'discret', id: 'aNoticeRetirer' + i, classe: 'w-infobulle--dessus' })
+            ]);
+        })));
+    }
+    else {
+        z.appendChild(creer('p', { classe: 'w-mention', id: 'aNoticesVide', texte: 'Aucune notice jointe.' }));
+    }
+    var input = creer('input', { classe: 'fr-sr-only', id: 'aNoticeFichier', attrs: { type: 'file', accept: 'application/pdf,.pdf' } });
+    input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) {
+            return;
+        }
+        if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') {
+            afficherErreur('La notice doit être un fichier PDF.');
+            return;
+        }
+        afficherLoader('Envoi de la notice…');
+        relayer(envoyerFichiers([f]).then(function (ids) {
+            rg.notices = noticesDe(def).concat([{ piece: ids[0], nom: f.name, taille: f.size }]);
+            return assurerColonnePieces();
+        }).then(function () {
+            masquerLoader();
+            planifierSauvegarde();
+            redessinerParam('#aNoticeAjout');
+            annoncer('Notice « ' + f.name + ' » jointe.');
+        }).catch(function (e) { masquerLoader(); afficherErreur('La notice n\'a pas été envoyée : ' + messageErreur(e), e); }), 'Envoi de la notice');
+    });
+    z.appendChild(creer('div', {}, [creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-attachment-line fr-btn--icon-left', id: 'aNoticeAjout', attrs: { 'for': 'aNoticeFichier', tabindex: '0' }, texte: 'Joindre une notice (PDF)' }), input]));
+    return z;
+}
+function sectionAideRemplir(def) {
+    var rg = def.reglages;
+    return section('Aide pour remplir', 'Montrée à la personne qui répond : un bouton « Aide pour remplir » au-dessus du formulaire ouvre ce texte dans le panneau de droite, avec les notices.', 'aSecAideRemplir', [
+        champLie('aAideRemplir', 'Texte de l\'aide', rg, 'aideRemplir', { multiligne: true, aide: 'Facultatif. Une ligne vide sépare les paragraphes.' }),
+        creer('p', { classe: 'w-page-sous-titre', texte: 'Notices à télécharger' }),
+        creer('p', { classe: 'w-mention', texte: 'Fichiers PDF de 25 Mo au plus. Un lien de téléchargement apparaît au-dessus de chaque page du formulaire, dans l\'aide et dans « Mes dossiers ».' }),
+        editeurNotices(def)
+    ]);
+}
+function editeurDocument(q, maj) {
+    var z = creer('div', { classe: 'w-pile', id: 'cDocumentZone' });
+    var input = creer('input', { classe: 'fr-sr-only', id: 'cDocument', attrs: { type: 'file' } });
+    var etat_ = creer('span', { classe: 'w-mention', id: 'cDocumentEtat', texte: q.piece ? 'Fichier joint : ' + q.nomFichier + (q.taille ? ' (' + tailleLisible(q.taille) + ')' : '') + '.' : 'Aucun fichier joint.' });
+    input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) {
+            return;
+        }
+        relayer(envoyerFichiers([f]).then(function (ids) {
+            q.piece = ids[0];
+            q.nomFichier = f.name;
+            q.taille = f.size;
+            etat_.textContent = 'Fichier joint : ' + f.name + ' (' + tailleLisible(f.size) + ').';
+            return assurerColonnePieces();
+        }).then(function () { maj(); }).catch(function (e) { afficherErreur('Le fichier n\'a pas été envoyé : ' + messageErreur(e), e); }), 'Envoi du document');
+    });
+    z.appendChild(creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-attachment-line fr-btn--icon-left', attrs: { 'for': 'cDocument' }, texte: q.piece ? 'Remplacer le fichier' : 'Choisir un fichier' }));
+    z.appendChild(input);
+    z.appendChild(etat_);
+    return z;
+}
+function blocDocument(q) {
+    var b = [];
+    if (q.piece) {
+        b.push(lienTelechargement(q.piece, q.nomFichier, q.taille, q.libelle && q.libelle !== 'Document à télécharger' ? q.libelle : 'Télécharger « ' + (q.nomFichier || 'le document') + ' »', 'rDoc_' + q.id));
+    }
+    if (q.texte) {
+        b.push(creer('p', { classe: 'w-mention', texte: q.texte }));
+    }
+    return b;
+}
+function redessinerParam(sel) {
+    afficherVue('reglages', { sansFocus: true });
+    var n = sel ? document.querySelector(sel) : null;
+    if (n && n.focus) {
+        n.focus();
+    }
+}
+function pagesDuFormulaire(id) {
+    return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].formulaires.indexOf(id) !== -1 && etat.nomsPages && etat.nomsPages[x]; });
+}
+function resumePage(x) {
+    var p = etat.copies[x];
+    var noms = p.formulaires.map(function (id) { var f = etat.formulaires.filter(function (y) { return y.def.id === id; })[0]; return f ? f.def.nom || 'Sans nom' : ''; }).filter(Boolean);
+    var parts = [];
+    if (p.titre) {
+        parts.push('Bandeau : ' + p.titre);
+    }
+    if (noms.length > 1) {
+        parts.push('Formulaires : ' + noms.join(', '));
+    }
+    var ecrans = ['Répondre'];
+    if (p.mesDossiers) {
+        ecrans.push('Mes dossiers');
+    }
+    if (p.instruction) {
+        ecrans.push('Dossiers à instruire');
+    }
+    parts.push('Écrans : ' + ecrans.join(', '));
+    if (p.instruction) {
+        var e = etiquettesPage(p, null);
+        if (e.length) {
+            parts.push('Dossiers : ' + e.join(' ; '));
+        }
+        parts.push(p.lectureSeule ? 'Dossiers en lecture seule' : (p.instruire && p.echanger ? 'Instruction et messagerie' : (p.instruire ? 'Instruction, sans messagerie' : 'Messagerie et avis, sans instruction')));
+    }
+    return parts.join('. ');
+}
+function editerPage(badge, dupliquer) {
+    var p = badge ? etat.copies[badge] : null;
+    var def = defCourante();
+    var nomPage = p ? etat.nomsPages[badge] + (dupliquer ? ' (copie)' : '') : '📝 ' + ((def && def.nom) || 'Formulaire');
+    var base = p ? JSON.parse(JSON.stringify(p)) : pageValide({ consultation: true, formulaires: def ? [def.id] : [], lectureSeule: true });
+    etat.editionPage = Object.assign(base, { badge: dupliquer ? null : badge, nomInitial: p && !dupliquer ? etat.nomsPages[badge] : '', nom: nomPage,
+        titre: p ? p.titre : nomPage, titreManuel: !!p && p.titre !== etat.nomsPages[badge] });
+    if (etat.editionPage.lectureSeule) {
+        etat.editionPage.instruire = true;
+        etat.editionPage.echanger = true;
+    }
+    etat.editionPage.formulaires = etat.editionPage.formulaires.filter(function (id) { return etat.formulaires.some(function (f) { return f.def.id === id; }); });
+    redessinerParam('#aPageNom');
+}
+function casePage(id, libelle, coche, surChange, indice) {
+    var cb = creer('input', { attrs: { type: 'checkbox', id: id }, coche: coche });
+    cb.addEventListener('change', function () { surChange(cb.checked, cb); });
+    return creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, indice ? creer('span', { classe: 'fr-hint-text', texte: indice }) : null])]);
+}
+function radioPage(nom, id, libelle, coche, surChange, indice) {
+    var r = creer('input', { attrs: { type: 'radio', name: nom, id: id }, coche: coche });
+    r.addEventListener('change', function () { if (r.checked) {
+        surChange();
+    } });
+    return creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, indice ? creer('span', { classe: 'fr-hint-text', texte: indice }) : null])]);
+}
+function basculerDans(liste_, v, coche) { return liste_.filter(function (x) { return x !== v; }).concat(coche ? [v] : []); }
+function boiteCases(id, legende, items, choisis, surChange, mention) {
+    var boite = creer('div', { classe: 'w-page-filtre__valeurs', id: id, attrs: { role: 'group', 'aria-label': legende } });
+    items.forEach(function (it, j) { boite.appendChild(casePage(id + '_' + j, it.libelle, choisis.indexOf(it.valeur) !== -1, function (v) { surChange(it.valeur, v); })); });
+    if (!items.length) {
+        boite.appendChild(creer('p', { classe: 'w-mention', texte: mention || 'Aucune valeur.' }));
+    }
+    return creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: legende }), boite]);
+}
+function formulairePage() {
+    var ed = etat.editionPage;
+    var nom = saisie('aPageNom', ed.nom);
+    var titre = saisie('aPageTitre', ed.titre);
+    nom.addEventListener('input', function () {
+        ed.nom = nom.value;
+        if (!ed.titreManuel) {
+            ed.titre = nom.value;
+            titre.value = nom.value;
+        }
+    });
+    titre.addEventListener('input', function () { ed.titre = titre.value; ed.titreManuel = true; });
+    var noeuds = [groupeChamp('Nom de la page', nom, 'Affiché dans la liste des pages du document.', true),
+        groupeChamp('Titre du bandeau', titre, 'Remplace « ' + TITRE_DEFAUT + ' » en haut de la page. Laissé vide, le bandeau garde ce nom.')];
+    var forms = etat.formulaires.map(function (f) { return { valeur: f.def.id, libelle: (f.def.nom || 'Sans nom') + (f.def.reglages.statut === 'brouillon' ? ' (brouillon)' : '') }; });
+    var bf = boiteCases('aPageForm', 'Formulaires montrés', forms, ed.formulaires, function (v, coche) {
+        var ch = basculerDans(ed.formulaires, v, coche);
+        ed.formulaires = etat.formulaires.map(function (f) { return f.def.id; }).filter(function (x) { return ch.indexOf(x) !== -1; });
+        redessinerParam('#aPageForm_' + forms.map(function (f) { return f.valeur; }).indexOf(v));
+    });
+    bf.appendChild(creer('p', { classe: 'w-mention', texte: 'Avec plusieurs formulaires, les personnes passent de l\'un à l\'autre par des onglets. Un formulaire en brouillon n\'apparaît qu\'aux instructeurs.' }));
+    noeuds.push(bf);
+    var defs = etat.formulaires.filter(function (f) { return ed.formulaires.indexOf(f.def.id) !== -1; }).map(function (f) { return f.def; });
+    var instruits = defs.filter(function (d) { return d.instruction && d.instruction.actif; });
+    if (!instruits.length) {
+        ed.instruction = false;
+    }
+    noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Écrans proposés' }),
+        creer('p', { classe: 'w-mention', texte: '« Répondre » est toujours proposé. Les écrans de conception (Concevoir, Logique, Réglages, Aperçu, Partager) ne le sont jamais, même aux propriétaires.' }),
+        casePage('aPageMesDossiers', 'Mes dossiers', ed.mesDossiers, function (v) { ed.mesDossiers = v; }, 'Les personnes connectées retrouvent leurs réponses, les continuent ou les corrigent.'),
+        casePage('aPageInstruction', 'Dossiers à instruire', ed.instruction, function (v) { ed.instruction = v; redessinerParam('#aPageInstruction'); },
+            instruits.length ? 'Pour les instructeurs des groupes et les propriétaires du document.' : 'Aucun formulaire choisi n\'a l\'instruction activée (Réglages, « L\'instruction »).')]));
+    var cbI = noeuds[noeuds.length - 1].querySelector('#aPageInstruction');
+    if (cbI && !instruits.length) {
+        cbI.disabled = true;
+    }
+    if (ed.instruction) {
+        var groupes = [];
+        instruits.forEach(function (d) { groupesDe(d).forEach(function (g) { groupes.push({ valeur: g.id, libelle: (instruits.length > 1 ? (d.nom || 'Sans nom') + ' : ' : '') + g.NOM }); }); });
+        var statuts = DF.colonnes.STATUTS.filter(function (s) { return s !== 'Brouillon'; }).map(function (s) { return { valeur: s, libelle: libelleStatut(s) }; });
+        var etiq = [];
+        instruits.forEach(function (d) { (d.instruction.etiquettes || []).forEach(function (e) { if (e.libelle && !etiq.some(function (x) { return x.valeur === e.libelle; })) {
+            etiq.push({ valeur: e.libelle, libelle: e.libelle });
+        } }); });
+        noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Dossiers montrés' }),
+            creer('p', { classe: 'w-mention', texte: 'Des réglages fixes, que les personnes ne peuvent pas retirer. Rien de coché dans une liste : pas de limite. Ce ne sont pas des droits : pour la confidentialité, posez des règles d\'accès sur la table des réponses.' }),
+            boiteCases('aPcGroupe', 'Groupes d\'instructeurs', groupes, ed.conditions.groupes, function (v, c) { ed.conditions.groupes = basculerDans(ed.conditions.groupes, v, c); }, 'Aucun groupe : composez-les dans Réglages, « L\'instruction ».'),
+            boiteCases('aPcStatut', 'Statuts', statuts, ed.conditions.statuts, function (v, c) { ed.conditions.statuts = basculerDans(ed.conditions.statuts, v, c); }),
+            boiteCases('aPcEtiquette', 'Étiquettes', etiq, ed.conditions.etiquettes, function (v, c) { ed.conditions.etiquettes = basculerDans(ed.conditions.etiquettes, v, c); }, 'Aucune étiquette définie.')]));
+        var actions = creer('div', { classe: 'w-page-sous-actions', id: 'aPageActions' }, [
+            casePage('aPageInstruire', 'Instruire', ed.instruire, function (v) { ed.instruire = v; }, 'Statuts, décisions, transferts, suivi, étiquettes et annotations.'),
+            casePage('aPageEchanger', 'Messagerie et avis', ed.echanger, function (v) { ed.echanger = v; }, 'Écrire au répondant, demander et donner des avis.')]);
+        actions.hidden = ed.lectureSeule;
+        noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Ce que les personnes peuvent faire sur les dossiers' }),
+            radioPage('aPageDroits', 'aPageLecture', 'Lecture seule', ed.lectureSeule, function () { ed.lectureSeule = true; actions.hidden = true; }, 'Les dossiers se consultent ; rien ne se modifie depuis cette page, quels que soient les droits.'),
+            radioPage('aPageDroits', 'aPageEcriture', 'Selon les droits du document', !ed.lectureSeule, function () { ed.lectureSeule = false; actions.hidden = false; }, 'Les instructeurs autorisés peuvent :'),
+            actions,
+            casePage('aPageExporter', 'Exporter (XLS et ZIP)', ed.exporter, function (v) { ed.exporter = v; }),
+            creer('p', { classe: 'w-mention', texte: 'Ces choix ne donnent aucun droit : une personne qui n\'instruit pas un dossier ne le voit pas. « Répondre » et « Mes dossiers » restent toujours possibles.' })]));
+        noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Filtres laissés aux lecteurs' }),
+            creer('p', { classe: 'w-mention', texte: 'Dans le panneau de gauche des dossiers. Un élément décoché disparaît.' })].concat([['recherche', 'Rechercher'], ['groupe', 'Groupe'], ['statut', 'Statut'], ['etiquette', 'Étiquette']].map(function (x) {
+            return casePage('aPl_' + x[0], x[1], ed.lecteurs[x[0]] !== false, function (v) { ed.lecteurs[x[0]] = v; });
+        }))));
+    }
+    noeuds.push(creer('div', { classe: 'w-page-actions' }, [
+        bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerParam('#aPageConsultation'); }, { petit: true, id: 'aPageAnnuler' }),
+        bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'aPageEnregistrer' })
+    ]));
+    return noeuds;
+}
+function valeurPage(ed) {
+    var ls = ed.lectureSeule || (!ed.instruire && !ed.echanger);
+    return JSON.stringify({ consultation: true, formulaires: ed.formulaires.slice(), titre: String(ed.titre || '').trim(), mesDossiers: !!ed.mesDossiers, instruction: !!ed.instruction,
+        conditions: ed.instruction ? ed.conditions : { groupes: [], statuts: [], etiquettes: [] },
+        lectureSeule: ls, instruire: !ls && !!ed.instruire, echanger: !ls && !!ed.echanger, exporter: !!ed.exporter, lecteurs: ed.lecteurs });
+}
+async function enregistrerPage() {
+    var ed = etat.editionPage;
+    var nom = String(ed.nom || '').trim();
+    if (!nom) {
+        marquerInvalide('aPageNom', 'Donnez un nom à la page.');
+        return;
+    }
+    if (nom !== ed.nomInitial && etat.nomsVues.indexOf(nom) !== -1) {
+        marquerInvalide('aPageNom', 'Une page porte déjà ce nom dans le document.');
+        return;
+    }
+    if (!ed.formulaires.length) {
+        marquerInvalide('aPageForm_0', 'Choisissez au moins un formulaire.');
+        return;
+    }
+    var valeur = valeurPage(ed);
+    if (!ed.badge) {
+        await creerPageConsultation(nom, valeur);
+        return;
+    }
+    var copie = etat.copies[ed.badge];
+    afficherLoader('Enregistrement de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadge(d, ed.badge);
+        var actions = [['UpdateRecord', etat.biblio, copie.ligne, { DEFINITION: valeur, VERSION_WIDGET: VERSION_WIDGET }]];
+        if (vue && nom !== ed.nomInitial) {
+            actions.push(['UpdateRecord', '_grist_Views', vue, { name: nom }]);
+        }
+        await agir(actions);
+        await relireCopies();
+        await majPages();
+        etat.editionPage = null;
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses lecteurs verront le changement à la prochaine ouverture.');
+        redessinerParam('#aPageConsultation');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier cette page.' : 'La page n\'a pas été enregistrée : ' + messageErreur(e), e);
+    }
+}
+async function creerPageConsultation(nom, valeur) {
+    var ref = tableMeta(etat.biblio) ? tableMeta(etat.biblio).ref : null;
+    if (!ref) {
+        afficherErreur('La page n\'a pas été créée : bibliothèque introuvable.');
+        return;
+    }
+    var badge = nouveauBadge();
+    var ligne = null, vue = null;
+    afficherLoader('Création de la page…');
+    try {
+        var cv = await referenceWidget();
+        cv.access = 'full';
+        cv.widgetOptions = { copie: badge };
+        var ret = await agir([['AddRecord', etat.biblio, null, { TYPE: 'Paramètre', NOM: CLE_COPIE + ':' + badge, FORMULAIRE: '', DEFINITION: valeur, VERSION_WIDGET: VERSION_WIDGET }]]);
+        ligne = ret && ret.retValues ? ret.retValues[0] : null;
+        var r = await agir([['CreateViewSection', ref, 0, 'custom', null, null]]);
+        var res = r && r.retValues ? r.retValues[0] || {} : {};
+        if (!res.viewRef || !res.sectionRef) {
+            throw new Error('Page non créée');
+        }
+        vue = res.viewRef;
+        var premier = etat.formulaires.filter(function (f) { return f.def.id === JSON.parse(valeur).formulaires[0]; })[0];
+        await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: nom }],
+            ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: premier ? premier.def.nom || '' : '', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
+        await relireCopies();
+        await majPages();
+        etat.editionPage = null;
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.');
+        redessinerParam('#aPageConsultation');
+    }
+    catch (e) {
+        masquerLoader();
+        var annuler = [];
+        if (vue) {
+            annuler.push(['RemoveRecord', '_grist_Views', vue]);
+        }
+        if (ligne) {
+            annuler.push(['RemoveRecord', etat.biblio, ligne]);
+        }
+        if (annuler.length) {
+            await agir(annuler).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Création de page non annulée', eA); });
+        }
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée : ' + messageErreur(e), e);
+    }
+}
+async function supprimerPageConsultation(badge) {
+    var nom = etat.nomsPages[badge] || '';
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les formulaires et leurs réponses ne sont pas touchés.', 'Supprimer la page');
+    if (!ok) {
+        return;
+    }
+    afficherLoader('Suppression de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadge(d, badge);
+        var actions = [['RemoveRecord', etat.biblio, etat.copies[badge].ligne]];
+        if (vue) {
+            actions.unshift(['RemoveRecord', '_grist_Views', vue]);
+        }
+        await agir(actions);
+        await relireCopies();
+        await majPages();
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est supprimée.');
+        redessinerParam('#aPageConsultation');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée : ' + messageErreur(e), e);
+    }
+}
+async function creerTableOwner() {
+    var r = await agir([['AddTable', ID_OWNER, [{ id: 'INFO', type: 'Text', isFormula: false, label: 'INFO' }]]]);
+    var rv = r && r.retValues && r.retValues[0] ? r.retValues[0] : {};
+    var tid = rv.table_id || ID_OWNER;
+    await chargerMeta();
+    var m = tableMeta(tid);
+    var acts = [];
+    if (m && m.primaryViewId) {
+        acts.push(['RemoveRecord', '_grist_Views', m.primaryViewId]);
+    }
+    if (m && m.rawViewSectionRef) {
+        acts.push(['UpdateRecord', '_grist_Views_section', m.rawViewSectionRef, { title: TITRE_OWNER,
+                description: 'Protection de pages : une vue de cette table posée sur une page masque la page aux personnes qui ne peuvent pas lire la table. Les règles d\'accès de cette table décident qui voit ces pages. Ne pas supprimer.' }]);
+    }
+    try {
+        await agir(acts);
+        await agir([['ModifyColumn', tid, 'INFO', { description: 'Colonne sans usage : la table sert seulement à masquer des pages.' }]]);
+    }
+    catch (e) {
+        logSecurite('INFO', 'Mise en forme de la table de protection incomplète', e);
+    }
+    await chargerMeta();
+    return trouverOwner();
+}
+async function cacherPage() {
+    var ligne = null;
+    afficherLoader('Préparation de la page…');
+    try {
+        if (!etat.badge || !etat.copies[etat.badge]) {
+            var badge = nouveauBadge();
+            var ret = await agir([['AddRecord', etat.biblio, null, { TYPE: 'Paramètre', NOM: CLE_COPIE + ':' + badge, FORMULAIRE: '', DEFINITION: JSON.stringify({ admin: true }), VERSION_WIDGET: VERSION_WIDGET }]]);
+            ligne = ret && ret.retValues ? ret.retValues[0] : null;
+            var ancien = etat.badge;
+            etat.badge = badge;
+            try {
+                await gristAvecTimeout(Promise.resolve(grist.setOptions({ copie: badge })), DELAI_API_MS);
+            }
+            catch (eO) {
+                etat.badge = ancien;
+                throw eO;
+            }
+        }
+        var o = trouverOwner() || await creerTableOwner();
+        var ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
+        var vue = null, d = null;
+        for (var essai = 0; essai < 6 && !vue; essai++) {
+            if (essai) {
+                await new Promise(function (ok) { setTimeout(ok, 500); });
+            }
+            d = await lireTable('_grist_Views_section');
+            vue = vueDuBadge(d, etat.badge);
+        }
+        if (!vue || !ref) {
+            throw new Error('Page du widget non retrouvée');
+        }
+        ligne = null;
+        var reduite = true;
+        if (!d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })) {
+            var r = await agir([['CreateViewSection', ref, vue, 'record', null, null]]);
+            var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
+            if (sec) {
+                await agir([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + TITRE_OWNER + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
+                reduite = await reduireVue(vue, sec);
+            }
+        }
+        await relireCopies();
+        await majPages();
+        masquerLoader();
+        afficherSucces('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.');
+        redessinerParam('#aSecAdmin');
+    }
+    catch (e) {
+        masquerLoader();
+        if (ligne) {
+            await agir([['RemoveRecord', etat.biblio, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
+        }
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
+    }
+}
+function sectionsPages() {
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in ["adresse1", "adresse2"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page. Avec un lien public, cette règle est indispensable : la vérification des règles signale la table tant qu\'elle reste lisible.');
+    var admin = sectionPage('aSecAdmin', 'Cette page', [
+        creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec la conception de tous les formulaires, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la conception de tous les formulaires. Elle est visible par toutes les personnes qui ont accès au document.', ' ', r.bouton]), r.panneau
+    ], etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
+    var ic = aide('aAideConsult', 'Où les lecteurs le voient', 'Chaque page de lecteurs montre un ou plusieurs formulaires à remplir, sans aide du widget ni écrans de conception, même pour les propriétaires. Vous y ajoutez si besoin « Mes dossiers » et « Dossiers à instruire », avec les dossiers montrés, ce que les instructeurs peuvent y faire et les filtres laissés dans le panneau. La page est posée sur la bibliothèque des formulaires : avec un lien public, c\'est elle que voient les visiteurs sans compte.');
+    if (etat.editionPage) {
+        return [admin, sectionPage('aSecConsult', 'Où les lecteurs le voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page pour les lecteurs' })].concat(formulairePage()), null)];
+    }
+    var def = defCourante();
+    var liste_ = creer('ul', { classe: 'w-pages-liste' });
+    pagesDuFormulaire(def ? def.id : '').forEach(function (x, k) {
+        var nom = etat.nomsPages[x];
+        liste_.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
+            boutonIcone('Modifier « ' + nom + ' »', 'edit-line', function () { editerPage(x, false); }, { variante: 'discret', id: 'aPageModif' + k, classe: 'w-infobulle--dessus' }),
+            boutonIcone('Dupliquer « ' + nom + ' »', 'file-add-line', function () { editerPage(x, true); }, { variante: 'discret', id: 'aPageDupl' + k, classe: 'w-infobulle--dessus' }),
+            boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
+        ]));
+    });
+    var consult = sectionPage('aSecConsult', 'Où les lecteurs le voient', [
+        creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce formulaire sans les écrans de conception. ', ic.bouton]), ic.panneau,
+        liste_.childNodes.length ? liste_ : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce formulaire n\'est montré sur aucune page de lecteurs.' })
+    ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
+    return [admin, consult];
+}
+async function referenceWidget() {
+    var ici = location.origin + location.pathname;
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var badges = Object.keys(etat.copies);
+        for (var i = 0; i < d.id.length; i++) {
+            var cv = null;
+            try {
+                cv = JSON.parse(JSON.parse((d.options || [])[i] || '{}').customView || '{}');
+            }
+            catch (e1) {
+                continue;
+            }
+            var memeAdresse = typeof cv.url === 'string' && cv.url.split(/[?#]/)[0] === ici;
+            var copie = cv.widgetOptions && badges.indexOf(cv.widgetOptions.copie) !== -1;
+            if (memeAdresse || copie) {
+                var r = { mode: cv.mode || 'url', url: cv.url || ici, widgetDef: cv.widgetDef || null, pluginId: cv.pluginId || '', sectionId: '', renderAfterReady: !!cv.renderAfterReady };
+                if (cv.widgetId) {
+                    r.widgetId = cv.widgetId;
+                }
+                return r;
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Référence du widget non retrouvée dans les vues : adresse du fichier utilisée', e);
+    }
+    return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
+}
+function trouverOwner() {
+    return Object.keys(etat.meta.tables).filter(function (t) { return t.toUpperCase().indexOf(ID_OWNER) !== -1; })[0] || null;
+}
+function vueDuBadge(d, badge) {
+    for (var i = 0; i < d.id.length; i++) {
+        if (String((d.options || [])[i] || '').indexOf(badge) !== -1 && (d.parentId || [])[i]) {
+            return d.parentId[i];
+        }
+    }
+    return null;
+}
+async function majPages() {
+    etat.pageProtegee = false;
+    etat.nomsPages = {};
+    etat.nomsVues = [];
+    if (etat.page) {
+        return;
+    }
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var v = await lireTable('_grist_Views');
+        etat.nomsVues = (v.name || []).map(function (x) { return String(x || '').trim(); });
+        Object.keys(etat.copies).forEach(function (x) {
+            var vx = etat.copies[x].consultation ? vueDuBadge(d, x) : null;
+            var k = vx ? v.id.indexOf(vx) : -1;
+            if (k !== -1) {
+                etat.nomsPages[x] = String((v.name || [])[k] || '');
+            }
+        });
+        var o = trouverOwner();
+        if (!etat.badge || !o) {
+            return;
+        }
+        var vue = vueDuBadge(d, etat.badge);
+        var ref = etat.meta.tables[o].ref;
+        etat.pageProtegee = !!vue && d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; });
+    }
+    catch (e) {
+        logSecurite('INFO', 'Pages du document non lues', e);
+    }
+}
+async function reduireVue(vue, sec) {
+    try {
+        var v = await lireTable('_grist_Views');
+        var i = v.id.indexOf(vue);
+        var spec = JSON.parse((v.layoutSpec || [])[i] || '{}') || {};
+        var retirer = function (n) {
+            if (n && Array.isArray(n.children)) {
+                n.children = n.children.filter(function (c) { return c.leaf !== sec; });
+                n.children.forEach(retirer);
+            }
+        };
+        if (!Array.isArray(spec.children) || !spec.children.length) {
+            var d = await lireTable('_grist_Views_section');
+            spec = { children: d.id.filter(function (x, k) { return d.parentId[k] === vue && x !== sec; }).map(function (x) { return { leaf: x }; }) };
+        }
+        retirer(spec);
+        spec.collapsed = (spec.collapsed || []).filter(function (c) { return c.leaf !== sec; }).concat([{ leaf: sec }]);
+        await agir([['UpdateRecord', '_grist_Views', vue, { layoutSpec: JSON.stringify(spec) }]]);
+        return true;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Vue de protection non réduite', e);
+        return false;
+    }
+}
+async function badgesDesVues() {
+    var d = await lireTable('_grist_Views_section');
+    var textes = [];
+    Object.keys(d).forEach(function (k) {
+        (Array.isArray(d[k]) ? d[k] : []).forEach(function (v) { if (typeof v === 'string' && v.indexOf('copie') !== -1) {
+            textes.push(v);
+        } });
+    });
+    return function (badge) { return textes.filter(function (t) { return t.indexOf(badge) !== -1; }).length; };
+}
+async function nettoyerCopies() {
+    var badges = Object.keys(etat.copies || {});
+    if (!badges.length) {
+        return false;
+    }
+    try {
+        var compter = await badgesDesVues();
+        var vus = badges.filter(function (x) { return compter(x) > 0; });
+        if (!vus.length) {
+            return false;
+        }
+        var ids = badges.filter(function (x) { return vus.indexOf(x) === -1; }).map(function (x) { return etat.copies[x].ligne; });
+        if (ids.length) {
+            await gristAvecTimeout(grist.docApi.applyUserActions([['BulkRemoveRecord', etat.biblio, ids]]), DELAI_API_MS);
+            logSecurite('INFO', 'Réglages de pages retirés (vues supprimées) : ' + ids.length);
+            return true;
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Réglages de pages non vérifiés', e);
+    }
+    return false;
+}
+function sectionPage(id, titre, noeuds, action) {
+    return creer('section', { classe: 'w-section w-section-page', attrs: { 'aria-labelledby': id } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: id, texte: titre, attrs: { tabindex: '-1' } })])].concat(noeuds, [action ? creer('div', { classe: 'w-section-page__bas' }, [action]) : null]));
+}
 async function chargerMeta() {
     var t = await lireTable('_grist_Tables');
     var c = await lireTable('_grist_Tables_column');
@@ -6005,6 +6942,7 @@ async function lireBibliotheque() {
     etat.lignesBiblio = [];
     if (!etat.biblio) {
         etat.peutParametrer = accesComplet();
+        appliquerPageDroits();
         return;
     }
     try {
@@ -6024,6 +6962,7 @@ async function lireBibliotheque() {
         }
     });
     etat.peutParametrer = accesComplet() && etat.lignesBiblio.some(function (l) { return l.TYPE === 'Paramètre' && l.NOM === CLE_TEMOIN; });
+    appliquerPageDroits();
 }
 function entreeCourante() { return etat.formulaires.filter(function (f) { return f.def.id === etat.courant; })[0] || null; }
 function defCourante() { var e = entreeCourante(); return e ? e.def : null; }
@@ -6165,6 +7104,13 @@ async function enregistrerDefinition(def, synchroniser) {
         await synchroniserTables(def);
     }
     var ligne = DF.cycle.ligneFormulaire(def, VERSION_WIDGET);
+    var pieces = piecesDe(def);
+    if (pieces.length && !colonnePieces()) {
+        await assurerColonnePieces();
+    }
+    if (colonnePieces()) {
+        ligne.PIECES = ['L'].concat(pieces);
+    }
     if (e && e.ligne) {
         await agir([['UpdateRecord', etat.biblio, e.ligne, ligne]]);
     }
@@ -6354,6 +7300,10 @@ async function chargerDossiers(def) {
         logSecurite('INFO', 'Réponses illisibles', e);
         etat.dossiers = [];
     }
+    etat.dossiersTous = etat.dossiers;
+    if (etat.page) {
+        etat.dossiers = etat.dossiers.filter(function (d) { return passeDossierPage(d, def); });
+    }
     var t = (def.instruction && def.instruction.tables) || {};
     var lire = async function (cle, tid) {
         if (!tid || !trouverTable(tid)) {
@@ -6503,7 +7453,7 @@ function estInstructeur(def) {
     if (!def || !(def.instruction && def.instruction.actif)) {
         return false;
     }
-    if (etat.peutParametrer) {
+    if (etat.peutParametrer || etat.proprietaire) {
         return true;
     }
     var id = etat.moi.idUtilisateur;
@@ -6520,12 +7470,18 @@ function estGestionnaire(def) {
     return !!id && groupesDe(def).some(function (g) { return g.ROLE === 'Gestion' && g.FORMULAIRE === def.id && listeCellule(g.MEMBRES).indexOf(id) !== -1; });
 }
 function formulairesVisibles() {
+    if (etat.page) {
+        return formulairesPage().filter(function (f) { return f.def.reglages.statut !== 'brouillon' || estInstructeur(f.def); });
+    }
     if (etat.peutParametrer) {
         return etat.formulaires;
     }
     return etat.formulaires.filter(function (f) { return f.def.reglages.statut !== 'brouillon' || estInstructeur(f.def); });
 }
 function ecransDisponibles(def) {
+    if (etat.page) {
+        return ecransPage(def);
+    }
     if (etat.peutParametrer) {
         return ECRANS_AUTEUR.map(function (e) { return e.cle === 'reponses' && def.instruction && def.instruction.actif ? { cle: 'reponses', libelle: 'Dossiers', icone: '🗂' } : e; });
     }
@@ -6606,7 +7562,7 @@ function afficherVue(vue, o) {
         return;
     }
     var def = defCourante();
-    if (etat.vue !== 'creation' && (formulairesVisibles().length || etat.peutParametrer)) {
+    if (etat.vue !== 'creation' && (etat.page ? formulairesVisibles().length > 1 : (formulairesVisibles().length || etat.peutParametrer))) {
         main.appendChild(rendreOngletsFormulaires());
     }
     if (etat.vue === 'creation') {
@@ -6641,7 +7597,7 @@ function afficherVue(vue, o) {
 async function choisirFormulaire(id) {
     await attendreSauvegarde();
     etat.courant = id;
-    ecrirePref('courant', id);
+    ecrirePref(cleCourant(), id);
     etat.conc = { page: '', question: '', onglet: 'question' };
     etat.liste.selection = [];
     etat.remplir = null;
@@ -6656,6 +7612,13 @@ async function choisirFormulaire(id) {
     afficherVue(ecrans.indexOf(etat.vue) !== -1 ? etat.vue : ecrans[0]);
 }
 function rendreAccueil(main) {
+    if (etat.page) {
+        main.appendChild(creer('div', { classe: 'w-centre' }, [
+            creer('h2', { classe: 'fr-h4', id: 'titreVue', texte: 'Rien à afficher sur cette page', attrs: { tabindex: '-1' } }),
+            creer('p', { classe: 'w-texte', texte: etat.page.formulaires.length && !formulairesPage().length ? 'Le formulaire montré par cette page a été supprimé. Une personne qui gère les formulaires peut modifier ou supprimer la page.' : 'Aucun formulaire de cette page n\'est publié pour le moment. Revenez plus tard ou contactez la personne qui vous a transmis ce lien.' })
+        ]));
+        return;
+    }
     if (etat.peutParametrer) {
         main.appendChild(creer('div', { classe: 'w-centre' }, [
             creer('h2', { classe: 'fr-h4', id: 'titreVue', texte: 'Aucun formulaire pour l\'instant', attrs: { tabindex: '-1' } }),
@@ -7140,7 +8103,7 @@ async function creerFormulaire() {
         await enregistrerDefinition(def, true);
         await lireBibliotheque();
         etat.courant = def.id;
-        ecrirePref('courant', def.id);
+        ecrirePref(cleCourant(), def.id);
         await chargerUtilisateurs();
         await chargerGroupes();
         await chargerDossiers(defCourante());
@@ -7218,14 +8181,16 @@ function paramGeneral(def) {
         afficherVue();
     } }), 'Changement d\'état'); });
     var ferme = champLie('aMsgFerme', 'Message quand le formulaire est fermé', rg, 'messageFerme', {});
-    return creer('div', { classe: 'w-grille w-grille--2-1' }, [
-        creer('div', { classe: 'w-grille__col' }, [section('Le formulaire', null, 'aSecGeneral', [nom, desc]), section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme])]),
+    var pages = sectionsPages();
+    return creer('div', { classe: 'w-general' }, [creer('div', { classe: 'w-grille w-grille--2-1' }, [
+        creer('div', { classe: 'w-grille__col' }, [section('Le formulaire', null, 'aSecGeneral', [nom, desc]), sectionAideRemplir(def), section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme])]),
         creer('div', { classe: 'w-grille__col' }, [encartDroits()])
-    ]);
+    ]), creer('div', { classe: 'w-grille w-grille--1-1' }, [creer('div', { classe: 'w-grille__col' }, [pages[0]]), creer('div', { classe: 'w-grille__col' }, [pages[1]])])]);
 }
 async function supprimerFormulaire() {
     var def = defCourante(), e = entreeCourante();
-    var ok = await confirmerAction('Supprimer « ' + def.nom + ' » ?', 'Le formulaire disparaît de la bibliothèque et de ce widget. La table ' + (def.table || '') + ' et ses réponses restent dans le document.', 'Supprimer', true);
+    var nbP = pagesDuFormulaire(def.id).length;
+    var ok = await confirmerAction('Supprimer « ' + def.nom + ' » ?', 'Le formulaire disparaît de la bibliothèque et de ce widget. La table ' + (def.table || '') + ' et ses réponses restent dans le document.' + (nbP ? ' ' + nbP + (nbP > 1 ? ' pages de lecteurs le montrent : elles ne le montreront plus.' : ' page de lecteurs le montre : elle ne le montrera plus.') : ''), 'Supprimer', true);
     if (!ok) {
         return;
     }
@@ -7238,7 +8203,7 @@ async function supprimerFormulaire() {
     await agir([['BulkRemoveRecord', etat.biblio, ids]]);
     await lireBibliotheque();
     etat.courant = etat.formulaires.length ? etat.formulaires[0].def.id : '';
-    ecrirePref('courant', etat.courant);
+    ecrirePref(cleCourant(), etat.courant);
     afficherSucces('Formulaire supprimé. Sa table reste dans le document.');
     if (etat.courant) {
         await chargerDossiers(defCourante());
@@ -7986,6 +8951,9 @@ function apercuChamp(def, q) {
         if (q.type === 'separateur') {
             return creer('span', { classe: 'w-faux-sep' });
         }
+        if (q.type === 'document') {
+            return creer('span', { classe: 'w-mention', texte: q.piece ? '📄 ' + (q.nomFichier || 'Fichier joint') : 'Aucun fichier joint' });
+        }
         return creer('span', { classe: 'w-mention', texte: String(q.texte || '').slice(0, 120) });
     }
     if (q.type === 'etoiles') {
@@ -8211,7 +9179,7 @@ function reglagesQuestion(def, q, corps, maj) {
     var majTitre = function (v) { var h = document.getElementById('cReglagesTitre'); if (h) {
         h.textContent = v || t.libelle;
     } };
-    if (['titre', 'encadre', 'chapitre', 'separateur', 'image'].indexOf(q.type) === -1) {
+    if (['titre', 'encadre', 'chapitre', 'separateur', 'image', 'document'].indexOf(q.type) === -1) {
         var champNom = null;
         corps.appendChild(lier('cLibelle', q.type === 'section' ? 'Titre de la section' : 'Question', q, 'libelle', maj, { multiligne: q.type !== 'section', lignes: 2,
             aide: q.type === 'section' ? null : 'Texte affiché à la personne qui répond ; il peut être long.',
@@ -8400,6 +9368,11 @@ function reglagesType(def, q, corps, maj) {
         case 'image':
             corps.appendChild(editeurImage(q, 'image', 'cImage', maj));
             corps.appendChild(lier('cAlt', 'Texte de remplacement', q, 'texteAlternatif', maj, { aide: 'Décrit l\'image pour les lecteurs d\'écran ; vide si elle est décorative.' }));
+            break;
+        case 'document':
+            corps.appendChild(editeurDocument(q, maj));
+            corps.appendChild(lier('cTitreTexte', 'Texte du lien', q, 'libelle', maj, { aide: 'Par exemple : Télécharger le modèle d\'attestation. Laissé à « Document à télécharger », le lien reprend le nom du fichier.' }));
+            corps.appendChild(lier('cTexte', 'Précision sous le lien', q, 'texte', maj, { multiligne: true, aide: 'Facultatif : à quoi sert le document, quoi en faire.' }));
             break;
         case 'calcul':
             corps.appendChild(panneauCalculQuestion(def, q, maj));
@@ -8996,6 +9969,10 @@ function rendreApercu(zone, def) {
                 etat.remplir.commeAnonyme = a;
                 afficherVue('apercu');
             }, { id: 'rCommeAnonyme' })]), boutonPleinePage()]));
+    var outilsA = outilsRemplir(def, 'r');
+    if (outilsA) {
+        zone.appendChild(creer('div', { classe: 'w-remplir-outils' }, [outilsA]));
+    }
     rendreSession(zone, etat.remplir);
 }
 function boutonPleinePage() {
@@ -9054,16 +10031,16 @@ function rendreRemplir(zone, def, o) {
     }
     var s = etat.remplir;
     document.body.classList.add('w-remplissage');
-    zone.appendChild(creer('div', { classe: 'w-remplir-outils' }, [boutonPleinePage()]));
+    zone.appendChild(creer('div', { classe: 'w-remplir-outils' }, [outilsRemplir(def, 'r'), boutonPleinePage()]));
     if (!s.recu) {
         var prises = DF.colonnes.placesLimitees(def) ? placesPrises(def) : null;
-        var ouv = DF.cycle.etatOuverture(def, DF.outils.aujourdhui(), prises !== null ? prises : etat.dossiers.filter(function (d) { return d.STATUT_DOSSIER && d.STATUT_DOSSIER !== 'Brouillon'; }).length);
+        var ouv = DF.cycle.etatOuverture(def, DF.outils.aujourdhui(), prises !== null ? prises : (etat.dossiersTous || etat.dossiers).filter(function (d) { return d.STATUT_DOSSIER && d.STATUT_DOSSIER !== 'Brouillon'; }).length);
         if (!ouv.ouvert && !s.dossierId) {
             zone.appendChild(messageCentre('Formulaire indisponible', ouv.message));
             return;
         }
         if (def.reglages.uneReponseParPersonne && etat.moi.connu && !s.dossierId && !s.pourTiers &&
-            etat.dossiers.some(function (d) { return d.EMAIL_COMPTE === etat.moi.email && d.STATUT_DOSSIER && d.STATUT_DOSSIER !== 'Brouillon'; })) {
+            (etat.dossiersTous || etat.dossiers).some(function (d) { return d.EMAIL_COMPTE === etat.moi.email && d.STATUT_DOSSIER && d.STATUT_DOSSIER !== 'Brouillon'; })) {
             zone.appendChild(messageCentre('Vous avez déjà répondu', 'Ce formulaire n\'accepte qu\'une réponse par personne. Retrouvez la vôtre dans « Mes dossiers ».', etat.moi.connu ? bouton('Mes dossiers', 'secondaire', 'folder-2-line', function () { afficherVue('mesdossiers'); }, { id: 'rVersMesDossiers' }) : null));
             return;
         }
@@ -9419,6 +10396,9 @@ function blocQuestion(s, q, numeros) {
                 relayer(urlPieceJointe(q.image).then(function (u) { img.src = u; }), 'Image');
                 bloc.appendChild(img);
             }
+            return bloc;
+        case 'document':
+            blocDocument(q).forEach(function (n) { bloc.appendChild(n); });
             return bloc;
         case 'section':
             var fs = creer('fieldset', { classe: 'fr-fieldset w-rq__section' }, [creer('legend', { classe: 'fr-fieldset__legend w-rq__section-titre', texte: q.libelle })]);
@@ -10341,7 +11321,7 @@ var ONGLETS_DOSSIERS = [
     { cle: 'expirent', libelle: 'Expirent bientôt' }, { cle: 'archiver', libelle: 'À archiver' }, { cle: 'corbeille', libelle: 'Corbeille' }
 ];
 var EN_COURS = ['Déposé', 'En instruction', 'À corriger'];
-function rolesSur(d) { return DF.instr.roles(d, etat.moi.email, etat.peutParametrer); }
+function rolesSur(d) { return DF.instr.roles(d, etat.moi.email, etat.peutParametrer || etat.proprietaire); }
 function libelleDossier(def, d) {
     var q = DF.schema.toutesQuestions(def).filter(function (x) { return x.q.type === 'court' && x.q.colonne; })[0];
     return q && d[q.q.colonne] ? String(d[q.q.colonne]) : (d.EMAIL_REPONDANT || '');
@@ -10456,16 +11436,22 @@ function voletReponses(def, instr) {
         var gs = groupesDe(def);
         var sg = liste('dFGroupe', gs.map(function (g) { return { valeur: g.id, libelle: 'Groupe : ' + g.NOM }; }), l.groupe, { vide: 'Groupe : tous', aria: 'Groupe' });
         sg.addEventListener('change', function () { l.groupe = sg.value; dessinerListe(def); });
-        filtres.push(sg);
+        if (lecteurPeut('groupe')) {
+            filtres.push(sg);
+        }
     }
     var statuts = instr ? DF.colonnes.STATUTS.filter(function (s) { return s !== 'Brouillon'; }) : ['Déposé'];
     if (instr) {
         var ss = liste('dFStatut', statuts.map(function (s) { return { valeur: s, libelle: 'Statut : ' + (LIBELLE_STATUT[s] || s) }; }), l.statut, { vide: 'Statut : tous', aria: 'Statut' });
         ss.addEventListener('change', function () { l.statut = ss.value; dessinerListe(def); });
-        filtres.push(ss);
+        if (lecteurPeut('statut')) {
+            filtres.push(ss);
+        }
         var se = liste('dFEtiquette', ((def.instruction.etiquettes) || []).map(function (e) { return { valeur: e.libelle, libelle: 'Étiquette : ' + e.libelle }; }), l.etiquette, { vide: 'Étiquette : toutes', aria: 'Étiquette' });
         se.addEventListener('change', function () { l.etiquette = se.value; dessinerListe(def); });
-        filtres.push(se);
+        if (lecteurPeut('etiquette')) {
+            filtres.push(se);
+        }
     }
     else {
         var sr = liste('dFEtat', [{ valeur: 'completes', libelle: 'État : complètes' }, { valeur: 'encours', libelle: 'État : en cours' }, { valeur: 'toutes', libelle: 'État : toutes' }], l.etatRep || 'completes', { aria: 'État' });
@@ -10478,8 +11464,8 @@ function voletReponses(def, instr) {
     sf.addEventListener('change', function () { l.filtre = sf.value; dessinerListe(def); });
     filtres.push(sf);
     var blocs = [
-        instr ? ajoutVolet('Déposer un dossier', function () { ouvrirPourTiers(def); }, 'dAjouter') : ajoutVolet('Ajouter une réponse', function () { ouvrirPourTiers(def); }, 'dAjouter'),
-        creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('search-line', 'Rechercher', 'dAideRech', 'Tous les champs du dossier, sans tenir compte des accents.'),
+        !pageInstruire() ? null : instr ? ajoutVolet('Déposer un dossier', function () { ouvrirPourTiers(def); }, 'dAjouter') : ajoutVolet('Ajouter une réponse', function () { ouvrirPourTiers(def); }, 'dAjouter'),
+        !lecteurPeut('recherche') ? null : creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('search-line', 'Rechercher', 'dAideRech', 'Tous les champs du dossier, sans tenir compte des accents.'),
             creer('div', { classe: 'fr-input-group fr-mb-0' }, [creer('label', { classe: 'fr-label fr-sr-only', attrs: { 'for': 'dRecherche' }, texte: 'Rechercher' }), rech])]),
         creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('filter-line', 'Filtres', 'dAideFiltres', 'Les filtres se combinent. « Mes filtres » garde vos conditions ET/OU pour les retrouver.')].concat(filtres, [
             instr ? caseACocher('dArchives', 'Inclure les dossiers archivés dans « Tous »', l.archives, function (v) { l.archives = v; dessinerListe(def); }) : null,
@@ -10489,9 +11475,13 @@ function voletReponses(def, instr) {
         etat.peutParametrer ? creer('div', { classe: 'w-volet__bloc' }, [bouton('Réglages de ce formulaire', 'secondaire', 'settings-5-line', function () { ouvrirReglages(instr ? 'instruction' : 'general'); }, { id: 'dParametrer' })]) : null,
         sortiesVolet([{ libelle: 'Imprimer', icone: 'printer-line', id: 'dImprimer', action: function () { imprimer(false); } },
             { libelle: 'Enregistrer en PDF', court: 'PDF', id: 'dPdf', action: function () { imprimer(true); } },
-            { libelle: 'Exporter en XLS', court: 'XLS', id: 'dXls', action: function () { exporterXls(def, dossiersAffiches(def)); } },
-            { libelle: 'Exporter les pièces en ZIP', court: 'ZIP', id: 'dZip', action: function () { return exporterZip(def, dossiersAffiches(def)); } }])
+            pageExporter() ? { libelle: 'Exporter en XLS', court: 'XLS', id: 'dXls', action: function () { exporterXls(def, dossiersAffiches(def)); } } : null,
+            pageExporter() ? { libelle: 'Exporter les pièces en ZIP', court: 'ZIP', id: 'dZip', action: function () { return exporterZip(def, dossiersAffiches(def)); } } : null].filter(Boolean))
     ];
+    var bpv = blocPageVolet(def);
+    if (bpv) {
+        blocs.splice(1, 0, bpv);
+    }
     return volet('dVolet', blocs.filter(Boolean));
 }
 function ouvrirPourTiers(def) {
@@ -10652,7 +11642,7 @@ function barreSelection(def, ds) {
     var tous = creer('input', { id: 'dSelTous', attrs: { type: 'checkbox', 'aria-label': 'Tout sélectionner' }, coche: sel.length && sel.length === ds.length });
     tous.addEventListener('change', function () { etat.liste.selection = tous.checked ? ds.map(function (d) { return d.id; }) : []; dessinerListe(def); });
     var barre = creer('div', { classe: 'w-barre-sel', id: 'dBarreSel' }, [creer('label', { classe: 'w-barre-sel__compte', attrs: { 'for': 'dSelTous' } }, [tous, ' ' + (sel.length ? sel.length + (sel.length > 1 ? ' sélectionnés' : ' sélectionné') + ' :' : 'Tout sélectionner')])]);
-    if (sel.length) {
+    if (sel.length && pageInstruire()) {
         barre.appendChild(bouton('Passer en instruction', 'secondaire', null, function () { return actionMasse(def, sel, 'passerEnInstruction', {}); }, { petit: true, id: 'dMasseInstr' }));
         barre.appendChild(bouton('Prendre une décision', 'secondaire', 'arrow-down-s-line', function () { decisionMasse(def, sel); }, { petit: true, id: 'dMasseDecision', iconeDroite: true }));
         barre.appendChild(bouton('Étiquette', 'secondaire', 'arrow-down-s-line', function () { etiquetteMasse(def, sel); }, { petit: true, id: 'dMasseEtiquette', iconeDroite: true }));
@@ -10847,12 +11837,14 @@ function ouvrirDossier(id) {
     etat.dossier = id;
     etat.ongletDossier = 'demande';
     var def = defCourante();
-    noterConsultation(def.id, id);
+    if (pageEcrit()) {
+        noterConsultation(def.id, id);
+    }
     var d = dossierParId(id);
     var m = def.instruction && def.instruction.tables && def.instruction.tables.messages;
     if (d && m && trouverTable(m)) {
         var a = DF.instr.actionsMarquerLus(trouverTable(m), etat.liees.messages.filter(function (x) { return x.DOSSIER === id; }), rolesSur(d), maintenant());
-        if (a.length) {
+        if (a.length && pageEcrit()) {
             relayer(agir(a), 'Messages marqués lus');
         }
     }
@@ -10873,7 +11865,7 @@ function rendreFicheDossier(zone, def) {
     ].concat(listeCellule(d.ETIQUETTES).map(function (e) { return etiquette(e, couleurEtiquette(def, e)); }), [
         creer('div', { classe: 'w-fiche-sorties' }, [sortiesVolet([{ libelle: 'Imprimer', icone: 'printer-line', id: 'fImprimer', action: function () { imprimer(false); } },
                 { libelle: 'Enregistrer en PDF', court: 'PDF', id: 'fPdf', action: function () { imprimer(true); } },
-                { libelle: 'Pièces du dossier en ZIP', court: 'ZIP', id: 'fZip', action: function () { return exporterZip(def, [d]); } }])])
+                pageExporter() ? { libelle: 'Pièces du dossier en ZIP', court: 'ZIP', id: 'fZip', action: function () { return exporterZip(def, [d]); } } : null].filter(Boolean))])
     ]));
     zone.appendChild(tete);
     var msgs = etat.liees.messages.filter(function (m) { return m.DOSSIER === d.id; });
@@ -10985,6 +11977,7 @@ function ongletAnnotations(g, def, d) {
         else {
             champ = saisie(id, v, { type: a.type === 'date' ? 'date' : 'text', clavier: a.type === 'nombre' ? 'decimal' : null });
         }
+        champ.disabled = !pageInstruire();
         var min = null;
         var ecrire = function () {
             var cel = DF.enreg.versCellules(q, champ.value);
@@ -11006,7 +11999,7 @@ function ongletAvis(g, def, d, avis, roles) {
         if (a.AVIS) {
             bloc.appendChild(creer('p', { classe: 'w-texte' }, [creer('strong', { texte: a.AVIS }), a.COMMENTAIRE ? ' : ' + a.COMMENTAIRE : '']));
         }
-        else if (a.EMAIL_EXPERT === etat.moi.email) {
+        else if (a.EMAIL_EXPERT === etat.moi.email && pageEchanger()) {
             var choix = radios('fAvisRep' + i, 'Votre avis', ['Favorable', 'Défavorable', 'Sans avis'].map(function (x) { return { valeur: x, libelle: x }; }), '', function () { }, { enLigne: true });
             var com = saisie('fAvisCom' + i, '', { multiligne: true });
             bloc.appendChild(choix);
@@ -11027,7 +12020,7 @@ function ongletAvis(g, def, d, avis, roles) {
         }
         g.appendChild(bloc);
     });
-    if (roles.indexOf('instructeur') !== -1) {
+    if (roles.indexOf('instructeur') !== -1 && pageEchanger()) {
         g.appendChild(bouton('Demander un avis', 'secondaire', 'add-line', function () { demanderAvis(def, d); }, { petit: true, id: 'fDemanderAvis' }));
     }
 }
@@ -11075,7 +12068,7 @@ function ongletMessagerie(g, def, d, msgs, roles) {
     if (!d.EMAIL_COMPTE || d.EMAIL_COMPTE === 'anon@getgrist.com') {
         g.appendChild(creer('p', { classe: 'w-mention', texte: 'Le répondant a répondu sans compte : il ne pourra pas lire les messages dans le widget. Écrivez-lui à ' + (d.EMAIL_REPONDANT || 'son adresse') + '.' }));
     }
-    g.appendChild(zoneNouveauMessage('fMsg', function (t, f) { return envoyerMessage(def, d, instr ? 'instructeurs' : 'repondant', t, f).then(function () { afficherVue('dossier'); }); }));
+    pageEchanger() && g.appendChild(zoneNouveauMessage('fMsg', function (t, f) { return envoyerMessage(def, d, instr ? 'instructeurs' : 'repondant', t, f).then(function () { afficherVue('dossier'); }); }));
 }
 async function envoyerMessage(def, d, sens, t, f) {
     var ids = f.files && f.files.length ? await envoyerFichiers(Array.prototype.slice.call(f.files)) : [];
@@ -11116,7 +12109,7 @@ function colonneDecisions(def, d, roles, avis, msgs) {
             etat.peutParametrer ? bouton('Supprimer cette réponse', 'secondaire', 'delete-line', function () { return supprimerReponse(def, d); }, { petit: true, id: 'fSupprimer', classe: 'w-bouton-danger' }) : null], 'fCarteRep'));
         return col;
     }
-    var possibles = DF.instr.actionsPossibles(d, roles, def.reglages);
+    var possibles = pageInstruire() ? DF.instr.actionsPossibles(d, roles, def.reglages) : [];
     var ordre = ['accepter', 'refuser', 'classerSansSuite', 'demanderCorrection', 'passerEnInstruction', 'repasserEnConstruction', 'repasserEnInstruction', 'archiver', 'desarchiver', 'mettreCorbeille', 'restaurer'];
     var styles = { accepter: 'w-btn-accepter', refuser: 'w-btn-refuser' };
     var boutons = ordre.filter(function (a) { return possibles.some(function (p) { return p.id === a; }); }).map(function (a) {
@@ -11130,13 +12123,13 @@ function colonneDecisions(def, d, roles, avis, msgs) {
         col.appendChild(alerte('info', null, 'Vous êtes sollicité pour un avis : lisez le dossier et répondez dans l\'onglet « Avis ».'));
     }
     var suivis = listeCellule(d.SUIVI);
-    var estInstr = roles.indexOf('instructeur') !== -1;
+    var estInstr = roles.indexOf('instructeur') !== -1 && pageInstruire();
     col.appendChild(carteFiche('Suivi par', [suivis.length ? creer('ul', { classe: 'w-personnes' }, suivis.map(function (id) { return creer('li', {}, [avatar(nomPersonne(id)), creer('span', { texte: nomPersonne(id) })]); })) : creer('p', { classe: 'w-mention', texte: 'Personne ne suit ce dossier.' }),
         estInstr ? creer('p', { classe: 'w-liens' }, [suivis.indexOf(etat.moi.idUtilisateur) === -1 ? lienAction('Suivre ce dossier', function () { return suivreDossier(def, d, true); }, { id: 'fSuivre' }) : lienAction('Ne plus suivre', function () { return suivreDossier(def, d, false); }, { id: 'fNePlusSuivre' }),
             ' · ', lienAction('Transférer', function () { transfererDossier(def, d); }, { id: 'fTransferer' })]) : null], 'fCarteSuivi'));
     col.appendChild(carteFiche('Groupe', [creer('p', { classe: 'w-texte' }, [nomGroupe(d.GROUPE_INSTRUCTEUR) || 'Aucun groupe', estInstr ? ' · ' : '', estInstr ? lienAction('Réaffecter', function () { reaffecterDossier(def, d); }, { id: 'fReaffecter' }) : null])], 'fCarteGroupe'));
     col.appendChild(carteFiche('Avis demandés', [avis.length ? creer('ul', { classe: 'w-liste-simple' }, avis.map(function (a) { var p = personne(a.EXPERT); return creer('li', {}, [(p ? p.nom || p.email : 'Expert') + ' : ', creer('strong', { texte: a.AVIS || 'en attente' }), a.CONFIDENTIEL ? ' (confidentiel)' : '']); })) : creer('p', { classe: 'w-mention', texte: 'Aucun avis.' }),
-        estInstr ? lienAction('+ Demander un avis', function () { demanderAvis(def, d); }, { id: 'fPlusAvis' }) : null], 'fCarteAvis'));
+        roles.indexOf('instructeur') !== -1 && pageEchanger() ? lienAction('+ Demander un avis', function () { demanderAvis(def, d); }, { id: 'fPlusAvis' }) : null], 'fCarteAvis'));
     var dernier = msgs.slice().sort(function (a, b) { return (b.CREE_LE || 0) - (a.CREE_LE || 0); })[0];
     col.appendChild(carteFiche('Dernier message', [dernier ? creer('div', { classe: 'w-message w-message--resume' }, [creer('p', { classe: 'w-message__tete', texte: (dernier.CREE_PAR || dernier.SENS) + ' · ' + dateCellule(dernier.CREE_LE, true) }), creer('p', { classe: 'w-message__texte', texte: dernier.TEXTE || '' })]) : creer('p', { classe: 'w-mention', texte: 'Aucun message.' }),
         lienAction('Ouvrir la messagerie', function () { etat.ongletDossier = 'messagerie'; afficherVue('dossier'); }, { id: 'fVersMessages' })], 'fCarteMsg'));
@@ -11270,8 +12263,9 @@ function modifierEtiquettes(def, d) {
 }
 async function chargerMesDossiers() {
     var res = [];
-    for (var i = 0; i < etat.formulaires.length; i++) {
-        var def = etat.formulaires[i].def;
+    var formsM = etat.page ? formulairesVisibles() : etat.formulaires;
+    for (var i = 0; i < formsM.length; i++) {
+        var def = formsM[i].def;
         if (!def.table || !trouverTable(def.table)) {
             continue;
         }
@@ -11319,6 +12313,10 @@ function rendreMesDossiers(zone, def) {
     var tete = creer('div', { classe: 'w-barre-vue' }, [creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', texte: 'Mes dossiers', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'w-barre-vue__commandes' }, [bouton('Nouveau dossier', null, 'add-line', function () { etat.remplir = nouvelleSession(def, 'reel'); afficherVue('remplir'); }, { id: 'mNouveau' })])]);
     zone.appendChild(tete);
+    var outilsM = outilsRemplir(def, 'm');
+    if (outilsM) {
+        zone.appendChild(outilsM);
+    }
     var z = creer('div', { id: 'mListe' }, [creer('p', { classe: 'w-mention', texte: 'Chargement…' })]);
     zone.appendChild(z);
     relayer(chargerMesDossiers().then(function (res) {
@@ -11363,7 +12361,7 @@ function rendreMesDossiers(zone, def) {
 async function reprendre(def, d) {
     if (etat.courant !== def.id) {
         etat.courant = def.id;
-        ecrirePref('courant', def.id);
+        ecrirePref(cleCourant(), def.id);
         await chargerDossiers(def);
     }
     etat.remplir = nouvelleSession(def, 'reel', d);
@@ -11658,6 +12656,9 @@ var _verif = { faite: false, lisibles: [], nombre: 0, erreur: '' };
 function rendrePartager(zone, def) {
     var rg = def.reglages;
     zone.appendChild(creer('h2', { classe: 'fr-h5', id: 'titreVue', texte: 'Partager le formulaire', attrs: { tabindex: '-1' } }));
+    zone.appendChild(creer('p', { classe: 'w-texte', id: 'pVersPages' }, ['Pour donner aux personnes une page sans les écrans de conception : ', lienAction('Réglages, « Où les lecteurs le voient »', function () { ouvrirReglages('general'); var s = document.getElementById('aSecConsult'); if (s && s.scrollIntoView) {
+            s.scrollIntoView({ block: 'start' });
+        } }, { id: 'pAllerPages' }), '.']));
     if (rg.statut === 'brouillon') {
         zone.appendChild(alerte('warning', 'Le formulaire est en brouillon', creer('p', {}, ['Il ne reçoit pas encore de réponses. ', lienAction('Publier maintenant', function () { return publierFormulaire(); }, { id: 'pPublier' })])));
     }
@@ -11789,12 +12790,23 @@ async function chargerTout() {
     try {
         await chargerMeta();
         await lireBibliotheque();
+        if (!etat.page && etat.peutParametrer && etat.biblio) {
+            if (!etat.copiesNettoyees) {
+                etat.copiesNettoyees = true;
+                if (await nettoyerCopies()) {
+                    await relireCopies();
+                }
+            }
+            await majPages();
+            await rattacherPieces();
+        }
+        appliquerModePage();
         if (etat.biblio) {
             await identifier();
         }
         await chargerUtilisateurs();
         await chargerGroupes();
-        var pref = lirePref('courant', '');
+        var pref = lirePref(cleCourant(), '');
         var vis = formulairesVisibles();
         etat.courant = vis.some(function (f) { return f.def.id === pref; }) ? pref : (vis[0] ? vis[0].def.id : '');
         if (etat.courant) {
@@ -11837,6 +12849,14 @@ async function demarrerWidget() {
     }
     grist.ready({ requiredAccess: 'full' });
     grist.onOptions(function (options, interaction) {
+        var badge = badgeValide(options && options.copie);
+        if (badge !== etat.badge) {
+            var avantBadge = etat.badge;
+            etat.badge = badge;
+            if (avantBadge !== null && etat.vue !== 'chargement' && etat.vue !== 'creation') {
+                relayer(chargerTout(), 'Changement du réglage de la page');
+            }
+        }
         etat.niveauAcces = (interaction && interaction.accessLevel) || etat.niveauAcces || 'full';
         if (_accesRecu) {
             _accesRecu();
