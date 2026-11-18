@@ -536,7 +536,7 @@ nav[hidden],
   width: .875rem;
   height: .875rem;
   border-radius: 50%;
-  border: 1px solid rgba(22, 22, 22, .12);
+  border: 1px solid var(--border-default-grey);
   background: var(--vif-el, var(--background-default-grey));
 }
 .w-principal {
@@ -927,6 +927,7 @@ nav[hidden],
 }
 .w-etapes__item--en-cours {
   background: var(--background-alt-blue-france);
+  color: var(--text-default-grey);
   padding: 0 .375rem .375rem;
   margin: 0 -.125rem;
 }
@@ -955,7 +956,6 @@ nav[hidden],
 }
 .w-stepper .fr-stepper__title {
   margin: 1rem 0 0;
-  font-size: 1.375rem;
 }
 .w-entete-param {
   display: flex;
@@ -1014,8 +1014,6 @@ nav[hidden],
   .w-grille--2 {
     grid-template-columns: minmax(0, 1fr);
   }
-  txt {
-  }
 }
 .w-section--danger {
   border-left: 4px solid var(--border-plain-error);
@@ -1049,8 +1047,6 @@ nav[hidden],
   .w-etapes-rangee {
     flex-direction: column;
     align-items: stretch;
-  }
-  txt {
   }
 }
 .w-nav-etapes {
@@ -1328,8 +1324,6 @@ body.w-agrandi .w-volet {
   .w-dialogue__corps {
     flex: 1;
   }
-  txt {
-  }
 }
 @media (max-width: 30em) {
   .w-bandeau {
@@ -1349,8 +1343,6 @@ body.w-agrandi .w-volet {
   .w-bandeau__version {
     margin-left: .25rem;
   }
-  txt {
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .w-loader__spinner {
@@ -1359,8 +1351,6 @@ body.w-agrandi .w-volet {
   * {
     scroll-behavior: auto;
   }
-  txt {
-  }
 }
 @media (forced-colors: active) {
   .w-pastille,
@@ -1368,12 +1358,8 @@ body.w-agrandi .w-volet {
   .w-legende-param__pastille {
     forced-color-adjust: none;
   }
-  .w-volet,
-  .w-fiche,
-  .w-el--postit {
+  .w-volet {
     border: 1px solid CanvasText;
-  }
-  txt {
   }
 }
 @media print {
@@ -1391,17 +1377,8 @@ body.w-agrandi .w-volet {
   .w-loader,
   .w-overlay,
   .w-barre__droite,
-  .w-compteurs,
   #skipLink,
-  .w-outils,
-  .w-ctx,
-  .w-pop,
-  .w-minicarte,
-  .w-fiche,
-  .w-poignee-taille,
-  .w-lasso,
-  .w-edition,
-  .w-source,
+  .w-actions-lot,
   .fr-btn {
     display: none !important;
   }
@@ -1409,37 +1386,11 @@ body.w-agrandi .w-volet {
   .w-contenu,
   .w-contenu--principal,
   .w-disposition,
-  .w-principal,
-  .w-scene {
+  .w-principal {
     display: block !important;
     overflow: visible !important;
     height: auto !important;
     padding: 0 !important;
-  }
-  .w-mention-papier {
-    display: block;
-    margin: 0 0 .5rem;
-    font-size: .8125rem;
-  }
-  .w-toile {
-    border: 0 !important;
-    background-image: none !important;
-    background-color: transparent !important;
-    overflow: visible !important;
-  }
-  .w-el,
-  .w-el--postit,
-  .w-el__fond,
-  .w-pastille {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  .w-el--select::after,
-  .w-el--trouve::before {
-    display: none !important;
-  }
-  .w-el--estompe {
-    opacity: 1 !important;
   }
   .w-liste {
     overflow: visible !important;
@@ -1698,7 +1649,7 @@ body.w-agrandi .w-volet {
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.1.1";
+var VERSION_WIDGET = "1.1.2";
 var HOMOLOGUE = false;
 var NOM_WIDGET = "Diploarchive";
 var DELAI_API_MS = 6e4;
@@ -1783,11 +1734,9 @@ var DEF_JO = {
   colRequise: "OPERATION",
   description: "Historique du widget Diploarchive : une ligne par anonymisation, suppression ou mise en attente. Ne contient aucune donnée des dossiers, seulement leurs numéros de ligne.",
   colonnes: [
-    { id: "OPERATION", type: "Choice", label: "OPÉRATION", widgetOptions: { widget: "TextBox", alignment: "center", choices: OPERATIONS, choiceOptions: {
-      "Anonymisation": { fillColor: "#E8EDFF", textColor: "#0063CB", fontBold: true },
-      "Suppression": { fillColor: "#FFE9E9", textColor: "#CE0500", fontBold: true },
-      "Mise en attente": { fillColor: "#FEECC2", textColor: "#716043", fontBold: true }
-    } }, description: "Nature de l'opération : Anonymisation, Suppression ou Mise en attente. Rempli par le widget." },
+    { id: "OPERATION", type: "Choice", label: "OPÉRATION", get widgetOptions() {
+      return optionsOperation();
+    }, description: "Nature de l'opération : Anonymisation, Suppression ou Mise en attente. Rempli par le widget." },
     { id: "REGLE", type: "Text", label: "RÈGLE", description: "Identifiant de la règle d'archivage appliquée. Rempli par le widget. Ne le modifiez pas." },
     { id: "NOM_REGLE", type: "Text", label: "NOM DE LA RÈGLE", description: "Nom de la règle au moment de l'opération. Rempli par le widget." },
     { id: "TABLE", type: "Text", label: "TABLE", description: "Identifiant de la table des dossiers. Rempli par le widget. Ne le modifiez pas." },
@@ -1800,6 +1749,23 @@ var DEF_JO = {
   ]
 };
 var DEFS = [DEF_JO];
+function jetonDsfr(nom) {
+  try {
+    return String(getComputedStyle(document.documentElement).getPropertyValue(nom)).trim();
+  } catch (e) {
+    return "";
+  }
+}
+function optionsOperation() {
+  var o = { widget: "TextBox", alignment: "center", choices: OPERATIONS, choiceOptions: {} };
+  [["Anonymisation", "info"], ["Suppression", "error"], ["Mise en attente", "warning"]].forEach(function(x) {
+    var fond = jetonDsfr("--background-contrast-" + x[1]), texte = jetonDsfr("--text-default-" + x[1]);
+    if (/^#[0-9a-f]{6}$/i.test(fond) && /^#[0-9a-f]{6}$/i.test(texte)) {
+      o.choiceOptions[x[0]] = { fillColor: fond.toUpperCase(), textColor: texte.toUpperCase(), fontBold: true };
+    }
+  });
+  return o;
+}
 var TRAITEMENTS = ["les2", "anonymiser", "supprimer"];
 var UNITES = [{ valeur: "mois", libelle: "mois" }, { valeur: "ans", libelle: "ans" }];
 var VUES = [{ cle: "traiter", nom: "À traiter" }, { cle: "bientot", nom: "Dans les 3 prochains mois" }, { cle: "attente", nom: "En attente" }];
@@ -2493,6 +2459,10 @@ function estRefusDroits(e) {
   return /blocked by|access rules|acl_deny|permission|not allowed|insufficient|read.?only|viewer/i.test(m);
 }
 async function agir(actions) {
+  if (etat.niveauAcces && etat.niveauAcces !== "full") {
+    logSecurite("AVERTISSEMENT", "Écriture refusée : accès complet au document non accordé (" + etat.niveauAcces + ")");
+    throw new Error("Accès complet au document non accordé");
+  }
   etat.ecrituresEnCours++;
   try {
     return await gristAvecTimeout(grist.docApi.applyUserActions(actions), DELAI_API_MS);
@@ -3144,6 +3114,10 @@ function fermerDialogue() {
   }
 }
 function erreurEcriture(e, message) {
+  if (etat.niveauAcces && etat.niveauAcces !== "full") {
+    afficherErreur("Ce widget n'a pas l'accès complet au document : rien n'a été modifié. Accordez-le dans le panneau de configuration du widget (« Accès complet au document »).", e);
+    return;
+  }
   if (estRefusDroits(e)) {
     afficherErreur("Vos droits sur ce document ne permettent pas cette modification. Rien n'a été modifié.", e);
     return;
@@ -3472,7 +3446,8 @@ function rendreOnglets() {
   if (!visible) {
     return;
   }
-  var ul = creer("ul", { classe: "fr-tabs__list", attrs: { role: "tablist", "aria-label": "Règles d'archivage du document" } });
+  var ul = creer("ul", { classe: "fr-tabs__list", attrs: { "aria-label": "Règles d'archivage du document" } });
+  ul.setAttribute("role", "tablist");
   var onglets = [], activer = [];
   l.forEach(function(r, i) {
     var actif = !creation && r.id === etat.regleId;
@@ -3524,6 +3499,7 @@ function rendreOnglets() {
     onglets[0].setAttribute("tabindex", "0");
   }
   onglets.forEach(function(b, i) {
+    b.setAttribute("role", "tab");
     b.addEventListener("click", function() {
       activer[i]();
       var f = document.getElementById(b.id);
@@ -3966,7 +3942,7 @@ function exporterListe() {
     }).concat([x.echeance ? dateJJMMAAAA(Math.floor(x.echeance / 1e3)) : "", vue.nom, x.attente ? x.attente.motif : ""]));
   });
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lignes), "Dossiers");
+  XLSX.utils.book_append_sheet(wb, forcerTexte(XLSX.utils.aoa_to_sheet(lignes)), "Dossiers");
   XLSX.writeFile(wb, "liste_" + slug(r.nom) + "_" + jourIso() + ".xlsx");
   afficherToast("Liste exportée.");
 }
@@ -4562,6 +4538,24 @@ function ouvrirArchivage(plan) {
     true
   );
 }
+var DEBUT_FORMULE = /^[=+\-@\t\r]/;
+function forcerTexte(ws) {
+  Object.keys(ws).forEach(function(ref) {
+    if (ref.charAt(0) === "!") {
+      return;
+    }
+    var c = ws[ref];
+    if (c && typeof c.v === "string") {
+      c.t = "s";
+      c.z = "@";
+      delete c.f;
+      if (DEBUT_FORMULE.test(c.v)) {
+        logSecurite("INFO", "Cellule commençant par un signe de formule écrite comme texte : " + ref);
+      }
+    }
+  });
+  return ws;
+}
 function feuilleTable(tid, d, lignes, noms) {
   var cols = colonnesDonnees(tid);
   var aoa = [["N° de ligne"].concat(cols.map(function(c) {
@@ -4572,7 +4566,7 @@ function feuilleTable(tid, d, lignes, noms) {
       return valeurLisible(tid, c, d, i, noms);
     })));
   });
-  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  var ws = forcerTexte(XLSX.utils.aoa_to_sheet(aoa));
   ws["!cols"] = aoa[0].map(function(t, k) {
     var m = String(t).length;
     for (var j = 1; j < Math.min(aoa.length, 200); j++) {
@@ -4615,7 +4609,7 @@ function produireArchive(plan) {
   });
   lisez.push([]);
   lisez.push(["Note", "Les fichiers joints ne sont pas inclus dans ce fichier : leurs noms figurent dans les colonnes concernées."]);
-  var wl = XLSX.utils.aoa_to_sheet(lisez);
+  var wl = forcerTexte(XLSX.utils.aoa_to_sheet(lisez));
   wl["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, wl, nomFeuille("Lisez-moi", pris));
   var lignesP = plan.ids.map(function(id) {
@@ -5946,7 +5940,8 @@ function rendreAide() {
       ouvrirAide(false);
     }, { petit: true, id: "wAideFermer", aria: "Fermer l'aide" })
   ]));
-  var ul = creer("ul", { classe: "w-aide-panneau__onglets", attrs: { role: "tablist", "aria-label": "Rubriques de l'aide" } });
+  var ul = creer("ul", { classe: "w-aide-panneau__onglets", attrs: { "aria-label": "Rubriques de l'aide" } });
+  ul.setAttribute("role", "tablist");
   var onglets = [];
   ONGLETS_AIDE.forEach(function(nom, i) {
     var b = creer("button", { classe: "fr-tabs__tab", id: "wAideOnglet" + i, texte: nom, attrs: { type: "button", role: "tab", "aria-selected": etat.aide.onglet === i ? "true" : "false", "aria-controls": "wAideCorps", tabindex: etat.aide.onglet === i ? "0" : "-1" } });
@@ -5963,11 +5958,12 @@ function rendreAide() {
         onglets[k].click();
       }
     });
+    b.setAttribute("role", "tab");
     onglets.push(b);
     ul.appendChild(creer("li", { attrs: { role: "presentation" } }, [b]));
   });
   p.appendChild(ul);
-  var corps = creer("div", { classe: "w-aide-panneau__corps", id: "wAideCorps", attrs: { role: "tabpanel", "aria-labelledby": "wAideOnglet" + etat.aide.onglet, tabindex: "0" } });
+  var corps = creer("div", { classe: "w-aide-panneau__corps", id: "wAideCorps", attrs: { "aria-labelledby": "wAideOnglet" + etat.aide.onglet, tabindex: "0" } });
   var puces = function(l) {
     return creer("ul", {}, l.map(function(t) {
       return creer("li", { texte: t });
@@ -6032,6 +6028,7 @@ function rendreAide() {
       corps.appendChild(creer("p", { texte: x[1] }));
     });
   }
+  corps.setAttribute("role", "tabpanel");
   p.appendChild(corps);
 }
 function rendreMessage(vue) {
@@ -6043,7 +6040,7 @@ function rendreMessage(vue) {
   var textes = {
     acces: ["Accès au document nécessaire", "Ce widget a besoin d'un accès complet au document pour lire les dossiers et enregistrer l'historique. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »)."],
     hors: ["Widget à ajouter dans un document", "Ce widget s'utilise dans un document : ajoutez-le à une page en tant que vue personnalisée."],
-    recharger: ["La règle est créée", "La table de l'historique sera lisible après un rechargement du widget."],
+    recharger: ["La règle est créée", "La table de l'historique vient d'être créée. Relisez le document ; si la règle n'apparaît toujours pas, rechargez la page du document."],
     aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table des dossiers, les filtres qui désignent ceux à archiver et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
     echec: ["Chargement impossible", "Les données du document n'ont pas pu être lues. Réessayez dans un instant."]
   };
@@ -6053,8 +6050,8 @@ function rendreMessage(vue) {
     bloc.appendChild(bouton("Créer une règle", null, "add-line", ouvrirCreation, { id: "mCreer" }));
   }
   if (vue === "recharger") {
-    bloc.appendChild(bouton("Recharger le widget", null, "refresh-line", function() {
-      window.location.reload();
+    bloc.appendChild(bouton("Relire le document", null, "refresh-line", function() {
+      return chargerTout();
     }, { id: "mRecharger" }));
   }
   if (vue === "echec" || vue === "acces") {
@@ -6215,6 +6212,18 @@ function demarrer() {
     return;
   }
   grist.ready({ requiredAccess: "full", allowSelectBy: false });
+  if (typeof grist.onOptions === "function") {
+    grist.onOptions(function(options, interaction) {
+      var avant = etat.niveauAcces;
+      etat.niveauAcces = interaction && interaction.accessLevel ? interaction.accessLevel : etat.niveauAcces;
+      if (avant !== etat.niveauAcces) {
+        logSecurite("INFO", "Niveau d'accès accordé : " + etat.niveauAcces);
+        if (_initialise && avant && etat.niveauAcces !== "full") {
+          rendreMessage("acces");
+        }
+      }
+    });
+  }
   if (typeof grist.on === "function") {
     grist.on("message", function(m) {
       if (m && m.settings && m.settings.accessLevel) {
