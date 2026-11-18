@@ -510,7 +510,7 @@ var SOCLE = {
                 "points": [
                     "Bloc « Pages » de l'accueil : « Créer une page de consultation », puis choisissez les graphiques, leur ordre, la disposition et jusqu'à 3 filtres pour les lecteurs.",
                     "La page apparaît dans la liste des pages du document, sans onglets, réglages ni aide.",
-                    "« Réserver cette page » masque la page d'administration aux personnes qui ne peuvent pas lire la table ❌ OWNER ONLY ⚡."
+                    "« Cacher cette page » cache la page d'administration aux personnes qui ne peuvent pas lire la table ❌ OWNER ONLY ⚡."
                 ]
             }
         ],
@@ -1559,7 +1559,7 @@ let couleursPerso = {};
 let derniereAgregation = null;
 let colonneCouleurActuelle = null;
 let elementCouleurEnCours = null;
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 var HOMOLOGUE = false;
 let etatType = 'barres';
 let typeSuggere = null;
@@ -3254,20 +3254,20 @@ async function reserverPage() {
             var r = await ecrireDocument([['CreateViewSection', o.ref, vue, 'record', null, null]]);
             var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
             if (sec) {
-                await ecrireDocument([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page réservée', description: 'Vue de la table ' + TITRE_OWNER + ' : elle réserve cette page aux personnes qui peuvent lire la table. Ne pas supprimer.' }]]);
+                await ecrireDocument([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + TITRE_OWNER + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
                 reduite = await reduireVue(vue, sec);
             }
         }
         await chargerListeRequetes();
         await afficherPages();
         masquerLoader();
-        afficherSucces('La page porte maintenant une vue de « ' + TITRE_OWNER + ' »' + (reduite ? ', réduite en haut de la page' : '') + '. Posez la règle d\'accès indiquée pour choisir qui la voit.');
+        afficherSucces('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.');
     }
     catch (e) {
         masquerLoader();
         if (ligne)
             await ecrireDocument([['RemoveRecord', NOM_TABLE_CENTRALE, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être réservée. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
     }
     finally {
         _actionPage = false;
@@ -3587,10 +3587,10 @@ function renderPagesZone() {
     if (!z)
         return;
     z.textContent = '';
-    var r = aideI('gpAideReserver', 'Réserver cette page', 'La page réservée porte une vue de la table « ' + TITRE_OWNER + ' ». Pour choisir qui la voit : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »).');
+    var r = aideI('gpAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
     var admin = sectionPage('gpSecAdmin', 'Page d\'administration', [
-        noeud('p', { classe: 'gp-texte' }, [_pageProtegee ? 'Cette page, avec la création et les réglages des graphiques, est réservée.' : 'Cette page montre la création et les réglages des graphiques. Elle est visible par tous.', ' ', r.bouton]), r.panneau
-    ], _pageProtegee ? null : boutonPage('Réserver cette page', 'fr-btn--secondary', 'lock-line', reserverPage, { id: 'btnReserverPage' }));
+        noeud('p', { classe: 'gp-texte' }, [_pageProtegee ? 'Cette page, avec la création et les réglages des graphiques, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la création et les réglages des graphiques. Elle est visible par tous.', ' ', r.bouton]), r.panneau
+    ], _pageProtegee ? null : boutonPage('Cacher cette page', 'fr-btn--secondary', 'eye-off-line', reserverPage, { id: 'btnReserverPage' }));
     var ic = aideI('gpAideConsult', 'Pages de consultation', 'Une page de consultation montre un ou plusieurs graphiques de la bibliothèque, à jour, sans onglets ni réglages. Un graphique modifié dans la bibliothèque change aussi sur ses pages. Les filtres règlent l\'affichage, pas les droits : pour la confidentialité, posez des règles d\'accès sur les tables.');
     var consult;
     if (_editionPage) {
@@ -3603,7 +3603,7 @@ function renderPagesZone() {
             liste.appendChild(noeud('li', { classe: 'gp-pages__item' }, [
                 noeud('div', { classe: 'gp-pages__texte' }, [noeud('span', { classe: 'gp-pages__nom', texte: nom }), noeud('span', { classe: 'gp-mention', texte: resumePage(x) })]),
                 boutonPage('Modifier', 'fr-btn--tertiary-no-outline', 'edit-line', function () { return editerPage(x, false); }, { seule: true, id: 'gpModif' + k, aria: 'Modifier « ' + nom + ' »' }),
-                boutonPage('Dupliquer', 'fr-btn--tertiary-no-outline', 'file-copy-line', function () { return editerPage(x, true); }, { seule: true, id: 'gpDupl' + k, aria: 'Dupliquer « ' + nom + ' »' }),
+                boutonPage('Dupliquer', 'fr-btn--tertiary-no-outline', 'file-add-line', function () { return editerPage(x, true); }, { seule: true, id: 'gpDupl' + k, aria: 'Dupliquer « ' + nom + ' »' }),
                 boutonPage('Supprimer', 'fr-btn--tertiary-no-outline', 'delete-line', function () { return supprimerPageConsultation(x); }, { seule: true, id: 'gpSuppr' + k, aria: 'Supprimer « ' + nom + ' »' })
             ]));
         });

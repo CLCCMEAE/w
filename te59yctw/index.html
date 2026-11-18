@@ -1272,21 +1272,21 @@ async function reserverPage() {
             var r = await ecrireDocument([['CreateViewSection', o.ref, vue, 'record', null, null]]);
             var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
             if (sec) {
-                await ecrireDocument([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page réservée', description: 'Vue de la table ' + TITRE_OWNER + ' : elle réserve cette page aux personnes qui peuvent lire la table. Ne pas supprimer.' }]]);
+                await ecrireDocument([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + TITRE_OWNER + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
                 reduite = await reduireVue(vue, sec);
             }
         }
         await refreshFaq(true);
         await afficherPages();
         masquerLoader();
-        toast('La page porte maintenant une vue de « ' + TITRE_OWNER + ' »' + (reduite ? ', réduite en haut de la page' : '') + '. Posez la règle d\'accès indiquée pour choisir qui la voit.', { type: 'succes', duree: 10000 });
+        toast('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.', { type: 'succes', duree: 10000 });
     }
     catch (e) {
         masquerLoader();
         if (ligne) {
             await apiDelete([ligne]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
         }
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être réservée. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
     }
     finally {
         _actionPage = false;
@@ -1516,10 +1516,10 @@ function renderPagesZone() {
         return;
     }
     vider(z);
-    var r = aide('aideReserver', 'Réserver cette page', 'La page réservée porte une vue de la table « ' + TITRE_OWNER + ' ». Pour choisir qui la voit : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »).');
+    var r = aide('aideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
     var admin = sectionPage('secAdminPage', 'Page d\'administration', [
-        creer('p', { classe: 'w-texte' }, [_pageProtegee ? 'Cette page, avec l\'administration de la FAQ, est réservée.' : 'Cette page montre la FAQ et son administration. Elle est visible par tous.', ' ', r.bouton]), r.panneau
-    ], _pageProtegee ? null : bouton('Réserver cette page', 'secondaire', 'lock-line', reserverPage, { petit: true, id: 'btnReserverPage' }));
+        creer('p', { classe: 'w-texte' }, [_pageProtegee ? 'Cette page, avec l\'administration de la FAQ, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la FAQ et son administration. Elle est visible par tous.', ' ', r.bouton]), r.panneau
+    ], _pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', reserverPage, { petit: true, id: 'btnReserverPage' }));
     var ic = aide('aideConsult', 'Pages de consultation', 'Chaque page de consultation montre la FAQ publiée, sans roue dentée, sans aide et sans administration, limitée aux catégories choisies. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
     var consult;
     if (_editionPage) {
@@ -1532,7 +1532,7 @@ function renderPagesZone() {
             liste.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
                 creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
                 bouton('Modifier', 'discret', 'edit-line', function () { editerPage(x, false); }, { petit: true, iconeSeule: true, id: 'pageModif' + k, aria: 'Modifier « ' + nom + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Modifier' } }),
-                bouton('Dupliquer', 'discret', 'file-copy-line', function () { editerPage(x, true); }, { petit: true, iconeSeule: true, id: 'pageDupl' + k, aria: 'Dupliquer « ' + nom + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Dupliquer' } }),
+                bouton('Dupliquer', 'discret', 'file-add-line', function () { editerPage(x, true); }, { petit: true, iconeSeule: true, id: 'pageDupl' + k, aria: 'Dupliquer « ' + nom + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Dupliquer' } }),
                 bouton('Supprimer', 'discret', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, iconeSeule: true, id: 'pageSuppr' + k, aria: 'Supprimer « ' + nom + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Supprimer' } })
             ]));
         });
@@ -3154,7 +3154,7 @@ var AIDE = {
                 '« Publier » la rend visible des lecteurs, avec le badge « Nouvelle réponse » pendant 7 jours.', '« Dépublier pour corriger » la retire de la consultation le temps de la reprendre.',
                 'Cochez « Épinglée » pour placer une question en tête de sa catégorie.'] },
         'Les pages': { titre: 'montrer la FAQ sans l\'administration.', points: ['« Créer une page de consultation » ajoute au document une page qui montre la FAQ publiée, sans roue dentée ni aide.',
-                'Choisissez ses catégories pour une FAQ thématique, et ce que les lecteurs peuvent y faire.', '« Réserver cette page » masque la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '.'] }
+                'Choisissez ses catégories pour une FAQ thématique, et ce que les lecteurs peuvent y faire.', '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '.'] }
     },
     questions: [
         { q: 'Je ne vois pas la roue dentée.', r: 'L\'administration est réservée aux personnes que les règles d\'accès du document autorisent. Adressez-vous à un propriétaire du document.' },
@@ -3215,7 +3215,7 @@ setTimeout(function () {
         logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined);
     });
 }, 1500);
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.2.1';
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
