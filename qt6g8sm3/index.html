@@ -642,6 +642,14 @@
     .p-logos > span { height: 100%; display: flex; align-items: center; }
     .p-logos__marque { flex: 0 0 auto; background: var(--background-default-grey); color: inherit; }
     .p-logos__marque img { height: 100%; width: auto; display: block; }
+.p-logos > .p-bm { display: block; position: relative; flex: 0 0 auto; height: auto; }
+.p-bm > img, .p-bm > .p-bm__intitule { position: absolute; display: block; }
+.p-bm__intitule { font-family: Marianne, Arial, sans-serif; font-weight: 700; color: #000; white-space: nowrap; }
+.w-bm { margin: .5rem 0 1rem; }
+.w-bm__grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: .5rem; align-items: end; }
+.w-bm__erreur:empty { display: none; }
+.w-ref .fr-input-group, .w-ref .fr-fieldset { margin-bottom: .75rem; }
+
     .p-logos__autre { flex: 0 1 auto; min-width: 0; }
     .p-logos__autre img { height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: left center; display: block; }
     .p-logos > .p-logos__filet { flex: 0 0 auto; width: 0; align-self: stretch; height: auto; border-left: .5pt solid var(--p-ink); margin: 3mm 0; }
@@ -758,7 +766,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.0.2';
+var VERSION_WIDGET = '2.1.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -891,6 +899,10 @@ var CONDITIONS = [
 ];
 var MISES_EN_PAGE = [
     { id: 'letter', nom: 'Courrier', icone: 'mail-line', desc: 'En-tête, destinataire, lieu et date, objet, formule d\'appel, corps, formule de politesse et signature.' },
+    { id: 'lettre_meae', nom: 'Lettre administrative', icone: 'mail-send-line', desc: 'Modèle officiel du ministère : bloc-marque, fonction de l\'émetteur, numéro, objet, formule d\'appel, corps, signature et destinataire en bas de page.' },
+    { id: 'lettre_direction', nom: 'Lettre d\'une direction', icone: 'mail-send-line', desc: 'Modèle officiel du ministère : intitulé de la direction, bloc « De : », numéro, objet, corps, signature et destinataire en bas de page.' },
+    { id: 'note', nom: 'Note', icone: 'file-text-line', desc: 'Modèle officiel du ministère : à, sous couvert de, A/s, référence, dossier suivi par, puis la signature.' },
+    { id: 'note_verbale', nom: 'Note verbale', icone: 'draft-line', desc: 'Modèle officiel du ministère : numéro, formules protocolaires selon le bloc-marque, lieu et date, destinataire en bas de page.' },
     { id: 'convocation', nom: 'Convocation', icone: 'calendar-event-line', desc: 'Une par participation : la personne convoquée, la date, l\'heure, le lieu et l\'ordre du jour, la date limite de réponse.' },
     { id: 'programme', nom: 'Programme ou déroulé', icone: 'time-line', desc: 'Un par événement : les séquences par jour et par heure, pour les participants ou, plus détaillé, pour les organisateurs.', lignes: true },
     { id: 'emargement', nom: 'Liste d\'émargement', icone: 'edit-box-line', desc: 'Une par événement : les participants triés par nom, avec une colonne pour signer.', lignes: true },
@@ -3040,6 +3052,9 @@ var AIDE = {
         { q: 'Qui peut paramétrer un modèle de document ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Général » des paramétrages : « Réserver le paramétrage aux propriétaires », puis « Voir la marche à suivre ».' },
         { q: 'Un champ s\'imprime vide : pourquoi ?', r: 'La cellule est vide pour cette ligne, ou la colonne a été supprimée. Les points à vérifier, à l\'étape « Rédiger », listent les champs vides et les lignes concernées.' },
         { q: 'Comment imprimer plusieurs documents d\'un coup ?', r: 'Choisissez « Plusieurs lignes » en haut du panneau de gauche, cochez les lignes, puis l\'icône d\'imprimante : un document par ligne cochée.' },
+        { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: 'À l\'étape « Rédiger », rubrique « Logos » : gardez « Bloc-marque de l\'État » coché et choisissez « Poste à l\'étranger », puis le poste, la liaison (en, au, aux, à, auprès de) et le pays ou la ville. Diplofusion propose le découpage en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Les choix « Gouvernement » et « République française » servent aux courriers interministériels et aux opérateurs. L\'intitulé ne se traduit pas.' },
+        { q: 'Comment numéroter mes courriers ?', r: 'Rien n\'est numéroté par défaut. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, rubrique « Numéro d\'enregistrement » : écrivez votre format, par exemple CD/{N:2}-{AAAA}, le prochain numéro et quand le compteur repart à 1, puis « Créer la numérotation ». Grist attribue alors la référence à la création de chaque ligne, sans doublon, et elle reste modifiable à la main. « Créer la page 📒 Chrono » ajoute une page avec vos courriers triés par référence.' },
+        { q: 'D\'où viennent les formules de la note verbale ?', r: 'Le champ « Émetteur » suit le bloc-marque : « Le ministère de l\'Europe et des Affaires étrangères », ou « L\'Ambassade de France aux États-Unis » pour un poste. Le reste des formules s\'écrit dans la page, comme le corps de la note.' },
         { q: 'Comment obtenir un PDF ?', r: 'Avec l\'icône « Enregistrer en PDF », en bas du panneau de gauche. Le nom proposé pour les fichiers se règle à l\'étape « Rédiger », rubrique « Nom des fichiers ».' },
         { q: 'Mes changements sont-ils enregistrés ?', r: 'Dans les paramétrages, oui : chaque changement est enregistré automatiquement, l\'état est rappelé sous le titre. À la création, rien n\'est enregistré avant « Créer mon document » ; une page fermée par erreur est proposée à la reprise par ce navigateur.' },
         { q: 'Supprimer un modèle supprime-t-il mes données ?', r: 'Non. Le modèle disparaît des onglets et ses réglages sont effacés ; vos tables et leurs lignes restent dans le document.' }
@@ -3152,7 +3167,16 @@ function uniteLogos(b, rc, taille) {
     var al = ministere ? 'left' : (p.logoPosRangee || !b.align || b.align === 'page' ? (p.logoPos || 'left') : b.align);
     var droite = ministere && p.logosPartenaires === 'droite' && autres.length > 0;
     var rangee = creer('div', { classe: classes('p-u p-logos', 'p-logos--' + valeurDans(p.logoSize || taille, ['S', 'M', 'L', 'XL'], 'M'), 'p-logos--' + valeurDans(al, ['left', 'center', 'right'], 'left'), ministere ? 'p-logos--marque' : null, droite ? 'p-logos--part-droite' : null) });
-    if (ministere) {
+    var lignesBm = ministere ? lignesBloc(blocMarqueValide(p.blocMarque)) : [];
+    if (ministere && lignesBm.length) {
+        var compose = blocMarqueCompose(lignesBm, BM_TAILLES_MM[valeurDans(p.logoSize || taille, ['S', 'M', 'L', 'XL'], 'M')]);
+        rangee.style.height = compose.hauteurMm.toFixed(2) + 'mm';
+        rangee.appendChild(compose.el);
+        if (autres.length && p.logoFilet && !droite) {
+            rangee.appendChild(creer('span', { classe: 'p-logos__filet', attrs: { 'aria-hidden': 'true' } }));
+        }
+    }
+    else if (ministere) {
         rangee.appendChild(creer('span', { classe: 'p-logos__marque' }, [creer('img', { attrs: { src: blocMarqueURL(), alt: 'Bloc-marque de l\'État : Ministère de l\'Europe et des Affaires étrangères, Liberté Égalité Fraternité' } })]));
         if (autres.length && p.logoFilet && !droite) {
             rangee.appendChild(creer('span', { classe: 'p-logos__filet', attrs: { 'aria-hidden': 'true' } }));
@@ -3395,6 +3419,9 @@ function champSpecial(tid, chemin) {
     if (lc === 'page' || lc === 'pages') {
         return lc;
     }
+    if (lc === 'emetteur') {
+        return 'emetteur';
+    }
     return '';
 }
 function libelleChemin(tid, chemin) {
@@ -3408,6 +3435,9 @@ function libelleChemin(tid, chemin) {
     }
     if (sp === 'pages') {
         return 'Nombre de pages';
+    }
+    if (sp === 'emetteur') {
+        return 'Émetteur (d\'après le bloc-marque)';
     }
     var parts = c.split('.');
     var col = infoColonne(tid, parts[0]);
@@ -3589,6 +3619,9 @@ function valeurJeton(t, rc) {
     }
     if (sp === 'page' || sp === 'pages') {
         return { ok: true, texte: '', pn: sp };
+    }
+    if (sp === 'emetteur') {
+        return { ok: true, texte: valeurEmetteur(rc) };
     }
     if (typeof rc.i !== 'number' || rc.i < 0) {
         return { ok: !!colonneChemin(rc.tid, t.chemin), texte: '' };
@@ -4508,6 +4541,12 @@ function normaliserConfig(cfg) {
     }
     if (p.logosPartenaires !== undefined) {
         p.logosPartenaires = p.logosPartenaires === 'droite' ? 'droite' : 'cote';
+    }
+    if (p.blocMarque !== undefined) {
+        p.blocMarque = blocMarqueValide(p.blocMarque);
+    }
+    if (p.reference !== undefined && (!p.reference || typeof p.reference !== 'object')) {
+        delete p.reference;
     }
     if (!Array.isArray(cfg.logos)) {
         cfg.logos = cfg.logo ? [cfg.logo] : [];
@@ -5874,7 +5913,7 @@ function cfgBrouillon(b) {
     return c;
 }
 function enTeteEnColonne(layout) { return layout === 'letter' || layout === 'convocation'; }
-function ecritDansPage(layout) { return layout === 'letter' || layout === 'libre'; }
+function ecritDansPage(layout) { return ['letter', 'libre', 'lettre_meae', 'lettre_direction', 'note', 'note_verbale'].indexOf(layout) !== -1; }
 function nomAuto(layout, tid) { return layout === 'record' ? 'Fiche ' + nomLisibleTable(tid) : nomMiseEnPage(layout); }
 function reconstruireBrouillon(b) {
     b.roles = rolesInitiaux(b.layout, b.table, b.labelCol);
@@ -6691,6 +6730,7 @@ function etapeRediger() {
     sections.push(sectionRepliable('mep', 'Mise en page', [contenuMiseEnPage()]));
     sections.push(sectionRepliable('fichier', 'Nom des fichiers', [champNomFichier()]));
     sections.push(sectionRepliable('champs', 'Champs disponibles', listeChampsDisponibles()));
+    sections.push(sectionRepliable('reference', 'Numéro d\'enregistrement', [panneauReference()]));
     if (courrier) {
         sections.push(sectionRepliable('avance', 'Mise en page avancée', [creer('p', { classe: 'w-indice', texte: b.avance ? 'La liste des blocs du courrier, ci-dessous ; l\'aperçu est à droite.' : 'La liste des blocs du courrier, dans ce panneau, pour régler chaque élément.' }),
             creer('div', { classe: 'w-liens' }, [bouton(b.avance ? 'Revenir à l\'écriture dans la page' : 'Afficher les blocs', 'tertiaire', b.avance ? 'mail-line' : 'list-unordered', function () {
@@ -7067,6 +7107,548 @@ function blocLignesConcernees() {
     }
     return creer('fieldset', { classe: 'fr-fieldset w-fs', id: 'pLignesConcernees' }, l);
 }
+var POSTES = ['Ambassade de France', 'Consulat général de France', 'Consulat de France'];
+var LIAISONS = ['en', 'au', 'aux', 'à', 'auprès de'];
+var BM_MAX_LIGNES = 6;
+var TYPES_BM = ['ministere', 'poste', 'gouvernement', 'rf'];
+var LIGNES_BM_FIXES = { gouvernement: ['GOUVERNEMENT'], rf: ['RÉPUBLIQUE', 'FRANÇAISE'] };
+function capitalesFr(s) { return String(s || '').toLocaleUpperCase('fr-FR'); }
+function intituleBloc(b) { return (b.poste + ' ' + b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim(); }
+function decouperIntitule(b) {
+    var tete = capitalesFr(b.poste.replace(/ de France$/, ''));
+    var reste = capitalesFr((b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim()).split(' ');
+    var lignes = [tete, 'DE FRANCE'];
+    var cur = '';
+    var petits = ['DE', 'DU', 'DES', 'D\'', 'LA', 'LE', 'LES', 'L\'', 'AU', 'AUX', 'EN', 'À', 'AUPRÈS', 'ET', 'SUR'];
+    reste.forEach(function (m) {
+        var essai = cur ? cur + ' ' + m : m;
+        var dernier = cur.split(' ').pop();
+        if (!cur || essai.length <= 16 || petits.indexOf(dernier) !== -1) {
+            cur = essai;
+        }
+        else {
+            lignes.push(cur);
+            cur = m;
+        }
+    });
+    if (cur) {
+        lignes.push(cur);
+    }
+    while (lignes.length > BM_MAX_LIGNES) {
+        var a = lignes.pop();
+        lignes[lignes.length - 1] += ' ' + a;
+    }
+    return lignes;
+}
+function blocMarqueValide(b) {
+    if (!b || typeof b !== 'object') {
+        return { type: 'ministere', poste: POSTES[0], liaison: 'en', lieu: '', lignes: [] };
+    }
+    var r = { type: TYPES_BM.indexOf(b.type) !== -1 ? b.type : 'ministere', poste: POSTES.indexOf(b.poste) !== -1 ? b.poste : POSTES[0], liaison: LIAISONS.indexOf(b.liaison) !== -1 ? b.liaison : 'en',
+        lieu: typeof b.lieu === 'string' ? b.lieu.replace(/\s+/g, ' ').trim().slice(0, 80) : '' };
+    var l = Array.isArray(b.lignes) ? b.lignes.filter(function (x) { return typeof x === 'string'; }).map(function (x) { return capitalesFr(x.replace(/\s+/g, ' ').trim()).slice(0, 48); }).filter(Boolean) : [];
+    r.lignes = l.length && l.length <= BM_MAX_LIGNES ? l : (r.lieu ? decouperIntitule(r) : []);
+    if (r.type !== 'poste') {
+        r.lignes = (LIGNES_BM_FIXES[r.type] || []).slice();
+    }
+    return r;
+}
+function lignesBloc(b) {
+    if (!b || b.type === 'ministere') {
+        return [];
+    }
+    return b.type === 'poste' ? (b.lieu ? b.lignes : []) : (LIGNES_BM_FIXES[b.type] || []).slice();
+}
+function emetteurBloc(b) {
+    if (b && b.type === 'poste' && b.lieu) {
+        var t = intituleBloc(b);
+        return (/^[AEIOUÉÈ]/i.test(t) ? 'L\'' : 'Le ') + t;
+    }
+    if (b && b.type === 'gouvernement') {
+        return 'Le Gouvernement';
+    }
+    if (b && b.type === 'rf') {
+        return 'La République française';
+    }
+    return 'Le ministère de l\'Europe et des Affaires étrangères';
+}
+var BM_GEO = { ref: 283.1, x: 31.4, mTop: 28.3, mW: 77.9, mH: 28.3, base1: 91.5, pas: 31.2, taille: 29.5, ecart: 15.6, dL: 75.6, dH: 54, bas: 28.4, l: 301.3 };
+var BM_TAILLES_MM = { S: 25, M: 30, L: 35, XL: 40 };
+var _bmCache = {};
+function hauteurBloc(n) { return BM_GEO.base1 + (n - 1) * BM_GEO.pas + BM_GEO.ecart + BM_GEO.dH + BM_GEO.bas; }
+function mesuresMarianne(lignes) {
+    var prete = document.fonts && document.fonts.check ? document.fonts.check('700 100px Marianne') : false;
+    var cle = (prete ? 'm:' : 'r:') + lignes.join('|');
+    if (_bmCache[cle]) {
+        return _bmCache[cle];
+    }
+    var c = document.createElement('canvas').getContext('2d');
+    var r = { asc: 92, desc: 25, l: 0 };
+    if (c) {
+        c.font = '700 100px Marianne, Arial, sans-serif';
+        var m = c.measureText('MÉ');
+        r.asc = m.fontBoundingBoxAscent || r.asc;
+        r.desc = m.fontBoundingBoxDescent || r.desc;
+        lignes.forEach(function (t) { r.l = Math.max(r.l, c.measureText(t).width); });
+    }
+    else {
+        r.l = Math.max.apply(null, lignes.map(function (t) { return t.length * 70; }));
+    }
+    _bmCache[cle] = r;
+    return r;
+}
+function svgMarianne() {
+    if (_bmCache.marianne) {
+        return _bmCache.marianne;
+    }
+    var doc = new DOMParser().parseFromString(genererLogoMEAE(), 'image/svg+xml');
+    var gs = doc.getElementsByTagName('g');
+    var g = null;
+    for (var i = 0; i < gs.length; i++) {
+        if (gs[i].querySelector('path[fill]')) {
+            g = gs[i];
+        }
+    }
+    var corps = g ? new XMLSerializer().serializeToString(g) : '';
+    _bmCache.marianne = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + BM_GEO.x + ' ' + BM_GEO.mTop + ' ' + BM_GEO.mW + ' ' + BM_GEO.mH + '" width="' + BM_GEO.mW + '" height="' + BM_GEO.mH + '">' + corps + '</svg>');
+    return _bmCache.marianne;
+}
+function svgDevise() {
+    if (!_bmCache.devise) {
+        _bmCache.devise = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + DEVISE_DSFR.largeur + ' ' + DEVISE_DSFR.hauteur + '" width="' + DEVISE_DSFR.largeur + '" height="' + DEVISE_DSFR.hauteur + '"><g fill="#000">' + DEVISE_DSFR.traces + '</g></svg>');
+    }
+    return _bmCache.devise;
+}
+function blocMarqueCompose(lignes, mm) {
+    var G = BM_GEO;
+    var mes = mesuresMarianne(lignes);
+    var fs = G.taille, asc = mes.asc / 100 * fs, desc = mes.desc / 100 * fs;
+    var haut = G.base1 - ((G.pas - (asc + desc)) / 2 + asc);
+    var largeur = Math.max(G.l, G.x * 2 + mes.l / 100 * fs * 1.03);
+    var h = hauteurBloc(lignes.length);
+    var u = function (v) { return 'calc(var(--bm-u) * ' + (Math.round(v * 100) / 100) + ')'; };
+    var el = creer('span', { classe: 'p-logos__marque p-bm', attrs: { role: 'img', 'aria-label': 'Bloc-marque de l\'État : ' + lignes.join(' ') + ', Liberté Égalité Fraternité' } });
+    el.style.setProperty('--bm-u', (mm / G.ref).toFixed(5) + 'mm');
+    el.style.width = u(largeur);
+    el.style.height = u(h);
+    var mar = creer('img', { classe: 'p-bm__marianne', attrs: { src: svgMarianne(), alt: '' } });
+    mar.style.left = u(G.x);
+    mar.style.top = u(G.mTop);
+    mar.style.width = u(G.mW);
+    mar.style.height = u(G.mH);
+    var txt = creer('span', { classe: 'p-bm__intitule' });
+    lignes.forEach(function (l, k) {
+        if (k) {
+            txt.appendChild(creer('br'));
+        }
+        txt.appendChild(document.createTextNode(l));
+    });
+    txt.style.left = u(G.x);
+    txt.style.top = u(haut);
+    txt.style.fontSize = u(fs);
+    txt.style.lineHeight = u(G.pas);
+    var dev = creer('img', { classe: 'p-bm__devise', attrs: { src: svgDevise(), alt: '' } });
+    dev.style.left = u(G.x);
+    dev.style.top = u(G.base1 + (lignes.length - 1) * G.pas + G.ecart);
+    dev.style.width = u(G.dL);
+    dev.style.height = u(G.dH);
+    el.appendChild(mar);
+    el.appendChild(txt);
+    el.appendChild(dev);
+    return { el: el, hauteurMm: mm * h / G.ref };
+}
+function choixBlocMarque(p) {
+    var bm = blocMarqueValide(p.blocMarque);
+    var zone = creer('div', { classe: 'w-bm', id: 'pBmZone' });
+    var maj = function () { marquerTouche(); majApercuBrouillon(); };
+    zone.appendChild(groupeRadios('pBmType', 'Intitulé du bloc-marque', [
+        { valeur: 'ministere', libelle: 'Ministère de l\'Europe et des Affaires étrangères' },
+        { valeur: 'poste', libelle: 'Poste à l\'étranger (ambassade, consulat)' },
+        { valeur: 'gouvernement', libelle: 'Gouvernement (courrier interministériel)' },
+        { valeur: 'rf', libelle: 'République française' }
+    ], bm.type, function (v) {
+        var c = p.blocMarque || bm;
+        p.blocMarque = blocMarqueValide({ type: v, poste: c.poste, liaison: c.liaison, lieu: c.lieu });
+        marquerTouche();
+        redessinerEtape('pBmType_' + v);
+    }));
+    if (bm.type !== 'poste') {
+        return zone;
+    }
+    var recomposer = function () {
+        p.blocMarque = blocMarqueValide({ type: 'poste', poste: poste.value, liaison: liaison.value, lieu: lieu.value });
+        lignes.value = p.blocMarque.lignes.join('\n');
+        erreur.textContent = '';
+        intitule.textContent = 'Intitulé : ' + (p.blocMarque.lieu ? intituleBloc(p.blocMarque) : 'à compléter');
+        maj();
+    };
+    var poste = liste('pBmPoste', POSTES.map(function (x) { return { valeur: x, libelle: x }; }), bm.poste);
+    var liaison = liste('pBmLiaison', LIAISONS.map(function (x) { return { valeur: x, libelle: x }; }), bm.liaison);
+    var lieu = creer('input', { classe: 'fr-input', id: 'pBmLieu', attrs: { type: 'text', maxlength: '80', autocomplete: 'off', 'aria-describedby': 'pBmLieuAide' } });
+    lieu.value = bm.lieu;
+    var minuterie = null;
+    poste.addEventListener('change', recomposer);
+    liaison.addEventListener('change', recomposer);
+    lieu.addEventListener('input', function () { clearTimeout(minuterie); minuterie = setTimeout(recomposer, 350); });
+    var lignes = creer('textarea', { classe: 'fr-input', id: 'pBmLignes', attrs: { rows: '5', spellcheck: 'false', 'aria-describedby': 'pBmLignesAide pBmErreur' } });
+    lignes.value = bm.lignes.join('\n');
+    var erreur = creer('p', { classe: 'fr-error-text w-bm__erreur', id: 'pBmErreur', attrs: { 'aria-live': 'polite' } });
+    lignes.addEventListener('input', function () {
+        var l = lignes.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+        if (l.length > BM_MAX_LIGNES) {
+            erreur.textContent = BM_MAX_LIGNES + ' lignes au plus : regroupez deux lignes.';
+            return;
+        }
+        erreur.textContent = '';
+        p.blocMarque = blocMarqueValide(Object.assign({}, p.blocMarque, { lignes: l }));
+        maj();
+    });
+    lignes.addEventListener('blur', function () { if (!erreur.textContent) {
+        lignes.value = p.blocMarque.lignes.join('\n');
+    } });
+    var intitule = creer('p', { classe: 'w-indice', id: 'pBmIntitule', texte: 'Intitulé : ' + (bm.lieu ? intituleBloc(bm) : 'à compléter') });
+    zone.appendChild(creer('div', { classe: 'w-bm__grille' }, [groupeChamp('Poste', poste), groupeChamp('Liaison', liaison), groupeChamp('Pays ou ville', lieu)]));
+    zone.appendChild(creer('p', { classe: 'fr-hint-text', id: 'pBmLieuAide', texte: 'Comme dans l\'intitulé officiel : « en Italie », « au Japon », « aux États-Unis », « à New York ». L\'intitulé ne se traduit pas.' }));
+    zone.appendChild(creer('div', { classe: 'fr-input-group' }, [
+        creer('label', { classe: 'fr-label', attrs: { 'for': 'pBmLignes' } }, ['Lignes du bloc-marque', creer('span', { classe: 'fr-hint-text', id: 'pBmLignesAide', texte: 'Proposées par Diplofusion, ' + BM_MAX_LIGNES + ' au plus. Vous pouvez déplacer un retour à la ligne ; les capitales sont posées pour vous.' })]),
+        lignes, erreur]));
+    zone.appendChild(intitule);
+    return zone;
+}
+function valeurEmetteur(rc) {
+    var p = rc && rc.cfg && rc.cfg.page ? rc.cfg.page : {};
+    return emetteurBloc(p.logoMinistere === false ? null : blocMarqueValide(p.blocMarque));
+}
+function colM(ctx, ids, role) {
+    for (var i = 0; i < ids.length; i++) {
+        if (infoColonne(ctx.tid, ids[i])) {
+            return F(ids[i]);
+        }
+    }
+    var g = role ? deviner(ctx.tid) : {};
+    return role && g[role] ? F(g[role]) : '';
+}
+function colCond(ctx, ids, role) {
+    for (var i = 0; i < ids.length; i++) {
+        if (infoColonne(ctx.tid, ids[i])) {
+            return ids[i];
+        }
+    }
+    var g = role ? deviner(ctx.tid) : {};
+    return role && g[role] ? g[role] : null;
+}
+var PIED_MEAE = 'Tél. : 00 00 00 00 00 · prenom.nom@diplomatie.gouv.fr · 37, quai d\'Orsay, 75351 Paris';
+var CORPS_ADMIN = 'Pour faire suite à votre courrier, j\'ai l\'honneur de vous faire connaître les éléments suivants.\n\nJe vous prie de bien vouloir me tenir informé de la suite que vous entendez y donner.';
+function enTeteOfficiel(droite) {
+    return B('columns', { ratio: '50', left: [B('image', { source: 'logo', align: 'page' })], right: [B('paragraph', { text: droite, align: 'right' })] });
+}
+function blocNumero(ctx) {
+    var n = colCond(ctx, ['N_ENREGISTREMENT'], 'numero');
+    return n ? B('paragraph', { text: 'N° ' + F(n), size: 'S', cond: { op: 'filled', path: n } }) : B('paragraph', { text: 'N° d\'enregistrement', size: 'S' });
+}
+function appelOfficiel(ctx) {
+    var a = colCond(ctx, ['FORMULE_APPEL'], 'salutation');
+    return a ? [B('paragraph', { text: F(a) + ',', cond: { op: 'filled', path: a } }), B('paragraph', { text: 'Madame, Monsieur,', cond: { op: 'empty', path: a } })] : [B('paragraph', { text: 'Madame, Monsieur,' })];
+}
+function genLettreMeae(ctx, direction) {
+    var ref = colCond(ctx, ['REFERENCE'], null);
+    var dest = sansVides(['**' + (colM(ctx, ['DESTINATAIRE'], 'nom') || 'Nom du destinataire') + '**', colM(ctx, ['FONCTION_DESTINATAIRE'], 'fonction'), colM(ctx, ['ADRESSE'], 'adresse') || 'Adresse', colM(ctx, ['PAYS'], null)]).join('\n');
+    return sansVides([
+        enTeteOfficiel(direction ? '**Direction du numérique**\n**Sous-direction**' : '**Directeur du numérique**'),
+        B('spacer', { size: 'S' }),
+        blocNumero(ctx),
+        B('paragraph', { text: 'Paris, le ' + F('aujourdhui'), align: 'right' }),
+        direction ? B('paragraph', { text: 'De :\n**Prénom NOM**\nPoste ou fonction\nSous-direction', size: 'S' }) : null,
+        B('spacer', { size: 'S' }),
+        B('paragraph', { text: '**Objet :** ' + (colM(ctx, ['OBJET'], null) || 'Objet du courrier') }),
+        ref ? B('paragraph', { text: '**Référence :** ' + F(ref), cond: { op: 'filled', path: ref } }) : null,
+        B('spacer', { size: 'S' })
+    ].concat(appelOfficiel(ctx), [
+        B('paragraph', { text: CORPS_ADMIN }),
+        B('paragraph', { text: 'Je vous prie d\'agréer, Madame, Monsieur, l\'expression de ma considération distinguée.' }),
+        B('signature', { name: 'Prénom NOM', caption: direction ? 'Poste ou fonction' : 'Directeur du numérique', align: 'right' }),
+        B('spacer', { size: 'M' }),
+        B('paragraph', { text: 'À :\n' + dest, size: 'S' }),
+        B('footer', { text: PIED_MEAE, align: 'center', pageNumbers: true })
+    ]));
+}
+function genNoteOfficielle(ctx) {
+    var sc = colCond(ctx, ['SOUS_COUVERT'], null), ref = colCond(ctx, ['REFERENCE'], null);
+    var suivi = sansVides(['Dossier suivi par : ' + (colM(ctx, ['SUIVI_PAR'], null) || 'Prénom NOM'), colM(ctx, ['COURRIEL'], 'email'), colM(ctx, ['TELEPHONE'], 'telephone')]).join('\n');
+    return sansVides([
+        enTeteOfficiel('**Direction du numérique**\n\nÉmetteur (signataire)'),
+        B('spacer', { size: 'S' }),
+        blocNumero(ctx),
+        B('paragraph', { text: 'Paris, le ' + F('aujourdhui'), align: 'right' }),
+        B('spacer', { size: 'S' }),
+        B('heading', { level: 2, text: 'NOTE', align: 'center' }),
+        B('paragraph', { text: 'à ' + (colM(ctx, ['DESTINATAIRE'], 'nom') || 'Monsieur ou Madame X'), align: 'center' }),
+        sc ? B('paragraph', { text: 'Sous couvert de ' + F(sc), align: 'center', size: 'S', cond: { op: 'filled', path: sc } }) : null,
+        B('spacer', { size: 'S' }),
+        B('paragraph', { text: '**A/s :** ' + (colM(ctx, ['OBJET'], null) || 'Note sur…') }),
+        ref ? B('paragraph', { text: 'Référence : ' + F(ref), cond: { op: 'filled', path: ref } }) : null,
+        B('paragraph', { text: suivi, size: 'S' }),
+        B('spacer', { size: 'S' }),
+        B('paragraph', { text: 'Je souhaite appeler votre attention sur le point suivant.\n\nIl vous est proposé de valider l\'orientation présentée ci-dessus.' }),
+        B('signature', { name: 'Prénom NOM', caption: 'Fonction', align: 'right' }),
+        B('footer', { text: PIED_MEAE, align: 'center', pageNumbers: true })
+    ]);
+}
+function genNoteVerbale(ctx) {
+    var dtxt = colM(ctx, ['DESTINATAIRE_DANS_LE_TEXTE'], null) || 'l\'Ambassade de XXX en France';
+    var texte = colM(ctx, ['TEXTE'], null) || 'porter à sa connaissance que [texte]';
+    return sansVides([
+        B('image', { source: 'logo', align: 'page' }),
+        B('spacer', { size: 'S' }),
+        blocNumero(ctx),
+        B('spacer', { size: 'M' }),
+        B('paragraph', { text: F('emetteur') + ' présente ses compliments à ' + dtxt + ' et a l\'honneur de ' + texte + './.' }),
+        B('paragraph', { text: F('emetteur') + ' saisit cette occasion pour renouveler à ' + dtxt + ' les assurances de sa haute considération.' }),
+        B('paragraph', { text: (colM(ctx, ['VILLE_EMISSION'], null) || 'Paris') + ', le ' + F('aujourdhui'), align: 'right' }),
+        B('spacer', { size: 'L' }),
+        B('paragraph', { text: '**' + (colM(ctx, ['DESTINATAIRE'], 'nom') || 'Ambassade de XXX') + '**\n' + (colM(ctx, ['VILLE_DESTINATAIRE'], null) || 'PARIS') })
+    ]);
+}
+var REF_COL_DEFAUT = 'N_ENREGISTREMENT';
+var REF_FORMAT_DEFAUT = '{AAAA}-{N:4}';
+function analyserFormat(fmt) {
+    var re = /\{(N(?::(\d))?|AAAA|AA|MM)\}/g;
+    var parts = [], last = 0, m, nb = 0;
+    fmt = String(fmt || '');
+    while ((m = re.exec(fmt))) {
+        if (m.index > last) {
+            parts.push({ t: 'x', v: fmt.slice(last, m.index) });
+        }
+        if (m[1].charAt(0) === 'N') {
+            nb++;
+            parts.push({ t: 'N', k: m[2] ? Number(m[2]) : 1 });
+        }
+        else {
+            parts.push({ t: m[1] });
+        }
+        last = re.lastIndex;
+    }
+    if (last < fmt.length) {
+        parts.push({ t: 'x', v: fmt.slice(last) });
+    }
+    if (nb !== 1) {
+        return { erreur: 'Le format doit contenir le compteur {N} une fois, et une seule.' };
+    }
+    if (fmt.length > 60 || /[\r\n]/.test(fmt)) {
+        return { erreur: 'Le format doit tenir sur une ligne de 60 caractères au plus.' };
+    }
+    return { parts: parts };
+}
+function pad(n, k) { var s = String(n); while (s.length < k) {
+    s = '0' + s;
+} return s; }
+function referenceJs(parts, n, d) {
+    return parts.map(function (p) {
+        if (p.t === 'x') {
+            return p.v;
+        }
+        if (p.t === 'N') {
+            return pad(n, p.k);
+        }
+        if (p.t === 'AAAA') {
+            return String(d.getFullYear());
+        }
+        if (p.t === 'AA') {
+            return String(d.getFullYear()).slice(2);
+        }
+        return pad(d.getMonth() + 1, 2);
+    }).join('');
+}
+function regexJs(parts, remise, d) {
+    var e = function (s) { return s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&'); };
+    return new RegExp('^' + parts.map(function (p) {
+        if (p.t === 'x') {
+            return e(p.v);
+        }
+        if (p.t === 'N') {
+            return '(\\d+)';
+        }
+        if (p.t === 'AAAA') {
+            return remise === 'jamais' ? '\\d{4}' : String(d.getFullYear());
+        }
+        if (p.t === 'AA') {
+            return remise === 'jamais' ? '\\d{2}' : String(d.getFullYear()).slice(2);
+        }
+        return remise === 'mois' ? pad(d.getMonth() + 1, 2) : '\\d{2}';
+    }).join('') + '$');
+}
+function formuleReference(tid, col, parts, depart, remise, d) {
+    var py = function (s) { return JSON.stringify(String(s)); };
+    var motif = parts.map(function (p) {
+        if (p.t === 'x') {
+            return 're.escape(' + py(p.v) + ')';
+        }
+        if (p.t === 'N') {
+            return py('(\\d+)');
+        }
+        if (p.t === 'AAAA') {
+            return remise === 'jamais' ? py('\\d{4}') : 'str(d.year)';
+        }
+        if (p.t === 'AA') {
+            return remise === 'jamais' ? py('\\d{2}') : 'str(d.year)[2:]';
+        }
+        return remise === 'mois' ? '("%02d" % d.month)' : py('\\d{2}');
+    }).join(' + ');
+    var sortie = parts.map(function (p) {
+        if (p.t === 'x') {
+            return py(p.v);
+        }
+        if (p.t === 'N') {
+            return 'str(n).zfill(' + p.k + ')';
+        }
+        if (p.t === 'AAAA') {
+            return 'str(d.year)';
+        }
+        if (p.t === 'AA') {
+            return 'str(d.year)[2:]';
+        }
+        return '("%02d" % d.month)';
+    }).join(' + ');
+    var debut = remise === 'annee' ? '(' + depart + ' if d.year == ' + d.getFullYear() + ' else 1)'
+        : (remise === 'mois' ? '(' + depart + ' if (d.year, d.month) == (' + d.getFullYear() + ', ' + (d.getMonth() + 1) + ') else 1)' : String(depart));
+    return ['import re', 'd = NOW()', 'motif = re.compile("^" + ' + motif + ' + "$")', 'pris = []', 'for r in ' + tid + '.all:',
+        '  if r.id != rec.id:', '    x = motif.match(r.' + col + ' or "")', '    if x:', '      pris.append(int(x.group(1)))',
+        'n = max(pris + [' + debut + ' - 1]) + 1', 'return ' + sortie].join('\n');
+}
+function panneauReference() {
+    var b = etat.brouillon;
+    var p = b.page;
+    var r = Object.assign({ col: REF_COL_DEFAUT, format: REF_FORMAT_DEFAUT, depart: 1, remise: 'annee', existantes: false }, p.reference || {});
+    var garder = function () { p.reference = r; marquerTouche(); };
+    var zone = creer('div', { classe: 'w-ref', id: 'pRefZone' });
+    zone.appendChild(creer('p', { classe: 'w-indice', texte: 'Par défaut, rien n\'est numéroté. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, Diplofusion peut ajouter à ' + libelleTable(b.table) + ' une colonne que Grist numérote à la création de chaque ligne, selon votre format. La référence reste modifiable à la main.' }));
+    var existe = infoColonne(b.table, r.col);
+    var nom = creer('input', { classe: 'fr-input', id: 'pRefCol', attrs: { type: 'text', maxlength: '40', autocomplete: 'off' } });
+    nom.value = r.col;
+    var format = creer('input', { classe: 'fr-input', id: 'pRefFormat', attrs: { type: 'text', maxlength: '60', autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'pRefFormatAide pRefApercu' } });
+    format.value = r.format;
+    var depart = creer('input', { classe: 'fr-input', id: 'pRefDepart', attrs: { type: 'number', min: '1', max: '999999', step: '1', 'aria-describedby': 'pRefDepartAide' } });
+    depart.value = String(r.depart);
+    var apercu = creer('p', { classe: 'w-indice', id: 'pRefApercu', attrs: { 'aria-live': 'polite' } });
+    var majApercu = function () {
+        var a = analyserFormat(format.value);
+        var n = Math.max(1, Math.floor(Number(depart.value) || 1));
+        apercu.textContent = a.erreur ? a.erreur : 'Prochaine référence : ' + referenceJs(a.parts, n, new Date()) + '.';
+        apercu.classList.toggle('fr-error-text', !!a.erreur);
+    };
+    var sauver = function () {
+        r.col = String(nom.value || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_').replace(/^([0-9])/, 'C_$1').slice(0, 40) || REF_COL_DEFAUT;
+        r.format = format.value;
+        r.depart = Math.max(1, Math.floor(Number(depart.value) || 1));
+        garder();
+        majApercu();
+    };
+    [nom, format, depart].forEach(function (x) { x.addEventListener('input', sauver); });
+    zone.appendChild(groupeChamp('Colonne de la référence', nom, existe ? 'La colonne existe déjà : ses valeurs sont gardées, seules les nouvelles lignes reçoivent une référence.' : 'Elle est ajoutée à la table.'));
+    zone.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pRefFormat' } }, ['Format', creer('span', { classe: 'fr-hint-text', id: 'pRefFormatAide', texte: '{N} : le compteur ({N:3} donne 015) ; {AAAA} ou {AA} : l\'année ; {MM} : le mois. Le reste est du texte libre, par exemple CD/{N:2}-{AAAA}.' })]), format]));
+    zone.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pRefDepart' } }, ['Prochain numéro', creer('span', { classe: 'fr-hint-text', id: 'pRefDepartAide', texte: 'Pour continuer une série commencée ailleurs, par exemple 143.' })]), depart]));
+    zone.appendChild(groupeRadios('pRefRemise', 'Le compteur repart à 1', [{ valeur: 'jamais', libelle: 'Jamais' }, { valeur: 'annee', libelle: 'Chaque année' }, { valeur: 'mois', libelle: 'Chaque mois' }], r.remise, function (v) { r.remise = v; garder(); majApercu(); }));
+    zone.appendChild(caseACocher('pRefExistantes', 'Numéroter aussi les lignes déjà présentes', !!r.existantes, function (e) { r.existantes = e.target.checked; garder(); }, { aide: 'Dans l\'ordre de création, seulement celles qui n\'ont pas de référence.' }));
+    zone.appendChild(apercu);
+    majApercu();
+    if (etat.peutModifier !== false) {
+        zone.appendChild(creer('div', { classe: 'w-liens' }, [
+            bouton(existe ? 'Mettre à jour la numérotation' : 'Créer la numérotation', 'secondaire', 'add-line', function () { return creerNumerotation(); }, { petit: true, id: 'pRefCreer' }),
+            bouton('Créer la page « 📒 Chrono »', 'tertiaire', 'file-text-line', function () { return creerPageChrono(); }, { petit: true, id: 'pRefChrono' })
+        ]));
+    }
+    return zone;
+}
+async function creerNumerotation() {
+    var b = etat.brouillon;
+    var r = b.page.reference = Object.assign({ col: REF_COL_DEFAUT, format: REF_FORMAT_DEFAUT, depart: 1, remise: 'annee', existantes: false }, b.page.reference || {});
+    var a = analyserFormat(r.format);
+    if (a.erreur) {
+        marquerInvalide('pRefFormat', a.erreur);
+        return;
+    }
+    var tid = b.table;
+    var col = r.col;
+    var info = infoColonne(tid, col);
+    if (info && (info.formule || info.type !== 'Text')) {
+        marquerInvalide('pRefCol', 'Cette colonne est une colonne de formule ou n\'est pas du texte : choisissez un autre nom.');
+        return;
+    }
+    var d = new Date();
+    afficherLoader('Création de la numérotation…');
+    try {
+        if (!info) {
+            await agir([['AddColumn', tid, col, { type: 'Text', isFormula: false, label: col }]]);
+            await chargerMeta();
+        }
+        if (r.existantes) {
+            await chargerTableDonnees(tid);
+            var t = etat.donnees[tid].d;
+            var motif = regexJs(a.parts, r.remise, d);
+            var pris = [];
+            var vides = [];
+            var ordre = t.id.map(function (id, i) { return i; }).sort(function (x, y) { return t.id[x] - t.id[y]; });
+            ordre.forEach(function (i) {
+                var v = String((t[col] || [])[i] || '');
+                var m = motif.exec(v);
+                if (m) {
+                    pris.push(Number(m[1]));
+                }
+                else if (!v.trim()) {
+                    vides.push(t.id[i]);
+                }
+            });
+            var n = Math.max.apply(null, pris.concat([r.depart - 1]));
+            var valeurs = vides.map(function () { n++; return referenceJs(a.parts, n, d); });
+            if (vides.length) {
+                var champs = {};
+                champs[col] = valeurs;
+                await agir([['BulkUpdateRecord', tid, vides, champs]]);
+            }
+        }
+        await agir([['ModifyColumn', tid, col, { formula: formuleReference(tid, col, a.parts, r.depart, r.remise, d), recalcWhen: 0, recalcDeps: null,
+                    description: 'Numéro d\'enregistrement, attribué par Grist à la création de la ligne, au format ' + r.format + '. Modifiable à la main.' }]]);
+        await chargerMeta();
+        await chargerTableDonnees(tid);
+        masquerLoader();
+        marquerTouche();
+        redessinerEtape('pRefCreer');
+        afficherSucces('La numérotation est en place : chaque nouvelle ligne reçoit sa référence. Insérez le champ « ' + col + ' » dans le document.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier cette table.' : 'La numérotation n\'a pas été créée. Réessayez.', e);
+    }
+}
+async function creerPageChrono() {
+    var b = etat.brouillon;
+    var tid = b.table;
+    var meta = etat.meta.tables[tid];
+    if (!meta || !meta.ref) {
+        afficherErreur('La table est introuvable.');
+        return;
+    }
+    afficherLoader('Création de la page…');
+    try {
+        var res = await agir([['CreateViewSection', meta.ref, 0, 'record', null, null]]);
+        var v = res && res.retValues ? res.retValues[0] || {} : {};
+        if (!v.viewRef || !v.sectionRef) {
+            throw new Error('Page non créée');
+        }
+        var info = infoColonne(tid, b.page.reference && b.page.reference.col);
+        var maj = { title: 'Chrono' };
+        if (info && info.ref) {
+            maj.sortColRefs = JSON.stringify([-info.ref]);
+        }
+        await agir([['UpdateRecord', '_grist_Views', v.viewRef, { name: '📒 Chrono - ' + libelleSansEmoji(libelleTable(tid)) }], ['UpdateRecord', '_grist_Views_section', v.sectionRef, maj]]);
+        masquerLoader();
+        afficherSucces('La page « 📒 Chrono » est créée : elle apparaît dans la liste des pages du document.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
+    }
+}
 function blocLogo() {
     var b = etat.brouillon;
     var p = b.page;
@@ -7076,7 +7658,7 @@ function blocLogo() {
         annoncer(message);
     } };
     var fs = creer('fieldset', { classe: 'fr-fieldset w-fs', id: 'pLogos' }, [creer('legend', { classe: 'fr-sr-only', texte: 'Logos' })]);
-    fs.appendChild(caseACocher('pLogoMinistere', 'Logo du ministère', !!p.logoMinistere, function (e) {
+    fs.appendChild(caseACocher('pLogoMinistere', 'Bloc-marque de l\'État', !!p.logoMinistere, function (e) {
         p.logoMinistere = e.target.checked;
         if (p.logoMinistere && b.logos.length > LOGOS_MAX - 1) {
             var trop = b.logos.splice(LOGOS_MAX - 1);
@@ -7091,6 +7673,9 @@ function blocLogo() {
         }
         maj('pLogoMinistere', p.logoMinistere ? 'Bloc-marque de l\'État ajouté, en premier à gauche.' : 'Bloc-marque de l\'État retiré.');
     }, { aide: 'Le bloc-marque complet de l\'État, avec la devise. Toujours en haut à gauche, selon la charte de l\'État.' }));
+    if (p.logoMinistere) {
+        fs.appendChild(choixBlocMarque(p));
+    }
     var ul = creer('ul', { classe: 'w-lst', id: 'pLogosListe', attrs: { 'aria-label': 'Logos en fichier' } });
     b.logos.forEach(function (x, k) {
         var vue = creer('span', { classe: 'w-logo-zone__img' });
@@ -7841,7 +8426,7 @@ function optionsChamps(tid, speciaux) {
         groupes.push({ nom: c.label + ' (de ' + libelleTable(cible) + ')', options: colonnesUtiles(cible).map(function (x) { return { valeur: c.colId + '.' + x.colId, libelle: c.label + ' › ' + x.label }; }) });
     });
     if (speciaux) {
-        groupes.push({ nom: 'Autres', options: [{ valeur: 'aujourdhui', libelle: 'Date du jour' }, { valeur: 'page', libelle: 'Numéro de page' }, { valeur: 'pages', libelle: 'Nombre de pages' }] });
+        groupes.push({ nom: 'Autres', options: [{ valeur: 'aujourdhui', libelle: 'Date du jour' }, { valeur: 'page', libelle: 'Numéro de page' }, { valeur: 'pages', libelle: 'Nombre de pages' }, { valeur: 'emetteur', libelle: 'Émetteur (d\'après le bloc-marque)' }] });
     }
     return groupes;
 }
@@ -11388,7 +11973,7 @@ function genFiche(ctx, labelCol) {
     return sansVides(blocs);
 }
 function pageGardee(p) {
-    return p ? { color: p.color, size: p.size, logoSize: p.logoSize, logoMinistere: p.logoMinistere, logoFilet: p.logoFilet } : {};
+    return p ? { color: p.color, size: p.size, logoSize: p.logoSize, logoMinistere: p.logoMinistere, logoFilet: p.logoFilet, blocMarque: p.blocMarque, reference: p.reference } : {};
 }
 function pageDeMiseEnPage(layout, actuelle) {
     var p = JSON.parse(JSON.stringify(actuelle || {}));
@@ -11419,6 +12004,10 @@ function genererBlocs(layout, tid, enfant, opts, labelCol, roles) {
     }
     switch (layout) {
         case 'letter': return genLettre(ctx, opts);
+        case 'lettre_meae': return genLettreMeae(ctx, false);
+        case 'lettre_direction': return genLettreMeae(ctx, true);
+        case 'note': return genNoteOfficielle(ctx);
+        case 'note_verbale': return genNoteVerbale(ctx);
         case 'convocation': return genConvocation(ctx);
         case 'programme': return genProgramme(ctx, opts);
         case 'emargement': return genEmargement(ctx);
@@ -11573,6 +12162,14 @@ var T_JALONS = { cle: 'jalons', id: 'JALONS', titre: '📌 Jalons', reutiliser: 
     lignes: [[0, 'Ouverture aux services pilotes', 20, 'À venir'], [0, 'Cadrage validé', -40, 'Atteint'], [0, 'Généralisation', 90, 'À venir'], [0, 'Recette', -5, 'Atteint'],
         [1, 'Migration des contenus', 30, 'À venir'], [1, 'Maquettes validées', -10, 'En retard'], [1, 'Mise en ligne', 70, 'À venir']]
         .map(function (x) { return { PROJET: R('projets', x[0]), INTITULE: x[1], ECHEANCE: J(x[2]), STATUT: x[3] }; }) };
+var T_LETTRES = { cle: 'lettres', id: 'LETTRES', titre: '📨 Lettres', reutiliser: true, colonnes: [{ id: 'N_ENREGISTREMENT', type: 'Text', titre: 'N° d\'enregistrement' },
+        { id: 'OBJET', type: 'Text', titre: 'Objet' }, { id: 'REFERENCE', type: 'Text', titre: 'Référence' }, { id: 'FORMULE_APPEL', type: 'Text', titre: 'Formule d\'appel' },
+        { id: 'DESTINATAIRE', type: 'Text', titre: 'Destinataire' }, { id: 'FONCTION_DESTINATAIRE', type: 'Text', titre: 'Fonction du destinataire' },
+        { id: 'ADRESSE', type: 'Text', options: LONG, titre: 'Adresse' }, { id: 'PAYS', type: 'Text', titre: 'Pays' }],
+    lignes: [
+        { N_ENREGISTREMENT: '2026-0087', OBJET: 'Mise à disposition de l\'outil de suivi des demandes', FORMULE_APPEL: 'Madame la directrice', DESTINATAIRE: 'Mme Claire Dubois', FONCTION_DESTINATAIRE: 'Directrice', ADRESSE: 'Centre de formation Horizon\n8 avenue des Tilleuls\n35000 Rennes', PAYS: 'FRANCE' },
+        { N_ENREGISTREMENT: '2026-0088', OBJET: 'Renouvellement de la convention de partenariat', REFERENCE: 'Votre courrier du 2 octobre', FORMULE_APPEL: 'Monsieur le président', DESTINATAIRE: 'M. Julien Moreau', FONCTION_DESTINATAIRE: 'Président', ADRESSE: 'Association Lire ensemble\n3 rue du Port\n13002 Marseille', PAYS: 'FRANCE' }
+    ] };
 var MODELES = [
     { id: 'letter', nom: 'Courrier', icone: 'mail-line', layout: 'letter', principale: 'destinataires',
         opts: { paragraphePerso: 'PARAGRAPHE_PERSONNALISE', objet: 'Invitation au comité de suivi du programme de formation', corps: 'J\'ai le plaisir de vous inviter à la prochaine réunion du comité de suivi du programme de formation, auquel votre structure, {ORGANISME}, est associée depuis son lancement.\n\nVous trouverez ci-joint l\'ordre du jour et le bilan des actions menées depuis la dernière réunion. Afin de faciliter l\'organisation, je vous remercie de bien vouloir confirmer votre présence avant la fin du mois.\n\nMes services se tiennent à votre disposition pour tout renseignement complémentaire.' },
@@ -11585,6 +12182,32 @@ var MODELES = [
                     { NOM: 'M. Julien Moreau', FONCTION: 'Chef du service des finances', ORGANISME: 'Communauté de communes du Val Fleuri', ADRESSE: 'Hôtel communautaire\n1 place de la Mairie\n71000 Mâcon', CIVILITE: 'Monsieur' },
                     { NOM: 'Mme Nadia Benali', FONCTION: 'Responsable des ressources humaines', ORGANISME: 'Association Lire ensemble', ADRESSE: '3 rue du Port\n13002 Marseille', CIVILITE: 'Madame',
                         PARAGRAPHE_PERSONNALISE: 'Je vous remercie également pour l\'accueil réservé à nos stagiaires lors de l\'atelier d\'écriture du mois dernier, dont les participants ont souligné la qualité.' }
+                ] }] },
+    { id: 'lettre_meae', nom: 'Lettre administrative', icone: 'mail-send-line', layout: 'lettre_meae', principale: 'lettres',
+        description: 'Le modèle officiel du ministère, signé par une personne : la fonction de l\'émetteur en haut à droite, le numéro d\'enregistrement, l\'objet, la formule d\'appel de chaque destinataire et son adresse en bas de page.',
+        tables: [T_LETTRES] },
+    { id: 'lettre_direction', nom: 'Lettre d\'une direction', icone: 'mail-send-line', layout: 'lettre_direction', principale: 'lettres',
+        description: 'Le modèle officiel du ministère, émis par une direction : son intitulé en haut à droite, le bloc « De : », le numéro d\'enregistrement, l\'objet et le destinataire en bas de page.',
+        tables: [T_LETTRES] },
+    { id: 'note', nom: 'Note', icone: 'file-text-line', layout: 'note', principale: 'notes',
+        description: 'Le modèle officiel de note : destinataire, « sous couvert de », A/s, référence, dossier suivi par, puis la signature. Une note par ligne.',
+        tables: [{ cle: 'notes', id: 'NOTES', titre: '🗒️ Notes', reutiliser: true, colonnes: [{ id: 'N_ENREGISTREMENT', type: 'Text', titre: 'N° d\'enregistrement' }, { id: 'DESTINATAIRE', type: 'Text', titre: 'Destinataire' },
+                    { id: 'SOUS_COUVERT', type: 'Text', titre: 'Sous couvert de' }, { id: 'OBJET', type: 'Text', titre: 'Objet (A/s)' }, { id: 'REFERENCE', type: 'Text', titre: 'Référence' },
+                    { id: 'SUIVI_PAR', type: 'Text', titre: 'Dossier suivi par' }, { id: 'COURRIEL', type: 'Text', titre: 'Courriel' }, { id: 'TELEPHONE', type: 'Text', titre: 'Téléphone' }],
+                lignes: [
+                    { N_ENREGISTREMENT: '2026-0041', DESTINATAIRE: 'Monsieur le directeur général de l\'administration et de la modernisation', SOUS_COUVERT: 'Madame la directrice du numérique', OBJET: 'Ouverture du service de demandes en ligne', SUIVI_PAR: 'Claire Martin', COURRIEL: 'claire.martin@diplomatie.gouv.fr', TELEPHONE: '01 43 17 00 00' },
+                    { N_ENREGISTREMENT: '2026-0042', DESTINATAIRE: 'Madame la cheffe du service des affaires immobilières', OBJET: 'Calendrier des travaux de câblage', REFERENCE: 'Votre note du 3 novembre', SUIVI_PAR: 'Julien Moreau', COURRIEL: 'julien.moreau@diplomatie.gouv.fr', TELEPHONE: '01 43 17 00 01' }
+                ] }] },
+    { id: 'note_verbale', nom: 'Note verbale', icone: 'draft-line', layout: 'note_verbale', principale: 'notes_verbales',
+        description: 'Le modèle officiel de note verbale : les formules protocolaires reprennent l\'émetteur du bloc-marque (ministère ou poste), le texte vient de chaque ligne, le destinataire est en bas de page.',
+        tables: [{ cle: 'notes_verbales', id: 'NOTES_VERBALES', titre: '🤝 Notes verbales', reutiliser: true, colonnes: [{ id: 'N_ENREGISTREMENT', type: 'Text', titre: 'N° d\'enregistrement' },
+                    { id: 'DESTINATAIRE', type: 'Text', titre: 'Destinataire' }, { id: 'DESTINATAIRE_DANS_LE_TEXTE', type: 'Text', titre: 'Destinataire dans le texte' },
+                    { id: 'VILLE_DESTINATAIRE', type: 'Text', titre: 'Ville du destinataire' }, { id: 'TEXTE', type: 'Text', options: LONG, titre: 'Texte' }],
+                lignes: [
+                    { N_ENREGISTREMENT: 'NV 2026-0118', DESTINATAIRE: 'Ambassade du Japon', DESTINATAIRE_DANS_LE_TEXTE: 'l\'Ambassade du Japon en France', VILLE_DESTINATAIRE: 'PARIS',
+                        TEXTE: 'lui faire savoir que la réunion du groupe de travail bilatéral se tiendra le 12 décembre à 10 heures, au 37, quai d\'Orsay' },
+                    { N_ENREGISTREMENT: 'NV 2026-0119', DESTINATAIRE: 'Ambassade d\'Italie', DESTINATAIRE_DANS_LE_TEXTE: 'l\'Ambassade d\'Italie en France', VILLE_DESTINATAIRE: 'PARIS',
+                        TEXTE: 'lui transmettre ci-joint le programme de la visite de la délégation, prévue du 3 au 5 février' }
                 ] }] },
     { id: 'convocation', nom: 'Convocation', icone: 'calendar-event-line', layout: 'convocation', principale: 'participations', tables: [T_PERSONNES, T_EVENEMENTS, T_PARTICIPATIONS],
         description: 'Une convocation par participation : la personne invitée, la date, l\'heure, le lieu et l\'ordre du jour de l\'événement, et la date limite de réponse.' },
@@ -11900,7 +12523,11 @@ var ROLES_TYPES = {
     interlocuteur: ['civilite', 'prenom', 'nom', 'fonction', 'societe', 'email', 'photo', 'parcours', 'points'],
     suivi: ['nom', 'chef', 'etat', 'meteo', 'faits', 'risques'],
     record: ['titre'],
-    libre: []
+    libre: [],
+    lettre_meae: [],
+    lettre_direction: [],
+    note: [],
+    note_verbale: []
 };
 var NOMS_ROLES = { nom: 'Nom', prenom: 'Prénom', civilite: 'Civilité', fonction: 'Fonction', societe: 'Organisme', adresse: 'Adresse', salutation: 'Civilité (formule d\'appel)',
     perso: 'Paragraphe personnalisé', cours: 'Formation', achevement: 'Date de fin', heures: 'Durée en heures', formateur: 'Formateur', email: 'Courriel',
@@ -11942,7 +12569,7 @@ function filtreParDefaut(layout, roles) {
     }
     return null;
 }
-var TYPES_PDF = ['letter', 'libre'];
+var TYPES_PDF = ['letter', 'libre', 'lettre_meae', 'lettre_direction', 'note', 'note_verbale'];
 var PDF_QUALITE_JPEG = 0.9;
 var PDF_IMAGE_MAX_PX = 2400;
 var PDF_TAILLE_MAX = 25 * 1024 * 1024;
