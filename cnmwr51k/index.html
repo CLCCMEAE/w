@@ -372,7 +372,7 @@
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-barre-vue__commandes,
       .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink, .w-ecran-seul { display: none !important; }
     }
-    }
+    
   
     .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap; padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
@@ -412,6 +412,13 @@
     @media (max-width: 36em) { .w-fil__item { grid-template-columns: 3.25rem 1.25rem minmax(0, 1fr); } }
     @media print { .w-fil__lien { color: var(--text-default-grey); text-decoration: none; } .w-alerte-page { display: none; } }
     .w-entete { margin-bottom: 1rem; }
+    .w-fil__neuf { margin-right: .375rem; vertical-align: middle; }
+    .w-fil__actions { margin: .125rem 0 0; }
+    .w-manuel { display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; margin-top: .5rem; }
+    .w-formule { margin: 0; padding: .5rem .75rem; max-width: 100%; background-color: var(--background-contrast-grey); color: var(--text-default-grey); font-size: .8125rem; overflow-wrap: anywhere; }
+    .w-nouv { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+    .w-nouv[hidden] { display: none; }
+    @media print { .w-nouv, .w-fil__neuf, .w-fil__actions { display: none !important; } }
 </style>
 </head>
 <body>
@@ -467,7 +474,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplohistorique';
 var TITRE_DEFAUT = '📜 Diplohistorique';
@@ -534,7 +541,8 @@ var etat = {
     evenements: [], affichage: {}, refs: {},
     recherche: '', filtres: { type: '', table: '', qui: '', periode: '' },
     vue: 'chargement', voletMobile: false, voletReplie: false, modaleOuverte: false,
-    jeton: null, nomDoc: null, releveEnCours: false, erreurReleve: null, partagesIndisponibles: false, suppressionsIndisponibles: false
+    jeton: null, nomDoc: null, releveEnCours: false, erreurReleve: null, partagesIndisponibles: false, suppressionsIndisponibles: false,
+    actuels: {}, vuDepuis: null, nouveautesSeules: false, nouvAnnoncees: false, protectionEchec: false
 };
 var AIDE = {
     resume: 'Diplohistorique garde la trace des mouvements du document : lignes ajoutées, modifiées ou supprimées, tables, colonnes et pages créées ou changées, règles d\'accès et partages. Le journal est réservé aux propriétaires du document et aux personnes qu\'ils autorisent.',
@@ -542,6 +550,8 @@ var AIDE = {
         'Lire tous les mouvements du plus récent au plus ancien, regroupés par jour.',
         'Chercher, et filtrer par sorte de mouvement, par table, par personne et par période.',
         'Ouvrir l\'histoire complète d\'une ligne, même après sa suppression.',
+        'Depuis la fiche d\'une ligne : rétablir une ancienne valeur, ou restaurer une ligne supprimée avec son historique.',
+        'Repérer les mouvements nouveaux depuis votre dernier passage.',
         'Exporter les mouvements affichés en CSV, imprimer ou enregistrer en PDF.',
         'Choisir les tables suivies et les personnes autorisées à lire le journal.'
     ],
@@ -559,6 +569,8 @@ var AIDE = {
         { q: 'Qui peut lire le journal ?', r: 'Les propriétaires du document, et les personnes ajoutées dans « Qui peut lire le journal » des paramétrages. Pour les autres, la colonne de journal et la table de l\'historique sont masquées par des règles d\'accès posées par le widget.' },
         { q: 'Pourquoi la personne n\'est-elle pas indiquée pour une suppression ?', r: 'Le document ne dit pas qui a supprimé une ligne ou changé une colonne. Le widget le constate en comparant deux relevés : il indique la période pendant laquelle c\'est arrivé.' },
         { q: 'Le journal peut-il être modifié ?', r: 'Les propriétaires gardent la main sur le document : ils pourraient modifier une cellule de journal. Le journal sert à suivre l\'activité, ce n\'est pas une preuve infalsifiable.' },
+        { q: 'Rétablir une valeur efface-t-il le journal ?', r: 'Non. Rétablir une ancienne valeur est une modification comme une autre : elle est notée dans le journal, avec votre nom. Vous pouvez l\'annuler juste après.' },
+        { q: 'Que devient une ligne restaurée ?', r: 'Elle est recréée avec ses dernières valeurs connues et son historique, sous un nouveau numéro. Les colonnes calculées se recalculent d\'elles-mêmes.' },
         { q: 'Une nouvelle colonne est-elle suivie ?', r: 'Oui, dès qu\'un propriétaire ouvre le widget : il met à jour le suivi de chaque table.' }
     ]
 };
@@ -921,6 +933,18 @@ async function poserProtection() {
         }));
     }
     await lireRegles();
+}
+async function proteger() {
+    try {
+        await poserProtection();
+        etat.protectionEchec = false;
+        return true;
+    }
+    catch (e) {
+        etat.protectionEchec = true;
+        logSecurite('AVERTISSEMENT', 'Règles d\'accès du journal non posées', e);
+        return false;
+    }
 }
 async function retirerProtectionTable(tid) {
     await lireRegles();
@@ -1416,6 +1440,7 @@ function msDepuisIso(s) {
 }
 async function construireEvenements() {
     etat.refs = {};
+    etat.actuels = {};
     var evts = [];
     var suivies = (etat.config && etat.config.tables) || [];
     var aRefs = {};
@@ -1436,11 +1461,13 @@ async function construireEvenements() {
             continue;
         }
         var ct = colonneTitre(tid);
+        etat.actuels[tid] = {};
         for (var k = 0; k < d.id.length; k++) {
             var h = lireJson(d[COL_JOURNAL] ? d[COL_JOURNAL][k] : '');
             if (!h || !Array.isArray(h.j)) {
                 continue;
             }
+            etat.actuels[tid][d.id[k]] = h.e || {};
             var titre = ct && d[ct] ? texteBrut(d[ct][k]) : '';
             ajouterJournal(evts, tid, d.id[k], titre, h.j, false);
         }
@@ -1462,9 +1489,12 @@ async function construireEvenements() {
         if (type === 'suppression' && l.ligne) {
             var valeurs = lireJson(l.avant) || {};
             e.valeurs = valeurs;
+            e.histoId = l.id;
+            e.journal = l.detail;
+            e.restauree = /^Restaurée en ligne n° \d+$/.test(l.apres) ? parseInt(l.apres.replace(/\D+/g, ''), 10) : 0;
             var ct2 = colonneTitre(l.table);
             e.titre = ct2 && valeurs[ct2] !== undefined ? texteBrut(valeurs[ct2]) : '';
-            var hj = lireJson(l.detail);
+            var hj = e.restauree ? null : lireJson(l.detail);
             if (hj && Array.isArray(hj.j)) {
                 ajouterJournal(evts, l.table, l.ligne, e.titre, hj.j, true);
             }
@@ -1513,7 +1543,7 @@ function avantApres(e) {
         return { avant: texteValeur(e.table, e.colonne, e.de), apres: texteValeur(e.table, e.colonne, e.a) };
     }
     if (e.type === 'suppression' && e.ligne) {
-        return null;
+        return e.restauree ? { avant: '', apres: 'Restaurée en ligne n° ' + e.restauree } : null;
     }
     if (e.type === 'creation') {
         return null;
@@ -1526,6 +1556,9 @@ function texteRecherche(e) {
 }
 function correspond(e) {
     var f = etat.filtres;
+    if (etat.nouveautesSeules && !estNouveau(e)) {
+        return false;
+    }
     if (f.type && e.type !== f.type) {
         return false;
     }
@@ -1550,7 +1583,7 @@ function correspond(e) {
 }
 function nombreFiltres() {
     var f = etat.filtres;
-    return (f.type ? 1 : 0) + (f.table ? 1 : 0) + (f.qui ? 1 : 0) + (f.periode ? 1 : 0) + (etat.recherche ? 1 : 0);
+    return (f.type ? 1 : 0) + (f.table ? 1 : 0) + (f.qui ? 1 : 0) + (f.periode ? 1 : 0) + (etat.recherche ? 1 : 0) + (etat.nouveautesSeules ? 1 : 0);
 }
 function personnes() {
     var vues = {};
@@ -1668,8 +1701,11 @@ async function creerHistorique(tables) {
         await chargerMeta();
         if (!(await sonderProprietaire())) {
             masquerLoader();
-            afficherErreur('Seul un propriétaire du document peut créer l\'historique.');
-            return;
+            var forcer = await confirmerAction('Le widget ne peut pas poser les règles d\'accès', 'Seul un propriétaire du document peut protéger le journal. Si vous êtes propriétaire, vous pouvez créer l\'historique maintenant, puis poser les règles à la main en suivant la marche à suivre qui s\'affichera. Sinon, demandez à un propriétaire de créer l\'historique.', 'Créer quand même');
+            if (!forcer) {
+                return;
+            }
+            afficherLoader('Création de l\'historique…');
         }
         var existant = trouverHisto();
         if (!existant) {
@@ -1718,20 +1754,16 @@ async function creerHistorique(tables) {
             await assurerJournal(tables[k]);
         }
         afficherLoader('Protection du journal…');
-        try {
-            await poserProtection();
-        }
-        catch (e) {
-            logSecurite('AVERTISSEMENT', 'Règles d\'accès non posées', e);
-        }
+        await proteger();
         await noterSuivi('Historique créé', '', nbre(tables.length, 'table suivie', 'tables suivies') + (tables.length ? ' : ' + tables.map(libelleTable).join(', ') : ''));
         etat.proprietaire = true;
         await lireHisto();
         await releverTout();
         await chargerJournal();
+        preparerVu();
         masquerLoader();
         afficherVue('journal');
-        afficherSucces('Votre historique est prêt.');
+        afficherSucces(etat.protectionEchec ? 'Votre historique est prêt. Il reste à protéger le journal : voir l\'encadré.' : 'Votre historique est prêt.');
     }
     catch (e) {
         masquerLoader();
@@ -1782,6 +1814,7 @@ function rendreJournal(zone) {
         bouton('Effacer les filtres', 'discret', null, function () {
             etat.filtres = { type: '', table: '', qui: '', periode: '' };
             etat.recherche = '';
+            etat.nouveautesSeules = false;
             afficherVue('journal', true);
             annoncer('Filtres effacés : tous les mouvements sont affichés.');
             var f = document.getElementById('tRecherche');
@@ -1808,7 +1841,7 @@ function rendreJournal(zone) {
     principal.appendChild(creer('div', { classe: 'w-barre-mobile' }, [
         bouton('Recherche et filtres', 'secondaire', 'filter-line', function () { ouvrirVoletMobile(true); }, { petit: true, id: 'tVoletMobile' })
     ]));
-    principal.appendChild(barreVue('Historique du document', [], [boutonPleinEcran()]));
+    principal.appendChild(barreVue('Historique du document', [], [creer('div', { classe: 'w-nouv', id: 'tNouv', attrs: { role: 'group', 'aria-label': 'Nouveautés', hidden: true } }), boutonPleinEcran()]));
     alertesJournal().forEach(function (a) { principal.appendChild(a); });
     principal.appendChild(creer('div', { classe: 'w-fil', id: 'tFil' }));
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
@@ -1822,7 +1855,7 @@ function alertesJournal() {
     var p = etatProtection();
     if (p.lisible && (p.manque.length || !p.aJour)) {
         var corps = creer('div', null, [creer('p', { texte: 'Les règles d\'accès qui réservent le journal aux propriétaires et aux personnes autorisées ' + (p.manque.length ? 'manquent' : 'ne sont plus à jour') + '. Tant qu\'elles ne sont pas posées, les autres personnes peuvent lire la colonne de journal des tables suivies.' }),
-            bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant(); }, { petit: true, id: 'tProteger' })]);
+            etat.protectionEchec ? marcheManuelle() : bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant(); }, { petit: true, id: 'tProteger' })]);
         res.push(creer('div', { classe: 'w-alerte-page' }, [alerte('warning', null, corps)]));
     }
     return res;
@@ -1830,7 +1863,9 @@ function alertesJournal() {
 async function protegerMaintenant() {
     afficherLoader('Protection du journal…');
     try {
-        await poserProtection();
+        if (!(await proteger())) {
+            throw new Error('Règles d\'accès non posées');
+        }
         await releverSilencieux();
         masquerLoader();
         afficherVue('journal', true);
@@ -1842,7 +1877,8 @@ async function protegerMaintenant() {
     }
     catch (e) {
         masquerLoader();
-        afficherErreur('Les règles d\'accès n\'ont pas pu être posées. Seul un propriétaire du document peut le faire.', e);
+        afficherVue(etat.vue, true);
+        afficherErreur('Les règles d\'accès n\'ont pas pu être posées par le widget : la marche à suivre pour les poser à la main est affichée.', e);
     }
 }
 async function releverSilencieux() {
@@ -1867,6 +1903,7 @@ function redessinerFil() {
     if (!fil) {
         return;
     }
+    majNouveautes();
     vider(fil);
     var l = filtrees();
     var total = etat.evenements.length;
@@ -1922,11 +1959,13 @@ function rendreEvenement(e, sansLien) {
     if (e.supprimee) {
         meta.push(creer('span', { texte: 'ligne supprimée depuis' }));
     }
+    var neuf = !sansLien && estNouveau(e);
     var li = creer('li', { classe: 'w-fil__item w-fil__item--' + e.type }, [
         creer('span', { classe: 'w-fil__heure', texte: heure(e.quand) }),
         creer('span', { classe: 'w-fil__ico fr-icon-' + t.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
         creer('div', { classe: 'w-fil__corps' }, [
-            creer('p', { classe: 'w-fil__titre' }, [creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
+            creer('p', { classe: 'w-fil__titre' }, [neuf ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new w-fil__neuf', texte: 'Nouveau' }) : null,
+                creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
             aa && (aa.avant || aa.apres) ? creer('p', { classe: 'w-fil__valeurs' }, e.type !== 'modification' && !aa.avant ? [creer('span', { texte: aa.apres })] : [
                 creer('span', { classe: 'w-fil__avant' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Avant' }), creer('span', { texte: aa.avant || '(vide)' })]),
                 creer('span', { classe: 'w-fil__apres' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Après' }), creer('span', { texte: aa.apres || '(vide)' })])
@@ -1934,7 +1973,8 @@ function rendreEvenement(e, sansLien) {
             e.type === 'suppression' && e.valeurs ? creer('p', { classe: 'w-fil__valeurs' }, [creer('span', { texte: resumeValeurs(e.table, e.valeurs) })]) : null,
             meta.length ? creer('p', { classe: 'w-fil__meta' }, meta.reduce(function (acc, m, i) { if (i) {
                 acc.push(' · ');
-            } acc.push(m); return acc; }, [])) : null
+            } acc.push(m); return acc; }, [])) : null,
+            sansLien ? actionsFiche(e) : null
         ])
     ]);
     return li;
@@ -1958,7 +1998,209 @@ function ouvrirLigne(tid, rid) {
     var ul = creer('ul', { classe: 'w-fil__liste w-fil__liste--fiche' });
     evts.forEach(function (e) { ul.appendChild(rendreEvenement(e, true)); });
     var corps = [creer('p', { classe: 'w-mention', texte: nbre(evts.length, 'mouvement', 'mouvements') + ', du plus récent au plus ancien.' }), evts.length ? ul : creer('p', { classe: 'w-texte', texte: 'Aucun mouvement noté pour cette ligne.' })];
-    ouvrirModale({ titre: titre ? '« ' + titre + ' »' : 'Ligne n° ' + rid, sousTitre: 'Table : ' + libelleTable(tid) + ' · ligne n° ' + rid, laterale: true, corps: corps, fermerDehors: true, pied: [] });
+    var sup = evts.filter(function (e) { return e.type === 'suppression' && !e.restauree; })[0];
+    ouvrirModale({ titre: titre ? '« ' + titre + ' »' : 'Ligne n° ' + rid, sousTitre: 'Table : ' + libelleTable(tid) + ' · ligne n° ' + rid, laterale: true, corps: corps, fermerDehors: true,
+        pied: [sup && etat.meta.tables[tid] ? bouton('Restaurer la ligne', 'secondaire', 'arrow-go-back-line', function () { return restaurerLigne(sup); }, { id: 'fRestaurer' }) : null] });
+}
+function versCellule(c, v) {
+    var g = genreType(c.type);
+    if (g === 'refs' || g === 'pj' || g === 'choix') {
+        return Array.isArray(v) ? ['L'].concat(v) : null;
+    }
+    if (g === 'ref') {
+        return typeof v === 'number' ? v : 0;
+    }
+    return v === undefined ? null : v;
+}
+function memeValeur(a, b) { return JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b); }
+function actionsFiche(e) {
+    if (e.type !== 'modification' || e.supprimee) {
+        return null;
+    }
+    var c = infoColonne(e.table, e.colonne);
+    var actuels = (etat.actuels[e.table] || {})[e.ligne];
+    if (!c || c.formule || !actuels || memeValeur(actuels[e.colonne], e.de)) {
+        return null;
+    }
+    var v = texteValeur(e.table, e.colonne, e.de) || '(vide)';
+    return creer('p', { classe: 'w-fil__actions' }, [bouton('Rétablir « ' + (v.length > 40 ? v.slice(0, 37) + '…' : v) + ' »', 'discret', 'arrow-go-back-line', function () { return retablirValeur(e); }, { petit: true, aria: 'Rétablir l\'ancienne valeur de « ' + libelleColonne(e.table, e.colonne) + ' » : ' + v })]);
+}
+async function apresAction(tid, rid) {
+    await lireHisto();
+    await chargerJournal();
+    fermerModale();
+    afficherVue('journal', true);
+    if (tid && rid) {
+        ouvrirLigne(tid, rid);
+    }
+}
+async function retablirValeur(e) {
+    var c = infoColonne(e.table, e.colonne);
+    var actuels = (etat.actuels[e.table] || {})[e.ligne];
+    if (!c || c.formule || !actuels) {
+        afficherErreur('Cette valeur ne peut plus être rétablie : la ligne ou la colonne n\'existe plus.');
+        return;
+    }
+    var avant = texteValeur(e.table, e.colonne, e.de) || '(vide)';
+    var actuel = actuels[e.colonne];
+    var aChange = !memeValeur(actuel, e.a);
+    var obj = e.titre ? '« ' + e.titre + ' »' : 'la ligne n° ' + e.ligne;
+    var ok = await confirmerAction('Rétablir « ' + avant + ' » ?', '« ' + libelleColonne(e.table, e.colonne) + ' » de ' + obj + ' reprendra cette valeur. '
+        + (aChange ? 'Attention : elle a encore changé depuis, elle vaut aujourd\'hui « ' + (texteValeur(e.table, e.colonne, actuel) || '(vide)') + ' ». ' : '')
+        + 'Le changement sera noté dans le journal.', 'Rétablir');
+    if (!ok) {
+        return;
+    }
+    var o = {};
+    o[e.colonne] = versCellule(c, e.de);
+    var retour = {};
+    retour[e.colonne] = versCellule(c, actuel);
+    afficherLoader('Rétablissement…');
+    try {
+        await agir([['UpdateRecord', e.table, e.ligne, o]]);
+        await apresAction(e.table, e.ligne);
+        masquerLoader();
+        toast('Valeur rétablie.', { type: 'succes', action: { libelle: 'Annuler', fn: function () {
+                    return agir([['UpdateRecord', e.table, e.ligne, retour]]).then(function () { return apresAction(e.table, e.ligne); }).then(function () { afficherSucces('Rétablissement annulé.'); })
+                        .catch(function (err) { afficherErreur('L\'annulation n\'a pas abouti.', err); });
+                } } });
+    }
+    catch (err) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(err) || estRefusGeneral(err) ? 'Vos droits ne permettent pas de modifier cette ligne.' : 'La valeur n\'a pas pu être rétablie.', err);
+    }
+}
+async function restaurerLigne(e) {
+    var tl = libelleTable(e.table);
+    var obj = e.titre ? '« ' + e.titre + ' »' : 'n° ' + e.ligne;
+    var ok = await confirmerAction('Restaurer la ligne ' + obj + ' ?', 'La ligne est recréée dans « ' + tl + ' » avec ses dernières valeurs connues et son historique. Elle reçoit un nouveau numéro.', 'Restaurer la ligne');
+    if (!ok) {
+        return;
+    }
+    var vals = {};
+    Object.keys(e.valeurs || {}).forEach(function (k) {
+        var c = infoColonne(e.table, k);
+        if (c && !c.formule && !c.declencheur && k !== COL_JOURNAL && k !== 'manualSort' && IDS_META.indexOf(k) === -1) {
+            vals[k] = e.valeurs[k];
+        }
+    });
+    if (e.journal && infoColonne(e.table, COL_JOURNAL)) {
+        vals[COL_JOURNAL] = e.journal;
+    }
+    afficherLoader('Restauration…');
+    try {
+        var r = await agir([['AddRecord', e.table, null, vals]]);
+        var nid = r && r.retValues ? r.retValues[0] : 0;
+        try {
+            await agir([['UpdateRecord', etat.histo, e.histoId, { APRES: 'Restaurée en ligne n° ' + nid }]]);
+            await noterSuivi('Ligne ' + obj + ' restaurée dans « ' + tl + ' »', 'ligne n° ' + e.ligne, 'ligne n° ' + nid, e.table);
+        }
+        catch (err2) {
+            logSecurite('INFO', 'Restauration non notée dans l\'historique', err2);
+        }
+        await apresAction(e.table, nid);
+        masquerLoader();
+        afficherSucces('Ligne restaurée en ligne n° ' + nid + '.');
+    }
+    catch (err) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(err) || estRefusGeneral(err) ? 'Vos droits ne permettent pas d\'ajouter une ligne dans « ' + tl + ' ».' : 'La ligne n\'a pas pu être restaurée.', err);
+    }
+}
+function cleVu() { return 'diplohistorique.vu.' + (etat.nomDoc || 'document'); }
+function preparerVu() {
+    if (etat.vuDepuis) {
+        return;
+    }
+    try {
+        var v = parseInt(window.localStorage.getItem(cleVu()) || '', 10);
+        if (v > 0) {
+            etat.vuDepuis = v;
+            return;
+        }
+        etat.vuDepuis = Date.now();
+        window.localStorage.setItem(cleVu(), String(etat.vuDepuis));
+    }
+    catch (e) {
+        etat.vuDepuis = Date.now();
+        logSecurite('INFO', 'Date du dernier passage non mémorisée', e);
+    }
+}
+function estNouveau(e) { return !!etat.vuDepuis && e.quand > etat.vuDepuis; }
+function majNouveautes() {
+    var z = document.getElementById('tNouv');
+    if (!z) {
+        return;
+    }
+    var n = etat.evenements.filter(estNouveau).length;
+    if (!n && etat.nouveautesSeules) {
+        etat.nouveautesSeules = false;
+    }
+    var actif = document.activeElement && z.contains(document.activeElement) ? document.activeElement.id : null;
+    vider(z);
+    z.hidden = !n;
+    if (!n) {
+        return;
+    }
+    var depuis = 'depuis le ' + dateHeure(etat.vuDepuis);
+    var texte = nbre(n, 'nouveauté', 'nouveautés');
+    z.appendChild(bouton(texte, etat.nouveautesSeules ? null : 'secondaire', 'notification-3-line', function () {
+        etat.nouveautesSeules = !etat.nouveautesSeules;
+        afficherVue('journal', true);
+        var b = document.getElementById('tNouvBtn');
+        if (b) {
+            b.focus();
+        }
+        annoncer(etat.nouveautesSeules ? 'Seuls les nouveaux mouvements sont affichés.' : 'Tous les mouvements sont affichés.');
+    }, { petit: true, id: 'tNouvBtn', classe: 'w-infobulle', aria: texte + ' ' + depuis + (etat.nouveautesSeules ? ' : seuls ces mouvements sont affichés. Revoir tout' : '. N\'afficher qu\'eux'),
+        attrs: { 'aria-pressed': etat.nouveautesSeules ? 'true' : 'false', 'data-infobulle': 'Nouveaux ' + depuis } }));
+    z.appendChild(bouton('Tout marquer comme vu', 'discret', 'check-line', function () {
+        etat.vuDepuis = Date.now();
+        etat.nouveautesSeules = false;
+        try {
+            window.localStorage.setItem(cleVu(), String(etat.vuDepuis));
+        }
+        catch (e) {
+            logSecurite('INFO', 'Date du dernier passage non mémorisée', e);
+        }
+        afficherVue('journal', true);
+        var t = document.getElementById('titreVue');
+        if (t) {
+            t.focus();
+        }
+        annoncer('Tous les mouvements sont marqués comme vus.');
+    }, { petit: true, id: 'tNouvVu' }));
+    if (actif && document.getElementById(actif)) {
+        document.getElementById(actif).focus();
+    }
+    if (!etat.nouvAnnoncees) {
+        etat.nouvAnnoncees = true;
+        annoncer(texte + ' ' + depuis + '.');
+    }
+}
+function boutonCopier(texte, libelle, id) {
+    return bouton(libelle, 'discret', 'clipboard-line', function () {
+        if (!navigator.clipboard) {
+            afficherErreur('La copie n\'est pas autorisée ici : sélectionnez le texte à la main.');
+            return null;
+        }
+        return navigator.clipboard.writeText(texte).then(function () { afficherSucces('Copié.'); }).catch(function (e) { afficherErreur('La copie n\'est pas autorisée ici : sélectionnez le texte à la main.', e); });
+    }, { petit: true, id: id });
+}
+function marcheManuelle() {
+    var f = formuleNonAutorise();
+    var suivies = ((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; });
+    return creer('div', { classe: 'w-manuel' }, [
+        creer('p', { classe: 'w-texte', texte: 'Le widget n\'a pas pu poser les règles lui-même. Un propriétaire peut le faire à la main :' }),
+        creer('ol', { classe: 'w-texte w-liste-points' }, [
+            creer('li', { texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées ».' }),
+            creer('li', { texte: 'Ajoutez une règle pour la table « ' + LABEL_HISTO + ' » : condition ci-dessous, tous les droits refusés. Ajoutez en dessous une seconde règle, condition « user.Access != OWNER », création, modification et suppression refusées.' }),
+            creer('li', { texte: 'Pour ' + (suivies.length > 1 ? 'chacune des tables suivies (' + suivies.map(libelleTable).join(', ') + ')' : 'la table « ' + suivies.map(libelleTable).join('') + ' »') + ', ajoutez une règle sur la colonne « ' + LIBELLE_JOURNAL + ' » : même condition, lecture refusée.' }),
+            creer('li', { texte: 'Dans chaque règle, écrivez « ' + MEMO_REGLE + ' » en mémo, puis enregistrez.' })
+        ]),
+        creer('p', { classe: 'w-formule' }, [creer('code', { texte: f })]),
+        boutonCopier(f, 'Copier la condition', 'aCopierFormule')
+    ]);
 }
 function csvCellule(v) {
     var s = String(v === null || v === undefined ? '' : v);
@@ -2101,7 +2343,7 @@ async function changerSuivi(t, suivre, idFocus, cb) {
             }
             await ecrireConfig();
             await assurerJournal(t);
-            await poserProtection();
+            await proteger();
             await releverSilencieux();
             await noterSuivi('Suivi de « ' + libelleTable(t) + ' » commencé', '', libelleTable(t), t);
         }
@@ -2173,7 +2415,9 @@ async function changerLecteurs(liste, objet, avant, apres, idFocus) {
     try {
         etat.config.lecteurs = liste;
         await ecrireConfig();
-        await poserProtection();
+        if (!(await proteger())) {
+            throw new Error('Règles d\'accès non posées');
+        }
         await releverSilencieux();
         await noterSuivi(objet, avant, apres);
         await lireHisto();
@@ -2242,7 +2486,8 @@ function sectionProtection() {
         creer('h3', { classe: 'w-c3__titre', id: 'aProtTitre', texte: 'Protection du journal' }),
         alerte(ok ? 'success' : 'warning', null, ok ? 'Les règles d\'accès sont en place : le journal n\'est lisible que par les propriétaires et les personnes autorisées.'
             : 'Les règles d\'accès du journal ' + (p.manque.length ? 'manquent' : 'ne sont plus à jour') + '.'),
-        ok ? null : bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant().then(function () { redessinerParametrage('aProtTitre'); }); }, { petit: true, id: 'aProteger' }),
+        ok ? null : bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant().then(function () { redessinerParametrage('aProteger'); }); }, { petit: true, id: 'aProteger' }),
+        !ok && etat.protectionEchec ? marcheManuelle() : null,
         creer('p', { classe: 'w-mention', texte: 'Les règles sont visibles dans « Permissions avancées », rubrique « Outils » du panneau de gauche du document, avec la mention « ' + MEMO_REGLE + ' ».' })
     ]);
 }
@@ -2475,6 +2720,7 @@ async function initialiser() {
             await releverTout();
         }
         await chargerJournal();
+        preparerVu();
         masquerLoader();
         afficherVue('journal');
         demarrerReleves();
