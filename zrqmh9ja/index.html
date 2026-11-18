@@ -1,0 +1,5427 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<head>
+<meta name="robots" content="noindex, nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diploarchive</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
+  
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha256-zAFRMKqFIefwiPiImOupSczcv7ON8L0Sm0S3Jzw6b0E=" crossorigin="anonymous"></script>
+  <style>
+* {
+  box-sizing: border-box;
+}
+html {
+  height: 100%;
+}
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+  font-family:
+    Marianne,
+    arial,
+    sans-serif;
+  font-size: 1rem;
+}
+#skipLink:focus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  padding: .5rem 1rem;
+  clip: auto;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: .875rem;
+  background: var(--background-default-grey);
+  color: var(--text-action-high-blue-france);
+}
+[hidden] {
+  display: none;
+}
+main[hidden],
+div[hidden],
+section[hidden],
+p[hidden],
+button[hidden],
+aside[hidden],
+li[hidden],
+ul[hidden],
+span[hidden],
+nav[hidden],
+.fr-btn[hidden] {
+  display: none;
+}
+.w-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.w-contenu {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+  color: var(--text-default-grey);
+}
+.w-contenu--principal {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: .75rem 1rem 1rem;
+}
+@supports (overflow-clip-margin: 1px) {
+  .w-contenu--principal {
+    overflow: clip;
+    overflow-clip-margin: 2.5rem;
+  }
+}
+.w-titre-vue {
+  margin: 0;
+}
+.w-mention {
+  color: var(--text-mention-grey);
+  font-size: .8125rem;
+  margin: 0;
+}
+.w-texte {
+  font-size: .875rem;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--text-default-grey);
+}
+.w-mention-papier {
+  display: none;
+}
+.w-bandeau {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .5rem .75rem;
+  background: var(--background-default-grey);
+  border-bottom: 1px solid var(--border-default-grey);
+  flex-shrink: 0;
+  color: var(--text-default-grey);
+}
+#bandeau-logo {
+  width: 80px;
+  flex-shrink: 0;
+}
+.w-bandeau__logo-wrap {
+  width: 100%;
+}
+.w-bandeau__marque {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+}
+.w-bandeau__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: .25rem 0;
+  background: var(--border-default-grey);
+  flex-shrink: 0;
+  color: var(--text-default-grey);
+}
+.w-bandeau__titre {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-title-blue-france);
+  white-space: nowrap;
+  margin: 0;
+  line-height: 1;
+}
+.w-bandeau__version {
+  font-size: .75rem;
+  color: var(--text-mention-grey);
+  font-weight: 400;
+  margin-left: .5rem;
+  white-space: nowrap;
+}
+.w-bandeau__homologue {
+  margin-left: .5rem;
+  white-space: nowrap;
+}
+.w-bandeau__homologue[hidden] {
+  display: none;
+}
+.w-bandeau .fr-logo::after {
+  display: none;
+}
+.w-bandeau__aide {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.w-onglets {
+  flex-shrink: 0;
+  padding: .75rem 1.5rem 0;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-onglets .fr-tabs__list {
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.w-onglets .fr-tabs__tab {
+  cursor: pointer;
+}
+.w-loader {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0, 0, 0, .5);
+  color: var(--text-inverted-grey);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+}
+.w-loader.actif {
+  display: flex;
+}
+.w-loader__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-default-grey);
+  border-top-color: var(--background-action-high-blue-france);
+  border-radius: 50%;
+  animation: wSpin .8s linear infinite;
+}
+@keyframes wSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.w-loader__texte {
+  font-size: .875rem;
+  color: var(--text-inverted-grey);
+}
+.w-messages {
+  position: fixed;
+  z-index: 9997;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(26rem, calc(100% - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-erreur,
+.w-toast {
+  display: none;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-erreur.actif,
+.w-toast.actif {
+  display: block;
+}
+.w-toast__ligne {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.w-toast__ligne p {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+.w-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  background: rgba(0, 0, 0, .5);
+  color: var(--text-inverted-grey);
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.w-overlay.actif {
+  display: flex;
+}
+.w-overlay--haut {
+  z-index: 9995;
+}
+.w-dialogue {
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+  width: 100%;
+  max-width: 44rem;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.w-dialogue--etroit {
+  max-width: 30rem;
+}
+.w-dialogue__tete {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: 1.25rem 1.5rem .5rem;
+}
+.w-dialogue__tete > div {
+  flex: 1;
+}
+.w-dialogue__titre {
+  margin: 0;
+}
+.w-dialogue__corps {
+  padding: .5rem 1.5rem 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.w-dialogue__pied {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .75rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-default-grey);
+}
+.w-aide {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  padding: 0;
+  margin: -.5rem 0 0 -.25rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-action-high-blue-france);
+  vertical-align: super;
+}
+.w-aide__rond {
+  width: .875rem;
+  height: .875rem;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+  font-size: .75rem;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+}
+.w-aide[aria-expanded=true] .w-aide__rond {
+  color: var(--text-inverted-blue-france);
+  background: var(--background-action-high-blue-france);
+  border-color: var(--border-action-high-blue-france);
+}
+.w-aide:focus-visible {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: 0;
+}
+.w-aide__texte {
+  margin: .25rem 0 .5rem;
+  padding: .75rem;
+  font-size: .8125rem;
+  line-height: 1.45;
+  color: var(--text-default-grey);
+  background: var(--background-default-grey);
+  border: 1px solid var(--border-plain-grey);
+}
+.w-disposition {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+}
+.w-volet {
+  flex: 0 0 17rem;
+  min-height: 0;
+  display: flex;
+  background: var(--background-alt-grey);
+  border-left: .25rem solid var(--border-action-high-blue-france);
+  color: var(--text-default-grey);
+}
+.w-volet__contenu {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: .75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.w-volet__bloc {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-volet__bloc .fr-input,
+.w-volet__bloc .fr-select {
+  width: 100%;
+  margin-top: 0;
+}
+.w-volet__bloc .fr-select-group,
+.w-volet__bloc .fr-input-group {
+  margin-bottom: .25rem;
+}
+.w-volet__h {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+  color: var(--text-title-grey);
+}
+.w-volet__entete {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+.w-volet__poignee {
+  position: relative;
+  flex: 0 0 .75rem;
+  align-self: stretch;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  border-left: 1px solid var(--border-default-grey);
+  background: var(--background-alt-grey);
+  color: var(--text-default-grey);
+}
+.w-volet__poignee::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: .25rem;
+  height: 1.75rem;
+  margin: -.875rem 0 0 -.125rem;
+  border-left: 1px solid var(--border-plain-grey);
+  border-right: 1px solid var(--border-plain-grey);
+}
+.w-volet__poignee:hover {
+  background: var(--background-contrast-grey);
+  color: var(--text-default-grey);
+}
+.w-volet__poignee:focus-visible {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: -2px;
+}
+.w-volet--replie {
+  flex-basis: auto;
+}
+.w-volet--replie .w-volet__contenu {
+  display: none;
+}
+.w-volet--replie .w-volet__poignee {
+  flex-basis: 1rem;
+  border-left: 0;
+}
+.w-volet__compte {
+  position: absolute;
+  top: .5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 .25rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  color: var(--text-inverted-blue-france);
+  background: var(--background-action-high-blue-france);
+}
+.w-volet__compte:empty {
+  display: none;
+}
+.w-ajouter {
+  width: 100%;
+  justify-content: center;
+}
+.w-volet__repliable {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+}
+.w-filtres-mobile {
+  display: none;
+}
+.w-compteur-filtres {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.w-volet__bas {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-sorties {
+  display: flex;
+  gap: .25rem;
+  flex-wrap: nowrap;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border-default-grey);
+}
+.w-bulle {
+  position: relative;
+  overflow: visible !important;
+}
+.w-bulle[data-bulle]:hover::after,
+.w-bulle[data-bulle]:focus-visible::after {
+  content: attr(data-bulle);
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  top: auto;
+  bottom: 100%;
+  margin-bottom: .375rem;
+  white-space: nowrap;
+  padding: .125rem .5rem;
+  font-size: .75rem;
+  font-weight: 400;
+  background: var(--background-contrast-grey);
+  color: var(--text-default-grey);
+  border: 1px solid var(--border-plain-grey);
+  pointer-events: none;
+}
+.w-barre__droite .w-bulle[data-bulle]:hover::after,
+.w-barre__droite .w-bulle[data-bulle]:focus-visible::after {
+  left: auto;
+  right: 0;
+}
+.w-bulle--droite[data-bulle]:hover::after,
+.w-bulle--droite[data-bulle]:focus-visible::after {
+  left: auto;
+  right: 0;
+}
+.w-bulle--cote[data-bulle]:hover::after,
+.w-bulle--cote[data-bulle]:focus-visible::after {
+  left: 0;
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 .375rem 0;
+}
+.w-pastille {
+  flex: none;
+  display: inline-block;
+  width: .875rem;
+  height: .875rem;
+  border-radius: 50%;
+  border: 1px solid rgba(22, 22, 22, .12);
+  background: var(--vif-el, var(--background-default-grey));
+}
+.w-principal {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.w-barre__gauche {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.w-barre__droite {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.w-compteurs {
+  display: flex;
+  gap: .25rem;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.w-compteurs li {
+  margin: 0;
+  padding: 0;
+}
+.w-groupe-vues {
+  display: flex;
+  gap: 0;
+  margin-right: .5rem;
+}
+.w-bouton-vue[aria-pressed=true] {
+  background-color: var(--background-action-low-blue-france);
+  color: var(--text-action-high-blue-france);
+}
+.w-btn-ico {
+  width: 2rem;
+  min-height: 2rem;
+  height: 2rem;
+  padding: 0;
+  justify-content: center;
+}
+.w-btn-ico svg {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.w-btn-ico--grand {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-height: 2.25rem;
+}
+.w-barre__sep {
+  width: 1px;
+  align-self: stretch;
+  margin: .25rem .375rem;
+  background: var(--border-default-grey);
+}
+.w-fiche {
+  flex: 0 0 22rem;
+  width: 22rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: .75rem;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+  border: 1px solid var(--border-default-grey);
+}
+.w-deux {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 .75rem;
+}
+.w-liste {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-default-grey);
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+.w-tableau th,
+.w-tableau td {
+  text-align: left;
+  vertical-align: top;
+  padding: .5rem .625rem;
+  border-bottom: 1px solid var(--border-default-grey);
+}
+.w-tableau th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--background-alt-grey);
+  color: var(--text-default-grey);
+  font-weight: 700;
+}
+.w-tableau tr.w-ligne--estompe td {
+  color: var(--text-mention-grey);
+}
+.w-tableau tr.w-ligne--select td {
+  background: var(--background-alt-blue-france);
+  color: var(--text-default-grey);
+}
+.w-cellule-coul {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+}
+.w-aide-panneau {
+  flex: 0 0 24rem;
+  width: 24rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background-contrast-yellow-tournesol);
+  color: var(--text-default-grey);
+  border-left: 1px solid var(--border-default-grey);
+}
+.w-aide-panneau[hidden] {
+  display: none;
+}
+.w-aide-panneau__tete {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  background: var(--background-contrast-yellow-tournesol);
+  color: var(--text-default-grey);
+}
+.w-aide-panneau__icone {
+  color: var(--text-action-high-blue-france);
+  flex-shrink: 0;
+}
+.w-aide-panneau__titre {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: var(--text-title-grey);
+}
+.w-aide-panneau__onglets {
+  order: 0;
+  display: flex;
+  flex-shrink: 0;
+  gap: .25rem;
+  margin: 0;
+  padding: .25rem .75rem 0;
+  list-style: none;
+  overflow-x: auto;
+  background: var(--background-contrast-yellow-tournesol);
+  color: var(--text-default-grey);
+  border-bottom: 1px solid var(--border-default-grey);
+}
+.w-aide-panneau__onglets > li {
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+.w-aide-panneau .fr-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: .375rem .625rem;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+  line-height: 1.5;
+  background-color: var(--background-action-low-blue-france);
+  color: var(--text-action-high-blue-france);
+}
+.w-aide-panneau .fr-tabs__tab[aria-selected=true] {
+  background-color: var(--background-contrast-yellow-tournesol);
+  color: var(--text-active-blue-france);
+  box-shadow:
+    inset 0 2px 0 var(--border-active-blue-france),
+    inset 1px 0 0 var(--border-default-grey),
+    inset -1px 0 0 var(--border-default-grey);
+}
+.w-aide-panneau .fr-tabs__tab:focus-visible {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: -2px;
+}
+.w-aide-panneau__corps {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem .75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  font-size: .875rem;
+  line-height: 1.5;
+}
+.w-aide-panneau__corps:focus-visible {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: 2px;
+}
+.w-aide-panneau__corps h3 {
+  margin: .25rem 0 0;
+  font-size: .875rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: var(--text-title-grey);
+}
+.w-aide-panneau__corps p,
+.w-aide-panneau__corps ol {
+  margin: 0;
+}
+.w-aide-panneau__corps ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.w-fiche-etape {
+  padding: .5rem .75rem;
+  border-left: .25rem solid var(--border-default-grey);
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-fiche-etape--courante {
+  border-left-color: var(--border-action-high-blue-france);
+  background: var(--background-alt-blue-france);
+}
+.w-fiche-etape h4 {
+  margin: 0 0 .25rem;
+  font-size: .875rem;
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+.w-raccourcis {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .25rem .75rem;
+  font-size: .8125rem;
+}
+.w-raccourcis dt {
+  font-weight: 700;
+}
+.w-raccourcis dd {
+  margin: 0;
+}
+.w-param {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+.w-param__tete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.w-statut--erreur {
+  color: var(--text-default-error);
+}
+.w-etapes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: .25rem;
+}
+.w-etapes__item {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  min-width: 0;
+}
+.w-etapes__bouton {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  width: 100%;
+  padding: 0 0 .25rem;
+  margin: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.w-etapes__bouton:hover .w-etapes__nom {
+  text-decoration: underline;
+}
+.w-etapes__bouton:focus-visible {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: 2px;
+}
+.w-etapes__segment {
+  display: block;
+  height: .375rem;
+  background: var(--background-contrast-grey);
+  color: var(--text-default-grey);
+}
+.w-etapes__nom {
+  font-size: .75rem;
+  line-height: 1.25;
+  color: var(--text-mention-grey);
+  overflow-wrap: anywhere;
+}
+.w-etapes__ligne {
+  display: flex;
+  align-items: flex-start;
+  gap: .25rem;
+  min-width: 0;
+}
+.w-etapes__coche {
+  color: var(--text-default-success);
+  flex-shrink: 0;
+}
+.w-etapes__item--faite .w-etapes__segment {
+  background: var(--background-flat-success);
+  color: var(--text-inverted-success);
+}
+.w-etapes__item--faite .w-etapes__nom {
+  color: var(--text-default-success);
+}
+.w-etapes__item--en-cours .w-etapes__segment {
+  background: var(--background-active-blue-france);
+  height: .625rem;
+  color: var(--text-inverted-blue-france);
+}
+.w-etapes__item--en-cours .w-etapes__nom {
+  color: var(--text-action-high-blue-france);
+  font-weight: 700;
+  font-size: .8125rem;
+}
+.w-etapes__appel {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .8125rem;
+  font-weight: 500;
+  color: var(--text-action-high-blue-france);
+  background: var(--background-default-grey);
+  border: 1px solid var(--border-action-high-blue-france);
+  padding: .0625rem .5rem;
+  align-self: flex-start;
+}
+.w-etapes__bouton:hover .w-etapes__appel {
+  background: var(--background-default-grey-hover);
+  color: var(--text-default-grey);
+}
+.w-etapes__item--suivante .w-etapes__nom {
+  color: var(--text-action-high-blue-france);
+  text-decoration: underline;
+  font-weight: 500;
+}
+.w-etapes__item--lien .w-etapes__nom {
+  text-decoration: underline;
+}
+.w-etapes__appel--retour {
+  border-color: var(--border-default-grey);
+  color: var(--text-default-grey);
+}
+.w-etapes__item--en-cours {
+  background: var(--background-alt-blue-france);
+  padding: 0 .375rem .375rem;
+  margin: 0 -.125rem;
+}
+.w-etapes__item--en-cours .w-etapes__segment {
+  margin: 0 -.375rem;
+}
+.w-etapes-rangee {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.w-etapes-rangee .w-etapes {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.w-etapes-rangee__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+  flex: none;
+}
+.w-stepper {
+  margin-bottom: 0;
+}
+.w-stepper .fr-stepper__title {
+  margin: 1rem 0 0;
+  font-size: 1.375rem;
+}
+.w-entete-param {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+  flex-wrap: wrap;
+}
+.w-entete-param__textes {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  min-width: 0;
+}
+.w-entete-param__titre {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-title-grey);
+  overflow-wrap: anywhere;
+}
+.w-statut {
+  margin: 0;
+}
+.w-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1.25rem;
+  align-items: start;
+  padding: 1.25rem;
+  background: var(--background-alt-grey);
+  color: var(--text-default-grey);
+}
+.w-section {
+  display: flex;
+  flex-direction: column;
+  gap: .875rem;
+  min-width: 0;
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+  border: 1px solid var(--border-default-grey);
+}
+.w-section .fr-select-group,
+.w-section .fr-input-group {
+  margin-bottom: 0;
+}
+.w-section--large {
+  grid-column: 1 / -1;
+}
+.w-grille--2 {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+@media (max-width: 62em) {
+  .w-grille--2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  txt {
+  }
+}
+.w-section--danger {
+  border-left: 4px solid var(--border-plain-error);
+}
+.w-section--apercu {
+  border: 1px dashed var(--border-plain-grey);
+}
+.w-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: .5rem;
+  border-radius: 50%;
+  background: var(--background-action-high-blue-france);
+  color: var(--text-inverted-blue-france);
+  font-size: .875rem;
+  flex: none;
+  vertical-align: middle;
+}
+.w-section .w-titre-colonne {
+  display: flex;
+  align-items: center;
+}
+.w-onglet__mention {
+  font-weight: 400;
+  color: var(--text-mention-grey);
+}
+@media (max-width: 48em) {
+  .w-etapes-rangee {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  txt {
+  }
+}
+.w-nav-etapes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-default-grey);
+}
+.w-nav-etapes .w-pousse {
+  margin-left: auto;
+}
+.w-grille-param {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 2rem;
+  align-items: start;
+}
+.w-colonne {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  min-width: 0;
+}
+.w-titre-colonne {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-title-grey);
+}
+.w-titre-colonne-ligne {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+.w-tuiles {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.w-tuile {
+  flex: 1 1 20rem;
+  border: 1px solid var(--border-default-grey);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .875rem;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-tuile--choisie {
+  border: 2px solid var(--border-action-high-blue-france);
+  background: var(--background-alt-blue-france);
+}
+.w-tuile__icone {
+  color: var(--text-title-blue-france);
+}
+.w-tuile__bas {
+  margin-top: auto;
+  padding-top: .5rem;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.w-modeles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+.w-modele {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-default-grey);
+  background: var(--background-default-grey);
+  border: 1px solid var(--border-default-grey);
+  border-bottom: 3px solid var(--border-action-high-blue-france);
+}
+.w-modele--choisi {
+  border: 2px solid var(--border-action-high-blue-france);
+  border-bottom-width: 3px;
+  background: var(--background-alt-blue-france);
+}
+.w-modele:hover:not(.w-modele--inactif) {
+  background: var(--background-default-grey-hover);
+}
+.w-modele--choisi:hover {
+  background: var(--background-alt-blue-france-hover);
+}
+.w-modele:focus-within {
+  outline: 2px solid var(--border-action-high-blue-france);
+  outline-offset: 2px;
+}
+.w-modele--inactif {
+  cursor: default;
+  opacity: .6;
+}
+.w-modele__bas {
+  margin-top: auto;
+  padding: 0 .75rem .75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.w-modele__vignette {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 9rem;
+  overflow: hidden;
+  padding: .5rem;
+  background: var(--background-default-grey);
+  background-image: radial-gradient(var(--border-default-grey) 1px, transparent 1px);
+  background-size: 12px 12px;
+  border-bottom: 1px solid var(--border-default-grey);
+}
+.w-modele__vignette svg {
+  display: block;
+}
+.w-modele__plus {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-mention-grey);
+}
+.w-modele__texte {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .75rem;
+}
+.w-modele__nom {
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--text-title-grey);
+}
+.w-modele__desc {
+  font-size: .75rem;
+  color: var(--text-mention-grey);
+}
+.w-zone-retrait {
+  padding: 1rem;
+  border: 1px solid var(--border-plain-error);
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: flex-start;
+}
+.w-encart-droits {
+  padding: 1rem;
+  border: 1px solid var(--border-default-grey);
+  background: var(--background-alt-grey);
+  color: var(--text-default-grey);
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-encart-droits ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: .875rem;
+}
+.w-encart-droits code {
+  font-size: .8125rem;
+  overflow-wrap: anywhere;
+}
+.w-tableau-simple {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+.w-tableau-simple th,
+.w-tableau-simple td {
+  text-align: left;
+  padding: .375rem .5rem;
+  border-bottom: 1px solid var(--border-default-grey);
+}
+.w-tableau-simple th {
+  background: var(--background-alt-grey);
+  color: var(--text-default-grey);
+}
+.w-vide {
+  max-width: 40rem;
+  margin: 2rem auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+body.w-agrandi .w-bandeau,
+body.w-agrandi .w-onglets,
+body.w-agrandi .w-volet {
+  display: none;
+}
+@media (max-width: 62em) {
+  .w-aide-panneau {
+    flex-basis: 20rem;
+    width: 20rem;
+  }
+  .w-fiche {
+    flex-basis: 18rem;
+    width: 18rem;
+  }
+}
+@media (max-width: 48em) {
+  .w-contenu {
+    padding: .75rem 1rem;
+  }
+  .w-contenu--principal {
+    overflow-y: auto;
+  }
+  .w-disposition {
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .w-volet,
+  .w-volet--replie {
+    flex: none;
+    border-left: 0;
+    border-top: .25rem solid var(--border-action-high-blue-france);
+  }
+  .w-volet--replie .w-volet__contenu {
+    display: flex;
+  }
+  .w-volet__poignee {
+    display: none;
+  }
+  .w-volet__contenu {
+    overflow: visible;
+  }
+  .w-volet__repliable {
+    display: none;
+  }
+  .w-volet--mobile-ouvert .w-volet__repliable {
+    display: flex;
+  }
+  .w-filtres-mobile {
+    display: inline-flex;
+  }
+  .w-principal {
+    min-height: 28rem;
+  }
+  .w-fiche {
+    position: fixed;
+    inset: 0;
+    z-index: 9970;
+    width: auto;
+    flex: none;
+    margin: 0;
+  }
+  .w-aide-panneau {
+    position: fixed;
+    inset: 0;
+    z-index: 9980;
+    width: auto;
+    flex: none;
+    border-left: 0;
+  }
+  .w-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .w-dialogue,
+  .w-dialogue--etroit {
+    max-width: none;
+    height: 100%;
+  }
+  .w-dialogue__corps {
+    flex: 1;
+  }
+  txt {
+  }
+}
+@media (max-width: 30em) {
+  .w-bandeau {
+    padding: .375rem .5rem;
+  }
+  .w-bandeau__marque {
+    gap: .5rem;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  #bandeau-logo {
+    width: 56px;
+  }
+  .w-bandeau__titre {
+    font-size: 1rem;
+  }
+  .w-bandeau__version {
+    margin-left: .25rem;
+  }
+  txt {
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .w-loader__spinner {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto;
+  }
+  txt {
+  }
+}
+@media (forced-colors: active) {
+  .w-pastille,
+  .w-nuance,
+  .w-legende-param__pastille {
+    forced-color-adjust: none;
+  }
+  .w-volet,
+  .w-fiche,
+  .w-el--postit {
+    border: 1px solid CanvasText;
+  }
+  txt {
+  }
+}
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .w-bandeau,
+  .w-onglets,
+  .w-volet,
+  .w-aide-panneau,
+  .w-messages,
+  .w-loader,
+  .w-overlay,
+  .w-barre__droite,
+  .w-compteurs,
+  #skipLink,
+  .w-outils,
+  .w-ctx,
+  .w-pop,
+  .w-minicarte,
+  .w-fiche,
+  .w-poignee-taille,
+  .w-lasso,
+  .w-edition,
+  .w-source,
+  .fr-btn {
+    display: none !important;
+  }
+  .w-page,
+  .w-contenu,
+  .w-contenu--principal,
+  .w-disposition,
+  .w-principal,
+  .w-scene {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  .w-mention-papier {
+    display: block;
+    margin: 0 0 .5rem;
+    font-size: .8125rem;
+  }
+  .w-toile {
+    border: 0 !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    overflow: visible !important;
+  }
+  .w-el,
+  .w-el--postit,
+  .w-el__fond,
+  .w-pastille {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .w-el--select::after,
+  .w-el--trouve::before {
+    display: none !important;
+  }
+  .w-el--estompe {
+    opacity: 1 !important;
+  }
+  .w-liste {
+    overflow: visible !important;
+    border: 0 !important;
+  }
+  .w-tableau th {
+    position: static !important;
+  }
+}
+.w-principal {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.w-actions-lot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+.w-actions-lot__texte {
+  margin-right: auto;
+  font-size: .875rem;
+  color: var(--text-default-grey);
+}
+.w-tableau td.w-case,
+.w-tableau th.w-case {
+  width: 2.75rem;
+  padding-right: 0;
+}
+.w-tableau .fr-checkbox-group {
+  margin: 0;
+}
+.w-tableau td.w-droite,
+.w-tableau th.w-droite {
+  text-align: right;
+  white-space: nowrap;
+}
+.w-tableau tr.w-ligne--cochee td {
+  background: var(--background-alt-blue-france);
+  color: var(--text-default-grey);
+}
+.w-dialogue--large {
+  max-width: 52rem;
+}
+.w-dialogue__corps {
+  overflow-y: auto;
+}
+.w-etape-archive {
+  border: 1px solid var(--border-default-grey);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+}
+.w-etape-archive h3 {
+  font-size: 1rem;
+  margin: 0 0 .5rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.w-etape-archive--faite {
+  border-color: var(--border-plain-success);
+}
+.w-etape-archive--inactive {
+  opacity: .6;
+}
+.w-motif {
+  margin-top: .75rem;
+}
+.w-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: .25rem 1rem;
+}
+.w-liee {
+  border-top: 1px solid var(--border-default-grey);
+  padding-top: .75rem;
+  margin-top: .75rem;
+}
+.w-liee:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+.w-recap {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: .875rem;
+}
+.w-recap li {
+  margin-bottom: .25rem;
+}
+.w-tableaux-tables {
+  width: 100%;
+}
+</style>
+</head>
+<body>
+  <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
+
+  <div class="w-loader" id="loader" role="status" aria-live="polite">
+    <div class="w-loader__spinner"></div>
+    <div class="w-loader__texte" id="loaderMessage">Chargement…</div>
+  </div>
+
+  <div class="w-overlay w-overlay--haut" id="wConfirmOverlay">
+    <div class="w-dialogue w-dialogue--etroit" role="alertdialog" aria-modal="true" aria-labelledby="wConfirmTitre" aria-describedby="wConfirmMsg">
+      <div class="w-dialogue__tete"><div><h2 class="fr-h6 w-dialogue__titre" id="wConfirmTitre"></h2></div></div>
+      <div class="w-dialogue__corps"><p class="w-texte" id="wConfirmMsg"></p></div>
+      <div class="w-dialogue__pied">
+        <button type="button" class="fr-btn fr-btn--secondary" id="wConfirmNon">Annuler</button>
+        <button type="button" class="fr-btn" id="wConfirmOui">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="w-bandeau" role="banner">
+    <div class="w-bandeau__marque">
+      <div id="bandeau-logo"></div>
+      <div class="w-bandeau__sep"></div>
+      <h1 class="w-bandeau__titre" id="bandeauTitre"><span aria-hidden="true">🗄️ </span>Diploarchive</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+    </div>
+    <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bAide" aria-expanded="false" aria-controls="wAide">Aide</button>
+  </div>
+
+  <nav class="tab-nav w-onglets" id="wOnglets" aria-label="Règles d'archivage" hidden></nav>
+
+  <div class="w-messages" id="wMessages">
+    <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert"><p id="wErreurMsg"></p><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button></div>
+    <div class="w-toast fr-alert fr-alert--success fr-alert--sm" id="wToast" role="status"><div class="w-toast__ligne"><p id="wToastMsg"></p><span id="wToastActions"></span></div></div>
+  </div>
+  <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
+
+  <div class="w-page">
+    <main class="w-contenu" id="contenu" tabindex="-1"></main>
+    <aside class="w-aide-panneau" id="wAide" aria-labelledby="wAideTitre" hidden></aside>
+  </div>
+
+<script>
+"use strict";
+var VERSION_WIDGET = "1.0.0";
+var HOMOLOGUE = false;
+var NOM_WIDGET = "Diploarchive";
+var DELAI_API_MS = 6e4;
+var DELAI_DEMARRAGE_MS = 800;
+var DELAI_ACTUALISATION_MS = 3e4;
+var DELAI_RELECTURE_MS = 2e4;
+var DELAI_SAUVEGARDE_MS = 700;
+var TAILLE_LOT = 400;
+var MOIS_ECHEANCIER = 3;
+var ID_CENTRALE = "BIBLIOTHEQUE_CENTRALE";
+var LABEL_CENTRALE = "📦 BIBLIOTHÈQUE CENTRALE ⚡";
+var CLE_CONFIG = "CONFIG";
+var CLE_ACCES_EDITION = "ACCES_EDITION";
+var CLE_ACCES_PARAMETRAGE = "ACCES_PARAMETRAGE";
+var COLONNES_CENTRALE_TYPES = [
+  ["WIDGET", "Text"],
+  ["NOM", "Text"],
+  ["CONFIG", "Text"],
+  ["STATUT", "Text"],
+  ["CONTENU", "Text"],
+  ["BASE", "Text"],
+  ["DATE_CREATION", "Text"],
+  ["PARAMETRES", "Text"],
+  ["FICHIER_XLS_SOURCE", "Text"],
+  ["TABLE_SOURCE", "Text"],
+  ["DATE_MAJ", "Text"],
+  ["CATEGORIE", "Text"],
+  ["QUESTION", "Text"],
+  ["REPONSE", "Text"],
+  ["EPINGLEE", "Bool"],
+  ["POSEE_PAR", "Text"],
+  ["REPONDUE_PAR", "Text"],
+  ["PRENOM", "Text"],
+  ["EMAIL", "Text"],
+  ["TYPE_UTILISATEUR", "Text"],
+  ["ROLE_GRIST", "Text"],
+  ["ACTIF", "Bool"],
+  ["LIBELLE", "Text"],
+  ["VOIR_EN_TANT_QUE", "Text"],
+  ["TYPE", "Text"],
+  ["CLE", "Text"],
+  ["VALEUR", "Text"],
+  ["NOM_PROJET", "Text"],
+  ["COMMANDITAIRE", "Text"],
+  ["CHEF_DE_PROJET", "Text"],
+  ["REFERENT", "Text"],
+  ["DEVELOPPEUR", "Text"],
+  ["DATE_MEP", "Text"],
+  ["FINALITE", "Text"],
+  ["VOLUMETRIE", "Text"],
+  ["INTEGRATIONS", "Text"],
+  ["REGLES_METIER", "Text"],
+  ["NOM_PAGE", "Text"],
+  ["NOM_BLOC", "Text"],
+  ["TYPE_BLOC", "Text"],
+  ["ORDRE", "Numeric"],
+  ["ICONE", "Text"],
+  ["HTML_COMPLET", "Text"],
+  ["CREE_LE", "DateTime:Europe/Paris"],
+  ["CREE_PAR", "Text"],
+  ["MODIFIE_LE", "DateTime:Europe/Paris"],
+  ["MODIFIE_PAR", "Text"],
+  ["PUBLIEE_LE", "DateTime:Europe/Paris"],
+  ["DESCRIPTIF", "Text"],
+  ["VERSION_CREATION", "Text"],
+  ["VERSION_MODIF", "Text"]
+];
+var COLONNES_CENTRALE_UTILES = ["WIDGET", "CLE", "VALEUR", "VERSION_CREATION", "VERSION_MODIF"];
+var DESCRIPTION_CENTRALE = "Table technique partagée par les widgets : réglages (une ligne par widget et par clé), contenus et ressources communes. Ne pas modifier à la main.";
+var IDS_META = ["CREE_LE", "CREE_PAR", "MODIFIE_LE", "MODIFIE_PAR"];
+var COLONNES_META = [
+  { id: "CREE_LE", type: "DateTime:Europe/Paris", label: "CRÉÉ LE", formula: "NOW()", recalcWhen: 0, description: "Date et heure de création de la ligne, remplies une seule fois à la création. Calculé automatiquement. Ne le modifiez pas." },
+  { id: "CREE_PAR", type: "Text", label: "CRÉÉ PAR", formula: "user.Email", recalcWhen: 0, description: "Courriel de la personne qui a créé la ligne, rempli une seule fois à la création. Calculé automatiquement. Ne le modifiez pas." },
+  { id: "MODIFIE_LE", type: "DateTime:Europe/Paris", label: "MODIFIÉ LE", formula: "NOW()", recalcWhen: 2, description: "Date et heure de la dernière modification de la ligne, mises à jour à chaque modification. Calculé automatiquement. Ne le modifiez pas." },
+  { id: "MODIFIE_PAR", type: "Text", label: "MODIFIÉ PAR", formula: "user.Email", recalcWhen: 2, description: "Courriel de la dernière personne ayant modifié la ligne, mis à jour à chaque modification. Calculé automatiquement. Ne le modifiez pas." }
+];
+var OPERATIONS = ["Anonymisation", "Suppression", "Mise en attente"];
+var DEF_JO = {
+  cle: "jo",
+  base: "JOURNAL_DES_ARCHIVAGES",
+  titre: "🗄️ JOURNAL DES ARCHIVAGES ⚡",
+  colRequise: "OPERATION",
+  description: "Historique du widget Diploarchive : une ligne par anonymisation, suppression ou mise en attente. Ne contient aucune donnée des dossiers, seulement leurs numéros de ligne.",
+  colonnes: [
+    { id: "OPERATION", type: "Choice", label: "OPÉRATION", widgetOptions: { widget: "TextBox", alignment: "center", choices: OPERATIONS, choiceOptions: {
+      "Anonymisation": { fillColor: "#E8EDFF", textColor: "#0063CB", fontBold: true },
+      "Suppression": { fillColor: "#FFE9E9", textColor: "#CE0500", fontBold: true },
+      "Mise en attente": { fillColor: "#FEECC2", textColor: "#716043", fontBold: true }
+    } }, description: "Nature de l'opération : Anonymisation, Suppression ou Mise en attente. Rempli par le widget." },
+    { id: "REGLE", type: "Text", label: "RÈGLE", description: "Identifiant de la règle d'archivage appliquée. Rempli par le widget. Ne le modifiez pas." },
+    { id: "NOM_REGLE", type: "Text", label: "NOM DE LA RÈGLE", description: "Nom de la règle au moment de l'opération. Rempli par le widget." },
+    { id: "TABLE", type: "Text", label: "TABLE", description: "Identifiant de la table des dossiers. Rempli par le widget. Ne le modifiez pas." },
+    { id: "LIGNES", type: "Text", label: "LIGNES", widgetOptions: { wrap: true }, description: "Numéros des lignes traitées dans la table des dossiers, séparés par des virgules. Rempli par le widget. Ne le modifiez pas." },
+    { id: "NOMBRE", type: "Int", label: "NOMBRE", widgetOptions: { alignment: "right" }, description: "Nombre de dossiers concernés. Rempli par le widget." },
+    { id: "DETAIL", type: "Text", label: "DÉTAIL", widgetOptions: { wrap: true }, description: "Ce qui a été fait, table par table (champs vidés, lignes supprimées ou détachées). Rempli par le widget." },
+    { id: "FICHIER", type: "Text", label: "FICHIER", description: "Nom du fichier d'archive téléchargé avant l'opération. Rempli par le widget." },
+    { id: "MOTIF", type: "Text", label: "MOTIF", widgetOptions: { wrap: true }, description: "Motif d'une mise en attente (contentieux, demande en cours...). Saisi dans le widget." },
+    { id: "LEVEE", type: "Bool", label: "LEVÉE", widgetOptions: { widget: "Switch" }, description: "Coché quand la mise en attente est levée (bouton « Reprendre »). Rempli par le widget." }
+  ]
+};
+var DEFS = [DEF_JO];
+var UNITES = [{ valeur: "mois", libelle: "mois" }, { valeur: "ans", libelle: "ans" }];
+var VUES = [{ cle: "traiter", nom: "À traiter" }, { cle: "bientot", nom: "Dans les 3 prochains mois" }, { cle: "attente", nom: "En attente" }];
+var ETAPES_CREATION = ["Les dossiers", "La règle", "Traitements", "Tables liées", "Récapitulatif"];
+var ETAPES_PARAM = ["Général", "La règle", "Traitements", "Tables liées"];
+var MOTS_PERSONNELS = [
+  "nom",
+  "prenom",
+  "email",
+  "courriel",
+  "mail",
+  "telephone",
+  "tel",
+  "portable",
+  "mobile",
+  "adresse",
+  "naissance",
+  "nir",
+  "secu",
+  "securite sociale",
+  "passeport",
+  "iban",
+  "photo",
+  "piece",
+  "identite",
+  "civilite",
+  "domicile",
+  "code postal",
+  "ville",
+  "nationalite",
+  "sexe",
+  "genre",
+  "signature",
+  "commentaire",
+  "observation",
+  "note"
+];
+var _confirm = { resolution: null, retour: null, pieger: null };
+var _minuterieToast = null;
+var _minuterieAnnonce = null;
+var _minuterieActualisation = null;
+var _initialise = false;
+var etat = {
+  vue: "chargement",
+  niveauAcces: null,
+  nomDoc: null,
+  peutModifier: false,
+  peutParametrer: false,
+  meta: { tables: {}, colonnes: {}, colParRef: {} },
+  centrale: null,
+  configLigne: null,
+  config: null,
+  temoins: { edition: false, param: false, aucun: true },
+  tables: { jo: null },
+  regleId: null,
+  donnees: null,
+  journal: [],
+  coches: {},
+  filtres: { texte: "", vue: "traiter" },
+  affichage: "dossiers",
+  creation: null,
+  param: null,
+  aide: { ouverte: false, onglet: 0 },
+  dialogue: null,
+  voletMobile: false,
+  signature: "",
+  enCours: false,
+  lecturesEnAttente: 0,
+  dernierAvisLenteur: 0,
+  idSeq: 0,
+  agrandi: false,
+  minuterieRafraichir: null,
+  ecrituresEnCours: 0
+};
+function logSecurite(niveau, message, details) {
+  var ligne = "[" + (new Date()).toISOString() + "] [" + niveau + "] " + message;
+  if (niveau === "ERREUR") {
+    if (details !== void 0) {
+      console.error(ligne, details);
+    } else {
+      console.error(ligne);
+    }
+  } else if (niveau === "AVERTISSEMENT") {
+    if (details !== void 0) {
+      console.warn(ligne, details);
+    } else {
+      console.warn(ligne);
+    }
+  } else {
+    if (details !== void 0) {
+      console.log(ligne, details);
+    } else {
+      console.log(ligne);
+    }
+  }
+}
+var _loaderTimeout = null;
+var _loaderDelai = null;
+function afficherLoader(message) {
+  if (_loaderTimeout) {
+    clearTimeout(_loaderTimeout);
+  }
+  _loaderTimeout = setTimeout(function() {
+    masquerLoader();
+    logSecurite("AVERTISSEMENT", "Voile de chargement masque automatiquement apres 60 s");
+  }, 6e4);
+  var texte = document.getElementById("loaderMessage");
+  if (texte) {
+    texte.textContent = message || "Chargement…";
+  }
+  var voileEnCours = document.getElementById("loader");
+  if (voileEnCours && voileEnCours.classList.contains("actif")) {
+    return;
+  }
+  if (_loaderDelai) {
+    return;
+  }
+  _loaderDelai = setTimeout(function() {
+    _loaderDelai = null;
+    var voile = document.getElementById("loader");
+    if (voile) {
+      voile.classList.add("actif");
+    }
+  }, 250);
+}
+function masquerLoader() {
+  if (_loaderTimeout) {
+    clearTimeout(_loaderTimeout);
+    _loaderTimeout = null;
+  }
+  if (_loaderDelai) {
+    clearTimeout(_loaderDelai);
+    _loaderDelai = null;
+  }
+  var voile = document.getElementById("loader");
+  if (voile) {
+    void voile.offsetHeight;
+    voile.classList.remove("actif");
+  }
+}
+var _minuterieErreur = null;
+function afficherErreur(message, erreur) {
+  logSecurite("ERREUR", message, erreur);
+  var bandeau = document.getElementById("wErreur");
+  var texte = document.getElementById("wErreurMsg");
+  if (texte) {
+    texte.textContent = message || "Une erreur est survenue.";
+  }
+  if (bandeau) {
+    bandeau.classList.add("actif");
+  }
+  if (_minuterieErreur) {
+    clearTimeout(_minuterieErreur);
+  }
+  _minuterieErreur = setTimeout(masquerErreur, 1e4);
+}
+function masquerErreur() {
+  if (_minuterieErreur) {
+    clearTimeout(_minuterieErreur);
+    _minuterieErreur = null;
+  }
+  var bandeau = document.getElementById("wErreur");
+  if (bandeau) {
+    bandeau.classList.remove("actif");
+  }
+}
+function relayer(promesse, quoi) {
+  if (promesse && typeof promesse.catch === "function") {
+    promesse.catch(function(e) {
+      logSecurite("AVERTISSEMENT", quoi, e);
+    });
+  }
+  return promesse;
+}
+function echapperHTML(texte) {
+  if (!texte && texte !== 0) return "";
+  var div = document.createElement("div");
+  div.textContent = String(texte);
+  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function estTableExclue(tid) {
+  if (!tid) {
+    return true;
+  }
+  var brut = String(tid);
+  var up = brut.toUpperCase();
+  if (brut.indexOf("_grist") === 0) {
+    return true;
+  }
+  if (brut.indexOf("GristHidden_") === 0) {
+    return true;
+  }
+  if (brut === "GristDocTour") {
+    return true;
+  }
+  if (up === "BIBLIOTHEQUE_CENTRALE") {
+    return true;
+  }
+  if (up.indexOf("BIBLIOTHEQUE") !== -1 && brut.charAt(brut.length - 1) === "_") {
+    return true;
+  }
+  if (up.indexOf("ONLY") !== -1) {
+    return true;
+  }
+  if (up.indexOf("_SUMMARY_") !== -1 || up.indexOf("GRISTSUMMARY_") !== -1) {
+    return true;
+  }
+  return false;
+}
+var TAILLE_MAX_SVG = 2e5;
+function purifierHTML(contenu2, usage) {
+  if (typeof DOMPurify === "undefined" || !DOMPurify.isSupported) {
+    logSecurite("AVERTISSEMENT", "Bibliotheque d assainissement indisponible : contenu enrichi non insere");
+    return null;
+  }
+  if (usage !== "svg") {
+    return null;
+  }
+  return DOMPurify.sanitize(String(contenu2), {
+    USE_PROFILES: { svg: true },
+    FORBID_TAGS: ["style", "foreignObject", "image", "use", "a", "animate", "animateTransform", "animateMotion", "set"]
+  });
+}
+function injecterSvgSecurise(container, svgTexte) {
+  container.textContent = "";
+  if (!svgTexte) {
+    return false;
+  }
+  if (String(svgTexte).length > TAILLE_MAX_SVG) {
+    logSecurite("AVERTISSEMENT", "Logo trop volumineux, ignore");
+    return false;
+  }
+  var propre = purifierHTML(svgTexte, "svg");
+  if (!propre) {
+    return false;
+  }
+  var wrap = document.createElement("div");
+  wrap.className = "w-bandeau__logo-wrap";
+  wrap.innerHTML = propre;
+  var svg = wrap.firstElementChild;
+  if (!svg || wrap.children.length !== 1 || String(svg.nodeName).toLowerCase() !== "svg") {
+    logSecurite("AVERTISSEMENT", "Logo hors format SVG");
+    return false;
+  }
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  container.appendChild(wrap);
+  return true;
+}
+function afficherLogoRepli() {
+  var c = document.getElementById("bandeau-logo");
+  if (!c || document.getElementById("logoRepli")) {
+    return;
+  }
+  c.textContent = "";
+  var p = document.createElement("p");
+  p.className = "fr-logo";
+  p.id = "logoRepli";
+  p.style.fontSize = ".38rem";
+  p.appendChild(document.createTextNode("Ministère"));
+  p.appendChild(document.createElement("br"));
+  p.appendChild(document.createTextNode("de l'Europe"));
+  p.appendChild(document.createElement("br"));
+  p.appendChild(document.createTextNode("et des Affaires"));
+  p.appendChild(document.createElement("br"));
+  p.appendChild(document.createTextNode("étrangères"));
+  c.appendChild(p);
+}
+function genererLogoMEAE() {
+  var cs = getComputedStyle(document.documentElement);
+  var cB = cs.getPropertyValue("--text-action-high-blue-france").trim();
+  var cR = cs.getPropertyValue("--background-flat-error").trim();
+  var cG = cs.getPropertyValue("--text-mention-grey").trim();
+  var svgTpl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.3 200" style="width:100%;height:auto" aria-hidden="true" focusable="false"><g><rect fill="__W__" width="301.3" height="200"/></g><g><path d="M31.4,91.5V70.9h5.3l5,8.5l5-8.5h5.3v20.6h-4.2V76.8l-4.6,7.6h-2.9l-4.6-7.6v14.7H31.4z"/><path d="M57.7,91.5V70.9h4.2v20.6H57.7z"/><path d="M67.6,91.5V70.9H73l9.2,14.8V70.9h4.2v20.6h-5.4l-9.2-14.8v14.8H67.6z"/><path d="M92.2,91.5V70.9h4.2v20.6H92.2z"/><path d="M100.3,88.7l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2c-1-0.9-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2c1,0.9,1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S101.2,89.7,100.3,88.7z"/><path d="M117,74.7v-3.8h16.9v3.8h-6.4v16.8h-4.2V74.7H117z"/><path d="M137.6,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H137.6z M141.7,69.1l-3.8-4h4.3l3.3,4H141.7z"/><path d="M154.5,91.5V70.9h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H154.5z M161,74.4h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S161.9,74.4,161,74.4z"/><path d="M173.9,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H173.9z"/><path d="M31.4,122.7v-20.7h8.1c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H31.4z M39.6,105.9h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S40.5,105.9,39.6,105.9z"/><path d="M54.5,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H54.5z"/><path d="M79.1,122.7v-20.7h4.2v16.8h7.8v3.8H79.1z"/><path d="M93.7,110.6h-3.5l2.7-8.5h4.2L93.7,110.6z"/><path d="M100.4,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H100.4z"/><path d="M129.3,115v-12.9h4.2v12.6c0,2.7-0.8,4.8-2.3,6.4s-3.5,2.3-6.1,2.3s-4.6-0.8-6.1-2.3s-2.2-3.7-2.2-6.4v-12.6h4.2V115c0,1.4,0.4,2.5,1.1,3.2s1.8,1.2,3.1,1.2s2.3-0.4,3-1.2S129.3,116.4,129.3,115z"/><path d="M138.7,122.7v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H138.7z M145.3,105.6h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S146.2,105.6,145.3,105.6z"/><path d="M167.2,101.5c1.6,0,3.1,0.3,4.4,0.9s2.5,1.4,3.5,2.4s1.7,2.1,2.2,3.5s0.8,2.7,0.8,4.2s-0.3,2.9-0.8,4.2s-1.3,2.5-2.2,3.5s-2.1,1.8-3.5,2.4s-2.8,0.9-4.4,0.9s-3.1-0.3-4.5-0.9s-2.5-1.4-3.5-2.4s-1.7-2.1-2.2-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4S165.6,101.5,167.2,101.5z M167.2,119.4c1,0,1.9-0.2,2.7-0.5s1.5-0.9,2.1-1.5s1-1.4,1.4-2.2s0.5-1.8,0.5-2.8s-0.2-1.9-0.5-2.8s-0.8-1.6-1.4-2.2s-1.3-1.1-2.1-1.5s-1.7-0.5-2.7-0.5s-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.3,1.1,2.1,1.5S166.2,119.4,167.2,119.4z"/><path d="M182.1,122.7v-20.7h6.8c2.3,0,4,0.6,5.4,1.7s2,2.6,2,4.5s-0.7,3.4-2,4.5s-3.1,1.7-5.4,1.7h-2.6v8.3H182.1z M189.1,105.6h-2.8v5.2h2.8c0.9,0,1.6-0.2,2.1-0.7s0.8-1.1,0.8-1.9s-0.3-1.4-0.8-1.9S190,105.6,189.1,105.6z"/><path d="M199.7,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H199.7z"/><path d="M31.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z"/><path d="M46.6,137.1v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M74.9,153.9v-20.7H83c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H74.9z M83.1,137.1h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S84,137.1,83.1,137.1z"/><path d="M98,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H98z"/><path d="M113.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S114,152.1,113.1,151.1z"/><path d="M137,153.9l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H137z M144.8,145h5.7l-2.8-7.8L144.8,145z"/><path d="M161.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H161.4z"/><path d="M177.1,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H177.1z"/><path d="M188.3,153.9l7.8-20.7h5.5l7.8,20.7H205l-2-5.4h-8.3l-2,5.4H188.3z M196,145h5.7l-2.8-7.8L196,145z"/><path d="M212.6,153.9v-20.7h4.2v20.7H212.6z"/><path d="M222.6,153.9v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H222.6z M229.1,136.8h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S230,136.8,229.1,136.8z"/><path d="M242,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H242z"/><path d="M257.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S258,152.1,257.1,151.1z"/><path d="M31.4,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z M39.3,162.7h-3.8l3.3-4h4.3L39.3,162.7z"/><path d="M46.6,168.3v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M67.2,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H67.2z M73.8,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S74.7,168,73.8,168z"/><path d="M85,185.1l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H85z M92.7,176.2h5.7l-2.8-7.8L92.7,176.2z"/><path d="M109.3,185.1v-20.7h5.4l9.2,14.8v-14.8h4.2v20.7h-5.4l-9.2-14.8v14.8H109.3z"/><path d="M143.3,181.8c1,0,1.9-0.2,2.7-0.5s1.5-0.8,2.1-1.3v-3.5h-5.3v-3.8h9.4v8.8c-1,1.3-2.2,2.3-3.8,3.1s-3.3,1.2-5.2,1.2c-1.7,0-3.2-0.3-4.6-0.9s-2.6-1.4-3.6-2.4s-1.8-2.1-2.3-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4s2.8-0.9,4.5-0.9c1.9,0,3.5,0.4,5,1.2s2.7,1.8,3.7,3l-3.3,2.6c-0.6-0.8-1.3-1.5-2.3-2.1s-2-0.8-3.1-0.8c-1,0-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.4,1.1,2.2,1.5S142.3,181.8,143.3,181.8z"/><path d="M157,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H157z M161.2,162.7l-3.8-4h4.3l3.3,4H161.2z"/><path d="M173.9,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H173.9z M180.4,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S181.3,168,180.4,168z"/><path d="M193.3,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H193.3z"/><path d="M208.4,182.3l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S209.3,183.3,208.4,182.3z"/></g><g><path fill="__B__" d="M63.6,53.3c0.3-0.3,0.6-0.6,0.9-1h0c0.6-0.6,1.1-1.3,1.8-1.8c0.2-0.2,0.4-0.3,0.6-0.5c0.1-0.1,0.1-0.2,0.1-0.2c-0.3,0.1-0.4,0.3-0.7,0.4c-0.1,0-0.1-0.1-0.1-0.1c0.2-0.1,0.4-0.3,0.6-0.4c-0.1,0-0.1-0.1-0.1-0.1C66,49.6,65.5,50,65,50.5c-0.1,0.1-0.2-0.1-0.3-0.1c-0.8,0.3-1.4,1-2.2,1.3v-0.1c-0.3,0.1-0.6,0.3-1,0.4c-0.5,0.1-0.9,0.1-1.3,0.1c-0.6,0.1-1.3,0.2-1.9,0.3c-0.3,0.1-0.7,0.2-1,0.4c0,0-0.1,0.1-0.1,0.1c-0.1,0.1-0.2,0.2-0.4,0.3c-0.3,0.2-0.6,0.5-0.9,0.7c-0.3,0.3-0.6,0.6-0.9,0.8c0,0,0,0,0-0.1c0-0.1,0.1-0.2,0.1-0.2c0.1-0.1,0.1-0.2,0.2-0.2c0.1-0.1,0.1-0.2,0.2-0.3c0.3-0.3,0.6-0.5,0.9-0.7c0,0,0.1-0.1,0.1-0.1C56.1,52.9,56,53,55.9,53c-0.1,0.1-0.2,0.4-0.4,0.3c0,0,0,0,0-0.1c0,0,0-0.1,0.1-0.1c0,0,0-0.1,0.1-0.1c0.1-0.1,0.2-0.2,0.4-0.3c0.2-0.1,0.4-0.2,0.6-0.3c0,0,0.1-0.1,0.1-0.1c-0.3,0.1-0.6,0.2-0.9,0.4c0.1-0.1,0.2-0.2,0.3-0.3c1.7-1.3,4.1-1,6.1-1.7c0.2-0.1,0.3-0.2,0.5-0.3c0.3-0.1,0.5-0.4,0.8-0.5c0.4-0.3,0.7-0.7,0.9-1.2c0-0.1-0.1-0.1-0.1-0.1c-0.7,0.8-1.5,1.3-2.4,1.8c-1.1,0.6-2.4,0.5-3.5,0.6c0.1-0.1,0.2-0.1,0.3-0.1c0-0.2,0.1-0.2,0.2-0.3H59c0.1,0,0.1-0.1,0.1-0.1c0.1,0,0.3-0.1,0.2-0.1c-0.2-0.2-0.5,0.2-0.8,0c0.1-0.1,0.1-0.3,0.2-0.3h0.2c0-0.1,0.1-0.2,0.1-0.2c0.8-0.5,1.6-0.9,2.3-1.3c-0.2,0-0.3,0.2-0.4,0.1c0.1,0,0-0.2,0.1-0.2c0.6-0.2,1.1-0.5,1.7-0.7c-0.2,0-0.4,0.2-0.6,0c0.1-0.1,0.2-0.2,0.3-0.2v-0.2c0-0.1,0.1-0.1,0.1-0.1c-0.1,0-0.1-0.1-0.1-0.1c0.1-0.1,0.2-0.1,0.3-0.2c-0.1,0-0.2,0-0.2-0.1c0.2-0.2,0.4-0.3,0.7-0.3c-0.1-0.1-0.2,0-0.2-0.1c0-0.1,0.1-0.1,0.1-0.1H63c-0.1-0.1-0.1-0.2-0.1-0.2c0.3-0.4,0.3-0.9,0.5-1.3c-0.5,0.6-1.4,0.8-2.2,1h-0.3c-0.3,0.1-0.6,0.1-0.9-0.1c-0.2-0.1-0.3-0.3-0.5-0.4c-0.4-0.3-0.9-0.5-1.3-0.6C56.8,44.2,55.4,44,54,44c0.6-0.3,1.2-0.3,1.9-0.5c0.9-0.3,1.8-0.6,2.7-0.5c-0.2-0.1-0.4,0-0.5,0c-0.8-0.1-1.5,0.2-2.3,0.3c-0.5,0.1-1,0.3-1.6,0.4c-0.3,0.1-0.5,0.4-0.9,0.4v-0.2c0.5-0.6,1.2-1.3,2-1.3c1-0.2,1.9,0,2.8,0.1c0.7,0.1,1.3,0.2,2,0.4c0.3,0,0.3,0.4,0.5,0.5c0.3,0.1,0.6,0,1,0.2c0-0.1-0.1-0.2,0-0.3c0.2-0.2,0.5,0.1,0.7-0.1c0.4-0.3-0.4-0.7-0.6-1.1c0-0.1,0.1-0.1,0.1-0.1c0.4,0.4,0.7,0.8,1.3,1.1c0.3,0.1,0.9,0.3,0.8-0.1c-0.3-0.6-0.8-1.1-1.2-1.6v-0.2c-0.1,0-0.1-0.1-0.2-0.1V41c-0.2-0.1-0.2-0.3-0.3-0.5c-0.2-0.3-0.1-0.6-0.2-1C62.1,39.3,62,39,62,38.7c-0.2-0.9-0.4-1.7-0.5-2.6c-0.1-1,0.6-1.8,1.1-2.7c0.4-0.6,0.8-1.3,1.5-1.7c0.2-0.6,0.6-1.2,1-1.7c0.4-0.5,1.1-0.8,1.7-1.1c0.7-0.3,1.4-0.5,1.4-0.5H31.4v28.3h26c1-0.7,2-1.1,3.5-1.8C61.5,54.6,63.1,53.9,63.6,53.3"/><path fill="__R__" d="M109.3,28.3H78.8c0,0,0.1,0,0.3,0.1c0.2,0.1,0.6,0.3,0.8,0.4c0.4,0.2,0.8,0.5,1,0.9c0.1,0.2,0.3,0.5,0.2,0.7c-0.1,0.3-0.2,0.7-0.4,0.8c-0.3,0.2-0.7,0.2-1.1,0.1c-0.2,0-0.4-0.1-0.6-0.1c0.8,0.3,1.6,0.7,2.1,1.4c0.1,0.1,0.3,0.2,0.5,0.2c0.1,0,0.1,0.1,0.1,0.2c-0.1,0.1-0.2,0.2-0.2,0.3h0.2c0.3-0.1,0.2-0.6,0.6-0.5c0.3,0.2,0.4,0.5,0.2,0.8c-0.2,0.2-0.4,0.4-0.6,0.5c-0.1,0.1-0.1,0.3,0,0.4c0.2,0.2,0.2,0.4,0.3,0.6c0.2,0.4,0.2,0.8,0.4,1.2c0.2,0.8,0.4,1.6,0.4,2.4c0,0.4-0.2,0.8-0.1,1.2c0.1,0.4,0.4,0.8,0.6,1.1c0.2,0.3,0.4,0.5,0.6,0.9c0.3,0.5,0.9,1.1,0.6,1.7c-0.2,0.4-0.8,0.3-1.1,0.5c-0.3,0.3-0.1,0.7,0.1,1c0.3,0.5-0.3,0.8-0.7,1c0.1,0.2,0.3,0.1,0.4,0.2c0.1,0.3,0.3,0.4,0.2,0.7c-0.2,0.3-0.9,0.5-0.5,1c0.2,0.4,0.1,0.8-0.1,1.2c-0.2,0.5-0.6,0.7-1,0.8c-0.3,0.1-0.7,0.1-1,0.1c-0.9-0.1-1.8-0.4-2.7-0.4c-0.3,0.1-0.5,0.1-0.7,0.2c-0.2,0.2-0.5,0.4-0.6,0.6c0,0-0.1,0.1-0.1,0.1c0,0,0,0.1-0.1,0.1c-0.2,0.2-0.3,0.4-0.4,0.6c0,0,0,0.1,0,0.1c-0.2,0.3-0.3,0.7-0.4,1c-0.4,1.2-0.2,2.3,0.1,2.5c0.1,0.1,1.8,0.6,2.9,1.1c0.6,0.2,0.9,0.4,1.3,0.6h29.9V28.3z"/><path fill="__G__" d="M80.7,38.7c0.2,0.1,0.5,0.1,0.5,0.2c-0.1,0.4-0.7,0.5-1.1,1H80c-0.2,0.1-0.1,0.4-0.3,0.4c-0.2-0.1-0.3,0-0.5,0.1c0.2,0.2,0.5,0.4,0.8,0.3c0.1,0,0.2,0.1,0.2,0.2c0,0,0.1,0,0.1-0.1c0.1,0,0.1,0,0.1,0.1V41c-0.2,0.2-0.4,0.1-0.6,0.2c0.4,0.1,0.9,0.1,1.2,0c0.3-0.1,0-0.6,0.2-0.9c-0.1,0,0-0.2-0.1-0.2c0.1-0.1,0.2-0.3,0.3-0.3c0.1,0,0.3-0.1,0.3-0.2c0-0.1-0.2-0.2-0.2-0.3c0.3-0.2,0.6-0.5,0.5-0.9c-0.1-0.2-0.5-0.2-0.8-0.3c-0.3-0.1-0.6,0-0.9,0.1c-0.3,0-0.5,0.2-0.8,0.2c-0.4,0.1-0.7,0.3-1,0.5c0.4-0.2,0.8-0.2,1.2-0.3C80.1,38.7,80.3,38.6,80.7,38.7"/></g></svg>';
+  return svgTpl.replace(/__W__/g, "white").replace(/__B__/g, cB).replace(/__R__/g, cR).replace(/__G__/g, cG);
+}
+async function chargerLogo() {
+  var container = document.getElementById("bandeau-logo");
+  if (!container) {
+    return;
+  }
+  var logoSvg = null;
+  try {
+    var centrale = trouverTable("BIBLIOTHEQUE_CENTRALE");
+    if (centrale) {
+      var data = await lireTable(centrale);
+      for (var i = 0; i < data.id.length; i++) {
+        if ((data.WIDGET ? data.WIDGET[i] : "") === "__RESSOURCE__" && (data.NOM ? data.NOM[i] : "") === "LOGO_SVG") {
+          logoSvg = data.CONTENU ? data.CONTENU[i] : "";
+          break;
+        }
+      }
+      if (!logoSvg) {
+        logoSvg = genererLogoMEAE();
+        try {
+          await agir([["AddRecord", centrale, null, { WIDGET: "__RESSOURCE__", NOM: "LOGO_SVG", CONTENU: logoSvg }]]);
+          logSecurite("INFO", "Logo MEAE stocké dans la bibliothèque centrale");
+        } catch (e) {
+          logSecurite("INFO", "Stockage logo non possible", e);
+        }
+      }
+    }
+  } catch (e) {
+    logSecurite("INFO", "Chargement logo depuis biblio non possible", e);
+  }
+  if (!logoSvg) {
+    logoSvg = genererLogoMEAE();
+  }
+  if (!injecterSvgSecurise(container, logoSvg)) {
+    afficherLogoRepli();
+  }
+}
+function afficherToast(message, actions, duree) {
+  logSecurite("INFO", message);
+  var t = document.getElementById("wToast");
+  var m = document.getElementById("wToastMsg");
+  var z = document.getElementById("wToastActions");
+  if (!t || !m || !z) {
+    return;
+  }
+  m.textContent = message;
+  vider(z);
+  (actions || []).forEach(function(a) {
+    z.appendChild(a);
+  });
+  t.classList.add("actif");
+  if (_minuterieToast) {
+    clearTimeout(_minuterieToast);
+  }
+  _minuterieToast = setTimeout(masquerToast, duree || 6e3);
+}
+function masquerToast() {
+  if (_minuterieToast) {
+    clearTimeout(_minuterieToast);
+    _minuterieToast = null;
+  }
+  var t = document.getElementById("wToast");
+  if (t) {
+    t.classList.remove("actif");
+  }
+}
+function signalerSaisie(message) {
+  logSecurite("INFO", "Saisie refusée : " + message);
+  var bandeau = document.getElementById("wErreur");
+  var texte = document.getElementById("wErreurMsg");
+  if (texte) {
+    texte.textContent = message;
+  }
+  if (bandeau) {
+    bandeau.classList.add("actif");
+  }
+  if (_minuterieErreur) {
+    clearTimeout(_minuterieErreur);
+  }
+  _minuterieErreur = setTimeout(masquerErreur, 1e4);
+}
+function annoncer(message) {
+  var zone = document.getElementById("annonce");
+  if (!zone) {
+    return;
+  }
+  zone.textContent = "";
+  setTimeout(function() {
+    zone.textContent = message;
+  }, 50);
+}
+function creer(tag, o, enfants) {
+  var n = document.createElement(tag);
+  o = o || {};
+  if (o.classe) {
+    n.className = o.classe;
+  }
+  if (o.id) {
+    n.id = o.id;
+  }
+  if (o.texte !== void 0 && o.texte !== null) {
+    n.textContent = String(o.texte);
+  }
+  if (o.attrs) {
+    Object.keys(o.attrs).forEach(function(k) {
+      var v = o.attrs[k];
+      if (v === null || v === void 0 || v === false) {
+        return;
+      }
+      n.setAttribute(k, v === true ? "" : String(v));
+    });
+  }
+  if (tag === "button" && !n.hasAttribute("type")) {
+    n.setAttribute("type", "button");
+  }
+  if (tag === "input" || tag === "select" || tag === "textarea") {
+    n.setAttribute("autocomplete", "off");
+  }
+  if (o.valeur !== void 0 && o.valeur !== null) {
+    n.value = String(o.valeur);
+  }
+  if (o.coche) {
+    n.checked = true;
+  }
+  if (o.clic) {
+    n.addEventListener("click", o.clic);
+  }
+  if (o.change) {
+    n.addEventListener("change", o.change);
+  }
+  if (o.saisie) {
+    n.addEventListener("input", o.saisie);
+  }
+  (enfants || []).forEach(function(e) {
+    if (e === null || e === void 0 || e === false) {
+      return;
+    }
+    n.appendChild(typeof e === "string" ? document.createTextNode(e) : e);
+  });
+  return n;
+}
+var ICONES_SVG = {
+  liste: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  historique: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 3",
+  plein: "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"
+};
+function iconeSvg(nom, taille) {
+  var ns = "http://www.w3.org/2000/svg";
+  var s = document.createElementNS(ns, "svg");
+  s.setAttribute("width", String(taille || 18));
+  s.setAttribute("height", String(taille || 18));
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.setAttribute("fill", "none");
+  s.setAttribute("stroke", "currentColor");
+  s.setAttribute("stroke-width", "2");
+  s.setAttribute("stroke-linecap", "round");
+  s.setAttribute("stroke-linejoin", "round");
+  s.setAttribute("aria-hidden", "true");
+  s.setAttribute("focusable", "false");
+  var p = document.createElementNS(ns, "path");
+  p.setAttribute("d", ICONES_SVG[nom] || "");
+  s.appendChild(p);
+  return s;
+}
+function bouton(libelle, variante, icone, clic, o) {
+  o = o || {};
+  var classes = ["fr-btn"];
+  if (variante === "secondaire") {
+    classes.push("fr-btn--secondary");
+  }
+  if (variante === "tertiaire") {
+    classes.push("fr-btn--tertiary");
+  }
+  if (variante === "discret") {
+    classes.push("fr-btn--tertiary-no-outline");
+  }
+  if (o.petit) {
+    classes.push("fr-btn--sm");
+  }
+  if (icone) {
+    classes.push("fr-icon-" + icone);
+    classes.push(o.iconeSeule ? "fr-btn--icon-only" : o.iconeDroite ? "fr-btn--icon-right" : "fr-btn--icon-left");
+  }
+  if (o.svg) {
+    classes.push("w-btn-ico");
+  }
+  if (o.classe) {
+    classes.push(o.classe);
+  }
+  var seule = o.iconeSeule || o.svg;
+  var b = creer(
+    "button",
+    {
+      classe: classes.join(" ") + (seule ? " w-bulle" : ""),
+      texte: seule ? null : libelle,
+      id: o.id,
+      attrs: { "aria-label": o.aria || null, disabled: o.desactive || null, "data-bulle": seule ? o.bulle || libelle : null }
+    },
+    seule ? [o.svg ? iconeSvg(o.svg, o.taille) : null, creer("span", { classe: "fr-sr-only", texte: libelle })] : null
+  );
+  if (o.attrs) {
+    Object.keys(o.attrs).forEach(function(k) {
+      b.setAttribute(k, o.attrs[k]);
+    });
+  }
+  if (clic) {
+    b.addEventListener("click", function(e) {
+      var r = clic(e);
+      if (r && typeof r.then === "function") {
+        relayer(r, "Action : " + libelle);
+      }
+    });
+  }
+  return b;
+}
+function badge(texte, variante) {
+  return creer("span", { classe: "fr-badge fr-badge--sm fr-badge--no-icon" + (variante ? " fr-badge--" + variante : ""), texte });
+}
+function vider(n) {
+  while (n && n.firstChild) {
+    n.removeChild(n.firstChild);
+  }
+}
+function uid(prefixe) {
+  etat.idSeq++;
+  return (prefixe || "u") + etat.idSeq;
+}
+function groupeChamp(libelle, champ, aideTexte, obligatoire) {
+  var lab = creer("label", { classe: "fr-label", attrs: { "for": champ.id } }, [libelle]);
+  if (obligatoire) {
+    lab.appendChild(document.createTextNode(" "));
+    lab.appendChild(creer("span", { classe: "w-mention", texte: "(obligatoire)", attrs: { "aria-hidden": "true" } }));
+    champ.setAttribute("aria-required", "true");
+  }
+  if (aideTexte) {
+    lab.appendChild(creer("span", { classe: "fr-hint-text", texte: aideTexte }));
+  }
+  return creer("div", { classe: "fr-input-group" }, [lab, champ]);
+}
+function groupeListe(libelle, select, aideTexte) {
+  var lab = creer("label", { classe: "fr-label", attrs: { "for": select.id } }, [libelle]);
+  if (aideTexte) {
+    lab.appendChild(creer("span", { classe: "fr-hint-text", texte: aideTexte }));
+  }
+  return creer("div", { classe: "fr-select-group" }, [lab, select]);
+}
+function saisie(id, valeur, o) {
+  o = o || {};
+  if (o.multiligne) {
+    return creer("textarea", { classe: "fr-input", id, valeur: valeur || "", attrs: { rows: o.lignes || 3, placeholder: o.indice || null } });
+  }
+  return creer("input", { classe: "fr-input", id, valeur: valeur === 0 ? "0" : valeur || "", attrs: { type: o.type || "text", placeholder: o.indice || null, list: o.liste || null, spellcheck: o.orthographe === false ? "false" : null } });
+}
+function liste(id, options, valeur, o) {
+  o = o || {};
+  var s = creer("select", { classe: "fr-select", id });
+  if (o.vide !== void 0) {
+    s.appendChild(creer("option", { texte: o.vide, attrs: { value: "" } }));
+  }
+  options.forEach(function(op) {
+    var opt = creer("option", { texte: op.libelle, attrs: { value: op.valeur } });
+    if (String(op.valeur) === String(valeur)) {
+      opt.selected = true;
+    }
+    s.appendChild(opt);
+  });
+  return s;
+}
+function caseACocher(id, libelle, coche, surChange, aideTexte) {
+  var cb = creer("input", { attrs: { type: "checkbox", id }, coche });
+  cb.addEventListener("change", function() {
+    surChange(cb.checked);
+  });
+  return creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [
+    cb,
+    creer("label", { classe: "fr-label", attrs: { "for": id } }, [libelle, aideTexte ? creer("span", { classe: "fr-hint-text", texte: aideTexte }) : null])
+  ]);
+}
+function alerte(type, titre, texte) {
+  var a = creer("div", { classe: "fr-alert fr-alert--sm fr-alert--" + type });
+  if (titre) {
+    a.appendChild(creer("h3", { classe: "fr-alert__title", texte: titre }));
+  }
+  if (texte) {
+    a.appendChild(typeof texte === "string" ? creer("p", { texte }) : texte);
+  }
+  return a;
+}
+function aide(id, sujet, texte) {
+  var panneau = creer("p", { classe: "w-aide__texte", id: id + "_aide", texte });
+  panneau.hidden = true;
+  var b = creer(
+    "button",
+    { classe: "w-aide", attrs: { "aria-label": "Aide : " + sujet, "aria-expanded": "false", "aria-controls": id + "_aide" } },
+    [creer("span", { classe: "w-aide__rond", texte: "i", attrs: { "aria-hidden": "true" } })]
+  );
+  var basculer = function(ouvrir) {
+    panneau.hidden = !ouvrir;
+    b.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+  };
+  b.addEventListener("click", function() {
+    basculer(panneau.hidden);
+  });
+  b.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !panneau.hidden) {
+      e.stopPropagation();
+      basculer(false);
+    }
+  });
+  return { bouton: b, panneau };
+}
+function titreBloc(texte, id, explication, niveau) {
+  var a = explication ? aide(id, texte, explication) : null;
+  var h = creer(niveau || "h2", { classe: "w-volet__h", id, texte });
+  return creer("div", {}, [creer("div", { classe: "w-volet__entete" }, [h, a ? a.bouton : null]), a ? a.panneau : null]);
+}
+function titreColonne(texte, id, explication) {
+  var a = explication ? aide(id, texte, explication) : null;
+  return creer("div", {}, [creer("div", { classe: "w-titre-colonne-ligne" }, [creer("h3", { classe: "w-titre-colonne", id, texte }), a ? a.bouton : null]), a ? a.panneau : null]);
+}
+function sansAccent(s) {
+  return String(s === null || s === void 0 ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+function normaliserTexte(s) {
+  return sansAccent(s).toLowerCase().replace(/[’'`]/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+}
+var MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+function formaterDate(sec) {
+  if (typeof sec !== "number" || !sec) {
+    return "";
+  }
+  var p = {};
+  new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(sec * 1e3)).forEach(function(x) {
+    p[x.type] = x.value;
+  });
+  return parseInt(p.day, 10) + " " + MOIS[parseInt(p.month, 10) - 1] + " " + p.year;
+}
+function aujourdhui() {
+  var d = new Date();
+  return d.getDate() + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
+}
+function pluriel(n, un, plusieurs) {
+  return n + " " + (n > 1 ? plusieurs : un);
+}
+function heure() {
+  var d = new Date();
+  return (d.getHours() < 10 ? "0" : "") + d.getHours() + " h " + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+}
+function gristAvecTimeout(promesse, delaiMs) {
+  return Promise.race([promesse, new Promise(function(_, rejeter) {
+    setTimeout(function() {
+      rejeter(new Error("Délai dépassé"));
+    }, delaiMs);
+  })]);
+}
+function demanderTable(tid) {
+  etat.lecturesEnAttente++;
+  var p = grist.docApi.fetchTable(tid);
+  var fin = function() {
+    etat.lecturesEnAttente = Math.max(0, etat.lecturesEnAttente - 1);
+  };
+  p.then(fin, fin);
+  return p;
+}
+async function lireTable(tid, leger) {
+  var delais = leger ? [DELAI_RELECTURE_MS] : [1e4, 2e4, DELAI_API_MS];
+  var derniere = null;
+  for (var essai = 0; essai < delais.length; essai++) {
+    if (essai === 1 && etat.vue === "chargement") {
+      var t = document.getElementById("loaderMessage");
+      if (t) {
+        t.textContent = "Le document met du temps à répondre, nouvel essai…";
+      }
+    }
+    try {
+      return await gristAvecTimeout(demanderTable(tid), delais[essai]);
+    } catch (e) {
+      derniere = e;
+      logSecurite("AVERTISSEMENT", "Lecture de " + tid + " sans réponse, nouvel essai", e);
+      if (essai < delais.length - 1) {
+        await new Promise(function(ok) {
+          setTimeout(ok, 1e3);
+        });
+      }
+    }
+  }
+  throw derniere;
+}
+function estRefusDroits(e) {
+  var m = String(e && (e.message || e) || "");
+  return /blocked by|access rules|acl_deny|permission|not allowed|insufficient|read.?only|viewer/i.test(m);
+}
+async function agir(actions) {
+  etat.ecrituresEnCours++;
+  try {
+    return await gristAvecTimeout(grist.docApi.applyUserActions(actions), DELAI_API_MS);
+  } catch (e) {
+    if (estRefusDroits(e)) {
+      logSecurite("INFO", "Écriture refusée par les règles d'accès", e);
+    }
+    throw e;
+  } finally {
+    etat.ecrituresEnCours--;
+  }
+}
+function valeurCellule(v) {
+  return Array.isArray(v) && v[0] === "E" ? "" : v;
+}
+function cellule(d, col, i) {
+  return d && col && d[col] ? valeurCellule(d[col][i]) : void 0;
+}
+function texteCellule(d, col, i) {
+  var v = cellule(d, col, i);
+  return v === null || v === void 0 ? "" : typeof v === "object" ? "" : String(v);
+}
+function refCellule(d, col, i) {
+  var v = cellule(d, col, i);
+  return typeof v === "number" && v > 0 ? v : 0;
+}
+function nombreCellule(d, col, i, defaut) {
+  var v = cellule(d, col, i);
+  return typeof v === "number" && isFinite(v) ? v : defaut;
+}
+function refsCellule(d, col, i) {
+  var v = cellule(d, col, i);
+  return Array.isArray(v) && v[0] === "L" ? v.slice(1).filter(function(x) {
+    return typeof x === "number";
+  }) : [];
+}
+function texteLisible(v) {
+  v = valeurCellule(v);
+  if (v === null || v === void 0 || v === "") {
+    return "";
+  }
+  if (typeof v === "boolean") {
+    return v ? "Oui" : "Non";
+  }
+  if (Array.isArray(v)) {
+    return v[0] === "L" ? v.slice(1).map(texteLisible).filter(Boolean).join(", ") : "";
+  }
+  if (typeof v === "object") {
+    return "";
+  }
+  return String(v);
+}
+async function chargerMeta() {
+  var t = await lireTable("_grist_Tables");
+  var c = await lireTable("_grist_Tables_column");
+  var tables = {}, parRef = {};
+  for (var i = 0; i < t.id.length; i++) {
+    var tid = t.tableId[i];
+    tables[tid] = {
+      ref: t.id[i],
+      tableId: tid,
+      primaryViewId: t.primaryViewId ? t.primaryViewId[i] : 0,
+      rawViewSectionRef: t.rawViewSectionRef ? t.rawViewSectionRef[i] : 0,
+      resume: t.summarySourceTable ? !!t.summarySourceTable[i] : false
+    };
+    parRef[t.id[i]] = tid;
+  }
+  var colonnes = {}, colParRef = {};
+  for (var j = 0; j < c.id.length; j++) {
+    var tidC = parRef[c.parentId[j]];
+    if (!tidC) {
+      continue;
+    }
+    var opts = {};
+    try {
+      opts = c.widgetOptions && c.widgetOptions[j] ? JSON.parse(c.widgetOptions[j]) : {};
+    } catch (e) {
+      opts = {};
+    }
+    var info = {
+      ref: c.id[j],
+      tableId: tidC,
+      colId: c.colId[j],
+      type: c.type[j] || "Any",
+      label: c.label ? c.label[j] || c.colId[j] : c.colId[j],
+      formule: Boolean(c.isFormula[j]) && Boolean(c.formula[j]),
+      formuleVide: Boolean(c.isFormula[j]) && !c.formula[j],
+      declencheur: !c.isFormula[j] && Boolean(c.formula[j]),
+      recalcWhen: c.recalcWhen ? c.recalcWhen[j] : 0,
+      recalcDeps: c.recalcDeps ? c.recalcDeps[j] : null,
+      options: opts,
+      pos: c.parentPos ? c.parentPos[j] : j,
+      displayCol: c.displayCol ? c.displayCol[j] : 0
+    };
+    colParRef[c.id[j]] = info;
+    if (!colonnes[tidC]) {
+      colonnes[tidC] = [];
+    }
+    colonnes[tidC].push(info);
+  }
+  Object.keys(colonnes).forEach(function(k) {
+    colonnes[k].sort(function(a, b) {
+      return a.pos - b.pos;
+    });
+  });
+  try {
+    var vs = await lireTable("_grist_Views_section");
+    var titres = {};
+    for (var v = 0; v < vs.id.length; v++) {
+      titres[vs.id[v]] = vs.title ? vs.title[v] : "";
+    }
+    Object.keys(tables).forEach(function(k) {
+      tables[k].libelle = titres[tables[k].rawViewSectionRef] || "";
+    });
+  } catch (e) {
+    logSecurite("AVERTISSEMENT", "Noms des tables illisibles", e);
+  }
+  etat.meta = { tables, colonnes, colParRef };
+}
+function libelleTable(tid) {
+  var t = etat.meta.tables[tid];
+  return t && t.libelle || String(tid || "").replace(/_+$/, "").replace(/_/g, " ");
+}
+function infoColonne(tid, colId) {
+  var l = etat.meta.colonnes[tid] || [];
+  for (var i = 0; i < l.length; i++) {
+    if (l[i].colId === colId) {
+      return l[i];
+    }
+  }
+  return null;
+}
+function colonnesVisibles(tid) {
+  return (etat.meta.colonnes[tid] || []).filter(function(c) {
+    return c.colId !== "manualSort" && c.colId.indexOf("gristHelper_") !== 0 && c.colId !== "id";
+  });
+}
+function trouverTable(motif) {
+  var up = String(motif).toUpperCase();
+  var ids = Object.keys(etat.meta.tables);
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i].toUpperCase().indexOf(up) !== -1) {
+      return ids[i];
+    }
+  }
+  return null;
+}
+function trouverTableExacte(base, colRequise) {
+  var re = new RegExp("^" + base + "\\d*_*$");
+  var ids = Object.keys(etat.meta.tables).filter(function(t) {
+    return re.test(t.toUpperCase()) && !etat.meta.tables[t].resume;
+  });
+  ids.sort(function(a, b) {
+    return a.length - b.length;
+  });
+  for (var i = 0; i < ids.length; i++) {
+    if (!colRequise || infoColonne(ids[i], colRequise)) {
+      return ids[i];
+    }
+  }
+  return null;
+}
+function trouverCentrale() {
+  var ids = Object.keys(etat.meta.tables);
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i].toUpperCase().replace(/_+$/, "") === ID_CENTRALE) {
+      return ids[i];
+    }
+  }
+  return null;
+}
+function tablesUtilisatrice() {
+  return Object.keys(etat.meta.tables).filter(function(t) {
+    return !estTableExclue(t) && !etat.meta.tables[t].resume && t !== etat.tables.jo;
+  }).sort(function(a, b) {
+    return libelleTable(a).localeCompare(libelleTable(b), "fr");
+  });
+}
+function colonneParDefaut(tid) {
+  var l = colonnesVisibles(tid);
+  for (var i = 0; i < l.length; i++) {
+    if (/^Text/.test(l[i].type)) {
+      return l[i].colId;
+    }
+  }
+  return l.length ? l[0].colId : "";
+}
+function resoudreTables() {
+  var cfg = etat.config && etat.config.tables ? etat.config.tables : {};
+  DEFS.forEach(function(d) {
+    var t = cfg[d.cle] && etat.meta.tables[cfg[d.cle]] && infoColonne(cfg[d.cle], d.colRequise) ? cfg[d.cle] : null;
+    etat.tables[d.cle] = t || trouverTableExacte(d.base, d.colRequise);
+  });
+}
+function typeReel(type) {
+  return String(type);
+}
+function structureManquante() {
+  var manque = { centrale: !etat.centrale, tables: [], colonnes: [] };
+  DEFS.forEach(function(d) {
+    var tid = etat.tables[d.cle];
+    if (!tid) {
+      manque.tables.push(d);
+      return;
+    }
+    d.colonnes.forEach(function(c) {
+      if (!infoColonne(tid, c.id)) {
+        manque.colonnes.push({ def: d, col: c });
+      }
+    });
+  });
+  manque.vide = !manque.centrale && !manque.tables.length && !manque.colonnes.length;
+  return manque;
+}
+async function poserDescription(tid, colId, texte) {
+  if (!texte) {
+    return;
+  }
+  try {
+    await agir([["ModifyColumn", tid, colId, { description: texte }]]);
+  } catch (e) {
+    logSecurite("INFO", "Description non posée sur " + tid + "." + colId, e);
+  }
+}
+async function poserDescriptionTable(tid, texte) {
+  try {
+    await chargerMeta();
+    var t = etat.meta.tables[tid];
+    if (t && t.rawViewSectionRef) {
+      await agir([["UpdateRecord", "_grist_Views_section", t.rawViewSectionRef, { description: texte }]]);
+    }
+  } catch (e) {
+    logSecurite("INFO", "Description de la table " + tid + " non posée", e);
+  }
+}
+async function nommerTable(tid, titre, base, colRequise) {
+  var ref = null;
+  try {
+    await chargerMeta();
+    var t = etat.meta.tables[tid];
+    ref = t ? t.ref : null;
+    if (t && t.rawViewSectionRef) {
+      await agir([["UpdateRecord", "_grist_Views_section", t.rawViewSectionRef, { title: titre }]]);
+    }
+    await chargerMeta();
+  } catch (e) {
+    logSecurite("AVERTISSEMENT", "Renommage de " + tid + " non abouti", e);
+  }
+  if (ref !== null) {
+    var ids = Object.keys(etat.meta.tables);
+    for (var i = 0; i < ids.length; i++) {
+      if (etat.meta.tables[ids[i]].ref === ref) {
+        return ids[i];
+      }
+    }
+  }
+  return trouverTableExacte(base, colRequise) || tid;
+}
+async function creerTablesNues(defs) {
+  var ret = await agir(defs.map(function(d) {
+    return ["AddTable", d.id, d.colonnes.map(function(c) {
+      return { id: c.id, type: c.type, label: c.label || c.id };
+    })];
+  }));
+  var rv = ret && ret.retValues ? ret.retValues : [];
+  var tids = defs.map(function(d, i) {
+    return rv[i] && rv[i].table_id ? rv[i].table_id : d.id;
+  });
+  var vues = [];
+  rv.forEach(function(r) {
+    if (r && Array.isArray(r.views)) {
+      r.views.forEach(function(v) {
+        if (v && v.id && vues.indexOf(v.id) === -1) {
+          vues.push(v.id);
+        }
+      });
+    }
+  });
+  await chargerMeta();
+  tids.forEach(function(t) {
+    var m = etat.meta.tables[t];
+    if (m && m.primaryViewId && vues.indexOf(m.primaryViewId) === -1) {
+      vues.push(m.primaryViewId);
+    }
+  });
+  if (vues.length) {
+    try {
+      await agir(vues.map(function(v) {
+        return ["RemoveRecord", "_grist_Views", v];
+      }));
+    } catch (e) {
+      logSecurite("INFO", "Suppression des pages créées avec les tables non possible", e);
+    }
+  }
+  return tids;
+}
+async function ajouterColonne(tid, c) {
+  var ret = await agir([["AddColumn", tid, c.id, {}]]);
+  var reel = ret && ret.retValues && ret.retValues[0] && ret.retValues[0].colId ? ret.retValues[0].colId : c.id;
+  await typerColonne(tid, reel, c);
+  return reel;
+}
+async function typerColonne(tid, colId, c) {
+  var propr = { type: typeReel(c.type), label: c.label || colId };
+  if (c.calcul) {
+    propr.isFormula = true;
+    propr.formula = c.calcul;
+  } else if (c.formula) {
+    propr.isFormula = false;
+    propr.formula = c.formula;
+    propr.recalcWhen = c.recalcWhen || 0;
+    propr.recalcDeps = null;
+  } else {
+    propr.isFormula = false;
+  }
+  if (c.widgetOptions) {
+    propr.widgetOptions = JSON.stringify(c.widgetOptions);
+  }
+  if (c.description) {
+    propr.description = c.description;
+  }
+  try {
+    await agir([["ModifyColumn", tid, colId, propr]]);
+  } catch (e) {
+    delete propr.description;
+    await agir([["ModifyColumn", tid, colId, propr]]);
+    await poserDescription(tid, colId, c.description);
+  }
+  if (c.affichage) {
+    await poserAffichageRef(tid, colId, c.affichage);
+  }
+}
+async function poserAffichageRef(tid, colId, colAffichee) {
+  try {
+    await chargerMeta();
+    var col = infoColonne(tid, colId);
+    var cible = String(col && col.type || "").replace(/^Ref(List)?:/, "");
+    var vis = infoColonne(cible, colAffichee);
+    if (!col || !vis) {
+      return;
+    }
+    await agir([["ModifyColumn", tid, colId, { visibleCol: vis.ref }], ["SetDisplayFormula", tid, null, col.ref, "$" + colId + "." + colAffichee]]);
+  } catch (e) {
+    logSecurite("INFO", "Colonne affichée non posée pour " + tid + "." + colId, e);
+  }
+}
+async function completerStructure() {
+  await chargerMeta();
+  etat.centrale = trouverCentrale();
+  if (!etat.centrale) {
+    var cols = COLONNES_CENTRALE_TYPES.map(function(x) {
+      return { id: x[0], type: x[1], label: x[0].replace(/_/g, " ") };
+    });
+    var tc = await creerTablesNues([{ id: ID_CENTRALE, colonnes: cols }]);
+    etat.centrale = await nommerTable(tc[0], LABEL_CENTRALE, ID_CENTRALE, "WIDGET");
+    for (var k = 0; k < COLONNES_META.length; k++) {
+      await typerColonne(etat.centrale, COLONNES_META[k].id, COLONNES_META[k]);
+    }
+    await poserDescriptionTable(etat.centrale, DESCRIPTION_CENTRALE);
+  } else {
+    for (var u = 0; u < COLONNES_CENTRALE_UTILES.length; u++) {
+      if (!infoColonne(etat.centrale, COLONNES_CENTRALE_UTILES[u])) {
+        await ajouterColonne(etat.centrale, { id: COLONNES_CENTRALE_UTILES[u], type: "Text", label: COLONNES_CENTRALE_UTILES[u].replace(/_/g, " ") });
+      }
+    }
+  }
+  resoudreTables();
+  var aCreer = DEFS.filter(function(d2) {
+    return !etat.tables[d2.cle];
+  });
+  var nouvelles = [];
+  if (aCreer.length) {
+    var defs = aCreer.map(function(d2) {
+      return { id: d2.base, def: d2, colonnes: d2.colonnes.filter(function(c2) {
+        return !c2.calcul && c2.type.indexOf("@") === -1;
+      }).map(function(c2) {
+        return { id: c2.id, type: c2.type, label: c2.label };
+      }) };
+    });
+    var tids = await creerTablesNues(defs);
+    for (var i = 0; i < defs.length; i++) {
+      var d = defs[i].def;
+      etat.tables[d.cle] = await nommerTable(tids[i], d.titre, d.base, d.colRequise);
+      nouvelles.push(d.cle);
+    }
+  }
+  await chargerMeta();
+  for (var t = 0; t < DEFS.length; t++) {
+    var def = DEFS[t];
+    var tid = etat.tables[def.cle];
+    if (!tid) {
+      continue;
+    }
+    var neuve = nouvelles.indexOf(def.cle) !== -1;
+    for (var c = 0; c < def.colonnes.length; c++) {
+      var col = def.colonnes[c];
+      if (!infoColonne(tid, col.id)) {
+        await ajouterColonne(tid, col);
+        await chargerMeta();
+      } else if (neuve) {
+        await typerColonne(tid, col.id, col);
+      }
+    }
+    for (var m = 0; m < COLONNES_META.length; m++) {
+      if (!infoColonne(tid, COLONNES_META[m].id)) {
+        await ajouterColonne(tid, COLONNES_META[m]);
+      }
+    }
+    if (neuve) {
+      await poserDescriptionTable(tid, def.description);
+    }
+    await chargerMeta();
+  }
+  return nouvelles;
+}
+async function lireCentrale() {
+  etat.centrale = trouverCentrale();
+  etat.config = null;
+  etat.configLigne = null;
+  etat.temoins = { edition: false, param: false, aucun: true };
+  if (!etat.centrale) {
+    return;
+  }
+  var d = await lireTable(etat.centrale);
+  for (var i = 0; i < d.id.length; i++) {
+    if (texteCellule(d, "WIDGET", i) !== NOM_WIDGET) {
+      continue;
+    }
+    var cle = texteCellule(d, "CLE", i);
+    if (cle === CLE_ACCES_EDITION) {
+      etat.temoins.edition = true;
+      etat.temoins.aucun = false;
+    }
+    if (cle === CLE_ACCES_PARAMETRAGE) {
+      etat.temoins.param = true;
+      etat.temoins.aucun = false;
+    }
+    if (cle === CLE_CONFIG) {
+      etat.configLigne = d.id[i];
+      try {
+        etat.config = JSON.parse(texteCellule(d, "VALEUR", i) || "{}");
+      } catch (e) {
+        etat.config = {};
+        logSecurite("AVERTISSEMENT", "Réglages illisibles", e);
+      }
+    }
+  }
+  if (etat.config) {
+    normaliserConfig(etat.config);
+  }
+}
+function normaliserRegle(r) {
+  r.nom = String(r.nom || "Règle d'archivage");
+  r.description = String(r.description || "");
+  r.table = String(r.table || "");
+  r.colDate = String(r.colDate || "");
+  r.delai = Math.max(0, Math.min(1200, parseInt(r.delai, 10) || 0));
+  r.unite = r.unite === "mois" ? "mois" : "ans";
+  r.condition = Object.assign({ colonne: "", valeurs: [] }, r.condition || {});
+  if (!Array.isArray(r.condition.valeurs)) {
+    r.condition.valeurs = [];
+  }
+  r.condition.valeurs = r.condition.valeurs.map(String);
+  ["affichees", "champs"].forEach(function(k) {
+    r[k] = Array.isArray(r[k]) ? r[k].map(String) : [];
+  });
+  r.liees = Array.isArray(r.liees) ? r.liees.filter(function(l) {
+    return l && l.table && l.colonne;
+  }).map(function(l) {
+    return { table: String(l.table), colonne: String(l.colonne), anonymiser: l.anonymiser !== false, champs: Array.isArray(l.champs) ? l.champs.map(String) : [], suppression: l.suppression === "detacher" ? "detacher" : "supprimer" };
+  }) : [];
+  r.suppressionPermise = r.suppressionPermise !== false;
+  return r;
+}
+function normaliserConfig(cfg) {
+  if (!Array.isArray(cfg.regles)) {
+    cfg.regles = [];
+  }
+  cfg.regles = cfg.regles.filter(function(r) {
+    return r && typeof r.id === "string" && r.id;
+  }).map(normaliserRegle);
+  return cfg;
+}
+function majDroits() {
+  var complet = etat.niveauAcces === null || etat.niveauAcces === "full";
+  if (etat.temoins.aucun) {
+    etat.peutModifier = complet;
+    etat.peutParametrer = complet;
+  } else {
+    etat.peutModifier = complet && etat.temoins.edition;
+    etat.peutParametrer = complet && etat.temoins.param;
+  }
+}
+async function ecrireConfig() {
+  if (!etat.centrale) {
+    return;
+  }
+  var cfg = normaliserConfig(Object.assign({ version: 1 }, etat.config || {}));
+  cfg.tables = { jo: etat.tables.jo };
+  var valeur = JSON.stringify(cfg);
+  var actions = [];
+  if (etat.configLigne) {
+    actions.push(["UpdateRecord", etat.centrale, etat.configLigne, { VALEUR: valeur, VERSION_MODIF: VERSION_WIDGET }]);
+  } else {
+    actions.push(["AddRecord", etat.centrale, null, { WIDGET: NOM_WIDGET, CLE: CLE_CONFIG, VALEUR: valeur, VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]);
+    if (etat.temoins.aucun) {
+      actions.push(["AddRecord", etat.centrale, null, { WIDGET: NOM_WIDGET, CLE: CLE_ACCES_EDITION, VALEUR: "Ligne témoin : lisible par les personnes qui peuvent lancer un archivage.", VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]);
+      actions.push(["AddRecord", etat.centrale, null, { WIDGET: NOM_WIDGET, CLE: CLE_ACCES_PARAMETRAGE, VALEUR: "Ligne témoin : lisible par les personnes qui peuvent paramétrer les règles d'archivage.", VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]);
+    }
+  }
+  var ret = await agir(actions);
+  if (!etat.configLigne && ret && ret.retValues) {
+    etat.configLigne = ret.retValues[0];
+    etat.temoins = { edition: true, param: true, aucun: false };
+  }
+  etat.config = cfg;
+}
+function regles() {
+  return etat.config && etat.config.regles ? etat.config.regles : [];
+}
+function regleCourante() {
+  var l = regles();
+  for (var k = 0; k < l.length; k++) {
+    if (l[k].id === etat.regleId) {
+      return l[k];
+    }
+  }
+  return null;
+}
+function clePref(nom) {
+  return "diploarchive:" + (etat.nomDoc || "document") + ":" + nom;
+}
+function lirePref(nom, defaut) {
+  try {
+    var v = window.localStorage.getItem(clePref(nom));
+    return v === null ? defaut : JSON.parse(v);
+  } catch (e) {
+    return defaut;
+  }
+}
+function ecrirePref(nom, valeur) {
+  try {
+    window.localStorage.setItem(clePref(nom), JSON.stringify(valeur));
+  } catch (e) {
+    logSecurite("INFO", "Préférence non retenue par le navigateur : " + nom, e);
+  }
+}
+function elementsFocusables(racine) {
+  return Array.prototype.filter.call(
+    racine.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+    function(n) {
+      return !n.disabled && n.offsetParent !== null;
+    }
+  );
+}
+function fabriquerPiege(racine, fermer) {
+  return function(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      fermer();
+      return;
+    }
+    if (e.key !== "Tab") {
+      return;
+    }
+    var f = elementsFocusables(racine);
+    if (!f.length) {
+      return;
+    }
+    if (e.shiftKey && document.activeElement === f[0]) {
+      e.preventDefault();
+      f[f.length - 1].focus();
+    } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
+      e.preventDefault();
+      f[0].focus();
+    }
+  };
+}
+function confirmer(titre, message, libelleOui) {
+  return new Promise(function(resolve) {
+    var ov = document.getElementById("wConfirmOverlay");
+    if (_confirm.resolution) {
+      _confirm.resolution(false);
+    }
+    _confirm.resolution = resolve;
+    document.getElementById("wConfirmTitre").textContent = titre;
+    document.getElementById("wConfirmMsg").textContent = message || "";
+    document.getElementById("wConfirmOui").textContent = libelleOui || "Confirmer";
+    _confirm.retour = document.activeElement;
+    ov.classList.add("actif");
+    void ov.offsetHeight;
+    if (_confirm.pieger) {
+      ov.removeEventListener("keydown", _confirm.pieger);
+    }
+    _confirm.pieger = fabriquerPiege(ov, function() {
+      terminerConfirmation(false);
+    });
+    ov.addEventListener("keydown", _confirm.pieger);
+    document.getElementById("wConfirmNon").focus();
+  });
+}
+function terminerConfirmation(oui) {
+  var ov = document.getElementById("wConfirmOverlay");
+  ov.classList.remove("actif");
+  if (_confirm.pieger) {
+    ov.removeEventListener("keydown", _confirm.pieger);
+    _confirm.pieger = null;
+  }
+  var r = _confirm.retour;
+  _confirm.retour = null;
+  if (r && document.body.contains(r) && typeof r.focus === "function") {
+    r.focus();
+  }
+  var res = _confirm.resolution;
+  _confirm.resolution = null;
+  if (res) {
+    res(!!oui);
+  }
+}
+function ouvrirDialogue(titre, corps, pied, large) {
+  fermerDialogue();
+  var titreH = creer("h2", { classe: "fr-h5 w-dialogue__titre", id: "wDialTitre", texte: titre, attrs: { tabindex: "-1" } });
+  var fermer = bouton("Fermer", "discret", "close-line", function() {
+    fermerDialogue();
+  }, { petit: true, iconeSeule: true, id: "wDialFermer" });
+  var d = creer("div", { classe: "w-dialogue" + (large ? " w-dialogue--large" : " w-dialogue--etroit"), attrs: { role: "dialog", "aria-modal": "true", "aria-labelledby": "wDialTitre" } }, [
+    creer("div", { classe: "w-dialogue__tete" }, [creer("div", {}, [titreH]), fermer]),
+    creer("div", { classe: "w-dialogue__corps", id: "wDialCorps" }, [corps]),
+    creer("div", { classe: "w-dialogue__pied" }, pied)
+  ]);
+  var ov = creer("div", { classe: "w-overlay actif", id: "wDialogue" }, [d]);
+  var piege = fabriquerPiege(ov, function() {
+    fermerDialogue();
+  });
+  ov.addEventListener("keydown", piege);
+  etat.dialogue = { retour: document.activeElement };
+  document.body.appendChild(ov);
+  titreH.focus();
+  return ov;
+}
+function fermerDialogue() {
+  var ov = document.getElementById("wDialogue");
+  if (!ov) {
+    return;
+  }
+  ov.parentNode.removeChild(ov);
+  var r = etat.dialogue ? etat.dialogue.retour : null;
+  etat.dialogue = null;
+  if (r && document.body.contains(r) && typeof r.focus === "function") {
+    r.focus();
+  }
+}
+function erreurEcriture(e, message) {
+  if (estRefusDroits(e)) {
+    afficherErreur("Vos droits sur ce document ne permettent pas cette modification. Rien n'a été modifié.", e);
+    return;
+  }
+  afficherErreur(message, e);
+}
+function infoCol(tid, colId) {
+  return colId ? infoColonne(tid, colId) : null;
+}
+function colonnesDonnees(tid) {
+  return colonnesVisibles(tid).filter(function(c) {
+    return !/^gristHelper_/.test(c.colId);
+  });
+}
+function colonnesDates(tid) {
+  return colonnesDonnees(tid).filter(function(c) {
+    return /^Date/.test(c.type);
+  });
+}
+function colonnesEffacables(tid) {
+  return colonnesDonnees(tid).filter(function(c) {
+    return !c.formule && !c.formuleVide;
+  });
+}
+function tablesLiees(tid) {
+  var res = [];
+  tablesUtilisatrice().forEach(function(t) {
+    colonnesDonnees(t).forEach(function(c) {
+      if (c.formule || c.formuleVide) {
+        return;
+      }
+      var m = /^Ref(List)?:(.+)$/.exec(c.type);
+      if (m && m[2] === tid) {
+        res.push({ table: t, colonne: c.colId, liste: !!m[1] });
+      }
+    });
+  });
+  return res;
+}
+function estPersonnel(c) {
+  var n = " " + normaliserTexte(c.label || c.colId) + " ";
+  if (/^Attachments/.test(c.type)) {
+    return true;
+  }
+  return MOTS_PERSONNELS.some(function(m) {
+    return n.indexOf(" " + m + " ") !== -1 || n.indexOf(" " + m + "s ") !== -1;
+  });
+}
+function champsSuggeres(tid, exclure) {
+  return colonnesEffacables(tid).filter(function(c) {
+    return c.colId !== exclure && !/^Ref/.test(c.type) && estPersonnel(c);
+  }).map(function(c) {
+    return c.colId;
+  });
+}
+function colonneAide(tid, col) {
+  if (!col || !col.displayCol) {
+    return null;
+  }
+  var h = etat.meta.colParRef[col.displayCol];
+  return h && h.tableId === tid ? h.colId : null;
+}
+function dateJJMMAAAA(sec, avecHeure) {
+  if (typeof sec !== "number" || !sec) {
+    return "";
+  }
+  var p = {};
+  var o = { timeZone: avecHeure ? "Europe/Paris" : "UTC", year: "numeric", month: "2-digit", day: "2-digit" };
+  if (avecHeure) {
+    o.hour = "2-digit";
+    o.minute = "2-digit";
+    o.hourCycle = "h23";
+  }
+  new Intl.DateTimeFormat("en-GB", o).formatToParts(new Date(sec * 1e3)).forEach(function(x) {
+    p[x.type] = x.value;
+  });
+  return p.day + "/" + p.month + "/" + p.year + (avecHeure ? " " + p.hour + ":" + p.minute : "");
+}
+function dateLongue(ms) {
+  var d = new Date(ms);
+  return d.getUTCDate() + " " + MOIS[d.getUTCMonth()] + " " + d.getUTCFullYear();
+}
+function valeurLisible(tid, col, d, i, noms) {
+  var v = cellule(d, col.colId, i);
+  if (v === null || v === void 0 || v === "") {
+    return "";
+  }
+  var type = String(col.type);
+  if (/^Ref(List)?:/.test(type)) {
+    var aide2 = colonneAide(tid, col);
+    if (aide2 && d[aide2]) {
+      return texteLisible(d[aide2][i]);
+    }
+    if (Array.isArray(v)) {
+      return v[0] === "L" ? v.slice(1).map(function(x) {
+        return "n° " + x;
+      }).join(", ") : "";
+    }
+    return v ? "n° " + v : "";
+  }
+  if (/^Date$/.test(type)) {
+    return dateJJMMAAAA(v, false);
+  }
+  if (/^DateTime/.test(type)) {
+    return dateJJMMAAAA(v, true);
+  }
+  if (/^Attachments/.test(type)) {
+    var ids = Array.isArray(v) && v[0] === "L" ? v.slice(1) : [];
+    if (!ids.length) {
+      return "";
+    }
+    return noms ? ids.map(function(x) {
+      return noms[x] || "fichier n° " + x;
+    }).join(", ") : pluriel(ids.length, "fichier", "fichiers");
+  }
+  return texteLisible(v);
+}
+function lireJournal(d) {
+  var l = [];
+  if (!d || !d.id) {
+    return l;
+  }
+  for (var i = 0; i < d.id.length; i++) {
+    var lignes = texteCellule(d, "LIGNES", i).split(",").map(function(x) {
+      return parseInt(x, 10);
+    }).filter(function(x) {
+      return x > 0;
+    });
+    l.push({
+      id: d.id[i],
+      operation: texteCellule(d, "OPERATION", i),
+      regle: texteCellule(d, "REGLE", i),
+      nomRegle: texteCellule(d, "NOM_REGLE", i),
+      table: texteCellule(d, "TABLE", i),
+      lignes,
+      nombre: nombreCellule(d, "NOMBRE", i, lignes.length),
+      detail: texteCellule(d, "DETAIL", i),
+      fichier: texteCellule(d, "FICHIER", i),
+      motif: texteCellule(d, "MOTIF", i),
+      levee: cellule(d, "LEVEE", i) === true,
+      le: nombreCellule(d, "CREE_LE", i, 0),
+      par: texteCellule(d, "CREE_PAR", i)
+    });
+  }
+  return l;
+}
+async function chargerDonnees(leger) {
+  var r = regleCourante();
+  if (!r || !etat.meta.tables[r.table]) {
+    etat.donnees = null;
+    return true;
+  }
+  var d = await lireTable(r.table, leger);
+  var j = etat.tables.jo ? await lireTable(etat.tables.jo, leger) : null;
+  var sig = r.id + ":" + d.id.length + ":" + JSON.stringify(d).length + ":" + (j ? JSON.stringify(j).length : 0);
+  var change = sig !== etat.signature;
+  etat.signature = sig;
+  etat.donnees = { regle: r.id, table: r.table, d };
+  etat.journal = lireJournal(j);
+  return change;
+}
+function ajouterMois(sec, mois) {
+  var d = new Date(sec * 1e3);
+  var jour = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + mois);
+  var fin = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(jour, fin));
+  return d.getTime();
+}
+function delaiMois(r) {
+  return r.unite === "mois" ? r.delai : r.delai * 12;
+}
+function libelleDelai(r) {
+  return r.delai + " " + (r.unite === "mois" ? "mois" : r.delai > 1 ? "ans" : "an");
+}
+function libelleCritere(r) {
+  var c = infoCol(r.table, r.colDate);
+  var t = libelleDelai(r) + " après « " + (c ? c.label : r.colDate) + " »";
+  if (r.condition.colonne && r.condition.valeurs.length) {
+    var k = infoCol(r.table, r.condition.colonne);
+    t += ", si « " + (k ? k.label : r.condition.colonne) + " » vaut " + r.condition.valeurs.map(function(v) {
+      return "« " + v + " »";
+    }).join(" ou ");
+  }
+  return t;
+}
+function anonymisesDe(r, journal) {
+  var s = {};
+  (journal || etat.journal).forEach(function(x) {
+    if (x.operation === "Anonymisation" && x.table === r.table) {
+      x.lignes.forEach(function(id) {
+        s[id] = true;
+      });
+    }
+  });
+  return s;
+}
+function attentesDe(r, journal) {
+  var s = {};
+  (journal || etat.journal).forEach(function(x) {
+    if (x.operation === "Mise en attente" && x.table === r.table && !x.levee) {
+      x.lignes.forEach(function(id) {
+        s[id] = x;
+      });
+    }
+  });
+  return s;
+}
+function dossiers() {
+  var r = regleCourante();
+  var dn = etat.donnees;
+  if (!r || !dn || dn.regle !== r.id) {
+    return [];
+  }
+  return dossiersDe(r, dn.d, etat.journal);
+}
+function compterDossiers(r, d, journal) {
+  var n = { traiter: 0, bientot: 0, attente: 0 };
+  dossiersDe(r, d, journal).forEach(function(x) {
+    n[x.statut]++;
+  });
+  return n;
+}
+function dossiersDe(r, d, journal) {
+  var colD = r.colDate;
+  if (!d || !d[colD]) {
+    return [];
+  }
+  var cond = r.condition.colonne && r.condition.valeurs.length ? infoCol(r.table, r.condition.colonne) : null;
+  var faits = anonymisesDe(r, journal), attentes = attentesDe(r, journal);
+  var maintenant = Date.now();
+  var horizon = ajouterMois(maintenant / 1e3, MOIS_ECHEANCIER);
+  var mois = delaiMois(r);
+  var res = [];
+  for (var i = 0; i < d.id.length; i++) {
+    var id = d.id[i];
+    if (faits[id]) {
+      continue;
+    }
+    var sec = cellule(d, colD, i);
+    if (typeof sec !== "number" || !sec) {
+      continue;
+    }
+    if (cond && r.condition.valeurs.indexOf(valeurLisible(r.table, cond, d, i)) === -1) {
+      continue;
+    }
+    var ech = ajouterMois(sec, mois);
+    var statut = ech <= maintenant ? "traiter" : ech <= horizon ? "bientot" : null;
+    if (!statut) {
+      continue;
+    }
+    if (attentes[id]) {
+      statut = "attente";
+    }
+    res.push({ id, i, date: sec, echeance: ech, statut, attente: attentes[id] || null });
+  }
+  res.sort(function(a, b) {
+    return a.echeance - b.echeance || a.id - b.id;
+  });
+  return res;
+}
+function colonnesAffichees(r) {
+  var l = r.affichees.map(function(c) {
+    return infoCol(r.table, c);
+  }).filter(Boolean);
+  if (!l.length) {
+    l = colonnesDonnees(r.table).filter(function(c) {
+      return c.colId !== r.colDate;
+    }).slice(0, 3);
+  }
+  return l;
+}
+function dossiersVisibles() {
+  var r = regleCourante();
+  var q = normaliserTexte(etat.filtres.texte);
+  var cols = r ? colonnesAffichees(r) : [];
+  return dossiers().filter(function(x) {
+    if (x.statut !== etat.filtres.vue) {
+      return false;
+    }
+    if (!q) {
+      return true;
+    }
+    var t = cols.map(function(c) {
+      return valeurLisible(r.table, c, etat.donnees.d, x.i);
+    }).join(" ") + " " + dateJJMMAAAA(x.date) + " " + (x.attente ? x.attente.motif : "");
+    return normaliserTexte(t).indexOf(q) !== -1;
+  });
+}
+function compter() {
+  var n = { traiter: 0, bientot: 0, attente: 0 };
+  dossiers().forEach(function(x) {
+    n[x.statut]++;
+  });
+  return n;
+}
+function cochesValides() {
+  var ok = {};
+  dossiers().forEach(function(x) {
+    if (x.statut === "traiter") {
+      ok[x.id] = true;
+    }
+  });
+  return Object.keys(etat.coches).map(Number).filter(function(id) {
+    return etat.coches[id] && ok[id];
+  });
+}
+function rendreOnglets() {
+  var nav = document.getElementById("wOnglets");
+  if (!nav) {
+    return;
+  }
+  vider(nav);
+  var l = regles();
+  var creation = etat.vue === "creation";
+  var visible = (etat.vue === "principal" || etat.vue === "parametrage" || creation) && (l.length || etat.peutParametrer);
+  nav.hidden = !visible;
+  if (!visible) {
+    return;
+  }
+  var ul = creer("ul", { classe: "fr-tabs__list", attrs: { role: "tablist", "aria-label": "Règles d'archivage du document" } });
+  var onglets = [], activer = [];
+  l.forEach(function(r, i) {
+    var actif = !creation && r.id === etat.regleId;
+    onglets.push(creer("button", {
+      classe: "fr-tabs__tab w-onglet",
+      id: "wOnglet" + i,
+      texte: r.nom,
+      attrs: { role: "tab", "aria-selected": actif ? "true" : "false", "aria-controls": "contenu", tabindex: actif ? "0" : "-1" }
+    }));
+    activer.push(function() {
+      if (creation) {
+        etat.creation = null;
+      }
+      choisirRegle(r.id);
+      etat.param = null;
+      relayer(chargerDonnees().then(rendrePrincipal), "Changement de règle");
+    });
+  });
+  var enCours = creation && etat.creation && etat.creation.etape > 0;
+  if (enCours) {
+    onglets.push(creer(
+      "button",
+      {
+        classe: "fr-tabs__tab w-onglet w-onglet--creation",
+        id: "wOngletCreation",
+        attrs: { role: "tab", "aria-selected": "true", "aria-controls": "contenu", tabindex: "0" }
+      },
+      [creer("span", { classe: "w-onglet__nom", texte: String(etat.creation.nom || "").trim() || "Nouvelle règle" }), creer("span", { classe: "w-onglet__mention", texte: " (en création)" })]
+    ));
+    activer.push(function() {
+    });
+  }
+  if (etat.peutParametrer) {
+    onglets.push(creer("button", {
+      classe: "fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet",
+      id: "wOngletNouveau",
+      texte: "Nouvelle règle",
+      attrs: { role: "tab", "aria-selected": creation && !enCours ? "true" : "false", "aria-controls": "contenu", tabindex: creation && !enCours ? "0" : "-1" }
+    }));
+    activer.push(function() {
+      if (!creation) {
+        ouvrirCreation();
+      }
+    });
+  }
+  if (!onglets.some(function(b) {
+    return b.getAttribute("tabindex") === "0";
+  }) && onglets.length) {
+    onglets[0].setAttribute("tabindex", "0");
+  }
+  onglets.forEach(function(b, i) {
+    b.addEventListener("click", function() {
+      activer[i]();
+      var f = document.getElementById(b.id);
+      if (f) {
+        f.focus();
+      }
+    });
+    b.addEventListener("keydown", function(e) {
+      var n = onglets.length;
+      var k = { ArrowRight: (i + 1) % n, ArrowLeft: (i + n - 1) % n, Home: 0, End: n - 1 }[e.key];
+      if (k === void 0) {
+        return;
+      }
+      e.preventDefault();
+      onglets[k].focus();
+      activer[k]();
+    });
+    ul.appendChild(creer("li", { attrs: { role: "presentation" } }, [b]));
+  });
+  nav.appendChild(ul);
+}
+function choisirRegle(id) {
+  if (etat.regleId !== id) {
+    etat.coches = {};
+    etat.filtres.texte = "";
+    etat.filtres.vue = "traiter";
+    etat.signature = "";
+  }
+  etat.regleId = id;
+  etat.vue = "principal";
+  ecrirePref("regle", id);
+}
+function contenu() {
+  return document.getElementById("contenu");
+}
+function rendrePrincipal() {
+  etat.vue = "principal";
+  rendreOnglets();
+  var zone = contenu();
+  vider(zone);
+  zone.className = "w-contenu w-contenu--principal";
+  var r = regleCourante();
+  if (!r) {
+    rendreMessage("aucun");
+    return;
+  }
+  if (!etat.meta.tables[r.table] || !infoCol(r.table, r.colDate)) {
+    var bloc = creer("div", { classe: "w-vide" }, [
+      creer("h2", { classe: "fr-h4 w-titre-vue", id: "titreVue", texte: r.nom, attrs: { tabindex: "-1" } }),
+      creer("p", { classe: "w-texte", texte: "La table ou la colonne de date de cette règle n'existe plus dans le document. Corrigez la règle dans ses paramétrages." })
+    ]);
+    if (etat.peutParametrer) {
+      bloc.appendChild(bouton("Paramétrages de cette règle", null, "settings-5-line", function() {
+        ouvrirParametrage(0);
+      }, { id: "mParam" }));
+    }
+    zone.appendChild(bloc);
+    return;
+  }
+  var volet = creer("aside", { classe: "w-volet" + (etat.voletMobile ? " w-volet--mobile-ouvert" : ""), id: "vVolet", attrs: { "aria-label": "Recherche et filtres" } });
+  var cont = creer("div", { classe: "w-volet__contenu", id: "vVoletContenu" });
+  var champ = saisie("vRecherche", etat.filtres.texte, { type: "search", indice: "Nom, motif...", orthographe: false });
+  var minuterie = null;
+  champ.addEventListener("input", function() {
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function() {
+      etat.filtres.texte = champ.value;
+      rendreScene();
+    }, 150);
+  });
+  champ.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && champ.value) {
+      e.preventDefault();
+      e.stopPropagation();
+      champ.value = "";
+      etat.filtres.texte = "";
+      rendreScene();
+    }
+  });
+  cont.appendChild(creer("section", { classe: "w-volet__bloc", attrs: { "aria-labelledby": "vTitreRech" } }, [
+    titreBloc("Rechercher", "vTitreRech", null),
+    creer("label", { classe: "fr-sr-only", attrs: { "for": "vRecherche" }, texte: "Rechercher un dossier" }),
+    champ,
+    bouton(
+      etat.voletMobile ? "Masquer la recherche et les filtres" : "Recherche et filtres",
+      "secondaire",
+      "filter-line",
+      function() {
+        ouvrirVoletMobile(!etat.voletMobile);
+      },
+      { petit: true, id: "vFiltresMobile", classe: "w-filtres-mobile", attrs: { "aria-expanded": etat.voletMobile ? "true" : "false", "aria-controls": "vRepliable" } }
+    )
+  ]));
+  var repliable = creer("div", { classe: "w-volet__repliable", id: "vRepliable" });
+  repliable.appendChild(creer("section", { classe: "w-volet__bloc", id: "vBlocFiltres", attrs: { "aria-labelledby": "vTitreFil" } }));
+  var bas = creer("div", { classe: "w-volet__bas" });
+  if (etat.peutParametrer) {
+    bas.appendChild(bouton("Paramétrages de cette règle", "secondaire", "settings-5-line", function() {
+      ouvrirParametrage(0);
+    }, { petit: true, id: "vParametrer" }));
+  }
+  bas.appendChild(creer("div", { classe: "w-sorties" }, [
+    bouton("Imprimer la liste", "discret", "printer-line", function() {
+      window.print();
+    }, { petit: true, iconeSeule: true, id: "vImprimer" }),
+    bouton("Exporter la liste (Excel)", "discret", "file-excel-2-line", exporterListe, { petit: true, iconeSeule: true, id: "vExcel" })
+  ]));
+  repliable.appendChild(bas);
+  cont.appendChild(repliable);
+  volet.appendChild(cont);
+  var vues = creer("div", { classe: "w-groupe-vues", attrs: { role: "group", "aria-label": "Type d'affichage" } }, [
+    bouton("Dossiers", "discret", null, function() {
+      changerAffichage("dossiers");
+    }, { svg: "liste", id: "bVueDossiers", classe: "w-bouton-vue", attrs: { "aria-pressed": etat.affichage === "dossiers" ? "true" : "false" } }),
+    bouton("Historique des opérations", "discret", null, function() {
+      changerAffichage("historique");
+    }, { svg: "historique", id: "bVueHistorique", classe: "w-bouton-vue", attrs: { "aria-pressed": etat.affichage === "historique" ? "true" : "false" } })
+  ]);
+  var droite = creer("div", { classe: "w-barre__droite" }, [
+    vues,
+    bouton(etat.agrandi ? "Quitter le plein écran" : "Plein écran", "discret", null, basculerPleinEcran, { svg: "plein", id: "bPlein", classe: "w-bulle--droite" })
+  ]);
+  var barre = creer("div", { classe: "w-barre" }, [creer("div", { classe: "w-barre__gauche" }, [
+    creer("h2", { classe: "fr-h5 w-titre-vue", id: "titreVue", texte: r.nom, attrs: { tabindex: "-1" } }),
+    creer("ul", { classe: "w-compteurs", id: "vCompteurs", attrs: { "aria-label": "Compteurs" } })
+  ]), droite]);
+  var principal = creer("div", { classe: "w-principal" }, [
+    barre,
+    creer("p", { classe: "w-mention", id: "vCritere", texte: "Règle : " + libelleCritere(r) + "." }),
+    creer("div", { classe: "w-actions-lot", id: "vActions" }),
+    creer("div", { classe: "w-liste", id: "vScene" })
+  ]);
+  zone.appendChild(creer("div", { classe: "w-disposition" }, [volet, principal]));
+  rendreScene();
+}
+function ouvrirVoletMobile(ouvrir) {
+  etat.voletMobile = ouvrir;
+  var v = document.getElementById("vVolet");
+  if (v) {
+    v.classList.toggle("w-volet--mobile-ouvert", ouvrir);
+  }
+  var b = document.getElementById("vFiltresMobile");
+  if (b) {
+    b.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+  }
+}
+function changerAffichage(a) {
+  etat.affichage = a;
+  ["bVueDossiers", "bVueHistorique"].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (b) {
+      b.setAttribute("aria-pressed", id === "bVueDossiers" === (a === "dossiers") ? "true" : "false");
+    }
+  });
+  rendreScene();
+  annoncer(a === "dossiers" ? "Affichage des dossiers." : "Affichage de l'historique des opérations.");
+}
+function basculerPleinEcran() {
+  etat.agrandi = !etat.agrandi;
+  document.body.classList.toggle("w-agrandi", etat.agrandi);
+  var b = document.getElementById("bPlein");
+  if (b) {
+    b.setAttribute("data-bulle", etat.agrandi ? "Quitter le plein écran" : "Plein écran");
+    var s = b.querySelector(".fr-sr-only");
+    if (s) {
+      s.textContent = etat.agrandi ? "Quitter le plein écran" : "Plein écran";
+    }
+  }
+}
+function majFiltres() {
+  var bf = document.getElementById("vBlocFiltres");
+  if (!bf) {
+    return;
+  }
+  var actif = document.activeElement && document.activeElement.id;
+  vider(bf);
+  bf.appendChild(titreBloc("Filtres", "vTitreFil", null));
+  var n = compter();
+  var sel = liste("vVue", VUES.map(function(v) {
+    return { valeur: v.cle, libelle: v.nom + " (" + n[v.cle] + ")" };
+  }), etat.filtres.vue);
+  sel.addEventListener("change", function() {
+    etat.filtres.vue = sel.value;
+    rendreScene();
+  });
+  bf.appendChild(groupeListe("Dossiers", sel));
+  bf.hidden = etat.affichage !== "dossiers";
+  if (actif === "vVue") {
+    var f = document.getElementById("vVue");
+    if (f) {
+      f.focus();
+    }
+  }
+}
+function majCompteurs() {
+  var cpt = document.getElementById("vCompteurs");
+  if (!cpt) {
+    return;
+  }
+  vider(cpt);
+  var n = compter();
+  if (n.traiter) {
+    cpt.appendChild(creer("li", {}, [badge(pluriel(n.traiter, "dossier à traiter", "dossiers à traiter"), "warning")]));
+  }
+  if (n.bientot) {
+    cpt.appendChild(creer("li", {}, [badge(pluriel(n.bientot, "dans les 3 mois", "dans les 3 mois"), "info")]));
+  }
+  if (n.attente) {
+    cpt.appendChild(creer("li", {}, [badge(pluriel(n.attente, "en attente", "en attente"), "new")]));
+  }
+}
+function rendreScene() {
+  majFiltres();
+  majCompteurs();
+  var sc = document.getElementById("vScene");
+  var ac = document.getElementById("vActions");
+  if (!sc || !ac) {
+    return;
+  }
+  vider(sc);
+  vider(ac);
+  if (etat.affichage === "historique") {
+    rendreHistorique(sc);
+    return;
+  }
+  rendreListe(sc, ac);
+}
+function majActions() {
+  var ac = document.getElementById("vActions");
+  var r = regleCourante();
+  if (!ac || !r) {
+    return;
+  }
+  vider(ac);
+  if (etat.filtres.vue !== "traiter" || !etat.peutModifier) {
+    return;
+  }
+  var n = cochesValides().length;
+  var vis = dossiersVisibles().length;
+  ac.appendChild(creer("p", { classe: "w-actions-lot__texte", id: "vNbCoches", attrs: { "aria-live": "polite" }, texte: n ? pluriel(n, "dossier coché", "dossiers cochés") + " sur " + vis : vis ? "Cochez les dossiers à archiver." : "" }));
+  if (!vis) {
+    return;
+  }
+  ac.appendChild(bouton("Anonymiser" + (n ? " (" + n + ")" : ""), null, "user-unfollow-line", function() {
+    return preparerArchivage("anonymiser");
+  }, { id: "bAnonymiser", desactive: !n }));
+  if (r.suppressionPermise) {
+    ac.appendChild(bouton("Supprimer définitivement" + (n ? " (" + n + ")" : ""), "secondaire", "delete-bin-line", function() {
+      return preparerArchivage("supprimer");
+    }, { id: "bSupprimer", desactive: !n }));
+  }
+}
+function rendreListe(sc) {
+  var r = regleCourante();
+  var vis = dossiersVisibles();
+  var cols = colonnesAffichees(r);
+  var cocher = etat.filtres.vue === "traiter" && etat.peutModifier;
+  majActions();
+  if (!vis.length) {
+    var textes = {
+      traiter: "Aucun dossier à traiter : aucun n'a atteint sa durée de conservation.",
+      bientot: "Aucun dossier n'atteint sa durée de conservation dans les 3 prochains mois.",
+      attente: "Aucun dossier en attente."
+    };
+    sc.appendChild(creer("p", { classe: "w-texte fr-p-2w", id: "vVide", texte: etat.filtres.texte ? "Aucun dossier pour cette recherche." : textes[etat.filtres.vue] }));
+    return;
+  }
+  var colDate = infoCol(r.table, r.colDate);
+  var tete = creer("tr", {});
+  if (cocher) {
+    var tous = vis.every(function(x) {
+      return etat.coches[x.id];
+    });
+    var cbTous = creer("input", { attrs: { type: "checkbox", id: "vTous" }, coche: tous });
+    cbTous.addEventListener("change", function() {
+      vis.forEach(function(x) {
+        etat.coches[x.id] = cbTous.checked;
+      });
+      rendreScene();
+      var f = document.getElementById("vTous");
+      if (f) {
+        f.focus();
+      }
+    });
+    tete.appendChild(creer("th", { classe: "w-case", attrs: { scope: "col" } }, [creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [
+      cbTous,
+      creer("label", { classe: "fr-label", attrs: { "for": "vTous" } }, [creer("span", { classe: "fr-sr-only", texte: "Tout cocher" })])
+    ])]));
+  }
+  cols.forEach(function(c) {
+    tete.appendChild(creer("th", { texte: c.label, attrs: { scope: "col" } }));
+  });
+  tete.appendChild(creer("th", { texte: colDate.label, attrs: { scope: "col" } }));
+  tete.appendChild(creer("th", { texte: etat.filtres.vue === "attente" ? "Motif de la mise en attente" : "Archivable depuis le", attrs: { scope: "col" } }));
+  if (etat.peutModifier) {
+    tete.appendChild(creer("th", { classe: "w-droite", attrs: { scope: "col" } }, [creer("span", { classe: "fr-sr-only", texte: "Actions" })]));
+  }
+  var corps = creer("tbody", {});
+  vis.forEach(function(x) {
+    var tr = creer("tr", { classe: etat.coches[x.id] && cocher ? "w-ligne--cochee" : "" });
+    var nom = cols.length ? valeurLisible(r.table, cols[0], etat.donnees.d, x.i) : "";
+    var nomLu = nom || "Dossier n° " + x.id;
+    if (cocher) {
+      var cb = creer("input", { attrs: { type: "checkbox", id: "vCoche_" + x.id }, coche: !!etat.coches[x.id] });
+      cb.addEventListener("change", function() {
+        etat.coches[x.id] = cb.checked;
+        tr.classList.toggle("w-ligne--cochee", cb.checked);
+        majActions();
+        var t = document.getElementById("vTous");
+        if (t) {
+          t.checked = vis.every(function(y) {
+            return etat.coches[y.id];
+          });
+        }
+      });
+      tr.appendChild(creer("td", { classe: "w-case" }, [creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [
+        cb,
+        creer("label", { classe: "fr-label", attrs: { "for": "vCoche_" + x.id } }, [creer("span", { classe: "fr-sr-only", texte: "Cocher " + nomLu })])
+      ])]));
+    }
+    cols.forEach(function(c, k) {
+      var v = valeurLisible(r.table, c, etat.donnees.d, x.i);
+      tr.appendChild(creer("td", {}, [k === 0 ? creer("strong", { texte: v || nomLu }) : v]));
+    });
+    tr.appendChild(creer("td", { texte: formaterDate(x.date) }));
+    if (etat.filtres.vue === "attente") {
+      tr.appendChild(creer("td", { texte: x.attente ? x.attente.motif : "" }));
+    } else {
+      tr.appendChild(creer("td", {}, [badge(dateLongue(x.echeance), x.statut === "traiter" ? "warning" : "info")]));
+    }
+    if (etat.peutModifier) {
+      var act = x.statut === "attente" ? bouton("Reprendre", "tertiaire", "play-line", function() {
+        return reprendreDossier(x);
+      }, { petit: true, id: "vReprendre_" + x.id, aria: "Reprendre " + nomLu }) : bouton("Mettre en attente", "tertiaire", "pause-line", function() {
+        ouvrirMiseEnAttente(x, nomLu);
+      }, { petit: true, id: "vAttente_" + x.id, aria: "Mettre en attente " + nomLu });
+      tr.appendChild(creer("td", { classe: "w-droite" }, [act]));
+    }
+    corps.appendChild(tr);
+  });
+  sc.appendChild(creer("table", { classe: "w-tableau", id: "vTableau" }, [
+    creer("caption", { classe: "fr-sr-only", texte: "Dossiers : " + VUES.filter(function(v) {
+      return v.cle === etat.filtres.vue;
+    })[0].nom }),
+    creer("thead", {}, [tete]),
+    corps
+  ]));
+}
+function rendreHistorique(sc) {
+  var r = regleCourante();
+  var l = etat.journal.filter(function(x) {
+    return x.regle === r.id || !x.regle && x.table === r.table;
+  }).sort(function(a, b) {
+    return b.le - a.le || b.id - a.id;
+  });
+  if (!l.length) {
+    sc.appendChild(creer("p", { classe: "w-texte fr-p-2w", id: "vVide", texte: "Aucune opération pour cette règle pour l'instant." }));
+    return;
+  }
+  var variantes = { "Anonymisation": "info", "Suppression": "error", "Mise en attente": "new" };
+  var corps = creer("tbody", {});
+  l.forEach(function(x) {
+    var detail = x.operation === "Mise en attente" ? x.motif + (x.levee ? " (reprise depuis)" : "") : x.detail;
+    corps.appendChild(creer("tr", {}, [
+      creer("td", { texte: x.le ? dateJJMMAAAA(x.le, true) : "" }),
+      creer("td", {}, [badge(x.operation, variantes[x.operation] || null)]),
+      creer("td", { classe: "w-droite", texte: String(x.nombre) }),
+      creer("td", { texte: detail }),
+      creer("td", { texte: x.fichier }),
+      creer("td", { texte: x.par })
+    ]));
+  });
+  sc.appendChild(creer("table", { classe: "w-tableau", id: "vHistorique" }, [
+    creer("caption", { classe: "fr-sr-only", texte: "Historique des opérations" }),
+    creer("thead", {}, [creer("tr", {}, ["Date", "Opération", "Dossiers", "Détail", "Archive", "Par"].map(function(t, i) {
+      return creer("th", { classe: i === 2 ? "w-droite" : "", texte: t, attrs: { scope: "col" } });
+    }))]),
+    corps
+  ]));
+}
+function ouvrirMiseEnAttente(x, nom) {
+  var motif = saisie("dMotif", "", { multiligne: true, lignes: 3, indice: "Par exemple : contentieux en cours" });
+  var corps = creer("div", {}, [
+    creer("p", { classe: "w-texte", texte: "Le dossier « " + nom + " » sort de la liste à traiter jusqu'à ce que vous le repreniez." }),
+    creer("div", { classe: "w-motif" }, [groupeChamp("Motif", motif, null, true)])
+  ]);
+  var valider = bouton("Mettre en attente", null, "pause-line", async function() {
+    var m = motif.value.trim();
+    if (!m) {
+      marquerInvalide("dMotif", "Indiquez le motif de la mise en attente.");
+      return;
+    }
+    var r = regleCourante();
+    try {
+      await agir([["AddRecord", etat.tables.jo, null, { OPERATION: "Mise en attente", REGLE: r.id, NOM_REGLE: r.nom, TABLE: r.table, LIGNES: String(x.id), NOMBRE: 1, MOTIF: m, LEVEE: false }]]);
+      fermerDialogue();
+      await rafraichir(true);
+      afficherToast("Dossier mis en attente.");
+    } catch (e) {
+      erreurEcriture(e, "La mise en attente n'a pas abouti.");
+    }
+  }, { id: "dValiderAttente" });
+  ouvrirDialogue("Mettre en attente", corps, [bouton("Annuler", "secondaire", null, fermerDialogue, { id: "dAnnulerAttente" }), valider], false);
+  motif.focus();
+}
+async function reprendreDossier(x) {
+  if (!x.attente) {
+    return;
+  }
+  try {
+    await agir([["UpdateRecord", etat.tables.jo, x.attente.id, { LEVEE: true }]]);
+    await rafraichir(true);
+    afficherToast("Dossier repris : il revient dans la liste à traiter.");
+  } catch (e) {
+    erreurEcriture(e, "La reprise du dossier n'a pas abouti.");
+  }
+}
+function exporterListe() {
+  var r = regleCourante();
+  if (typeof XLSX === "undefined") {
+    afficherErreur("L'export Excel n'est pas disponible : la bibliothèque d'export n'a pas pu être chargée.");
+    return;
+  }
+  var cols = colonnesAffichees(r);
+  var colDate = infoCol(r.table, r.colDate);
+  var vue = VUES.filter(function(v) {
+    return v.cle === etat.filtres.vue;
+  })[0];
+  var lignes = [cols.map(function(c) {
+    return c.label;
+  }).concat([colDate.label, "Archivable depuis le", "Situation", "Motif"])];
+  dossiersVisibles().forEach(function(x) {
+    lignes.push(cols.map(function(c) {
+      return valeurLisible(r.table, c, etat.donnees.d, x.i);
+    }).concat([dateJJMMAAAA(x.date), dateJJMMAAAA(Math.floor(x.echeance / 1e3)), vue.nom, x.attente ? x.attente.motif : ""]));
+  });
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lignes), "Dossiers");
+  XLSX.writeFile(wb, "liste_" + slug(r.nom) + "_" + jourIso() + ".xlsx");
+  afficherToast("Liste exportée.");
+}
+function slug(t) {
+  return normaliserTexte(t).replace(/ /g, "_").slice(0, 40) || "regle";
+}
+function jourIso() {
+  var d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth() < 9 ? "0" : "") + (d.getMonth() + 1) + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
+}
+function valeurVide(type) {
+  var t = String(type);
+  if (/^Ref:/.test(t)) {
+    return 0;
+  }
+  if (/^Bool/.test(t)) {
+    return false;
+  }
+  if (/^(Text|Choice$|Any)/.test(t)) {
+    return "";
+  }
+  return null;
+}
+function liensDeLaRegle(r) {
+  var detectes = tablesLiees(r.table);
+  var res = [];
+  detectes.forEach(function(d) {
+    var conf = r.liees.filter(function(l) {
+      return l.table === d.table && l.colonne === d.colonne;
+    })[0];
+    res.push({
+      table: d.table,
+      colonne: d.colonne,
+      liste: d.liste,
+      connu: !!conf,
+      anonymiser: conf ? conf.anonymiser : false,
+      champs: conf ? conf.champs.filter(function(c) {
+        var i = infoCol(d.table, c);
+        return i && !i.formule && !i.formuleVide;
+      }) : [],
+      suppression: conf && !d.liste ? conf.suppression : "detacher"
+    });
+  });
+  return res;
+}
+function lignesLiees(lien, d, ids) {
+  var set = {};
+  ids.forEach(function(id) {
+    set[id] = true;
+  });
+  var res = [];
+  var col = d[lien.colonne] || [];
+  for (var k = 0; k < d.id.length; k++) {
+    var v = col[k];
+    if (lien.liste) {
+      if (Array.isArray(v) && v[0] === "L" && v.slice(1).some(function(x) {
+        return set[x];
+      })) {
+        res.push(k);
+      }
+    } else if (typeof v === "number" && set[v]) {
+      res.push(k);
+    }
+  }
+  return res;
+}
+function libellesChamps(tid, champs) {
+  return champs.map(function(c) {
+    var i = infoCol(tid, c);
+    return i ? i.label : c;
+  });
+}
+async function preparerArchivage(mode) {
+  var r = regleCourante();
+  var ids0 = cochesValides();
+  if (!r || !ids0.length) {
+    return;
+  }
+  if (typeof XLSX === "undefined") {
+    afficherErreur("L'archive Excel ne peut pas être produite : la bibliothèque d'export n'a pas pu être chargée. Rien n'a été modifié. Réessayez plus tard.");
+    return;
+  }
+  afficherLoader("Préparation de l'archive…");
+  try {
+    await chargerMeta();
+    await chargerDonnees();
+    var ids = cochesValides();
+    if (!ids.length) {
+      masquerLoader();
+      rendreScene();
+      return;
+    }
+    var d = etat.donnees.d;
+    var idx = {};
+    d.id.forEach(function(id, i) {
+      idx[id] = i;
+    });
+    var champs = r.champs.filter(function(c) {
+      var i = infoCol(r.table, c);
+      return i && !i.formule && !i.formuleVide;
+    });
+    if (mode === "anonymiser" && !champs.length) {
+      masquerLoader();
+      afficherErreur("Aucun champ à vider n'est choisi pour cette règle. Choisissez-les dans les paramétrages, étape « Traitements ».");
+      return;
+    }
+    var liens = liensDeLaRegle(r);
+    var donneesLiees = {};
+    for (var k = 0; k < liens.length; k++) {
+      if (!donneesLiees[liens[k].table]) {
+        donneesLiees[liens[k].table] = await lireTable(liens[k].table);
+      }
+      liens[k].lignes = lignesLiees(liens[k], donneesLiees[liens[k].table], ids);
+    }
+    var noms = {};
+    try {
+      var pj = await lireTable("_grist_Attachments");
+      for (var p = 0; p < pj.id.length; p++) {
+        noms[pj.id[p]] = pj.fileName ? pj.fileName[p] : "";
+      }
+    } catch (e) {
+      logSecurite("INFO", "Noms des fichiers joints illisibles", e);
+    }
+    masquerLoader();
+    var plan = { mode, regle: r, ids, idx, d, champs, liens, donneesLiees, noms, fichier: "", telecharge: false, confirme: false };
+    ouvrirArchivage(plan);
+  } catch (e) {
+    masquerLoader();
+    afficherErreur("La préparation de l'archive n'a pas abouti. Rien n'a été modifié.", e);
+  }
+}
+function effetsDuPlan(plan) {
+  var r = plan.regle;
+  var l = [];
+  var n = plan.ids.length;
+  if (plan.mode === "anonymiser") {
+    l.push({ table: r.table, lignes: n, effet: "champs vidés : " + libellesChamps(r.table, plan.champs).join(", ") });
+    plan.liens.forEach(function(x) {
+      if (!x.lignes.length) {
+        return;
+      }
+      l.push({ table: x.table, lignes: x.lignes.length, effet: x.anonymiser && x.champs.length ? "champs vidés : " + libellesChamps(x.table, x.champs).join(", ") : "conservées telles quelles" });
+    });
+  } else {
+    plan.liens.forEach(function(x) {
+      if (!x.lignes.length) {
+        return;
+      }
+      l.push({ table: x.table, lignes: x.lignes.length, effet: x.suppression === "supprimer" ? "supprimées" : "conservées, détachées des dossiers" });
+    });
+    l.push({ table: r.table, lignes: n, effet: "supprimées" });
+  }
+  return l;
+}
+function ouvrirArchivage(plan) {
+  var r = plan.regle;
+  var n = plan.ids.length;
+  var anon = plan.mode === "anonymiser";
+  var effets = effetsDuPlan(plan);
+  var corps = creer("div", {});
+  corps.appendChild(creer("section", { classe: "w-etape-archive", attrs: { "aria-labelledby": "dEtape1" } }, [
+    creer("h3", { id: "dEtape1" }, [creer("span", { classe: "w-num", texte: "1", attrs: { "aria-hidden": "true" } }), "Ce qui va changer"]),
+    creer("table", { classe: "w-tableau w-tableaux-tables" }, [
+      creer("caption", { classe: "fr-sr-only", texte: "Ce qui va changer" }),
+      creer("thead", {}, [creer("tr", {}, [creer("th", { texte: "Table", attrs: { scope: "col" } }), creer("th", { classe: "w-droite", texte: "Lignes", attrs: { scope: "col" } }), creer("th", { texte: "Effet", attrs: { scope: "col" } })])]),
+      creer("tbody", {}, effets.map(function(x) {
+        return creer("tr", {}, [creer("td", { texte: libelleTable(x.table) }), creer("td", { classe: "w-droite", texte: String(x.lignes) }), creer("td", { texte: x.effet })]);
+      }))
+    ]),
+    plan.liens.some(function(x) {
+      return !x.connu && x.lignes.length;
+    }) ? creer("p", { classe: "w-mention fr-mt-1w", texte: "Une table liée n'est pas encore dans la règle : ses lignes sont archivées et " + (anon ? "conservées telles quelles." : "détachées des dossiers.") }) : null,
+    anon ? null : alerte("warning", "Action irréversible", "Les lignes supprimées ne peuvent pas être restaurées depuis le document. L'archive est la seule copie qui restera.")
+  ]));
+  var etat2 = creer("section", { classe: "w-etape-archive", id: "dBloc2", attrs: { "aria-labelledby": "dEtape2" } });
+  var etat3 = creer("section", { classe: "w-etape-archive w-etape-archive--inactive", id: "dBloc3", attrs: { "aria-labelledby": "dEtape3" } });
+  corps.appendChild(etat2);
+  corps.appendChild(etat3);
+  var lancer = bouton(
+    anon ? "Anonymiser " + pluriel(n, "dossier", "dossiers") : "Supprimer définitivement " + pluriel(n, "dossier", "dossiers"),
+    null,
+    anon ? "user-unfollow-line" : "delete-bin-line",
+    function() {
+      return executerArchivage(plan);
+    },
+    { id: "dLancer", desactive: true }
+  );
+  var majPret = function() {
+    var ok = plan.telecharge && plan.confirme;
+    if (!anon) {
+      var s = document.getElementById("dNombre");
+      ok = ok && s && String(s.value).trim() === String(n);
+    }
+    lancer.disabled = !ok;
+    etat3.classList.toggle("w-etape-archive--inactive", !plan.telecharge);
+  };
+  var rendre2 = function() {
+    vider(etat2);
+    etat2.classList.toggle("w-etape-archive--faite", plan.telecharge);
+    etat2.appendChild(creer("h3", { id: "dEtape2" }, [creer("span", { classe: "w-num", texte: "2", attrs: { "aria-hidden": "true" } }), "Archive pour le service des archives"]));
+    etat2.appendChild(creer("p", { classe: "w-texte", texte: "Un fichier Excel avec toutes les colonnes des " + pluriel(n, "dossier", "dossiers") + " et de leurs lignes liées, et un onglet « Lisez-moi » qui décrit la règle et l'opération. Les fichiers joints n'y sont pas : leurs noms sont listés." }));
+    etat2.appendChild(creer("div", { classe: "fr-mt-1w" }, [bouton(plan.telecharge ? "Télécharger à nouveau" : "Télécharger l'archive (Excel)", plan.telecharge ? "secondaire" : null, "download-line", function() {
+      try {
+        plan.fichier = produireArchive(plan);
+        plan.telecharge = true;
+        rendre2();
+        rendre3();
+        majPret();
+        var c = document.getElementById("dConfirme");
+        if (c) {
+          c.focus();
+        }
+        annoncer("Archive téléchargée : " + plan.fichier + ".");
+      } catch (e) {
+        afficherErreur("L'archive n'a pas pu être produite. Rien n'a été modifié.", e);
+      }
+    }, { id: "dTelecharger" })]));
+    if (plan.telecharge) {
+      etat2.appendChild(creer("p", { classe: "w-mention fr-mt-1w", texte: "Fichier téléchargé : " + plan.fichier }));
+    }
+  };
+  var rendre3 = function() {
+    vider(etat3);
+    etat3.appendChild(creer("h3", { id: "dEtape3" }, [creer("span", { classe: "w-num", texte: "3", attrs: { "aria-hidden": "true" } }), "Confirmation"]));
+    var cb = creer("input", { attrs: { type: "checkbox", id: "dConfirme", disabled: !plan.telecharge }, coche: plan.confirme });
+    cb.addEventListener("change", function() {
+      plan.confirme = cb.checked;
+      majPret();
+    });
+    etat3.appendChild(creer("div", { classe: "fr-checkbox-group" }, [cb, creer("label", { classe: "fr-label", attrs: { "for": "dConfirme" }, texte: "J'ai enregistré l'archive et je la transmets au service des archives." })]));
+    if (!anon) {
+      var s = saisie("dNombre", "", { type: "text" });
+      s.setAttribute("inputmode", "numeric");
+      s.disabled = !plan.telecharge;
+      s.addEventListener("input", majPret);
+      etat3.appendChild(creer("div", { classe: "fr-mt-2w" }, [groupeChamp("Pour confirmer la suppression, saisissez le nombre de dossiers : " + n, s, null, true)]));
+    }
+  };
+  rendre2();
+  rendre3();
+  ouvrirDialogue(
+    anon ? "Anonymiser " + pluriel(n, "dossier", "dossiers") : "Supprimer définitivement " + pluriel(n, "dossier", "dossiers"),
+    corps,
+    [bouton("Annuler", "secondaire", null, fermerDialogue, { id: "dAnnuler" }), lancer],
+    true
+  );
+}
+function feuilleTable(tid, d, lignes, noms) {
+  var cols = colonnesDonnees(tid);
+  var aoa = [["N° de ligne"].concat(cols.map(function(c) {
+    return c.label;
+  }))];
+  lignes.forEach(function(i) {
+    aoa.push([d.id[i]].concat(cols.map(function(c) {
+      return valeurLisible(tid, c, d, i, noms);
+    })));
+  });
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = aoa[0].map(function(t, k) {
+    var m = String(t).length;
+    for (var j = 1; j < Math.min(aoa.length, 200); j++) {
+      m = Math.max(m, String(aoa[j][k] === null || aoa[j][k] === void 0 ? "" : aoa[j][k]).length);
+    }
+    return { wch: Math.min(60, Math.max(8, m + 2)) };
+  });
+  return ws;
+}
+function nomFeuille(t, pris) {
+  var base = String(t).replace(/[\\\/\?\*\[\]:]/g, " ").replace(/\s+/g, " ").trim().slice(0, 28) || "Table";
+  var n = base, k = 2;
+  while (pris[n.toLowerCase()]) {
+    n = base.slice(0, 26) + " " + k;
+    k++;
+  }
+  pris[n.toLowerCase()] = true;
+  return n;
+}
+function produireArchive(plan) {
+  var r = plan.regle;
+  var anon = plan.mode === "anonymiser";
+  var wb = XLSX.utils.book_new();
+  var pris = {};
+  var effets = effetsDuPlan(plan);
+  var lisez = [
+    ["Archive", "Diploarchive"],
+    ["Document", etat.nomDoc || ""],
+    ["Règle", r.nom],
+    ["Table des dossiers", libelleTable(r.table)],
+    ["Critère", libelleCritere(r)],
+    ["Traitement prévu", anon ? "Anonymisation (les lignes restent, les champs personnels sont vidés)" : "Suppression définitive"],
+    ["Date de l'export", dateJJMMAAAA(Math.floor(Date.now() / 1e3), true)],
+    ["Nombre de dossiers", plan.ids.length],
+    [],
+    ["Table", "Lignes", "Effet"]
+  ];
+  effets.forEach(function(x) {
+    lisez.push([libelleTable(x.table), x.lignes, x.effet]);
+  });
+  lisez.push([]);
+  lisez.push(["Note", "Les fichiers joints ne sont pas inclus dans ce fichier : leurs noms figurent dans les colonnes concernées."]);
+  var wl = XLSX.utils.aoa_to_sheet(lisez);
+  wl["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 50 }];
+  XLSX.utils.book_append_sheet(wb, wl, nomFeuille("Lisez-moi", pris));
+  var lignesP = plan.ids.map(function(id) {
+    return plan.idx[id];
+  }).filter(function(i) {
+    return i !== void 0;
+  });
+  XLSX.utils.book_append_sheet(wb, feuilleTable(r.table, plan.d, lignesP, plan.noms), nomFeuille(libelleTable(r.table), pris));
+  var faites = {};
+  plan.liens.forEach(function(x) {
+    if (!x.lignes.length) {
+      return;
+    }
+    var cle = x.table;
+    if (!faites[cle]) {
+      faites[cle] = [];
+    }
+    x.lignes.forEach(function(i) {
+      if (faites[cle].indexOf(i) === -1) {
+        faites[cle].push(i);
+      }
+    });
+  });
+  Object.keys(faites).forEach(function(t) {
+    faites[t].sort(function(a, b) {
+      return a - b;
+    });
+    XLSX.utils.book_append_sheet(wb, feuilleTable(t, plan.donneesLiees[t], faites[t], plan.noms), nomFeuille(libelleTable(t), pris));
+  });
+  var nom = "archive_" + slug(r.nom) + "_" + jourIso() + ".xlsx";
+  XLSX.writeFile(wb, nom);
+  logSecurite("INFO", "Archive produite : " + nom + " (" + plan.ids.length + " dossiers)");
+  return nom;
+}
+function actionsLot(plan, lot) {
+  var r = plan.regle;
+  var actions = [];
+  var set = {};
+  lot.forEach(function(id) {
+    set[id] = true;
+  });
+  var vides = function(tid, champs, n) {
+    var v = {};
+    champs.forEach(function(c) {
+      var i = infoCol(tid, c);
+      var x = valeurVide(i ? i.type : "Text");
+      v[c] = [];
+      for (var k = 0; k < n; k++) {
+        v[c].push(x);
+      }
+    });
+    return v;
+  };
+  plan.liens.forEach(function(x) {
+    var d = plan.donneesLiees[x.table];
+    var lignes = lignesLiees(x, d, lot);
+    if (!lignes.length) {
+      return;
+    }
+    var rids = lignes.map(function(i) {
+      return d.id[i];
+    });
+    if (plan.mode === "anonymiser") {
+      if (x.anonymiser && x.champs.length) {
+        actions.push(["BulkUpdateRecord", x.table, rids, vides(x.table, x.champs, rids.length)]);
+      }
+      return;
+    }
+    if (x.suppression === "supprimer" && !x.liste) {
+      actions.push(["BulkRemoveRecord", x.table, rids]);
+      return;
+    }
+    var nv = lignes.map(function(i) {
+      var v = d[x.colonne][i];
+      if (!x.liste) {
+        return 0;
+      }
+      var reste = (Array.isArray(v) ? v.slice(1) : []).filter(function(id) {
+        return !set[id];
+      });
+      return reste.length ? ["L"].concat(reste) : null;
+    });
+    var o = {};
+    o[x.colonne] = nv;
+    actions.push(["BulkUpdateRecord", x.table, rids, o]);
+  });
+  if (plan.mode === "anonymiser") {
+    actions.push(["BulkUpdateRecord", r.table, lot, vides(r.table, plan.champs, lot.length)]);
+  } else {
+    actions.push(["BulkRemoveRecord", r.table, lot]);
+  }
+  return actions;
+}
+function detailDuPlan(plan, faits) {
+  var sous = Object.assign({}, plan, { ids: faits });
+  sous.liens = plan.liens.map(function(x) {
+    return Object.assign({}, x, { lignes: lignesLiees(x, plan.donneesLiees[x.table], faits) });
+  });
+  return effetsDuPlan(sous).map(function(x) {
+    return libelleTable(x.table) + " : " + pluriel(x.lignes, "ligne", "lignes") + ", " + x.effet;
+  }).join(" ; ");
+}
+async function executerArchivage(plan) {
+  if (!plan.telecharge || !plan.confirme) {
+    return;
+  }
+  var r = plan.regle;
+  var anon = plan.mode === "anonymiser";
+  fermerDialogue();
+  var faits = [];
+  var erreur = null;
+  for (var k = 0; k < plan.ids.length; k += TAILLE_LOT) {
+    var lot = plan.ids.slice(k, k + TAILLE_LOT);
+    afficherLoader((anon ? "Anonymisation… " : "Suppression… ") + faits.length + " sur " + plan.ids.length);
+    try {
+      await agir(actionsLot(plan, lot));
+      faits = faits.concat(lot);
+    } catch (e) {
+      erreur = e;
+      break;
+    }
+  }
+  if (faits.length) {
+    try {
+      await agir([["AddRecord", etat.tables.jo, null, {
+        OPERATION: anon ? "Anonymisation" : "Suppression",
+        REGLE: r.id,
+        NOM_REGLE: r.nom,
+        TABLE: r.table,
+        LIGNES: faits.join(","),
+        NOMBRE: faits.length,
+        DETAIL: detailDuPlan(plan, faits),
+        FICHIER: plan.fichier,
+        MOTIF: "",
+        LEVEE: false
+      }]]);
+    } catch (e) {
+      logSecurite("ERREUR", "Opération faite mais non inscrite au journal", e);
+      afficherErreur("L'opération est faite, mais elle n'a pas pu être inscrite à l'historique.", e);
+    }
+  }
+  masquerLoader();
+  etat.coches = {};
+  etat.signature = "";
+  await rafraichir(true);
+  if (erreur) {
+    if (!faits.length) {
+      erreurEcriture(erreur, (anon ? "L'anonymisation" : "La suppression") + " n'a pas abouti. Rien n'a été modifié.");
+    } else {
+      afficherErreur((anon ? "L'anonymisation" : "La suppression") + " s'est arrêtée : " + faits.length + " dossiers traités sur " + plan.ids.length + ". L'archive contient tous les dossiers ; relancez pour les suivants.", erreur);
+    }
+    return;
+  }
+  afficherToast(pluriel(faits.length, anon ? "dossier anonymisé" : "dossier supprimé", anon ? "dossiers anonymisés" : "dossiers supprimés") + ". Archive : " + plan.fichier, null, 1e4);
+}
+function filAriane(noms, n, aller, idTitre, actions) {
+  var d = creer("div", { classe: "fr-stepper w-stepper" });
+  var titre = creer("h2", { classe: "fr-stepper__title", id: idTitre || "titreVue", attrs: { tabindex: "-1" } }, [
+    noms[n],
+    creer("span", { classe: "fr-stepper__state fr-sr-only", texte: "Étape " + (n + 1) + " sur " + noms.length })
+  ]);
+  var ol = creer("ol", { classe: "w-etapes", attrs: { "aria-label": "Étapes" } });
+  noms.forEach(function(nom, i) {
+    var et = i < n ? "faite" : i === n ? "en-cours" : "a-venir";
+    var contenuEtape = [
+      creer("span", { classe: "w-etapes__segment", attrs: { "aria-hidden": "true" } }),
+      creer("span", { classe: "w-etapes__ligne" }, [
+        et === "faite" ? creer("span", { classe: "fr-icon-checkbox-circle-fill fr-icon--sm w-etapes__coche", attrs: { "aria-hidden": "true" } }) : null,
+        creer("span", { classe: "w-etapes__nom", texte: nom })
+      ]),
+      creer("span", { classe: "fr-sr-only", texte: et === "faite" ? " (terminée)" : et === "en-cours" ? " (en cours)" : " (à venir)" })
+    ];
+    var suivante = !!aller && i === n + 1, precedente = !!aller && i === n - 1;
+    if (suivante) {
+      contenuEtape.push(creer("span", { classe: "w-etapes__appel" }, ["Continuer", creer("span", { classe: "fr-icon-arrow-right-line fr-icon--sm", attrs: { "aria-hidden": "true" } })]));
+    }
+    if (precedente) {
+      contenuEtape.push(creer("span", { classe: "w-etapes__appel w-etapes__appel--retour" }, [creer("span", { classe: "fr-icon-arrow-left-line fr-icon--sm", attrs: { "aria-hidden": "true" } }), "Retour"]));
+    }
+    var li = creer(
+      "li",
+      { classe: "w-etapes__item w-etapes__item--" + et + (aller && i !== n ? " w-etapes__item--lien" : "") + (suivante ? " w-etapes__item--suivante" : ""), attrs: { "aria-current": et === "en-cours" ? "step" : null } },
+      aller && i !== n ? [creer("button", { classe: "w-etapes__bouton", id: (idTitre || "titreVue") + "_etape" + i, clic: function() {
+        aller(i);
+      } }, contenuEtape)] : contenuEtape
+    );
+    ol.appendChild(li);
+  });
+  var acts = (actions || []).filter(Boolean);
+  d.appendChild(acts.length ? creer("div", { classe: "w-etapes-rangee" }, [ol, creer("div", { classe: "w-etapes-rangee__actions" }, acts)]) : ol);
+  d.appendChild(titre);
+  return d;
+}
+function piedEtape(noms, n, aller) {
+  var pied = creer("div", { classe: "w-nav-etapes" });
+  if (n < noms.length - 1) {
+    pied.appendChild(bouton("Continuer : " + noms[n + 1], null, "arrow-right-line", function() {
+      aller(n + 1);
+    }, { id: "nSuivant", iconeDroite: true, classe: "w-pousse" }));
+  }
+  return pied;
+}
+function enBlocs(noeuds, deux) {
+  var grille = creer("div", { classe: "w-grille" + (deux ? " w-grille--2" : "") });
+  var n = 0;
+  var colonnes = [];
+  noeuds.forEach(function(x) {
+    if (!x) {
+      return;
+    }
+    if (x.classList.contains("w-grille-param")) {
+      Array.prototype.slice.call(x.children).forEach(function(c) {
+        colonnes.push(c);
+      });
+    } else {
+      colonnes.push(x);
+    }
+  });
+  var estTitre = function(ch) {
+    return !!(ch.firstChild && ch.firstChild.classList && ch.firstChild.classList.contains("w-titre-colonne-ligne"));
+  };
+  var nouvelle = function(titreDiv) {
+    var sec = creer("section", { classe: "w-section" });
+    grille.appendChild(sec);
+    var h = titreDiv ? titreDiv.querySelector(".w-titre-colonne") : null;
+    if (h) {
+      n++;
+      var libelle = h.textContent;
+      h.insertBefore(creer("span", { classe: "w-num", attrs: { "aria-hidden": "true" }, texte: String(n) }), h.firstChild);
+      if (h.id) {
+        sec.setAttribute("aria-labelledby", h.id);
+      }
+      if (/^Supprimer/.test(libelle)) {
+        sec.classList.add("w-section--danger");
+      }
+      if (/^Aperçu/.test(libelle)) {
+        sec.classList.add("w-section--apercu");
+      }
+    }
+    return sec;
+  };
+  var marquer = function(sec) {
+    if (sec.querySelector(".w-jeux, .w-tableau-simple")) {
+      sec.classList.add("w-section--large");
+    }
+  };
+  colonnes.forEach(function(col) {
+    var enfants = Array.prototype.slice.call(col.children);
+    var titres = enfants.filter(estTitre);
+    if (titres.length <= 1) {
+      var s1 = nouvelle(titres[0]);
+      s1.appendChild(col);
+      marquer(s1);
+      return;
+    }
+    var sec = null;
+    enfants.forEach(function(ch) {
+      if (estTitre(ch) || !sec) {
+        if (sec) {
+          marquer(sec);
+        }
+        sec = nouvelle(estTitre(ch) ? ch : null);
+      }
+      sec.appendChild(ch);
+    });
+    if (sec) {
+      marquer(sec);
+    }
+  });
+  return grille;
+}
+function marquerInvalide(id, message) {
+  var n = document.getElementById(id);
+  logSecurite("INFO", "Saisie refusée : " + message);
+  if (!n) {
+    signalerSaisie(message);
+    return;
+  }
+  var idMsg = id + "_erreur";
+  var ancien = document.getElementById(idMsg);
+  if (ancien) {
+    ancien.parentNode.removeChild(ancien);
+  }
+  var msg = creer("p", { classe: "fr-error-text", id: idMsg, texte: message });
+  var groupe = n.closest ? n.closest(".fr-input-group, .fr-select-group") : null;
+  if (groupe) {
+    groupe.classList.add(groupe.classList.contains("fr-select-group") ? "fr-select-group--error" : "fr-input-group--error");
+    groupe.appendChild(msg);
+  } else if (n.parentNode) {
+    n.parentNode.insertBefore(msg, n.nextSibling);
+  }
+  n.setAttribute("aria-invalid", "true");
+  n.setAttribute("aria-describedby", idMsg);
+  var effacer = function() {
+    n.removeAttribute("aria-invalid");
+    n.removeAttribute("aria-describedby");
+    if (groupe) {
+      groupe.classList.remove("fr-input-group--error");
+      groupe.classList.remove("fr-select-group--error");
+    }
+    if (msg.parentNode) {
+      msg.parentNode.removeChild(msg);
+    }
+    n.removeEventListener("input", effacer);
+  };
+  n.addEventListener("input", effacer);
+  n.focus();
+  annoncer(message);
+}
+function donneesDe(c) {
+  if (etat.creation && c === etat.creation) {
+    return etat.creation.donnees || null;
+  }
+  return etat.donnees && etat.donnees.table === c.table ? etat.donnees.d : null;
+}
+function refocaliser(id) {
+  var f = document.getElementById(id);
+  if (f) {
+    f.focus();
+  }
+}
+function casesColonnes(idBase, cols, choisies, surChange) {
+  var g = creer("div", { classe: "w-cases", attrs: { role: "group" } });
+  cols.forEach(function(col) {
+    g.appendChild(caseACocher(idBase + "_" + col.colId, col.label, choisies.indexOf(col.colId) !== -1, function(v) {
+      var k = choisies.indexOf(col.colId);
+      if (v && k === -1) {
+        choisies.push(col.colId);
+      }
+      if (!v && k !== -1) {
+        choisies.splice(k, 1);
+      }
+      surChange();
+    }));
+  });
+  return g;
+}
+function valeursDistinctes(c, colId) {
+  var d = donneesDe(c);
+  var col = infoCol(c.table, colId);
+  if (!d || !col) {
+    return [];
+  }
+  var vus = {};
+  var l = [];
+  for (var i = 0; i < d.id.length && l.length < 60; i++) {
+    var v = valeurLisible(c.table, col, d, i);
+    if (v !== "" && !vus[v]) {
+      vus[v] = true;
+      l.push(v);
+    }
+  }
+  return l.sort(function(a, b) {
+    return a.localeCompare(b, "fr");
+  });
+}
+function editeurRegle(c, apres, idBase, redessiner, avecNom) {
+  var col1 = [];
+  if (avecNom) {
+    var nom = saisie(idBase + "Nom", c.nom, { indice: "Par exemple : " + libelleTable(c.table) + ", 2 ans après la fin" });
+    nom.addEventListener("input", function() {
+      c.nom = nom.value;
+      majOngletCreation();
+      apres();
+    });
+    var desc = saisie(idBase + "Description", c.description, { multiligne: true, lignes: 2 });
+    desc.addEventListener("input", function() {
+      c.description = desc.value;
+      apres();
+    });
+    col1.push(titreColonne("Nom de la règle", idBase + "TitreNom", null), groupeChamp("Nom", nom, null, true), groupeChamp("Description", desc, "Facultatif. Par exemple la référence du texte qui fixe la durée."));
+  }
+  var dates = colonnesDates(c.table);
+  var selD = liste(idBase + "Date", dates.map(function(x) {
+    return { valeur: x.colId, libelle: x.label };
+  }), c.colDate);
+  selD.addEventListener("change", function() {
+    c.colDate = selD.value;
+    apres();
+  });
+  var nb = saisie(idBase + "Delai", String(c.delai), { type: "number" });
+  nb.setAttribute("min", "0");
+  nb.setAttribute("max", "1200");
+  nb.addEventListener("input", function() {
+    var v = parseInt(nb.value, 10);
+    if (isFinite(v) && v >= 0) {
+      c.delai = Math.min(1200, v);
+      apres();
+    }
+  });
+  var unite = liste(idBase + "Unite", UNITES, c.unite);
+  unite.addEventListener("change", function() {
+    c.unite = unite.value;
+    apres();
+  });
+  col1.push(
+    titreColonne("Durée de conservation", idBase + "TitreDelai", null),
+    groupeListe("Point de départ : la date de la colonne", selD),
+    creer("div", { classe: "w-deux" }, [groupeChamp("Durée", nb), groupeListe("Unité", unite)])
+  );
+  var choix = colonnesDonnees(c.table).filter(function(x) {
+    return /^(Choice$|Text|Bool|Ref:)/.test(x.type) && x.colId !== c.colDate;
+  });
+  var selC = liste(idBase + "Cond", choix.map(function(x) {
+    return { valeur: x.colId, libelle: x.label };
+  }), c.condition.colonne, { vide: "Aucune condition" });
+  selC.addEventListener("change", function() {
+    c.condition.colonne = selC.value;
+    c.condition.valeurs = [];
+    apres();
+    redessiner();
+    refocaliser(idBase + "Cond");
+  });
+  var col2 = [titreColonne("Condition", idBase + "TitreCond", null), creer("p", { classe: "w-mention", texte: "Facultatif : seuls les dossiers dont la colonne a l'une des valeurs cochées sont archivés (par exemple un statut « Clos »)." }), groupeListe("Colonne", selC)];
+  if (c.condition.colonne) {
+    var vals = valeursDistinctes(c, c.condition.colonne);
+    c.condition.valeurs.forEach(function(v) {
+      if (vals.indexOf(v) === -1) {
+        vals.push(v);
+      }
+    });
+    col2.push(vals.length ? casesColonnes(idBase + "Val", vals.map(function(v) {
+      return { colId: v, label: v };
+    }), c.condition.valeurs, apres) : creer("p", { classe: "w-mention", texte: "Cette colonne est vide pour l'instant." }));
+  }
+  var affichables = colonnesDonnees(c.table).filter(function(x) {
+    return x.colId !== c.colDate;
+  });
+  col2.push(titreColonne("Colonnes affichées dans la liste", idBase + "TitreAff", null), creer("p", { classe: "w-mention", texte: "La première sert de nom au dossier." }), casesColonnes(idBase + "Aff", affichables, c.affichees, apres));
+  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col1), creer("div", { classe: "w-colonne" }, col2)]);
+}
+function editeurTraitements(c, apres, idBase) {
+  var eff = colonnesEffacables(c.table).filter(function(x) {
+    return !/^Ref/.test(x.type);
+  });
+  var col1 = [
+    titreColonne("Anonymisation : champs à vider", idBase + "TitreAnon", null),
+    creer("p", { classe: "w-mention", texte: "Traitement proposé en premier. Les champs cochés sont vidés ; la ligne reste, avec ses dates, statuts et montants, pour les statistiques. Les colonnes calculées ne sont pas proposées." }),
+    casesColonnes(idBase + "Ch", eff, c.champs, apres)
+  ];
+  var col2 = [
+    titreColonne("Suppression définitive", idBase + "TitreSuppr", null),
+    caseACocher(idBase + "Permise", "Proposer aussi la suppression définitive", c.suppressionPermise, function(v) {
+      c.suppressionPermise = v;
+      apres();
+    }, "Second choix, à côté de l'anonymisation. La ligne et ses lignes liées disparaissent du document."),
+    creer("p", { classe: "w-mention fr-mt-2w", texte: "Dans les deux cas, une archive Excel complète est téléchargée avant le traitement, pour le service des archives." })
+  ];
+  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col1), creer("div", { classe: "w-colonne" }, col2)]);
+}
+function synchroniserLiees(c) {
+  var det = tablesLiees(c.table);
+  c.liees = det.map(function(d) {
+    var ex = c.liees.filter(function(l) {
+      return l.table === d.table && l.colonne === d.colonne;
+    })[0];
+    if (ex) {
+      return ex;
+    }
+    var ch = champsSuggeres(d.table, d.colonne);
+    return { table: d.table, colonne: d.colonne, anonymiser: ch.length > 0, champs: ch, suppression: "detacher" };
+  });
+  return det;
+}
+function editeurLiees(c, apres, idBase) {
+  var det = synchroniserLiees(c);
+  var col = [titreColonne("Tables qui pointent vers les dossiers", idBase + "TitreLiees", null)];
+  if (!det.length) {
+    col.push(creer("p", { classe: "w-texte", texte: "Aucune table du document ne pointe vers « " + libelleTable(c.table) + " ». Seuls les dossiers sont archivés." }));
+    return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col)]);
+  }
+  col.push(creer("p", { classe: "w-mention", texte: "Leurs lignes liées aux dossiers traités sont toujours ajoutées à l'archive." }));
+  det.forEach(function(d, k) {
+    var l = c.liees[k];
+    var colRef = infoCol(d.table, d.colonne);
+    var bloc = creer("div", { classe: "w-liee" }, [creer("p", { classe: "w-texte" }, [creer("strong", { texte: libelleTable(d.table) }), " par la colonne « " + (colRef ? colRef.label : d.colonne) + " »"])]);
+    var zoneChamps = creer("div", { classe: "fr-ml-4w" });
+    var champs = colonnesEffacables(d.table).filter(function(x) {
+      return x.colId !== d.colonne && !/^Ref/.test(x.type);
+    });
+    zoneChamps.appendChild(casesColonnes(idBase + "L" + k, champs, l.champs, apres));
+    zoneChamps.hidden = !l.anonymiser;
+    bloc.appendChild(caseACocher(idBase + "LAnon" + k, "Anonymiser aussi ces lignes", l.anonymiser, function(v) {
+      l.anonymiser = v;
+      zoneChamps.hidden = !v;
+      apres();
+    }));
+    bloc.appendChild(zoneChamps);
+    if (!d.liste) {
+      var sel = liste(idBase + "LSup" + k, [{ valeur: "supprimer", libelle: "Supprimer ces lignes" }, { valeur: "detacher", libelle: "Les garder, sans lien vers le dossier" }], l.suppression);
+      sel.addEventListener("change", function() {
+        l.suppression = sel.value;
+        apres();
+      });
+      bloc.appendChild(groupeListe("En cas de suppression définitive", sel));
+    } else {
+      bloc.appendChild(creer("p", { classe: "w-mention", texte: "En cas de suppression définitive : ces lignes sont gardées, le dossier est retiré de leur liste." }));
+    }
+    col.push(bloc);
+  });
+  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col)]);
+}
+function nouvelleRegle() {
+  return normaliserRegle({ id: "x", nom: "", table: "", delai: 2, unite: "ans" });
+}
+function ouvrirCreation() {
+  if (!etat.peutParametrer) {
+    return;
+  }
+  etat.creation = Object.assign(nouvelleRegle(), { etape: 0, donnees: null, nom: "" });
+  etat.vue = "creation";
+  rendreCreation();
+  refocaliser("titreVue");
+  majAideEtape();
+}
+function tablesAvecDates() {
+  return tablesUtilisatrice().filter(function(t) {
+    return colonnesDates(t).length;
+  });
+}
+async function choisirTableDossiers(c, tid) {
+  afficherLoader("Lecture de la table…");
+  try {
+    c.donnees = await lireTable(tid);
+  } catch (e) {
+    c.donnees = null;
+    logSecurite("AVERTISSEMENT", "Table " + tid + " illisible", e);
+  }
+  masquerLoader();
+  c.table = tid;
+  var dates = colonnesDates(tid);
+  var pref = dates.filter(function(x) {
+    return /fin|clotur|clos|termin|sortie|depart/.test(normaliserTexte(x.label + " " + x.colId));
+  })[0];
+  c.colDate = (pref || dates[0]).colId;
+  c.affichees = colonnesDonnees(tid).filter(function(x) {
+    return x.colId !== c.colDate && /^(Text|Choice$|Ref:)/.test(x.type);
+  }).slice(0, 3).map(function(x) {
+    return x.colId;
+  });
+  c.champs = champsSuggeres(tid, c.colDate);
+  c.condition = { colonne: "", valeurs: [] };
+  c.liees = [];
+  synchroniserLiees(c);
+}
+function rendreCreation() {
+  etat.vue = "creation";
+  rendreOnglets();
+  var zone = contenu();
+  vider(zone);
+  zone.className = "w-contenu";
+  var c = etat.creation;
+  var aller = function(i) {
+    if (i > 0 && !c.table) {
+      signalerSaisie("Choisissez d'abord la table des dossiers.");
+      return;
+    }
+    if (i > 1 && !String(c.nom || "").trim()) {
+      demanderNom();
+      return;
+    }
+    c.etape = i;
+    rendreCreation();
+    refocaliser("titreVue");
+    majAideEtape();
+  };
+  var bloc = creer("div", { classe: "w-param" });
+  bloc.appendChild(filAriane(ETAPES_CREATION, c.etape, aller, null, [
+    bouton("Annuler la création", "tertiaire", "close-line", function() {
+      return annulerCreation();
+    }, { petit: true, id: "cAnnuler" }),
+    c.etape > 0 ? bouton("Créer la règle", null, "check-line", function() {
+      return lancerCreation();
+    }, { petit: true, id: "cCreer" }) : null
+  ]));
+  var rien = function() {
+  };
+  var redessiner = function() {
+    rendreCreation();
+  };
+  if (c.etape === 0) {
+    var possibles = tablesAvecDates();
+    bloc.appendChild(creer("p", { classe: "w-texte fr-text--lg fr-mb-0", texte: "Sélectionner la table des dossiers à archiver" }));
+    if (!possibles.length) {
+      bloc.appendChild(alerte("info", "Aucune table ne convient", "Une règle d'archivage part d'une colonne de date (fin de mandat, clôture du dossier...). Aucune table de ce document n'en a pour l'instant."));
+    }
+    var tuiles = possibles.map(function(t) {
+      var choisi = c.table === t;
+      var dates = colonnesDates(t).map(function(x) {
+        return x.label;
+      });
+      var b = bouton(choisi ? "Table choisie" : "Utiliser cette table", choisi ? null : "secondaire", choisi ? "check-line" : "arrow-right-line", async function() {
+        if (c.table !== t) {
+          await choisirTableDossiers(c, t);
+        }
+        aller(1);
+        annoncer("Table « " + libelleTable(t) + " » choisie.");
+      }, { petit: true, id: "cTable_" + t, iconeDroite: !choisi });
+      var div = creer("div", { classe: "w-modele" + (choisi ? " w-modele--choisi" : "") }, [
+        creer("span", { classe: "w-modele__vignette w-modele__vignette--icone", attrs: { "aria-hidden": "true" } }, [creer("span", { classe: "fr-icon-table-line fr-icon--lg" })]),
+        creer("span", { classe: "w-modele__texte" }, [creer("span", { classe: "w-modele__nom", texte: libelleTable(t) }), creer("span", { classe: "w-modele__desc", texte: "Dates : " + dates.join(", ") })]),
+        creer("span", { classe: "w-modele__bas" }, [b])
+      ]);
+      div.addEventListener("click", function(ev) {
+        if (!ev.target.closest("button")) {
+          b.click();
+        }
+      });
+      return div;
+    });
+    bloc.appendChild(creer("div", { classe: "w-modeles", attrs: { role: "group", "aria-label": "Tables du document" } }, tuiles));
+  }
+  if (c.etape === 1) {
+    bloc.appendChild(enBlocs([editeurRegle(c, rien, "c", redessiner, true)]));
+  }
+  if (c.etape === 2) {
+    bloc.appendChild(enBlocs([editeurTraitements(c, rien, "c")]));
+  }
+  if (c.etape === 3) {
+    bloc.appendChild(enBlocs([editeurLiees(c, rien, "c")]));
+  }
+  if (c.etape === 4) {
+    bloc.appendChild(enBlocs([recapitulatif(c)]));
+  }
+  bloc.appendChild(piedEtape(ETAPES_CREATION, c.etape, aller));
+  zone.appendChild(bloc);
+}
+function recapitulatif(c) {
+  var d = donneesDe(c);
+  var n = d ? compterDossiers(c, d, etat.journal) : null;
+  var liees = c.liees.map(function(l) {
+    return libelleTable(l.table) + (l.anonymiser && l.champs.length ? " : " + libellesChamps(l.table, l.champs).join(", ") : " : conservées telles quelles");
+  });
+  var items = [
+    "Table des dossiers : " + libelleTable(c.table),
+    "Critère : " + libelleCritere(c),
+    "Anonymisation : " + (c.champs.length ? libellesChamps(c.table, c.champs).join(", ") : "aucun champ choisi"),
+    "Suppression définitive : " + (c.suppressionPermise ? "proposée en second choix" : "non proposée")
+  ];
+  if (liees.length) {
+    items.push("Tables liées : " + liees.join(" ; "));
+  }
+  var col1 = [titreColonne("La règle", "cTitreRecap", null), creer("ul", { classe: "w-recap" }, items.map(function(t) {
+    return creer("li", { texte: t });
+  }))];
+  var col2 = [titreColonne("Aujourd'hui", "cTitreAuj", null)];
+  if (n) {
+    col2.push(creer("ul", { classe: "w-recap" }, [pluriel(n.traiter, "dossier à traiter", "dossiers à traiter"), pluriel(n.bientot, "dossier", "dossiers") + " dans les 3 prochains mois"].map(function(t) {
+      return creer("li", { texte: t });
+    })));
+  }
+  if (!c.champs.length) {
+    col2.push(alerte("warning", null, "Aucun champ à vider : l'anonymisation ne sera pas possible tant que vous n'en choisissez pas (étape Traitements)."));
+  }
+  if (!etat.tables.jo) {
+    col2.push(creer("p", { classe: "w-mention", texte: "Première règle du document : l'historique des opérations sera rangé dans une table créée pour lui." }));
+  }
+  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col1), creer("div", { classe: "w-colonne" }, col2)]);
+}
+async function annulerCreation() {
+  var ok = await confirmer("Abandonner la création ?", "Les choix faits dans l'assistant seront perdus.", "Abandonner");
+  if (!ok) {
+    return;
+  }
+  etat.creation = null;
+  if (regles().length) {
+    if (!regleCourante()) {
+      choisirRegle(regles()[0].id);
+    }
+    rendrePrincipal();
+  } else {
+    rendreMessage("aucun");
+  }
+}
+function demanderNom() {
+  var c = etat.creation;
+  if (!c) {
+    return;
+  }
+  if (c.etape !== 1) {
+    c.etape = 1;
+    rendreCreation();
+    majAideEtape();
+  }
+  marquerInvalide("cNom", "Donnez un nom à la règle pour continuer.");
+}
+function majOngletCreation() {
+  var o = document.getElementById("wOngletCreation");
+  if (!o || !etat.creation) {
+    return;
+  }
+  var n = o.querySelector(".w-onglet__nom");
+  if (n) {
+    n.textContent = String(etat.creation.nom || "").trim() || "Nouvelle règle";
+  }
+}
+async function lancerCreation() {
+  var c = etat.creation;
+  if (!c) {
+    return;
+  }
+  if (!c.table) {
+    signalerSaisie("Choisissez d'abord la table des dossiers.");
+    return;
+  }
+  if (!String(c.nom || "").trim()) {
+    demanderNom();
+    return;
+  }
+  afficherLoader("Création de la règle…");
+  try {
+    await chargerMeta();
+    resoudreTables();
+    if (!structureManquante().vide) {
+      await completerStructure();
+    }
+    await chargerMeta();
+    resoudreTables();
+    var id = "r" + Date.now().toString(36);
+    var r = normaliserRegle({
+      id,
+      nom: c.nom.trim(),
+      description: c.description.trim(),
+      table: c.table,
+      colDate: c.colDate,
+      delai: c.delai,
+      unite: c.unite,
+      condition: c.condition,
+      affichees: c.affichees,
+      champs: c.champs,
+      liees: c.liees,
+      suppressionPermise: c.suppressionPermise
+    });
+    etat.config = normaliserConfig(etat.config || {});
+    etat.config.regles.push(r);
+    await ecrireConfig();
+    etat.creation = null;
+    masquerLoader();
+    choisirRegle(id);
+    try {
+      await chargerDonnees();
+    } catch (eL) {
+      logSecurite("INFO", "Tables nouvelles pas encore lisibles dans cette session", eL);
+      rendreMessage("recharger");
+      return;
+    }
+    rendrePrincipal();
+    afficherToast("Règle « " + r.nom + " » créée.");
+  } catch (e) {
+    masquerLoader();
+    erreurEcriture(e, "La création n'a pas abouti. Vous pouvez réessayer.");
+  }
+}
+function ouvrirParametrage(etape) {
+  if (!etat.peutParametrer || !regleCourante()) {
+    return;
+  }
+  etat.param = { etape: etape || 0, statut: "Les modifications sont enregistrées automatiquement." };
+  etat.vue = "parametrage";
+  rendreParametrage();
+  refocaliser("titreVue");
+  majAideEtape();
+}
+async function quitterParametrage() {
+  etat.param = null;
+  etat.signature = "";
+  try {
+    await chargerDonnees();
+  } catch (e) {
+    logSecurite("AVERTISSEMENT", "Relecture après paramétrage impossible", e);
+  }
+  rendrePrincipal();
+  majAideEtape();
+}
+function statutParam(texte, erreur) {
+  if (etat.param) {
+    etat.param.statut = texte;
+  }
+  var z = document.getElementById("pStatut");
+  if (z) {
+    z.textContent = texte;
+    z.classList.toggle("w-statut--erreur", !!erreur);
+  }
+}
+var _minuterieParam = null;
+function enregistrerReglages() {
+  statutParam("Modification en cours…");
+  clearTimeout(_minuterieParam);
+  _minuterieParam = setTimeout(async function() {
+    try {
+      await ecrireConfig();
+      statutParam("Enregistré à " + heure());
+      rendreOnglets();
+    } catch (e) {
+      statutParam("L'enregistrement n'a pas abouti.", true);
+      erreurEcriture(e, "L'enregistrement automatique n'a pas abouti.");
+    }
+  }, DELAI_SAUVEGARDE_MS);
+}
+function rendreParametrage() {
+  etat.vue = "parametrage";
+  rendreOnglets();
+  var zone = contenu();
+  vider(zone);
+  zone.className = "w-contenu";
+  var p = etat.param;
+  var r = regleCourante();
+  var aller = function(i) {
+    p.etape = i;
+    rendreParametrage();
+    refocaliser("titreVue");
+    majAideEtape();
+  };
+  var bloc = creer("div", { classe: "w-param" });
+  bloc.appendChild(creer("div", { classe: "w-entete-param" }, [
+    creer("div", { classe: "w-entete-param__textes" }, [
+      creer("p", { classe: "w-entete-param__titre", id: "pTitre", texte: "Paramétrages de « " + r.nom + " »" }),
+      creer("p", { classe: "w-mention w-statut", id: "pStatut", attrs: { role: "status" }, texte: p.statut })
+    ]),
+    bouton("Retour à " + r.nom, "secondaire", "arrow-go-back-line", quitterParametrage, { petit: true, id: "pRetour" })
+  ]));
+  bloc.appendChild(filAriane(ETAPES_PARAM, p.etape, aller));
+  var tableOk = !!etat.meta.tables[r.table];
+  if (p.etape === 0) {
+    bloc.appendChild(enBlocs([etapeGeneral(r)]));
+  } else if (!tableOk) {
+    bloc.appendChild(alerte("error", null, "La table « " + r.table + " » n'existe plus dans le document. Supprimez cette règle à l'étape Général et créez-en une nouvelle."));
+  } else if (p.etape === 1) {
+    bloc.appendChild(enBlocs([editeurRegle(r, enregistrerReglages, "p", rendreParametrage, false)]));
+  } else if (p.etape === 2) {
+    bloc.appendChild(enBlocs([editeurTraitements(r, enregistrerReglages, "p")]));
+  } else if (p.etape === 3) {
+    var avant = JSON.stringify(r.liees);
+    var ed = editeurLiees(r, enregistrerReglages, "p");
+    if (JSON.stringify(r.liees) !== avant) {
+      enregistrerReglages();
+    }
+    bloc.appendChild(enBlocs([ed]));
+  }
+  bloc.appendChild(piedEtape(ETAPES_PARAM, p.etape, aller));
+  zone.appendChild(bloc);
+}
+function etapeGeneral(r) {
+  var nom = saisie("pNom", r.nom);
+  nom.addEventListener("input", function() {
+    if (!nom.value.trim()) {
+      statutParam("Le nom ne peut pas être vide.", true);
+      return;
+    }
+    r.nom = nom.value.trim();
+    var h = document.getElementById("pTitre");
+    if (h) {
+      h.textContent = "Paramétrages de « " + r.nom + " »";
+    }
+    enregistrerReglages();
+  });
+  var desc = saisie("pDescription", r.description, { multiligne: true, lignes: 2 });
+  desc.addEventListener("input", function() {
+    r.description = desc.value;
+    enregistrerReglages();
+  });
+  var nOps = etat.journal.filter(function(x) {
+    return x.regle === r.id;
+  }).length;
+  var col1 = [
+    titreColonne("La règle", "pTitreGen", null),
+    groupeChamp("Nom", nom, null, true),
+    groupeChamp("Description", desc, "Facultatif."),
+    titreColonne("Tables utilisées", "pTitreTables", null),
+    creer("table", { classe: "w-tableau-simple" }, [
+      creer("caption", { classe: "fr-sr-only", texte: "Tables utilisées" }),
+      creer("thead", {}, [creer("tr", {}, [creer("th", { texte: "Contenu", attrs: { scope: "col" } }), creer("th", { texte: "Table", attrs: { scope: "col" } })])]),
+      creer("tbody", {}, [
+        creer("tr", {}, [creer("td", { texte: "Dossiers" }), creer("td", { texte: libelleTable(r.table) })]),
+        creer("tr", {}, [creer("td", { texte: "Historique des opérations (" + nOps + ")" }), creer("td", { texte: etat.tables.jo ? libelleTable(etat.tables.jo) : DEF_JO.titre })])
+      ])
+    ])
+  ];
+  var col2 = [
+    titreColonne("Réserver aux propriétaires", "pTitreDroits", null),
+    encartDroits(),
+    titreColonne("Supprimer", "pTitreSuppr", null),
+    creer("div", { classe: "w-zone-retrait" }, [
+      creer("p", { classe: "w-texte", texte: "Supprime la règle « " + r.nom + " ». Les dossiers, l'historique et les autres règles restent dans le document." }),
+      bouton("Supprimer cette règle", "secondaire", "delete-line", function() {
+        return supprimerRegle(r);
+      }, { petit: true, id: "pSupprimer" })
+    ])
+  ];
+  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col1), creer("div", { classe: "w-colonne" }, col2)]);
+}
+function encartDroits() {
+  var code = function(t) {
+    return creer("code", { texte: t });
+  };
+  return creer("div", { classe: "w-encart-droits" }, [
+    creer("p", { classe: "w-texte", texte: "Par défaut, toute personne qui peut modifier le document peut lancer un archivage et paramétrer les règles. Pour réserver l'un ou l'autre aux propriétaires :" }),
+    creer("ol", {}, [
+      creer("li", { texte: "Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez des règles sur la table « " + LABEL_CENTRALE + " »." }),
+      creer("li", {}, ["Pour l'archivage, condition ", code('user.Access != OWNER and rec.WIDGET == "' + NOM_WIDGET + '" and rec.CLE == "' + CLE_ACCES_EDITION + '"'), " : refuser la lecture."]),
+      creer("li", {}, ["Pour le paramétrage, condition ", code('user.Access != OWNER and rec.WIDGET == "' + NOM_WIDGET + '" and rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"'), " : refuser la lecture."]),
+      creer("li", {}, ["Puis, condition ", code('user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '")'), " : refuser la création, la modification et la suppression."]),
+      creer("li", { texte: "Si la table a déjà ses propres règles, gardez la règle d'or en deuxième ligne." }),
+      creer("li", { texte: "Dans « Règles spéciales », décochez « Autoriser les Éditeurs à modifier la structure (ex. modifier et supprimer des tables et des colonnes, et modifier les formules, les pages, les vues et les paramètres) » : sinon les éditeurs peuvent contourner ces règles." }),
+      creer("li", { texte: "Ces règles masquent les boutons. Pour interdire aussi la suppression des dossiers en dehors du widget, ajoutez une règle sur la table des dossiers." })
+    ]),
+    creer("p", { classe: "w-mention", texte: etat.temoins.aucun ? "Aucune règle de ce type n'est visible pour vous pour l'instant." : "Vous pouvez paramétrer les règles" + (etat.peutModifier ? " et lancer un archivage." : ".") })
+  ]);
+}
+async function supprimerRegle(r) {
+  var ok = await confirmer("Supprimer la règle « " + r.nom + " » ?", "Les dossiers et l'historique ne sont pas touchés.", "Supprimer la règle");
+  if (!ok) {
+    return;
+  }
+  try {
+    etat.config.regles = etat.config.regles.filter(function(x) {
+      return x.id !== r.id;
+    });
+    await ecrireConfig();
+    etat.param = null;
+    var reste = regles();
+    if (reste.length) {
+      choisirRegle(reste[0].id);
+      await chargerDonnees();
+      rendrePrincipal();
+    } else {
+      etat.regleId = null;
+      rendreMessage("aucun");
+    }
+    afficherToast("Règle « " + r.nom + " » supprimée.");
+  } catch (e) {
+    erreurEcriture(e, "La suppression de la règle n'a pas abouti.");
+  }
+}
+var ONGLETS_AIDE = ["À quoi ça sert", "Pas à pas", "Questions"];
+var FICHES_AIDE = [
+  { cle: "creation0", titre: "Création : Les dossiers", texte: "Sélectionnez la table des dossiers à archiver. Seules les tables qui ont une colonne de date sont proposées." },
+  { cle: "creation1", titre: "Création : La règle", texte: "Donnez un nom à la règle (obligatoire), choisissez la date de départ et la durée de conservation, et si besoin une condition (par exemple un statut « Clos »). Cochez les colonnes à afficher dans la liste." },
+  { cle: "creation2", titre: "Création : Traitements", texte: "Cochez les champs personnels à vider lors d'une anonymisation. Les champs qui ressemblent à des données personnelles sont déjà cochés : vérifiez-les. Choisissez si la suppression définitive est aussi proposée." },
+  { cle: "creation3", titre: "Création : Tables liées", texte: "Pour chaque table qui pointe vers les dossiers : anonymiser aussi ses lignes (et quels champs), et ce qu'elles deviennent en cas de suppression définitive." },
+  { cle: "creation4", titre: "Création : Récapitulatif", texte: "Relisez la règle et le nombre de dossiers concernés aujourd'hui, puis « Créer la règle », au bout de la ligne des étapes." },
+  { cle: "principal", titre: "Archiver des dossiers", texte: "Cochez les dossiers dans la liste « À traiter », puis « Anonymiser » (ou « Supprimer définitivement »). Une fenêtre montre ce qui va changer ; téléchargez l'archive Excel, confirmez l'avoir enregistrée, puis lancez le traitement." },
+  { cle: "attente", titre: "Mettre un dossier en attente", texte: "« Mettre en attente » sur la ligne d'un dossier, avec un motif. Il passe dans la liste « En attente » ; « Reprendre » le remet dans la liste à traiter." },
+  { cle: "historique", titre: "Historique", texte: "L'icône de l'historique, en haut à droite, liste les opérations de la règle : date, nombre de dossiers, détail, nom de l'archive et personne." },
+  { cle: "param0", titre: "Paramétrages : Général", texte: "Nom et description de la règle, tables utilisées, réservation aux propriétaires et suppression de la règle." },
+  { cle: "param1", titre: "Paramétrages : La règle", texte: "Date de départ, durée de conservation, condition, colonnes affichées." },
+  { cle: "param2", titre: "Paramétrages : Traitements", texte: "Champs vidés par l'anonymisation ; suppression définitive proposée ou non." },
+  { cle: "param3", titre: "Paramétrages : Tables liées", texte: "Ce que deviennent les lignes des tables qui pointent vers les dossiers." }
+];
+function ouvrirAide(ouvrir) {
+  etat.aide.ouverte = ouvrir;
+  ecrirePref("aide", { ouverte: ouvrir, onglet: etat.aide.onglet });
+  var p = document.getElementById("wAide");
+  var b = document.getElementById("bAide");
+  if (b) {
+    b.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+    b.classList.toggle("fr-btn--secondary", !ouvrir);
+  }
+  if (!p) {
+    return;
+  }
+  p.hidden = !ouvrir;
+  if (ouvrir) {
+    rendreAide();
+    refocaliser("wAideTitre");
+  } else if (b) {
+    b.focus();
+  }
+}
+function etapeAideCourante() {
+  if (etat.vue === "creation" && etat.creation) {
+    return "creation" + etat.creation.etape;
+  }
+  if (etat.vue === "parametrage" && etat.param) {
+    return "param" + etat.param.etape;
+  }
+  if (etat.affichage === "historique") {
+    return "historique";
+  }
+  if (etat.filtres.vue === "attente") {
+    return "attente";
+  }
+  return "principal";
+}
+function majAideEtape() {
+  if (etat.aide.ouverte && etat.aide.onglet === 1) {
+    rendreAide();
+  }
+}
+function rendreAide() {
+  var p = document.getElementById("wAide");
+  if (!p) {
+    return;
+  }
+  vider(p);
+  p.appendChild(creer("div", { classe: "w-aide-panneau__tete" }, [
+    creer("span", { classe: "fr-icon-question-line w-aide-panneau__icone", attrs: { "aria-hidden": "true" } }),
+    creer("h2", { classe: "w-aide-panneau__titre", id: "wAideTitre", texte: "Aide", attrs: { tabindex: "-1" } }),
+    bouton("Fermer", "discret", "close-line", function() {
+      ouvrirAide(false);
+    }, { petit: true, id: "wAideFermer", aria: "Fermer l'aide" })
+  ]));
+  var ul = creer("ul", { classe: "w-aide-panneau__onglets", attrs: { role: "tablist", "aria-label": "Rubriques de l'aide" } });
+  var onglets = [];
+  ONGLETS_AIDE.forEach(function(nom, i) {
+    var b = creer("button", { classe: "fr-tabs__tab", id: "wAideOnglet" + i, texte: nom, attrs: { type: "button", role: "tab", "aria-selected": etat.aide.onglet === i ? "true" : "false", "aria-controls": "wAideCorps", tabindex: etat.aide.onglet === i ? "0" : "-1" } });
+    b.addEventListener("click", function() {
+      etat.aide.onglet = i;
+      ecrirePref("aide", { ouverte: true, onglet: i });
+      rendreAide();
+      refocaliser("wAideOnglet" + i);
+    });
+    b.addEventListener("keydown", function(e) {
+      var k = e.key === "ArrowRight" ? (i + 1) % 3 : e.key === "ArrowLeft" ? (i + 2) % 3 : e.key === "Home" ? 0 : e.key === "End" ? 2 : null;
+      if (k !== null) {
+        e.preventDefault();
+        onglets[k].click();
+      }
+    });
+    onglets.push(b);
+    ul.appendChild(creer("li", { attrs: { role: "presentation" } }, [b]));
+  });
+  p.appendChild(ul);
+  var corps = creer("div", { classe: "w-aide-panneau__corps", id: "wAideCorps", attrs: { role: "tabpanel", "aria-labelledby": "wAideOnglet" + etat.aide.onglet, tabindex: "0" } });
+  var puces = function(l) {
+    return creer("ul", {}, l.map(function(t) {
+      return creer("li", { texte: t });
+    }));
+  };
+  if (etat.aide.onglet === 0) {
+    corps.appendChild(creer("p", { texte: "Diploarchive repère les dossiers arrivés au terme de leur durée de conservation et les archive : une archive Excel pour le service des archives, puis l'anonymisation ou la suppression des données dans le document." }));
+    corps.appendChild(creer("h3", { texte: "Deux traitements" }));
+    corps.appendChild(puces([
+      "Anonymisation, proposée en premier : les champs personnels sont vidés, les lignes restent. Les statistiques (nombres, dates, statuts, montants) sont conservées.",
+      "Suppression définitive, en second choix : les dossiers et, selon la règle, leurs lignes liées disparaissent du document."
+    ]));
+    corps.appendChild(creer("h3", { texte: "Fonctionnalités" }));
+    corps.appendChild(puces([
+      "Une règle par type de dossier : table, date de départ, durée, condition facultative.",
+      "Liste des dossiers à traiter, échéancier des 3 prochains mois, dossiers en attente.",
+      "Sélection des dossiers par cases à cocher.",
+      "Archive Excel complète obligatoire avant tout traitement : onglet « Lisez-moi », un onglet par table, toutes les colonnes.",
+      "Mise en attente avec motif (contentieux, demande en cours...).",
+      "Historique des opérations, sans donnée personnelle.",
+      "Export de la liste et impression."
+    ]));
+    corps.appendChild(creer("h3", { texte: "Avant de commencer" }));
+    corps.appendChild(creer("p", { texte: "Le widget a besoin d'un accès complet au document. La table de l'historique est créée avec la première règle." }));
+  } else if (etat.aide.onglet === 1) {
+    var courante = etapeAideCourante();
+    var fiches = FICHES_AIDE.filter(function(f) {
+      return etat.vue === "creation" ? f.cle.indexOf("creation") === 0 : f.cle.indexOf("creation") !== 0;
+    });
+    var rang = -1;
+    fiches.forEach(function(f, i) {
+      if (f.cle === courante) {
+        rang = i;
+      }
+    });
+    fiches.forEach(function(f, i) {
+      var cour = f.cle === courante;
+      var faite = etat.vue === "creation" && rang !== -1 && i < rang;
+      corps.appendChild(creer("section", { classe: "w-fiche-etape" + (cour ? " w-fiche-etape--courante" : ""), attrs: { "aria-current": cour ? "step" : null } }, [
+        creer("h4", {}, [faite ? creer("span", { classe: "fr-icon-check-line fr-icon--sm", attrs: { "aria-hidden": "true" } }) : null, f.titre, cour ? creer("span", { classe: "fr-sr-only", texte: " (étape en cours)" }) : null]),
+        creer("p", { texte: f.texte })
+      ]));
+    });
+  } else {
+    var q = [
+      ["Je ne vois pas les cases à cocher ni les boutons.", "Vos droits sur ce document ne le permettent pas, ou l'archivage a été réservé aux propriétaires. Vous pouvez tout de même consulter les listes et l'historique."],
+      ["Que contient l'archive ?", "Un onglet « Lisez-moi » (règle, critère, traitement, date, nombres de lignes), puis un onglet par table : les dossiers et leurs lignes liées, avec toutes les colonnes, en valeurs lisibles."],
+      ["Et les fichiers joints ?", "Ils ne sont pas dans le fichier Excel : leurs noms y sont listés. Pour les remettre au service des archives, téléchargez-les depuis le document avant le traitement."],
+      ["Puis-je annuler une anonymisation ou une suppression ?", "Non : l'archive Excel est la seule copie qui reste. C'est pourquoi elle doit être téléchargée et son enregistrement confirmé avant le traitement."],
+      ["Un dossier anonymisé revient-il dans la liste ?", "Non : il est inscrit à l'historique et n'est plus proposé."],
+      ["Pourquoi un dossier n'apparaît pas ?", "Sa date est vide, sa durée de conservation n'est pas atteinte (ou pas dans les 3 prochains mois), il ne remplit pas la condition de la règle, il est en attente, ou il a déjà été anonymisé."],
+      ["Que se passe-t-il si le traitement s'arrête en cours ?", "Les dossiers sont traités par lots. Le message indique combien l'ont été ; ceux-là sont inscrits à l'historique, les autres restent dans la liste."],
+      ["Où est rangé l'historique ?", "Dans la table « " + DEF_JO.titre + " », visible dans Données source. Elle ne contient que des numéros de ligne, jamais de données des dossiers."]
+    ];
+    q.forEach(function(x) {
+      corps.appendChild(creer("h3", { texte: x[0] }));
+      corps.appendChild(creer("p", { texte: x[1] }));
+    });
+  }
+  p.appendChild(corps);
+}
+function rendreMessage(vue) {
+  etat.vue = vue;
+  rendreOnglets();
+  var zone = contenu();
+  vider(zone);
+  zone.className = "w-contenu";
+  var textes = {
+    acces: ["Accès au document nécessaire", "Ce widget a besoin d'un accès complet au document pour lire les dossiers et enregistrer l'historique. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »)."],
+    hors: ["Widget à ajouter dans un document", "Ce widget s'utilise dans un document : ajoutez-le à une page en tant que vue personnalisée."],
+    recharger: ["La règle est créée", "La table de l'historique sera lisible après un rechargement du widget."],
+    aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table des dossiers, leur durée de conservation et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
+    echec: ["Chargement impossible", "Les données du document n'ont pas pu être lues. Réessayez dans un instant."]
+  };
+  var t = textes[vue] || textes.echec;
+  var bloc = creer("div", { classe: "w-vide" }, [creer("h2", { classe: "fr-h4 w-titre-vue", id: "titreVue", texte: t[0], attrs: { tabindex: "-1" } }), creer("p", { classe: "w-texte", texte: t[1] })]);
+  if (vue === "aucun" && etat.peutParametrer) {
+    bloc.appendChild(bouton("Créer une règle", null, "add-line", ouvrirCreation, { id: "mCreer" }));
+  }
+  if (vue === "recharger") {
+    bloc.appendChild(bouton("Recharger le widget", null, "refresh-line", function() {
+      window.location.reload();
+    }, { id: "mRecharger" }));
+  }
+  if (vue === "echec" || vue === "acces") {
+    bloc.appendChild(bouton("Réessayer", null, "refresh-line", function() {
+      return chargerTout();
+    }, { id: "mReessayer" }));
+  }
+  zone.appendChild(bloc);
+}
+async function chargerTout() {
+  afficherLoader("Chargement des règles d'archivage…");
+  etat.enCours = true;
+  try {
+    await chargerMeta();
+    await lireCentrale();
+    majDroits();
+    resoudreTables();
+    if (!etat.config) {
+      etat.config = normaliserConfig({});
+    }
+    var l = regles();
+    if (!l.length) {
+      masquerLoader();
+      etat.enCours = false;
+      if (etat.peutParametrer && (etat.niveauAcces === null || etat.niveauAcces === "full")) {
+        ouvrirCreation();
+      } else {
+        rendreMessage("aucun");
+      }
+      return;
+    }
+    var pref = lirePref("regle", null);
+    choisirRegle(l.some(function(r) {
+      return r.id === pref;
+    }) ? pref : l[0].id);
+    etat.signature = "";
+    if (etat.meta.tables[regleCourante().table]) {
+      await chargerDonnees();
+    }
+    masquerLoader();
+    etat.enCours = false;
+    rendrePrincipal();
+  } catch (e) {
+    masquerLoader();
+    etat.enCours = false;
+    var m = String(e && (e.message || e) || "");
+    rendreMessage(/access|permission|full/i.test(m) ? "acces" : "echec");
+    logSecurite("ERREUR", "Chargement impossible", e);
+  }
+}
+function planifierRafraichissement(delai) {
+  clearTimeout(etat.minuterieRafraichir);
+  etat.minuterieRafraichir = setTimeout(function() {
+    relayer(rafraichir(false), "Rafraîchissement");
+  }, delai || 500);
+}
+async function rafraichir(force) {
+  if (etat.vue !== "principal") {
+    return;
+  }
+  var r = regleCourante();
+  if (!r || !etat.meta.tables[r.table]) {
+    return;
+  }
+  if (!force && (etat.enCours || etat.dialogue || etat.ecrituresEnCours || etat.lecturesEnAttente)) {
+    return;
+  }
+  etat.enCours = true;
+  try {
+    if (force) {
+      etat.signature = "";
+    }
+    var change = await chargerDonnees(!force);
+    if (change && etat.vue === "principal") {
+      var actif = document.activeElement && document.activeElement.id;
+      rendreScene();
+      if (actif) {
+        refocaliser(actif);
+      }
+    }
+  } catch (e) {
+    logSecurite("AVERTISSEMENT", "Relecture des dossiers impossible", e);
+    if (Date.now() - etat.dernierAvisLenteur > 12e4) {
+      etat.dernierAvisLenteur = Date.now();
+      afficherToast("Le document répond lentement : la liste sera mise à jour dès qu'il répondra.", null, 8e3);
+    }
+  } finally {
+    etat.enCours = false;
+  }
+}
+async function initialiser() {
+  if (_initialise) {
+    return;
+  }
+  _initialise = true;
+  try {
+    etat.nomDoc = await gristAvecTimeout(grist.docApi.getDocName(), 5e3);
+  } catch (e) {
+    etat.nomDoc = null;
+  }
+  var pa = lirePref("aide", null);
+  if (pa) {
+    etat.aide.onglet = typeof pa.onglet === "number" ? pa.onglet : 0;
+  }
+  await chargerTout();
+  if (pa && pa.ouverte) {
+    etat.aide.ouverte = true;
+    var p = document.getElementById("wAide");
+    if (p) {
+      p.hidden = false;
+      rendreAide();
+    }
+    var b = document.getElementById("bAide");
+    if (b) {
+      b.setAttribute("aria-expanded", "true");
+      b.classList.remove("fr-btn--secondary");
+    }
+  }
+  relayer(chargerLogo(), "Logo du bandeau");
+}
+function brancherSocle() {
+  var v = document.getElementById("bandeauVersion");
+  if (v) {
+    v.textContent = "v" + VERSION_WIDGET;
+  }
+  var h = document.getElementById("bandeauHomologue");
+  if (h) {
+    h.hidden = !HOMOLOGUE;
+  }
+  document.getElementById("wErreurFermer").addEventListener("click", masquerErreur);
+  document.getElementById("wConfirmOui").addEventListener("click", function() {
+    terminerConfirmation(true);
+  });
+  document.getElementById("wConfirmNon").addEventListener("click", function() {
+    terminerConfirmation(false);
+  });
+  document.getElementById("bAide").addEventListener("click", function() {
+    ouvrirAide(!etat.aide.ouverte);
+  });
+  document.addEventListener("keydown", function(e) {
+    if (e.key !== "Escape" || document.getElementById("wConfirmOverlay").classList.contains("actif") || etat.dialogue) {
+      return;
+    }
+    if (etat.aide.ouverte && document.getElementById("wAide").contains(document.activeElement)) {
+      ouvrirAide(false);
+      return;
+    }
+    if (etat.voletMobile) {
+      ouvrirVoletMobile(false);
+    }
+  });
+}
+function demarrer() {
+  brancherSocle();
+  if (typeof grist === "undefined") {
+    afficherLogoRepli();
+    rendreMessage("hors");
+    return;
+  }
+  grist.ready({ requiredAccess: "full", allowSelectBy: false });
+  if (typeof grist.on === "function") {
+    grist.on("message", function(m) {
+      if (m && m.settings && m.settings.accessLevel) {
+        etat.niveauAcces = m.settings.accessLevel;
+      }
+    });
+  }
+  grist.onRecords(function() {
+    if (!_initialise) {
+      relayer(initialiser(), "Initialisation");
+    } else {
+      planifierRafraichissement();
+    }
+  });
+  setTimeout(function() {
+    relayer(initialiser(), "Initialisation");
+  }, DELAI_DEMARRAGE_MS);
+  _minuterieActualisation = setInterval(function() {
+    if (document.visibilityState === "visible" && etat.vue === "principal") {
+      relayer(rafraichir(false), "Relecture");
+    }
+  }, DELAI_ACTUALISATION_MS);
+  document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible" && etat.vue === "principal") {
+      planifierRafraichissement();
+    }
+  });
+  setTimeout(function() {
+    window.addEventListener("unhandledrejection", function(evt) {
+      logSecurite("ERREUR", "Promesse rejetée non capturée", evt ? evt.reason : void 0);
+    });
+  }, 1500);
+}
+demarrer();
+</script>
+</body>
+</html>
