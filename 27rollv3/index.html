@@ -763,7 +763,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.2.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -792,9 +792,6 @@ var COLONNES_DIAPOS = [
     { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE', formula: 'NOW()', recalcWhen: 2, description: 'Date de la dernière modification.' },
     { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR', formula: 'user.Email', recalcWhen: 2, description: 'Personne qui a fait la dernière modification.' }
 ];
-var POSTES = ['Ambassade de France', 'Consulat général de France', 'Consulat de France'];
-var LIAISONS = ['en', 'au', 'aux', 'à', 'auprès de'];
-var BM_MAX_LIGNES = 6;
 var ID_TELECOMMANDE = 'TELECOMMANDE';
 var LABEL_TELECOMMANDE = '📡 TÉLÉCOMMANDE ⚡';
 var DELAI_TELECOMMANDE_MS = 1000;
@@ -2389,6 +2386,50 @@ function signalerSaisie(id, message) {
     annoncer(message);
 }
 async function resoudreBibliotheque() { return trouverCentraleSlides(); }
+var POSTES = ['Ambassade de France', 'Consulat général de France', 'Consulat de France'];
+var LIAISONS = ['en', 'au', 'aux', 'à', 'auprès de'];
+var BM_MAX_LIGNES = 6;
+function capitalesFr(s) { return String(s || '').toLocaleUpperCase('fr-FR'); }
+function intituleBloc(b) { return (b.poste + ' ' + b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim(); }
+function decouperIntitule(b) {
+    var tete = capitalesFr(b.poste.replace(/ de France$/, ''));
+    var reste = capitalesFr((b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim()).split(' ');
+    var lignes = [tete, 'DE FRANCE'];
+    var cur = '';
+    var petits = ['DE', 'DU', 'DES', 'D\'', 'LA', 'LE', 'LES', 'L\'', 'AU', 'AUX', 'EN', 'À', 'AUPRÈS', 'ET', 'SUR'];
+    reste.forEach(function (m) {
+        var essai = cur ? cur + ' ' + m : m;
+        var dernier = cur.split(' ').pop();
+        if (!cur || essai.length <= 16 || petits.indexOf(dernier) !== -1) {
+            cur = essai;
+        }
+        else {
+            lignes.push(cur);
+            cur = m;
+        }
+    });
+    if (cur) {
+        lignes.push(cur);
+    }
+    while (lignes.length > BM_MAX_LIGNES) {
+        var a = lignes.pop();
+        lignes[lignes.length - 1] += ' ' + a;
+    }
+    return lignes;
+}
+function blocMarqueValide(b) {
+    if (!b || typeof b !== 'object') {
+        return { type: 'ministere', poste: POSTES[0], liaison: 'en', lieu: '', lignes: [] };
+    }
+    var r = { type: b.type === 'poste' ? 'poste' : 'ministere', poste: POSTES.indexOf(b.poste) !== -1 ? b.poste : POSTES[0], liaison: LIAISONS.indexOf(b.liaison) !== -1 ? b.liaison : 'en',
+        lieu: typeof b.lieu === 'string' ? b.lieu.replace(/\s+/g, ' ').trim().slice(0, 80) : '' };
+    var l = Array.isArray(b.lignes) ? b.lignes.filter(function (x) { return typeof x === 'string'; }).map(function (x) { return capitalesFr(x.replace(/\s+/g, ' ').trim()).slice(0, 48); }).filter(Boolean) : [];
+    r.lignes = l.length && l.length <= BM_MAX_LIGNES ? l : (r.lieu ? decouperIntitule(r) : []);
+    if (r.type === 'ministere') {
+        r.lignes = [];
+    }
+    return r;
+}
 function nouvelId() {
     var a = new Uint32Array(2);
     window.crypto.getRandomValues(a);
@@ -3156,7 +3197,7 @@ function rendreDiapo(d, o) {
     }
     var gl = g === 'officiel' || cfg.logo ? geoLogo(cfg, d) : null;
     if (gl) {
-        var lg = noeudLogo(g === 'officiel' ? (d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit')) : (d.mep === 'couverture' ? 'sd-logo--plaque' : 'sd-logo--petit'), g === 'officiel' || !!blocPoste(cfg), gl, cfg);
+        var lg = noeudLogo(g === 'officiel' ? (d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit')) : (d.mep === 'couverture' ? 'sd-logo--plaque' : 'sd-logo--petit'), true, gl, cfg);
         if (lg && o.edition) {
             brancherLogo(lg, d, gl);
         }
@@ -6856,47 +6897,6 @@ var BM_PAS = 31.2;
 var BM_BAS = 14.9;
 var BM_TAILLE = 29.5;
 var _blocs = {};
-function majuscules(s) { return String(s || '').toLocaleUpperCase('fr-FR'); }
-function intituleBloc(b) { return (b.poste + ' ' + b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim(); }
-function decouperIntitule(b) {
-    var tete = majuscules(b.poste.replace(/ de France$/, ''));
-    var reste = majuscules((b.liaison + ' ' + b.lieu).replace(/\s+/g, ' ').trim()).split(' ');
-    var lignes = [tete, 'DE FRANCE'];
-    var cur = '';
-    var petits = ['DE', 'DU', 'DES', 'D\'', 'LA', 'LE', 'LES', 'L\'', 'AU', 'AUX', 'EN', 'À', 'AUPRÈS', 'ET', 'SUR'];
-    reste.forEach(function (m) {
-        var essai = cur ? cur + ' ' + m : m;
-        var dernier = cur.split(' ').pop();
-        if (!cur || essai.length <= 16 || petits.indexOf(dernier) !== -1) {
-            cur = essai;
-        }
-        else {
-            lignes.push(cur);
-            cur = m;
-        }
-    });
-    if (cur) {
-        lignes.push(cur);
-    }
-    while (lignes.length > BM_MAX_LIGNES) {
-        var a = lignes.pop();
-        lignes[lignes.length - 1] += ' ' + a;
-    }
-    return lignes;
-}
-function blocMarqueValide(b) {
-    if (!b || typeof b !== 'object') {
-        return { type: 'ministere', poste: POSTES[0], liaison: 'en', lieu: '', lignes: [] };
-    }
-    var r = { type: b.type === 'poste' ? 'poste' : 'ministere', poste: POSTES.indexOf(b.poste) !== -1 ? b.poste : POSTES[0], liaison: LIAISONS.indexOf(b.liaison) !== -1 ? b.liaison : 'en',
-        lieu: typeof b.lieu === 'string' ? b.lieu.replace(/\s+/g, ' ').trim().slice(0, 80) : '' };
-    var l = Array.isArray(b.lignes) ? b.lignes.filter(function (x) { return typeof x === 'string'; }).map(function (x) { return majuscules(x.replace(/\s+/g, ' ').trim()).slice(0, 48); }).filter(Boolean) : [];
-    r.lignes = l.length && l.length <= BM_MAX_LIGNES ? l : (r.lieu ? decouperIntitule(r) : []);
-    if (r.type === 'ministere') {
-        r.lignes = [];
-    }
-    return r;
-}
 function partenaireValide(p) {
     if (!p || typeof p !== 'object' || !(typeof p.pj === 'number' && p.pj > 0)) {
         return null;
