@@ -649,7 +649,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.12.0';
+var VERSION_WIDGET = '3.12.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -2247,7 +2247,7 @@ function lireCopie(v) {
     if (t.charAt(0) === '{') {
         try {
             var o = JSON.parse(t);
-            return { carte: String(o.carte || ''), consultation: o.consultation === true, admin: o.admin === true, filtres: filtresValides(o.filtres), retires: retiresValides(o.retires) };
+            return { carte: String(o.carte || ''), consultation: o.consultation === true, admin: o.admin === true, titre: typeof o.titre === 'string' ? o.titre : '', filtres: filtresValides(o.filtres), retires: retiresValides(o.retires) };
         }
         catch (e) {
             logSecurite('AVERTISSEMENT', 'Réglage de page illisible', e);
@@ -2415,7 +2415,7 @@ async function reserverPage() {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
     }
 }
-async function creerPageConsultation(nomPage, filtres, retires) {
+async function creerPageConsultation(nomPage, filtres, retires, titre) {
     var c = etat.config;
     var cle = etat.cleConfig;
     var t = c ? etat.meta.tables[c.tableLieux] : null;
@@ -2430,7 +2430,7 @@ async function creerPageConsultation(nomPage, filtres, retires) {
         var cv = await referenceWidget();
         cv.access = 'full';
         cv.widgetOptions = { copie: badge };
-        var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ carte: cle, consultation: true, filtres: filtresValides(filtres), retires: retiresValides(retires) }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
+        var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ carte: cle, consultation: true, titre: String(titre || '').trim(), filtres: filtresValides(filtres), retires: retiresValides(retires) }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
         if (etat.biblioCentrale) {
             champs.WIDGET = NOM_WIDGET;
         }
@@ -2601,7 +2601,7 @@ function resumeProposes(copie) {
 }
 function resumePage(badge) {
     var copie = etat.copies[badge];
-    var t = resumeFiltresPage(copie.filtres || filtresValides(null));
+    var t = (copie.titre ? 'Bandeau : ' + copie.titre + '. ' : '') + resumeFiltresPage(copie.filtres || filtresValides(null));
     var p = resumeProposes(copie);
     return p ? t + '. Laissé aux lecteurs : ' + p : t;
 }
@@ -2636,6 +2636,8 @@ function editerPage(badge, dupliquer) {
         nom: badge ? etat.nomsPages[badge] + (dupliquer ? ' (copie)' : '') : '🗺️ ' + (etat.config.nom || 'Carte'),
         colonnes: JSON.parse(JSON.stringify(f.colonnes)), du: f.du, au: f.au,
         retires: { colonnes: r.colonnes.slice(), periode: r.periode }, manuel: {}, manuelTout: !!(copie && copie.retires), manuelPeriode: false };
+    etat.editionPage.titre = copie ? copie.titre : etat.editionPage.nom;
+    etat.editionPage.titreManuel = !!copie && copie.titre !== etat.nomsPages[badge];
     redessinerEtape('aPageNom');
 }
 async function enregistrerPage() {
@@ -2656,7 +2658,7 @@ async function enregistrerPage() {
     var filtres = filtresValides(ed);
     var retires = retiresValides({ colonnes: ed.retires.colonnes.filter(function (k) { return colonnesProposables().indexOf(k) !== -1; }), periode: ed.retires.periode && !!etat.config.colDate });
     if (!ed.badge) {
-        await creerPageConsultation(nom, filtres, retires);
+        await creerPageConsultation(nom, filtres, retires, ed.titre);
         return;
     }
     var copie = etat.copies[ed.badge];
@@ -2664,7 +2666,7 @@ async function enregistrerPage() {
     try {
         var d = await lireTable('_grist_Views_section');
         var vue = vueDuBadge(d, ed.badge);
-        var actions = [['UpdateRecord', etat.biblio, copie.ligne, { VALEUR: JSON.stringify({ carte: copie.carte, consultation: true, filtres: filtres, retires: retires }), VERSION_MODIF: VERSION_WIDGET }]];
+        var actions = [['UpdateRecord', etat.biblio, copie.ligne, { VALEUR: JSON.stringify({ carte: copie.carte, consultation: true, titre: String(ed.titre || '').trim(), filtres: filtres, retires: retires }), VERSION_MODIF: VERSION_WIDGET }]];
         if (vue && nom !== ed.nomInitial) {
             actions.push(['UpdateRecord', '_grist_Views', vue, { name: nom }]);
         }
@@ -2711,8 +2713,17 @@ function formulairePage() {
     var ed = etat.editionPage;
     var c = etat.config;
     var nom = saisie('aPageNom', ed.nom);
-    nom.addEventListener('input', function () { ed.nom = nom.value; });
-    var noeuds = [groupeChamp('Nom de la page', nom, 'Affiché dans la liste des pages du document.', true)];
+    var titre = saisie('aPageTitre', ed.titre);
+    nom.addEventListener('input', function () {
+        ed.nom = nom.value;
+        if (!ed.titreManuel) {
+            ed.titre = nom.value;
+            titre.value = nom.value;
+        }
+    });
+    titre.addEventListener('input', function () { ed.titre = titre.value; ed.titreManuel = true; });
+    var noeuds = [groupeChamp('Nom de la page', nom, 'Affiché dans la liste des pages du document.', true),
+        groupeChamp('Titre du bandeau', titre, 'Remplace « 🗺️ Diplocarte » en haut de la page. Laissé vide, le bandeau garde ce nom.')];
     colonnesFiltrePage().forEach(function (k, i) {
         var boite = creer('div', { classe: 'w-page-filtre__valeurs' });
         var proposable = colonnesProposables().indexOf(k) !== -1;
@@ -8484,6 +8495,11 @@ async function chargerTout() {
         var btnAide = document.getElementById('bandeauAide');
         if (btnAide) {
             btnAide.hidden = etat.consultation;
+        }
+        var titreB = document.getElementById('bandeauTitre');
+        var copieB = etat.badge ? etat.copies[etat.badge] : null;
+        if (titreB && etat.consultation && copieB && copieB.titre) {
+            titreB.textContent = copieB.titre;
         }
         if (etat.consultation && _aide.ouvert) {
             _aide.ouvert = false;
