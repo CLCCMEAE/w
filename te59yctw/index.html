@@ -223,7 +223,7 @@ body{margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgroun
   <div class="w-bandeau__marque">
     <div id="bandeau-logo"></div>
     <div class="w-bandeau__sep"></div>
-    <h1 class="w-bandeau__titre">❓ DiploFAQ</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+    <h1 class="w-bandeau__titre" id="bandeauTitre">❓ DiploFAQ</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
   </div>
   <div class="w-bandeau__spacer"></div>
   <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-icon-settings-5-line fr-btn--icon-only w-infobulle" id="btnAdmin" aria-label="Administration" data-infobulle="Administration" hidden><span class="fr-sr-only">Administration</span></button>
@@ -951,6 +951,7 @@ function estRefusDroits(e) {
 function cfgPageValide(o) {
     o = o && typeof o === 'object' ? o : {};
     return { admin: o.admin === true, consultation: o.consultation === true, nom: typeof o.nom === 'string' ? o.nom : '',
+        titre: typeof o.titre === 'string' ? o.titre : '',
         description: typeof o.description === 'string' ? o.description : '',
         categories: Array.isArray(o.categories) ? o.categories.filter(function (c) { return typeof c === 'string' && c; }) : [],
         filtreCategorie: o.filtreCategorie !== false, poser: o.poser !== false, attente: o.attente === true };
@@ -1005,6 +1006,10 @@ function etiquettesPage() {
 }
 function appliquerModePage() {
     var cons = !!_cfgPage;
+    var bt = $('bandeauTitre');
+    if (bt) {
+        bt.textContent = cons && _cfgPage.titre ? _cfgPage.titre : '❓ DiploFAQ';
+    }
     var aideBtn = $('bandeauAide');
     if (aideBtn) {
         aideBtn.hidden = cons;
@@ -1054,7 +1059,7 @@ function renderEntetePage() {
     if (!_cfgPage) {
         return;
     }
-    if (_cfgPage.nom) {
+    if (_cfgPage.nom && _cfgPage.nom.trim() !== String(_cfgPage.titre || '').trim()) {
         z.appendChild(creer('h2', { classe: 'faq-page-titre', texte: _cfgPage.nom }));
     }
     if (_cfgPage.description) {
@@ -1294,7 +1299,7 @@ async function reserverPage() {
 }
 function valeurPage(ed, nom) {
     var toutes = knownCategories.every(function (c) { return ed.cats[c]; });
-    return JSON.stringify({ consultation: true, nom: nom, description: String(ed.description || '').trim(),
+    return JSON.stringify({ consultation: true, nom: nom, titre: String(ed.titre || '').trim(), description: String(ed.description || '').trim(),
         categories: toutes ? [] : knownCategories.filter(function (c) { return ed.cats[c]; }),
         filtreCategorie: !!ed.filtreCategorie, poser: !!ed.poser, attente: !!ed.attente });
 }
@@ -1445,7 +1450,8 @@ function editerPage(badge, dupliquer) {
     knownCategories.forEach(function (c) { cats[c] = !p || !p.categories.length || p.categories.indexOf(c) !== -1; });
     var nomActuel = p ? (_nomsPages[badge] || p.nom) : '';
     _editionPage = { badge: dupliquer ? null : badge, nomInitial: p && !dupliquer ? nomActuel : '',
-        nom: p ? nomActuel + (dupliquer ? ' (copie)' : '') : '❓ FAQ', description: p ? p.description : '', cats: cats,
+        nom: p ? nomActuel + (dupliquer ? ' (copie)' : '') : '❓ FAQ', titre: p ? p.titre : '❓ FAQ', titreManuel: !!p && p.titre !== nomActuel,
+        description: p ? p.description : '', cats: cats,
         filtreCategorie: p ? p.filtreCategorie : true, poser: p ? p.poser : true, attente: p ? p.attente : showPending };
     renderPagesZone();
     var n = $('pfNom');
@@ -1481,7 +1487,16 @@ function formulairePage() {
     var ed = _editionPage;
     var nom = creer('input', { classe: 'fr-input', id: 'pfNom', attrs: { type: 'text', autocomplete: 'off', maxlength: '100', 'aria-required': 'true', 'aria-describedby': 'pfNomErreur' } });
     nom.value = ed.nom;
-    nom.addEventListener('input', function () { ed.nom = nom.value; });
+    var titre = creer('input', { classe: 'fr-input', id: 'pfTitre', attrs: { type: 'text', autocomplete: 'off', maxlength: '100' } });
+    titre.value = ed.titre;
+    nom.addEventListener('input', function () {
+        ed.nom = nom.value;
+        if (!ed.titreManuel) {
+            ed.titre = nom.value;
+            titre.value = nom.value;
+        }
+    });
+    titre.addEventListener('input', function () { ed.titre = titre.value; ed.titreManuel = true; });
     var desc = creer('textarea', { classe: 'fr-input', id: 'pfDesc', attrs: { autocomplete: 'off', maxlength: '500', rows: '2' } });
     desc.value = ed.description;
     desc.addEventListener('input', function () { ed.description = desc.value; });
@@ -1502,11 +1517,12 @@ function formulairePage() {
     return [
         creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', texte: 'Nom de la page', attrs: { 'for': 'pfNom' } }), nom,
             creer('p', { classe: 'fr-error-text', id: 'pfNomErreur', attrs: { hidden: true } })]),
+        creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pfTitre' } }, ['Titre du bandeau ', creer('span', { classe: 'fr-hint-text', texte: 'Remplace « ❓ DiploFAQ » en haut de la page. Laissé vide, le bandeau garde ce nom.' })]), titre]),
         creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pfDesc' } }, ['Description ', creer('span', { classe: 'fr-hint-text', texte: 'Facultative, affichée sous le nom de la page.' })]), desc]),
         champs, options,
         creer('div', { classe: 'faq-form-page__actions' }, [
             bouton('Annuler', 'tertiaire', null, function () { _editionPage = null; renderPagesZone(); focaliserConteneur('secPagesConsult'); }, { petit: true, id: 'pfAnnuler' }),
-            bouton(ed.badge ? 'Enregistrer la page' : 'Créer la page', null, 'check-line', enregistrerPage, { petit: true, id: 'pfValider' })
+            bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'pfValider' })
         ])
     ];
 }
@@ -1517,13 +1533,13 @@ function renderPagesZone() {
     }
     vider(z);
     var r = aide('aideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
-    var admin = sectionPage('secAdminPage', 'Page d\'administration', [
+    var admin = sectionPage('secAdminPage', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [_pageProtegee ? 'Cette page, avec l\'administration de la FAQ, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la FAQ et son administration. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], _pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', reserverPage, { petit: true, id: 'btnReserverPage' }));
-    var ic = aide('aideConsult', 'Pages de consultation', 'Chaque page de consultation montre la FAQ publiée, sans roue dentée, sans aide et sans administration, limitée aux catégories choisies. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
+    var ic = aide('aideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre la FAQ publiée, sans roue dentée, sans aide et sans administration, limitée aux catégories choisies, avec son propre titre de bandeau. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
     var consult;
     if (_editionPage) {
-        consult = sectionPage('secPagesConsult', 'Pages de consultation', [creer('p', { classe: 'w-texte', texte: _editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null);
+        consult = sectionPage('secPagesConsult', 'Où les lecteurs la voient', [creer('p', { classe: 'w-texte', texte: _editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null);
     }
     else {
         var liste = creer('ul', { classe: 'w-pages-liste' });
@@ -1536,10 +1552,10 @@ function renderPagesZone() {
                 bouton('Supprimer', 'discret', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, iconeSeule: true, id: 'pageSuppr' + k, aria: 'Supprimer « ' + nom + ' »', classe: 'w-infobulle', attrs: { 'data-infobulle': 'Supprimer' } })
             ]));
         });
-        consult = sectionPage('secPagesConsult', 'Pages de consultation', [
-            creer('p', { classe: 'w-texte' }, ['La FAQ publiée, sans administration, limitée aux catégories choisies. ', ic.bouton]), ic.panneau,
-            liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'Aucune page pour l\'instant.' })
-        ], bouton('Créer une page de consultation', 'secondaire', 'file-add-line', function () { editerPage(null, false); }, { petit: true, id: 'btnCreerPage' }));
+        consult = sectionPage('secPagesConsult', 'Où les lecteurs la voient', [
+            creer('p', { classe: 'w-texte' }, ['Les pages qui montrent la FAQ publiée sans administration, limitée aux catégories choisies. ', ic.bouton]), ic.panneau,
+            liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'La FAQ n\'est montrée sur aucune page du document.' })
+        ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { editerPage(null, false); }, { petit: true, id: 'btnCreerPage' }));
     }
     z.appendChild(admin);
     z.appendChild(consult);
@@ -3141,7 +3157,7 @@ var AIDE = {
     resume: 'DiploFAQ rassemble les questions fréquentes de votre équipe et leurs réponses. Chacun consulte les réponses publiées et peut poser sa propre question ; les personnes qui gèrent la FAQ y répondent, puis publient la réponse.',
     fonctions: ['Chercher une question par mot-clé ou par catégorie', 'Poser une question, qui reste en attente jusqu\'à sa réponse',
         'Répondre, publier, épingler une question en tête de sa catégorie', 'Classer les questions par catégorie, dans l\'ordre de votre choix',
-        'Imprimer la FAQ publiée ou l\'enregistrer en PDF', 'Créer des pages de consultation, sans administration, limitées à certaines catégories'],
+        'Imprimer la FAQ publiée ou l\'enregistrer en PDF', 'Publier la FAQ sur des pages pour les lecteurs, sans administration, limitées à certaines catégories, avec leur titre de bandeau'],
     avant: ['Rien à préparer : le widget crée lui-même ce dont il a besoin dans le document.',
         'Pour réserver l\'administration aux propriétaires du document, suivez la marche à suivre de l\'encart, en tête de l\'administration.'],
     etapes: {
@@ -3153,8 +3169,8 @@ var AIDE = {
         'Répondre et publier': { titre: 'une question à la fois.', points: ['Ouvrez une question de la liste et rédigez la réponse : elle est enregistrée dès que vous quittez le champ.',
                 '« Publier » la rend visible des lecteurs, avec le badge « Nouvelle réponse » pendant 7 jours.', '« Dépublier pour corriger » la retire de la consultation le temps de la reprendre.',
                 'Cochez « Épinglée » pour placer une question en tête de sa catégorie.'] },
-        'Les pages': { titre: 'montrer la FAQ sans l\'administration.', points: ['« Créer une page de consultation » ajoute au document une page qui montre la FAQ publiée, sans roue dentée ni aide.',
-                'Choisissez ses catégories pour une FAQ thématique, et ce que les lecteurs peuvent y faire.', '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '.'] }
+        'Les pages': { titre: 'montrer la FAQ sans l\'administration.', points: ['« Où les lecteurs la voient » : « Publier sur une nouvelle page » ajoute au document une page qui montre la FAQ publiée, sans roue dentée ni aide.',
+                'Donnez-lui un nom et un titre de bandeau, choisissez ses catégories pour une FAQ thématique, et ce que les lecteurs peuvent y faire.', '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '.'] }
     },
     questions: [
         { q: 'Je ne vois pas la roue dentée.', r: 'L\'administration est réservée aux personnes que les règles d\'accès du document autorisent. Adressez-vous à un propriétaire du document.' },
@@ -3215,7 +3231,7 @@ setTimeout(function () {
         logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined);
     });
 }, 1500);
-var VERSION_WIDGET = '1.2.1';
+var VERSION_WIDGET = '1.2.2';
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
