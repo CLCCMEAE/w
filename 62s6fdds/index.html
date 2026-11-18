@@ -208,7 +208,7 @@
     @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
     .w-infobulle { position: relative; overflow: visible !important; }
-    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
@@ -541,6 +541,17 @@
       .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink, .w-ecran-seul { display: none !important; }
     }
     }
+    .w-carte__neuf { margin: 0; line-height: 1; }
+    .w-nouv { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+    .w-nouv[hidden] { display: none; }
+    .w-courriel-apercu { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: .75rem 1rem; font-size: .875rem; color: var(--text-default-grey); }
+    .w-courriel-apercu dl { margin: 0 0 .5rem; display: grid; grid-template-columns: auto 1fr; gap: .125rem .75rem; }
+    .w-courriel-apercu dt { color: var(--text-mention-grey); }
+    .w-courriel-apercu dd { margin: 0; overflow-wrap: anywhere; }
+    .w-courriel-apercu__texte { white-space: pre-wrap; margin: 0; padding-top: .5rem; border-top: 1px solid var(--border-default-grey); overflow-wrap: anywhere; }
+    .w-courriel-champs { display: flex; gap: .5rem; align-items: flex-end; flex-wrap: wrap; }
+    .w-courriel-champs .fr-select { width: auto; flex: 1 1 12rem; }
+    @media print { .w-nouv, .w-carte__neuf { display: none !important; } }
   </style>
 </head>
 <body>
@@ -596,7 +607,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.1';
+var VERSION_WIDGET = '1.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -1615,6 +1626,7 @@ var etat = {
     tableLiee: null, idsVisibles: null, derniersIds: null, finGlisser: 0, sortableAbsent: false,
     valeursFiltres: {}, retardSeul: false, legendeMasquee: {}, pjMeta: {}, jeton: null,
     tableaux: [], cleConfig: null, tableauSession: null, tableauMemorise: null, nomDoc: null, brouillon: null, uidSeq: 0,
+    vu: null, vuCle: null, empreintes: {}, nouveautes: {}, touches: {}, nouveautesSeules: false, nouvAnnoncees: false,
     regroupement: null, couloir: null, couloirsReplies: {}, couvertures: {}, voletMobile: false, voletReplie: false, trisVue: {}, archivesOuvertes: false,
     vue: 'chargement',
     recherche: '',
@@ -2376,7 +2388,9 @@ async function agir(actions) {
         throw new Error('Accès complet non accordé au widget : not allowed');
     }
     try {
-        return await gristAvecTimeout(grist.docApi.applyUserActions(actions), DELAI_API_MS);
+        var res = await gristAvecTimeout(grist.docApi.applyUserActions(actions), DELAI_API_MS);
+        noterTouches(actions, res);
+        return res;
     }
     catch (e) {
         if (estRefusGeneral(e) && etat.peutModifier) {
@@ -3418,6 +3432,12 @@ function verifierConfig() {
     if (c.colKanban) {
         c.historique = true;
     }
+    if (c.courriel && (typeof c.courriel !== 'object' || Array.isArray(c.courriel))) {
+        c.courriel = null;
+    }
+    if (c.courriel && c.courriel.dest && !infoColonne(c.tableCartes, c.courriel.dest)) {
+        c.courriel.dest = null;
+    }
     if (c.colOrdreCartes && !infoColonne(c.tableCartes, c.colOrdreCartes)) {
         c.colOrdreCartes = null;
     }
@@ -3500,6 +3520,9 @@ async function chargerDonnees() {
         aCharger.push(colonneCartes(c.colResponsable));
     }
     c.filtres.forEach(function (f) { aCharger.push(colonneCartes(f)); });
+    if (c.courriel && c.courriel.dest) {
+        aCharger.push(colonneCartes(c.courriel.dest));
+    }
     var vues = {};
     var lectures = [];
     aCharger.forEach(function (col) {
@@ -3552,7 +3575,8 @@ async function chargerDonnees() {
             valeurs[COL_HISTORIQUE] = colonneDe(d, COL_HISTORIQUE, k);
         }
         cartes.push({ id: d.id[k], titre: colonneDe(d, c.colTitre, k), cle: cle, brut: brut,
-            ordre: c.colOrdreCartes ? colonneDe(d, c.colOrdreCartes, k) : null, valeurs: valeurs });
+            ordre: c.colOrdreCartes ? colonneDe(d, c.colOrdreCartes, k) : null, valeurs: valeurs,
+            destCourriel: c.courriel && c.courriel.dest ? colonneDe(d, c.courriel.dest, k) : null });
     }
     if (src.type === 'text') {
         Object.keys(textes).sort(function (a, b) { return a.localeCompare(b, 'fr'); }).forEach(function (t) { etapes.push({ cle: t, libelle: t }); });
@@ -3563,6 +3587,7 @@ async function chargerDonnees() {
     if (etat.page) {
         appliquerPageAuxCartes();
     }
+    calculerNouveautes();
     if (c.champs.some(function (ch) { return genreDe(colonneCartes(ch.col), ch) === 'pj'; })) {
         await chargerMetaPJ();
     }
@@ -4108,7 +4133,7 @@ function valeursFiltre(colId) {
 }
 function nombreFiltresActifs() {
     var n = Object.keys(etat.valeursFiltres).filter(function (k) { return etat.valeursFiltres[k]; }).length;
-    return n + (etat.retardSeul ? 1 : 0) + (etat.recherche ? 1 : 0) + (Object.keys(etat.legendeMasquee).length ? 1 : 0);
+    return n + (etat.retardSeul ? 1 : 0) + (etat.recherche ? 1 : 0) + (Object.keys(etat.legendeMasquee).length ? 1 : 0) + (etat.nouveautesSeules ? 1 : 0);
 }
 function valeurCouleur(carte) {
     var c = etat.config;
@@ -4116,6 +4141,9 @@ function valeurCouleur(carte) {
 }
 function correspondFiltres(carte) {
     if (etat.idsVisibles && !etat.idsVisibles[carte.id]) {
+        return false;
+    }
+    if (etat.nouveautesSeules && !etat.nouveautes[carte.id]) {
         return false;
     }
     var c = etat.config;
@@ -4803,7 +4831,7 @@ function infoVide(libelle, genre) {
 function brouillonDepuisDefinition(def) {
     var b = { mode: 'creation', source: 'creation', etape: 1, nom: def.nom || '', description: def.description || '',
         colonnes: [], infos: [], ordreCarte: [], ordreFiche: [], compact: false, recherche: true, filtres: [], filtreRetard: false, tri: null,
-        nomsInfos: true, couverture: null, couleur: null,
+        nomsInfos: true, couverture: null, couleur: null, courriel: courrielBrouillon(null, {}),
         colonnesModifiables: true, colonnesOrdonnables: true, origine: def.origine || null, ignores: def.ignores || [] };
     var o = def.options || {};
     def.etapes.forEach(function (n) {
@@ -4898,6 +4926,7 @@ function brouillonDepuisConfig() {
     b.filtres = (c.filtres || []).map(function (f) { return parCol[f]; }).filter(Boolean);
     b.couverture = c.couverture ? parCol[c.couverture] || null : null;
     b.couleur = c.couleur ? parCol[c.couleur] || null : null;
+    b.courriel = courrielBrouillon(c.courriel, parCol);
     var colArch = c.colonneArchive ? b.colonnes.filter(function (x) { return x.cle === c.colonneArchive; })[0] : null;
     b.archiveUid = colArch ? colArch.uid : null;
     b.initial = JSON.stringify(etatComparable(b));
@@ -4919,6 +4948,7 @@ function sequenceVisible(b, cle, prop) {
 function etatComparable(b) {
     return { nom: b.nom, description: b.description, compact: b.compact, recherche: b.recherche, filtreRetard: b.filtreRetard, tri: b.tri,
         nomsInfos: b.nomsInfos, couverture: b.couverture, couleur: b.couleur, historique: !!b.historique, archive: b.archiveUid || null,
+        courriel: courrielComparable(b.courriel),
         colonnes: b.colonnes.map(function (x) { return [x.cle, x.nom, x.supprimee, x.dest]; }),
         infos: b.infos.map(function (i) { return [i.col, i.libelle, i.genre, i.valeurs, i.echeance, i.responsable, i.supprimee, i.utilisee, i.surCarte, i.dansFiche]; }),
         ordreCarte: b.ordreCarte, ordreFiche: b.ordreFiche, filtres: b.filtres };
@@ -5939,7 +5969,9 @@ function etapeCarte() {
 }
 function etapeFiche() {
     return ecranColonnes([{ titre: 'Informations dans la fiche', id: 'kAideFiche', aide: 'Ce qui s\'affiche en cliquant sur une carte. Le titre et la colonne y sont toujours. Cochez les informations à afficher et rangez-les dans l\'ordre voulu.',
-            contenu: [listeOrdre('ordreFiche', 'dansFiche', 'kFiche', 'Informations dans la fiche', ' dans la fiche')] }], 'La fiche');
+            contenu: [listeOrdre('ordreFiche', 'dansFiche', 'kFiche', 'Informations dans la fiche', ' dans la fiche')] },
+        { titre: 'Courriel préparé', id: 'kAideCourriel', aide: 'Un bouton de la fiche ouvre la messagerie de l\'agent avec le destinataire, l\'objet et le texte déjà remplis d\'après la carte. L\'agent relit, puis envoie : rien ne part tout seul.',
+            contenu: blocCourriel() }], 'La fiche');
 }
 function apercuVolet() {
     var b = etat.brouillon;
@@ -6071,6 +6103,10 @@ function changementsParEtape(b) {
     }
     if (sequenceVisible(b, 'ordreFiche', 'dansFiche') !== b.initFiche) {
         g[5].push({ t: 'Contenu ou ordre de la fiche modifié' });
+    }
+    var cAp = courrielComparable(b.courriel);
+    if (cAp !== init.courriel) {
+        g[5].push({ t: !cAp ? 'Courriel préparé retiré' : (init.courriel ? 'Courriel préparé modifié' : 'Courriel préparé proposé dans la fiche') });
     }
     if (b.compact !== init.compact) {
         g[4].push({ t: b.compact ? 'Affichage compact activé' : 'Affichage compact désactivé' });
@@ -6204,7 +6240,8 @@ function etapeRecapitulatif() {
             }) : [['Informations', 'Le titre seulement']] },
         { etape: 'La carte', rang: 4, lignes: [['Sur la carte', visibles('ordreCarte', 'surCarte') || 'Le titre seulement'], ['Affichage compact', b.compact ? 'Oui' : 'Non'],
                 ['Noms des informations', b.nomsInfos ? 'Affichés' : 'Masqués'], ['Image de couverture', lib(b.couverture) || 'Aucune'], ['Couleur des cartes selon', lib(b.couleur) || 'Aucune']] },
-        { etape: 'La fiche', rang: 5, lignes: [['Dans la fiche', visibles('ordreFiche', 'dansFiche') || 'Le titre et la colonne seulement']] },
+        { etape: 'La fiche', rang: 5, lignes: [['Dans la fiche', visibles('ordreFiche', 'dansFiche') || 'Le titre et la colonne seulement'],
+                ['Courriel préparé', b.courriel && b.courriel.actif ? 'Proposé' + (colDestinataire(b.courriel.destUid) ? ', destinataire lu dans « ' + infoParUid(b.courriel.destUid).libelle + ' »' : '') : 'Non proposé']] },
         { etape: 'Affichage et filtres', rang: 6, lignes: [['Recherche', b.recherche ? 'Proposée' : 'Non proposée'], ['Filtres', filtres.join(', ')],
                 ['En retard seulement', b.filtreRetard ? 'Proposé' : 'Non proposé']] }
     ];
@@ -6355,7 +6392,8 @@ async function creerDepuisBrouillon() {
             ordreFiche: b.ordreFiche.map(colDe).filter(Boolean),
             colEcheance: ech ? ech.colCree : null, colResponsable: resp ? resp.colCree : null, compact: !!b.compact,
             recherche: !!b.recherche, filtres: b.filtres.map(colDe).filter(Boolean), filtreRetard: !!b.filtreRetard && !!ech,
-            nomsInfos: b.nomsInfos !== false, couverture: b.couverture ? colDe(b.couverture) : null, couleur: b.couleur ? colDe(b.couleur) : null
+            nomsInfos: b.nomsInfos !== false, couverture: b.couverture ? colDe(b.couverture) : null, couleur: b.couleur ? colDe(b.couleur) : null,
+            courriel: courrielDepuisBrouillon(b, colDe)
         });
         var nomCree = b.nom.trim();
         etat.brouillon = null;
@@ -6584,6 +6622,7 @@ async function appliquerBrouillon() {
         c.nomsInfos = b.nomsInfos !== false;
         c.couverture = b.couverture ? colDe(b.couverture) : null;
         c.couleur = b.couleur ? colDe(b.couleur) : null;
+        c.courriel = courrielDepuisBrouillon(b, colDe);
         await ecrireConfig(c);
         return cleParUid;
     }
@@ -6781,6 +6820,8 @@ var AIDE = {
         'Ouvrir une carte pour lire et modifier sa fiche, pièces jointes comprises.',
         'Chercher, filtrer, trier, regrouper ou répartir les cartes en couloirs depuis le panneau de gauche.',
         'Imprimer ou enregistrer en PDF la vue affichée, en bas du panneau de gauche.',
+        'Repérer les cartes ajoutées ou modifiées depuis votre dernier passage : bouton « nouveautés » en haut du Kanban, étiquettes « Nouvelle » et « Modifiée » sur les cartes.',
+        'Préparer un courriel depuis la fiche d\'une carte, si le Kanban le propose : votre messagerie s\'ouvre avec le message déjà rempli.',
         'Tenir plusieurs Kanbans dans le même document, chacun dans son onglet.',
         'Publier un ou plusieurs Kanbans sur une page pour les lecteurs, sans paramétrages, avec son titre de bandeau, ses colonnes, ses cartes et ce que les personnes peuvent y faire.'
     ],
@@ -6841,7 +6882,8 @@ var AIDE = {
             ] },
         'La fiche': { titre: 'ce qui s\'affiche au clic sur une carte.', points: [
                 'Le titre et la colonne y sont toujours.',
-                'Cochez les informations à afficher et rangez-les dans l\'ordre voulu.'
+                'Cochez les informations à afficher et rangez-les dans l\'ordre voulu.',
+                '« Courriel préparé » : le destinataire, l\'objet et le texte, avec des informations de la carte entre accolades, par exemple {Titre}.'
             ] },
         'Affichage et filtres': { titre: 'les outils du panneau de gauche.', points: [
                 '« Filtres » : les informations proposées en filtre, dans l\'ordre où vous les cochez.',
@@ -6915,6 +6957,9 @@ function apercuContenu(nom) {
         return { contenu: boite(apercuCarte()), note: 'Une carte, avec des valeurs d\'exemple.' };
     }
     if (nom === 'La fiche') {
+        if (b.courriel && b.courriel.actif) {
+            return { contenu: creer('div', { classe: 'w-apercu__pile' }, [apercuFiche(), apercuCourriel()]), note: 'Les informations de la fiche, puis le courriel préparé avec une carte d\'exemple.' };
+        }
         return { contenu: apercuFiche(), note: 'Les informations de la fiche, dans l\'ordre.' };
     }
     if (nom === 'Affichage et filtres') {
@@ -7664,6 +7709,7 @@ function rendreTableau(zone) {
             etat.retardSeul = false;
             etat.legendeMasquee = {};
             etat.recherche = '';
+            etat.nouveautesSeules = false;
             afficherVue('tableau', true);
             annoncer('Filtres effacés : toutes les cartes sont affichées.');
             var f = document.getElementById('tRecherche') || document.getElementById('titreVue');
@@ -7734,7 +7780,7 @@ function rendreTableau(zone) {
         peutAjouter ? bouton('Ajouter une carte', null, 'add-line', ajouterCarte, { petit: true, id: 'tAjouterMobile' }) : null,
         bouton(nbActifs ? 'Recherche et filtres (' + nbActifs + ')' : 'Recherche et filtres', 'secondaire', 'filter-line', function () { ouvrirVoletMobile(true); }, { petit: true, id: 'tVoletMobile', attrs: { 'aria-controls': 'tVolet', 'aria-expanded': etat.voletMobile ? 'true' : 'false' } })
     ]));
-    principal.appendChild(barreVue(c.nom || 'Kanban sans nom', compteursKanban(), [boutonPleinEcran()]));
+    principal.appendChild(barreVue(c.nom || 'Kanban sans nom', compteursKanban(), [zoneNouveautes(), boutonPleinEcran()]));
     if (c.description) {
         principal.appendChild(blocExplication(c.description));
     }
@@ -7757,6 +7803,7 @@ function rendreTableau(zone) {
 function blocAffichage() {
     var c = etat.config;
     var bloc = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'tVoletAff' } }, [titreVolet('eye-line', 'Affichage', 'tVoletAff')]);
+    bloc.appendChild(caseNouveautes());
     var champ = function (id, libelle, explication, controle, sansChamp) {
         var a = aide(id, libelle, explication);
         return creer('div', { classe: 'w-outils__champ w-champ-aide' }, [
@@ -7904,6 +7951,7 @@ function redessinerColonnes() {
     if (!zone) {
         return;
     }
+    majBoutonNouveautes();
     var defilements = {};
     Array.prototype.forEach.call(zone.querySelectorAll('.w-colonne__liste'), function (l) { defilements[(l.getAttribute('data-couloir') ? l.getAttribute('data-couloir') + '|' : '') + l.getAttribute('data-cle')] = l.scrollTop; });
     var defilementX = zone.scrollLeft;
@@ -8046,6 +8094,395 @@ function rendreColonne(cle, couloir) {
     return sec;
 }
 function cleId(cle) { return String(cle).replace(/[^A-Za-z0-9_-]/g, '_'); }
+var MAX_VU = 5000;
+var LIMITE_COURRIEL = 1800;
+function empreinteTexte(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+}
+function empreinteCarte(x) {
+    var v = {};
+    Object.keys(x.valeurs).sort().forEach(function (k) {
+        if (IDS_META.indexOf(k) === -1) {
+            v[k] = x.valeurs[k];
+        }
+    });
+    return empreinteTexte(JSON.stringify([x.titre, x.cle, v]));
+}
+function cleVu() { return 'kanbans.vu.' + (etat.nomDoc || 'document') + '.' + (etat.cleConfig || ''); }
+function nouveautesActives() {
+    try {
+        return window.localStorage.getItem('kanbans.nouveautes') !== '0';
+    }
+    catch (e) {
+        return true;
+    }
+}
+function lireVu() {
+    try {
+        var v = JSON.parse(window.localStorage.getItem(cleVu()) || 'null');
+        return v && typeof v.t === 'number' && v.h && typeof v.h === 'object' && !Array.isArray(v.h) ? v : null;
+    }
+    catch (e) {
+        return null;
+    }
+}
+function ecrireVu() {
+    try {
+        window.localStorage.setItem(cleVu(), JSON.stringify(etat.vu));
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Relevé des nouveautés non enregistré', e);
+    }
+}
+function noterTouches(actions, res) {
+    var c = etat.config;
+    if (!c || !Array.isArray(actions)) {
+        return;
+    }
+    var rv = res && Array.isArray(res.retValues) ? res.retValues : [];
+    actions.forEach(function (a, i) {
+        if (!Array.isArray(a) || a[1] !== c.tableCartes) {
+            return;
+        }
+        if (a[0] === 'UpdateRecord' || a[0] === 'AddRecord') {
+            var id = a[0] === 'UpdateRecord' ? a[2] : rv[i];
+            if (typeof id === 'number') {
+                etat.touches[id] = true;
+            }
+        }
+        else if (a[0] === 'BulkUpdateRecord' || a[0] === 'BulkAddRecord') {
+            var ids = a[0] === 'BulkUpdateRecord' ? a[2] : rv[i];
+            if (Array.isArray(ids)) {
+                ids.forEach(function (x) { etat.touches[x] = true; });
+            }
+        }
+    });
+}
+function calculerNouveautes() {
+    etat.nouveautes = {};
+    if (!etat.config || !nouveautesActives() || etat.cartes.length > MAX_VU) {
+        etat.touches = {};
+        return;
+    }
+    if (etat.vuCle !== cleVu()) {
+        etat.vu = lireVu();
+        etat.vuCle = cleVu();
+        etat.nouvAnnoncees = false;
+        etat.nouveautesSeules = false;
+    }
+    var h = {};
+    etat.cartes.forEach(function (x) { h[x.id] = empreinteCarte(x); });
+    etat.empreintes = h;
+    if (!etat.vu) {
+        etat.vu = { t: Date.now(), h: Object.assign({}, h) };
+        etat.touches = {};
+        ecrireVu();
+        return;
+    }
+    var change = false;
+    Object.keys(etat.touches).forEach(function (id) {
+        if (h[id] && etat.vu.h[id] !== h[id]) {
+            etat.vu.h[id] = h[id];
+            change = true;
+        }
+    });
+    etat.touches = {};
+    Object.keys(etat.vu.h).forEach(function (id) {
+        if (!h[id]) {
+            delete etat.vu.h[id];
+            change = true;
+        }
+    });
+    etat.cartes.forEach(function (x) {
+        if (!Object.prototype.hasOwnProperty.call(etat.vu.h, String(x.id))) {
+            etat.nouveautes[x.id] = 'nouveau';
+        }
+        else if (etat.vu.h[x.id] !== h[x.id]) {
+            etat.nouveautes[x.id] = 'modifie';
+        }
+    });
+    if (change) {
+        ecrireVu();
+    }
+}
+function nombreNouveautes() {
+    return etat.cartes.filter(function (x) { return etat.nouveautes[x.id] && (!etat.idsVisibles || etat.idsVisibles[x.id]); }).length;
+}
+function dateVu() {
+    var d = new Date(etat.vu ? etat.vu.t : Date.now());
+    return d.getDate() + ' ' + MOIS_COURTS[d.getMonth()] + ' à ' + d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0');
+}
+function zoneNouveautes() {
+    return creer('div', { classe: 'w-nouv', id: 'tNouv', attrs: { role: 'group', 'aria-label': 'Nouveautés', hidden: true } });
+}
+function majBoutonNouveautes() {
+    var z = document.getElementById('tNouv');
+    if (!z) {
+        return;
+    }
+    var n = nombreNouveautes();
+    if (!n && etat.nouveautesSeules) {
+        etat.nouveautesSeules = false;
+    }
+    var actif = document.activeElement;
+    var idFocus = actif && z.contains(actif) ? actif.id : null;
+    vider(z);
+    z.hidden = !n;
+    if (!n) {
+        return;
+    }
+    var depuis = 'depuis le ' + dateVu();
+    var texte = n + ' nouveauté' + (n > 1 ? 's' : '');
+    z.appendChild(bouton(texte, etat.nouveautesSeules ? null : 'secondaire', 'notification-3-line', basculerNouveautesSeules, { petit: true, id: 'tNouvBtn', classe: 'w-infobulle',
+        aria: texte + ' ' + depuis + (etat.nouveautesSeules ? ' : seules ces cartes sont affichées. Revoir toutes les cartes' : '. N\'afficher que ces cartes'),
+        attrs: { 'aria-pressed': etat.nouveautesSeules ? 'true' : 'false', 'data-infobulle': 'Ajoutées ou modifiées ' + depuis } }));
+    z.appendChild(bouton('Tout marquer comme vu', 'discret', 'check-line', toutMarquerVu, { petit: true, id: 'tNouvVu' }));
+    if (idFocus && document.getElementById(idFocus)) {
+        document.getElementById(idFocus).focus();
+    }
+    if (!etat.nouvAnnoncees) {
+        etat.nouvAnnoncees = true;
+        annoncer(texte + ' ' + depuis + '.');
+    }
+}
+function basculerNouveautesSeules() {
+    etat.nouveautesSeules = !etat.nouveautesSeules;
+    afficherVue('tableau', true);
+    var b = document.getElementById('tNouvBtn');
+    if (b) {
+        b.focus();
+    }
+    annoncer(etat.nouveautesSeules ? 'Seules les cartes ajoutées ou modifiées sont affichées.' : 'Toutes les cartes sont affichées.');
+}
+function toutMarquerVu() {
+    etat.vu = { t: Date.now(), h: Object.assign({}, etat.empreintes) };
+    etat.nouveautes = {};
+    etat.nouveautesSeules = false;
+    ecrireVu();
+    afficherVue('tableau', true);
+    var t = document.getElementById('titreVue');
+    if (t) {
+        t.focus();
+    }
+    annoncer('Toutes les cartes sont marquées comme vues.');
+}
+function marquerVu(id) {
+    if (!etat.nouveautes[id] || !etat.vu || !etat.empreintes[id]) {
+        return;
+    }
+    etat.vu.h[id] = etat.empreintes[id];
+    delete etat.nouveautes[id];
+    ecrireVu();
+    var t = document.querySelector('.w-carte[data-id="' + id + '"] .w-carte__neuf');
+    if (t) {
+        t.remove();
+    }
+    majBoutonNouveautes();
+}
+function caseNouveautes() {
+    var cb = creer('input', { attrs: { type: 'checkbox', id: 'tNouvOpt' }, coche: nouveautesActives() });
+    cb.addEventListener('change', function () {
+        try {
+            window.localStorage.setItem('kanbans.nouveautes', cb.checked ? '1' : '0');
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Réglage des nouveautés non enregistré', e);
+        }
+        etat.nouveautesSeules = false;
+        etat.vuCle = null;
+        calculerNouveautes();
+        etat.nouvAnnoncees = true;
+        afficherVue('tableau', true);
+        var f = document.getElementById('tNouvOpt');
+        if (f) {
+            f.focus();
+        }
+        annoncer(cb.checked ? 'Les nouveautés sont signalées.' : 'Les nouveautés ne sont plus signalées.');
+    });
+    var a = aide('tNouvOpt', 'Signaler les nouveautés', 'Repère les cartes ajoutées ou modifiées depuis votre dernier passage. Ouvrir une carte la marque comme vue. Réglage pour vous seul, gardé dans ce navigateur : sur un autre ordinateur, le décompte repart de zéro.');
+    return creer('div', { classe: 'w-champ-aide w-volet__case' }, [creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb,
+            creer('label', { classe: 'fr-label', attrs: { 'for': 'tNouvOpt' }, texte: 'Signaler les nouveautés' })]), a.bouton, a.panneau]);
+}
+function adressesDe(t) {
+    var m = String(t === null || t === undefined ? '' : t).match(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g) || [];
+    var vues = {};
+    return m.filter(function (a) {
+        var k = a.toLowerCase();
+        if (vues[k]) {
+            return false;
+        }
+        vues[k] = true;
+        return true;
+    });
+}
+function remplirModele(modele, valeurs) {
+    var inconnus = [];
+    var texte = String(modele || '').replace(/\{([^{}\n]{1,80})\}/g, function (tout, nom) {
+        var k = normaliser(nom);
+        if (Object.prototype.hasOwnProperty.call(valeurs, k)) {
+            return valeurs[k];
+        }
+        if (inconnus.indexOf(nom.trim()) === -1) {
+            inconnus.push(nom.trim());
+        }
+        return tout;
+    });
+    return { texte: texte, inconnus: inconnus };
+}
+function lienCourriel(a, cc, objet, texte) {
+    var p = [];
+    if (cc.length) {
+        p.push('cc=' + encodeURIComponent(cc.join(',')));
+    }
+    if (objet) {
+        p.push('subject=' + encodeURIComponent(objet));
+    }
+    if (texte) {
+        p.push('body=' + encodeURIComponent(texte.replace(/\r?\n/g, '\r\n')));
+    }
+    return 'mailto:' + a.join(',') + (p.length ? '?' + p.join('&') : '');
+}
+function preparerCourriel(m, valeurs, destLus) {
+    var a = adressesDe((destLus || []).join(' ') + ' ' + (m.adresses || ''));
+    var cc = adressesDe(m.cc);
+    var o = remplirModele(m.objet, valeurs);
+    var t = remplirModele(m.texte, valeurs);
+    var inconnus = o.inconnus.concat(t.inconnus.filter(function (x) { return o.inconnus.indexOf(x) === -1; }));
+    return { a: a, cc: cc, objet: o.texte, texte: t.texte, inconnus: inconnus, lien: lienCourriel(a, cc, o.texte, t.texte) };
+}
+function valeursCourrielCarte(carte) {
+    var c = etat.config;
+    var v = {};
+    v[normaliser('Titre')] = carte.titre ? String(carte.titre) : '';
+    v[normaliser('Colonne')] = carte.cle === CLE_NON_CLASSE ? '' : libelleEtape(carte.cle);
+    c.champs.forEach(function (ch) { v[normaliser(libelleChamp(ch))] = texteValeur(ch.col, carte.valeurs[ch.col]) || ''; });
+    return v;
+}
+function boutonCourriel(carte) {
+    var c = etat.config;
+    if (!carte || !c.courriel) {
+        return null;
+    }
+    var a = creer('a', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-mail-line fr-btn--icon-left', id: 'fcCourriel', texte: 'Préparer le courriel',
+        attrs: { href: 'mailto:', target: '_blank', rel: 'noopener noreferrer', title: 'Préparer le courriel - ouvre votre messagerie' } });
+    a.addEventListener('click', function () {
+        var m = preparerCourriel(c.courriel, valeursCourrielCarte(carte), c.courriel.dest ? [texteValeur(c.courriel.dest, carte.destCourriel)] : []);
+        a.setAttribute('href', m.lien);
+        annoncer(m.a.length ? 'Votre messagerie s\'ouvre avec le courriel préparé : relisez-le, puis envoyez-le.' : 'Votre messagerie s\'ouvre sans destinataire : ajoutez-le avant d\'envoyer.');
+    });
+    return a;
+}
+function courrielBrouillon(m, parCol) {
+    var ok = !!m && typeof m === 'object';
+    return { actif: ok, destUid: ok && m.dest ? parCol[m.dest] || null : null, adresses: ok ? String(m.adresses || '') : '', cc: ok ? String(m.cc || '') : '',
+        objet: ok ? String(m.objet || '') : '', texte: ok ? String(m.texte || '') : '' };
+}
+function courrielComparable(m) {
+    if (!m || !m.actif) {
+        return null;
+    }
+    return JSON.stringify([m.destUid || null, m.adresses.trim(), m.cc.trim(), m.objet.trim(), m.texte.replace(/\s+$/, '')]);
+}
+function infosDestinataire(b) {
+    return b.infos.filter(function (i) { return !i.supprimee && (infoActive(i) || !!i.col) && i.genre !== 'pj'; });
+}
+function colDestinataire(u) {
+    var i = u ? infoParUid(u) : null;
+    if (!i || i.supprimee) {
+        return null;
+    }
+    return i.col || i.colCree || null;
+}
+function courrielDepuisBrouillon(b, colDe) {
+    var m = b.courriel;
+    if (!m || !m.actif) {
+        return null;
+    }
+    return { dest: colDestinataire(m.destUid), adresses: m.adresses.trim(), cc: m.cc.trim(), objet: m.objet.trim(), texte: m.texte.replace(/\s+$/, '') };
+}
+function blocCourriel() {
+    var b = etat.brouillon;
+    if (!b.courriel) {
+        b.courriel = courrielBrouillon(null, {});
+    }
+    var m = b.courriel;
+    var actives = b.infos.filter(infoActive);
+    var destPossibles = infosDestinataire(b);
+    var corps = creer('div', { id: 'kCourrielCorps', attrs: { hidden: !m.actif } });
+    var caseActif = optionCase('kCourriel', 'Proposer « Préparer le courriel » dans la fiche', 'Le bouton apparaît en bas de la fiche de chaque carte. Il ouvre la messagerie de l\'agent, Outlook par exemple, avec le message déjà rempli. Les pièces jointes ne sont pas ajoutées automatiquement.', m.actif, function (v) {
+        m.actif = v;
+        corps.hidden = !v;
+        majAttente();
+    });
+    var selDest = liste('kCourrielDest', destPossibles.map(function (i) { return { valeur: i.uid, libelle: i.libelle }; }), m.destUid || '', { vide: 'Aucune' });
+    selDest.addEventListener('change', function () { m.destUid = selDest.value || null; majAttente(); });
+    var champTexte = function (id, cle, multi) {
+        var n = multi ? creer('textarea', { classe: 'fr-input', id: id, valeur: m[cle], attrs: { rows: '8' } }) : saisie(id, m[cle]);
+        n.addEventListener('input', function () { m[cle] = n.value; majAttente(); });
+        n.addEventListener('focus', function () { if (cle === 'objet' || cle === 'texte') {
+            corps.setAttribute('data-cible', id);
+        } });
+        return n;
+    };
+    var inAdr = champTexte('kCourrielAdr', 'adresses');
+    var inCc = champTexte('kCourrielCc', 'cc');
+    var inObjet = champTexte('kCourrielObjet', 'objet');
+    var inTexte = champTexte('kCourrielTexte', 'texte', true);
+    var noms = ['Titre', 'Colonne'].concat(actives.map(function (i) { return i.libelle; }));
+    var selChamp = liste('kCourrielChamp', noms.map(function (x) { return { valeur: x, libelle: x }; }), 'Titre');
+    var inserer = bouton('Insérer', 'secondaire', null, function () {
+        var cible = document.getElementById(corps.getAttribute('data-cible') || 'kCourrielTexte') || inTexte;
+        var ajout = '{' + selChamp.value + '}';
+        var debut = typeof cible.selectionStart === 'number' ? cible.selectionStart : cible.value.length;
+        var fin = typeof cible.selectionEnd === 'number' ? cible.selectionEnd : debut;
+        cible.value = cible.value.slice(0, debut) + ajout + cible.value.slice(fin);
+        m[cible === inObjet ? 'objet' : 'texte'] = cible.value;
+        cible.focus();
+        cible.setSelectionRange(debut + ajout.length, debut + ajout.length);
+        majAttente();
+        annoncer('« ' + ajout + ' » inséré dans ' + (cible === inObjet ? 'l\'objet' : 'le texte') + '.');
+    }, { petit: true, id: 'kCourrielInserer' });
+    corps.appendChild(groupeChamp('Destinataire lu dans l\'information', selDest, 'Les adresses électroniques trouvées dans cette information de la carte, même si elle n\'est ni sur la carte ni dans la fiche.'));
+    corps.appendChild(groupeChamp('Autres destinataires', inAdr, 'Adresses fixes, séparées par des virgules. Par exemple : secretariat@diplomatie.gouv.fr'));
+    corps.appendChild(groupeChamp('Copie', inCc, 'Adresses en copie, séparées par des virgules.'));
+    corps.appendChild(groupeChamp('Objet', inObjet));
+    corps.appendChild(groupeChamp('Texte', inTexte, 'Les informations entre accolades, par exemple {Titre}, sont remplacées par celles de la carte.'));
+    corps.appendChild(creer('div', { classe: 'fr-input-group' }, [
+        creer('label', { classe: 'fr-label', attrs: { 'for': 'kCourrielChamp' }, texte: 'Insérer une information' }),
+        creer('div', { classe: 'w-courriel-champs' }, [selChamp, inserer])
+    ]));
+    return [caseActif, corps];
+}
+function apercuCourriel() {
+    var b = etat.brouillon;
+    var m = b.courriel;
+    var actives = b.infos.filter(infoActive);
+    var v = {};
+    v[normaliser('Titre')] = 'Réserver la salle';
+    var col = colonnesActives()[0];
+    v[normaliser('Colonne')] = col ? col.nom.trim() : 'À faire';
+    actives.forEach(function (i) { v[normaliser(i.libelle)] = valeurExemple(i); });
+    var dest = m.destUid ? infoParUid(m.destUid) : null;
+    var p = preparerCourriel(m, v, dest ? ['prenom.nom@diplomatie.gouv.fr'] : []);
+    var ligne = function (dt, dd) { return [creer('dt', { texte: dt }), creer('dd', { texte: dd })]; };
+    var dl = creer('dl', null, ligne('À', p.a.length ? p.a.join(', ') + (dest ? ' (exemple lu dans « ' + dest.libelle + ' »)' : '') : 'À compléter dans la messagerie')
+        .concat(p.cc.length ? ligne('Copie', p.cc.join(', ')) : [])
+        .concat(ligne('Objet', p.objet || '(sans objet)')));
+    var boite = creer('div', { classe: 'w-courriel-apercu', attrs: { 'aria-label': 'Aperçu du courriel' } }, [dl, creer('p', { classe: 'w-courriel-apercu__texte', texte: p.texte || '(texte vide)' })]);
+    var alertes = [];
+    if (p.inconnus.length) {
+        alertes.push(alerte('warning', null, 'Information inconnue : ' + p.inconnus.map(function (x) { return '{' + x + '}'; }).join(', ') + '. Vérifiez son nom : elle restera telle quelle dans le courriel.'));
+    }
+    if (p.lien.length > LIMITE_COURRIEL) {
+        alertes.push(alerte('warning', null, 'Message long : certaines messageries le couperont. Raccourcissez le texte.'));
+    }
+    return creer('div', null, [creer('p', { classe: 'w-mention fr-mb-1v', texte: 'Courriel préparé' }), boite].concat(alertes));
+}
 function rendreCarte(x) {
     var c = etat.config;
     var art = creer('div', { classe: 'w-carte', attrs: { 'data-id': x.id, role: 'listitem' } });
@@ -8059,8 +8496,12 @@ function rendreCarte(x) {
         ouvrirCarte(x, x.cle);
     });
     var titre = x.titre ? String(x.titre) : 'Sans titre';
+    var neuf = etat.nouveautes[x.id];
+    if (neuf) {
+        art.appendChild(creer('p', { classe: 'w-carte__neuf', attrs: { 'aria-hidden': 'true' } }, [badge(neuf === 'nouveau' ? 'Nouvelle' : 'Modifiée', neuf === 'nouveau' ? 'new' : 'info')]));
+    }
     art.appendChild(creer('h4', { classe: 'w-carte__titre' }, [creer('button', { classe: 'w-carte__ouvrir', texte: titre,
-            attrs: { 'aria-label': 'Ouvrir la carte ' + titre }, clic: function () { ouvrirCarte(x, x.cle); } })]));
+            attrs: { 'aria-label': 'Ouvrir la carte ' + titre + (neuf ? (neuf === 'nouveau' ? ', nouvelle' : ', modifiée') : '') }, clic: function () { ouvrirCarte(x, x.cle); } })]));
     var infos = creer('div', { classe: 'w-carte__infos' });
     var noms = c.nomsInfos !== false;
     var avecNom = function (lib, valeur) {
@@ -9354,6 +9795,9 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
     opts = opts || {};
     var c = etat.config;
     var nouvelle = !carte;
+    if (carte) {
+        marquerVu(carte.id);
+    }
     if (carte && etat.tableLiee === c.tableCartes) {
         relayer(grist.setCursorPos({ rowId: carte.id }), 'Positionnement du curseur');
     }
@@ -9629,7 +10073,7 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
         corps: activite ? [ongletsFiche(carte, fiche, activite.noeud, !!opts.activite)] : [fiche], focus: opts.activite && activite ? 'wActTexte' : 'fcTitre',
         surFermeture: function () { relayer(sauver(), 'Enregistrement à la fermeture'); },
         fermerDehors: true,
-        pied: [etat.peutModifier ? bouton('Supprimer la carte', 'discret', 'delete-line', supprimer) : null, statut] });
+        pied: [etat.peutModifier ? bouton('Supprimer la carte', 'discret', 'delete-line', supprimer) : null, boutonCourriel(carte), statut] });
 }
 function brancherTriListe(ol, surFin) {
     if (typeof Sortable === 'undefined') {
