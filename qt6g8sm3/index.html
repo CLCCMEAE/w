@@ -642,6 +642,14 @@
     .p-logos > span { height: 100%; display: flex; align-items: center; }
     .p-logos__marque { flex: 0 0 auto; background: var(--background-default-grey); color: inherit; }
     .p-logos__marque img { height: 100%; width: auto; display: block; }
+.w-feuilles { position: relative; }
+.w-rp-box { position: absolute; border: 3px dashed var(--border-action-high-blue-france); pointer-events: none; z-index: 5; box-sizing: border-box; }
+.w-rp-box__etiq { position: absolute; top: 0; right: 0; transform: translateY(-100%); font-size: .75rem; font-weight: 700; line-height: 1.5; padding: 0 .375rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { .w-rp-box--flash { animation: wRpFlash .8s ease-out; } }
+@keyframes wRpFlash { from { box-shadow: 0 0 0 8px var(--background-action-low-blue-france); } to { box-shadow: 0 0 0 0 transparent; } }
+.w-rp-src { box-shadow: inset 4px 0 0 var(--border-action-high-blue-france); }
+.w-rp-case { margin: 0 0 .75rem; }
+@media print { .w-rp-box { display: none !important; } }
 .p-logos > .p-bm { display: block; position: relative; flex: 0 0 auto; height: auto; }
 .p-bm > img, .p-bm > .p-bm__intitule { position: absolute; display: block; }
 .p-bm__intitule { font-family: Marianne, Arial, sans-serif; font-weight: 700; color: #000; white-space: nowrap; }
@@ -766,7 +774,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.0';
+var VERSION_WIDGET = '2.2.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -3811,6 +3819,15 @@ function estImagePJ(id) {
 }
 function classes() { return Array.prototype.filter.call(arguments, Boolean).join(' '); }
 function unitesBloc(b, rc) {
+    var l = unitesBlocBrut(b, rc);
+    if (b && b.id && rc && rc.editeur !== false) {
+        l.forEach(function (u) { if (u.el && u.el.setAttribute) {
+            u.el.setAttribute('data-rb', String(b.id));
+        } });
+    }
+    return l;
+}
+function unitesBlocBrut(b, rc) {
     if (!b || !conditionRemplie(b.cond, rc)) {
         return [];
     }
@@ -6746,7 +6763,8 @@ function etapeRediger() {
     evitement.addEventListener('click', function (e) { e.preventDefault(); var d = document.getElementById('pDocument'); if (d) {
         d.focus();
     } });
-    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages du document' } }, [evitement, b.mode === 'creation' ? blocNomDocument() : null].concat(sections));
+    rpBrancher();
+    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages du document' } }, [evitement, b.mode === 'creation' ? blocNomDocument() : null, creer('div', { classe: 'w-rp-case' }, [caseRepererF()])].concat(sections));
     var droite = dansPage ? editeurCourrier() : apercuRedaction();
     var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': dansPage ? (lettre ? 'Le courrier, modifiable dans la page' : 'La page, modifiable') : 'Aperçu en direct du document' } }, [alerteImportWord(b), barreAfficher(courrier && !b.avance),
         creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }, [creer('p', { classe: 'w-indice', texte: 'Vérification des lignes…' })]), droite]);
@@ -7648,6 +7666,290 @@ async function creerPageChrono() {
         masquerLoader();
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
     }
+}
+var CLE_REPERER_F = 'diplofusion.reperer';
+var _rp = { section: null, bloc: null, survolSection: null, survolBloc: null, saisie: 0, branche: false, minut: null };
+var RP_SECTIONS = {
+    logos: { sel: '.p-logos', nom: 'Logos et bloc-marque' },
+    entete: { sel: '.p-lh, .p-sig', nom: 'En-tête et signature' },
+    mep: { sel: '.p-page', nom: 'Mise en page', premier: true }
+};
+function rpActif() {
+    try {
+        return window.localStorage.getItem(CLE_REPERER_F) !== 'non';
+    }
+    catch (e) {
+        return true;
+    }
+}
+function caseRepererF() {
+    return caseACocher('pReperer', 'Repérer dans l\'aperçu', rpActif(), function (e) {
+        try {
+            window.localStorage.setItem(CLE_REPERER_F, e.target.checked ? 'oui' : 'non');
+        }
+        catch (er) {
+            logSecurite('INFO', 'Choix du repérage non retenu par le navigateur', er);
+        }
+        rpDessiner(false, false);
+    }, { aide: 'Encadre dans le document la partie que vous réglez ; un clic dans le document ouvre son réglage.' });
+}
+function rpHote() { return document.querySelector('#pDocument .w-feuilles'); }
+function rpSaisieEnCours() {
+    var a = document.activeElement;
+    return !!a && !!a.closest && !!a.closest('#pReglages') && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.nodeName) || a.isContentEditable);
+}
+function rpBlocParId(id) {
+    var b = etat.brouillon;
+    var trouve = null;
+    var chercher = function (l) {
+        (l || []).forEach(function (x) {
+            if (trouve) {
+                return;
+            }
+            if (x.id === id) {
+                trouve = x;
+            }
+            else if (x.type === 'columns') {
+                chercher(x.left);
+                chercher(x.right);
+            }
+        });
+    };
+    chercher(b ? b.blocks : []);
+    return trouve;
+}
+function rpNomBloc(id) {
+    var t = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"] .w-bloc__type');
+    var bl = rpBlocParId(id);
+    var nom = t ? t.textContent : (bl ? bl.type : 'Bloc');
+    return 'Bloc : ' + nom;
+}
+function rpCible() {
+    var libre = !rpSaisieEnCours();
+    var bloc = libre && _rp.survolBloc ? _rp.survolBloc : (libre && _rp.survolSection ? null : _rp.bloc);
+    var section = libre && _rp.survolSection && !_rp.survolBloc ? _rp.survolSection : (bloc ? null : _rp.section);
+    if (bloc) {
+        var bl = rpBlocParId(bloc);
+        return { sel: bl && bl.type === 'footer' ? '.p-foot' : '[data-rb="' + bloc + '"], [data-bloc="' + bloc + '"]', nom: rpNomBloc(bloc) };
+    }
+    if (section === 'reference') {
+        var r = etat.brouillon && etat.brouillon.page && etat.brouillon.page.reference;
+        var col = r && r.col ? r.col : REF_COL_DEFAUT;
+        return { sel: '[data-champ="' + col + '"], [data-champ^="' + col + '|"]', nom: 'Numéro d\'enregistrement' };
+    }
+    return section && RP_SECTIONS[section] ? RP_SECTIONS[section] : null;
+}
+function rpEffacer(hote) {
+    Array.prototype.forEach.call((hote || document).querySelectorAll('.w-rp-box'), function (x) { x.parentNode.removeChild(x); });
+    Array.prototype.forEach.call(document.querySelectorAll('.w-rp-src'), function (x) { x.classList.remove('w-rp-src'); });
+}
+function rpDessiner(defiler, flash) {
+    var hote = rpHote();
+    rpEffacer(hote);
+    if (!hote || !rpActif()) {
+        return;
+    }
+    var c = rpCible();
+    if (!c) {
+        return;
+    }
+    var source = _rp.bloc && c.sel.indexOf('data-rb') !== -1 ? document.querySelector('#pReglages li.w-bloc[data-id="' + (_rp.survolBloc || _rp.bloc) + '"]') : document.querySelector('#pReglages [data-section="' + (_rp.survolSection || _rp.section) + '"]');
+    if (source) {
+        source.classList.add('w-rp-src');
+    }
+    var els = Array.prototype.filter.call(hote.querySelectorAll(c.sel), function (x) { return !x.closest('.w-rp-box') && x.getClientRects().length; });
+    if (c.premier) {
+        els = els.slice(0, 1);
+    }
+    if (!els.length) {
+        return;
+    }
+    var hr = hote.getBoundingClientRect();
+    var groupes = [];
+    els.forEach(function (x) {
+        var p = x.closest('.p-page') || hote;
+        var g = groupes.filter(function (y) { return y.p === p; })[0];
+        var r = x.getBoundingClientRect();
+        if (!g) {
+            groupes.push({ p: p, l: r.left, t: r.top, r: r.right, b: r.bottom });
+        }
+        else {
+            g.l = Math.min(g.l, r.left);
+            g.t = Math.min(g.t, r.top);
+            g.r = Math.max(g.r, r.right);
+            g.b = Math.max(g.b, r.bottom);
+        }
+    });
+    var premiere = null;
+    groupes.forEach(function (g, k) {
+        var boite = creer('div', { classe: 'w-rp-box' + (flash ? ' w-rp-box--flash' : ''), attrs: { 'aria-hidden': 'true' } }, k ? [] : [creer('span', { classe: 'w-rp-box__etiq', texte: c.nom })]);
+        boite.style.left = (g.l - hr.left + hote.scrollLeft - 4) + 'px';
+        boite.style.top = (g.t - hr.top + hote.scrollTop - 4) + 'px';
+        boite.style.width = Math.max(8, g.r - g.l + 8) + 'px';
+        boite.style.height = Math.max(8, g.b - g.t + 8) + 'px';
+        hote.appendChild(boite);
+        if (!premiere) {
+            premiere = boite;
+        }
+    });
+    if (defiler && premiere) {
+        var t = premiere.offsetTop - 24;
+        if (t < hote.scrollTop || premiere.offsetTop + premiere.offsetHeight > hote.scrollTop + hote.clientHeight) {
+            hote.scrollTop = Math.max(0, t);
+        }
+        annoncer('Dans l\'aperçu : ' + c.nom);
+    }
+}
+function rpPlanifier(flash) {
+    clearTimeout(_rp.minut);
+    _rp.minut = setTimeout(function () { rpDessiner(false, flash); }, 60);
+}
+function rpOuvrirSection(cle, focusSel) {
+    var btn = document.getElementById('pSec' + cle + 'Btn');
+    if (!btn) {
+        return false;
+    }
+    if (btn.getAttribute('aria-expanded') !== 'true') {
+        btn.click();
+    }
+    _rp.section = cle;
+    _rp.bloc = null;
+    var corps = document.getElementById('pSec' + cle);
+    var f = corps ? corps.querySelector(focusSel || 'input, select, textarea, button') : null;
+    (f || btn).focus();
+    btn.scrollIntoView({ block: 'nearest' });
+    rpDessiner(true, false);
+    return true;
+}
+function rpOuvrirBloc(id) {
+    var titre = document.getElementById('pBloc' + id);
+    var b = etat.brouillon;
+    if (titre) {
+        if (!(b.ouverts && b.ouverts[id])) {
+            titre.click();
+        }
+        var li = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"]');
+        var sec = li ? li.closest('[data-section]') : null;
+        var btn = sec ? document.getElementById('pSec' + sec.getAttribute('data-section') + 'Btn') : null;
+        if (btn && btn.getAttribute('aria-expanded') !== 'true') {
+            btn.click();
+        }
+        li = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"]');
+        var f = li ? li.querySelector('.w-bloc__corps input, .w-bloc__corps textarea, .w-bloc__corps select, .w-bloc__corps [contenteditable="true"]') : null;
+        _rp.bloc = id;
+        _rp.section = null;
+        if (li) {
+            li.scrollIntoView({ block: 'nearest' });
+        }
+        (f || document.getElementById('pBloc' + id)).focus();
+        rpDessiner(true, false);
+        return;
+    }
+    var bl = rpBlocParId(id);
+    if (bl && (bl.type === 'letterhead' || bl.type === 'signature') && rpOuvrirSection('entete')) {
+        return;
+    }
+    if (rpOuvrirSection('avance', '#pAvance')) {
+        _rp.bloc = id;
+        rpDessiner(false, false);
+        annoncer('Ce bloc se règle dans la mise en page avancée : « Afficher les blocs ».');
+    }
+}
+function rpClicDocument(e) {
+    if (!rpActif() || !e.target.closest) {
+        return;
+    }
+    if (e.target.closest('[contenteditable="true"], .w-rp-box, a, button, input, select, textarea')) {
+        return;
+    }
+    var logos = e.target.closest('.p-logos');
+    if (logos && !e.target.closest('.p-lh')) {
+        rpOuvrirSection('logos');
+        return;
+    }
+    var u = e.target.closest('[data-rb]');
+    if (u) {
+        rpOuvrirBloc(u.getAttribute('data-rb'));
+        return;
+    }
+    if (e.target.closest('.p-foot')) {
+        var pied = (etat.brouillon.blocks || []).filter(function (x) { return x.type === 'footer'; })[0];
+        if (pied) {
+            rpOuvrirBloc(pied.id);
+        }
+    }
+}
+function rpBrancher() {
+    if (_rp.branche) {
+        return;
+    }
+    _rp.branche = true;
+    document.addEventListener('focusin', function (e) {
+        var reg = e.target.closest ? e.target.closest('#pReglages') : null;
+        if (!reg || etat.vue !== 'assistant') {
+            return;
+        }
+        var li = e.target.closest('li.w-bloc[data-id]');
+        var sec = e.target.closest('[data-section]');
+        var avant = (_rp.bloc || '') + '|' + (_rp.section || '');
+        _rp.survolBloc = null;
+        _rp.survolSection = null;
+        if (li) {
+            _rp.bloc = li.getAttribute('data-id');
+            _rp.section = null;
+        }
+        else if (sec) {
+            _rp.section = sec.getAttribute('data-section');
+            _rp.bloc = null;
+        }
+        if ((_rp.bloc || '') + '|' + (_rp.section || '') !== avant) {
+            rpDessiner(true, false);
+        }
+    });
+    document.addEventListener('input', function (e) {
+        if (e.target.closest && e.target.closest('#pReglages')) {
+            _rp.saisie = Date.now();
+        }
+    }, true);
+    document.addEventListener('change', function (e) {
+        if (e.target.closest && e.target.closest('#pReglages')) {
+            _rp.saisie = Date.now();
+        }
+    }, true);
+    document.addEventListener('mouseover', function (e) {
+        var reg = e.target.closest ? e.target.closest('#pReglages') : null;
+        if (!reg) {
+            if (_rp.survolBloc || _rp.survolSection) {
+                _rp.survolBloc = null;
+                _rp.survolSection = null;
+                rpPlanifier(false);
+            }
+            return;
+        }
+        var li = e.target.closest('li.w-bloc[data-id]');
+        var sec = e.target.closest('[data-section]');
+        var sb = li ? li.getAttribute('data-id') : null;
+        var ss = !li && sec ? sec.getAttribute('data-section') : null;
+        if (sb !== _rp.survolBloc || ss !== _rp.survolSection) {
+            _rp.survolBloc = sb;
+            _rp.survolSection = ss;
+            rpPlanifier(false);
+        }
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('#pDocument .w-feuilles')) {
+            rpClicDocument(e);
+        }
+    });
+    new MutationObserver(function (liste) {
+        var utile = liste.some(function (m) {
+            var tous = Array.prototype.slice.call(m.addedNodes).concat(Array.prototype.slice.call(m.removedNodes));
+            return tous.some(function (n) { return !(n.classList && n.classList.contains('w-rp-box')); });
+        });
+        if (utile && document.getElementById('pDocument')) {
+            rpPlanifier(Date.now() - _rp.saisie < 1500);
+        }
+    }).observe(document.body, { childList: true, subtree: true });
 }
 function blocLogo() {
     var b = etat.brouillon;
