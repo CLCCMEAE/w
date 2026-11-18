@@ -495,9 +495,11 @@ body.w-agrandi .w-panneau-aide { display: none; }
 .sd-texte--riche ul ul, .sd-texte--riche ol ol, .sd-texte--riche ul ol, .sd-texte--riche ol ul { font-size: .9em; margin: .2em 0; }
 .sd-texte--exemple { color: var(--text-mention-grey); }
 .sd-num { flex: 0 0 auto; }
-.sd-logo { position: absolute; display: flex; align-items: flex-start; justify-content: flex-start; }
-.sd-logo > div, .sd-logo .w-bandeau__logo-wrap { width: 100%; height: 100%; display: flex; }
-.sd-logo svg { width: 100%; height: 100%; }
+.sd-logo { position: absolute; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; container-type: inline-size; }
+.sd-logo > div, .sd-logo .w-bandeau__logo-wrap { width: 100%; display: flex; }
+.sd-logo svg { width: 100%; height: auto; }
+.sd-devise { margin: -2.5cqw 0 0 10.4cqw; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 6.6cqw; line-height: 1.12; color: var(--text-title-grey); }
+body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en-presentation #skipLink, body.sd-en-presentation .w-panneau-aide { display: none; }
 .sd-diapo--edition .sd-texte[contenteditable="true"] { outline: 1px dashed var(--border-default-grey); outline-offset: 2px; cursor: text; }
 .sd-diapo--edition .sd-texte[contenteditable="true"]:focus { outline: 3px solid var(--border-action-high-blue-france); }
 .sd-texte--vide::before { content: attr(data-vide); color: var(--text-mention-grey); pointer-events: none; }
@@ -654,7 +656,7 @@ body.w-agrandi .w-panneau-aide { display: none; }
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.0.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -2537,9 +2539,13 @@ function logoClone() {
     }
     return _logo.noeud ? _logo.noeud.cloneNode(true) : null;
 }
-function noeudLogo(classe) {
+function noeudLogo(classe, devise) {
     var l = logoClone();
-    return l ? creer('div', { classe: 'sd-logo ' + classe, attrs: { 'aria-hidden': 'true' } }, [l]) : null;
+    if (!l) {
+        return null;
+    }
+    return creer('div', { classe: 'sd-logo ' + classe, attrs: { 'aria-hidden': 'true' } }, [l,
+        devise ? creer('p', { classe: 'sd-devise' }, ['Liberté', creer('br'), 'Égalité', creer('br'), 'Fraternité']) : null]);
 }
 function majuscules(n) {
     var w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT, null);
@@ -2704,7 +2710,7 @@ function rendreDiapo(d, o) {
     var g = cfg.gabarit;
     var racine = creer('div', { classe: 'sd-diapo sd-' + g + ' sd-mep-' + d.mep + ' sd-accent-' + cfg.accent + (o.edition ? ' sd-diapo--edition' : '') });
     if (g === 'officiel') {
-        ajouterSi(racine, noeudLogo(d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit')));
+        ajouterSi(racine, noeudLogo(d.mep === 'couverture' ? 'sd-logo--grand' : (d.mep === 'titre' ? 'sd-logo--moyen' : 'sd-logo--petit'), true));
     }
     else if (cfg.logo) {
         ajouterSi(racine, noeudLogo('sd-logo--petit'));
@@ -4488,6 +4494,7 @@ function lancerPresentation(depuis) {
         ov.appendChild(barre);
         etat.presentation = { liste: vis, i: Math.max(0, start), notes: false, fenetre: null, debut: Date.now(), structure: structureDe(etat.diapos), retour: document.activeElement, minuterie: null };
         document.body.appendChild(ov);
+        document.body.classList.add('sd-en-presentation');
         scene.addEventListener('click', function (e) { if (!e.target.closest('a')) {
             avancer(1);
         } });
@@ -4636,6 +4643,7 @@ function quitterPresentation() {
         ov.parentNode.removeChild(ov);
     }
     etat.presentation = null;
+    document.body.classList.remove('sd-en-presentation');
     if (etat.vue === 'accueil') {
         etat.pres = null;
         etat.diapos = [];
