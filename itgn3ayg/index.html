@@ -312,7 +312,7 @@
       <div class="w-bandeau__marque">
         <div id="bandeau-logo"></div>
         <div class="w-bandeau__sep"></div>
-        <h1 class="w-bandeau__titre">📊 Diplographiques</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+        <h1 class="w-bandeau__titre" id="bandeauTitre">📊 Diplographiques</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
       </div>
       <div class="w-bandeau__spacer"></div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
@@ -508,7 +508,7 @@ var SOCLE = {
                 "nom": "Les pages",
                 "titre": "montrer des graphiques sans les réglages.",
                 "points": [
-                    "Bloc « Pages » de l'accueil : « Créer une page de consultation », puis choisissez les graphiques, leur ordre, la disposition et jusqu'à 3 filtres pour les lecteurs.",
+                    "Bloc « Pages » de l'accueil, « Où les lecteurs la voient » : « Publier sur une nouvelle page », puis donnez son nom et le titre du bandeau, choisissez les graphiques, leur ordre, la disposition et jusqu'à 3 filtres pour les lecteurs.",
                     "La page apparaît dans la liste des pages du document, sans onglets, réglages ni aide.",
                     "« Cacher cette page » cache la page d'administration aux personnes qui ne peuvent pas lire la table ❌ OWNER ONLY ⚡."
                 ]
@@ -1559,7 +1559,7 @@ let couleursPerso = {};
 let derniereAgregation = null;
 let colonneCouleurActuelle = null;
 let elementCouleurEnCours = null;
-var VERSION_WIDGET = '1.3.1';
+var VERSION_WIDGET = '1.3.2';
 var HOMOLOGUE = false;
 let etatType = 'barres';
 let typeSuggere = null;
@@ -3015,6 +3015,7 @@ function estRefusDroits(e) {
 function cfgPageValide(o) {
     o = o && typeof o === 'object' ? o : {};
     return { admin: o.admin === true, consultation: o.consultation === true, nom: typeof o.nom === 'string' ? o.nom : '',
+        titre: typeof o.titre === 'string' ? o.titre : '',
         description: typeof o.description === 'string' ? o.description : '',
         graphiques: Array.isArray(o.graphiques) ? o.graphiques.map(String).filter(Boolean) : [],
         colonnes: o.colonnes === 1 ? 1 : 2,
@@ -3274,7 +3275,7 @@ async function reserverPage() {
     }
 }
 function valeurPage(ed, nom) {
-    return JSON.stringify({ consultation: true, nom: nom, description: String(ed.description || '').trim(), graphiques: ed.graphiques.slice(), colonnes: ed.colonnes === 1 ? 1 : 2, lecteurs: ed.lecteurs.slice(0, 3) });
+    return JSON.stringify({ consultation: true, nom: nom, titre: String(ed.titre || '').trim(), description: String(ed.description || '').trim(), graphiques: ed.graphiques.slice(), colonnes: ed.colonnes === 1 ? 1 : 2, lecteurs: ed.lecteurs.slice(0, 3) });
 }
 async function creerPageConsultation(ed, nom) {
     var badge = nouveauBadge();
@@ -3472,6 +3473,7 @@ async function editerPage(badge, dupliquer, graphiqueDepart) {
     var depart = graphiqueDepart ? requetesSauvegardees.filter(function (r) { return String(r.id) === String(graphiqueDepart); })[0] : null;
     _editionPage = { badge: dupliquer ? null : badge, nomInitial: p && !dupliquer ? nomActuel : '',
         nom: p ? nomActuel + (dupliquer ? ' (copie)' : '') : '📊 ' + (depart ? depart.nom : 'Graphiques'), description: p ? p.description : '',
+        titre: p ? p.titre : '📊 ' + (depart ? depart.nom : 'Graphiques'), titreManuel: !!p && p.titre !== nomActuel,
         graphiques: p ? p.graphiques.slice() : (depart ? [String(depart.id)] : []), colonnes: p ? p.colonnes : 2, lecteurs: p ? p.lecteurs.slice() : [] };
     basculerOnglet('bibliotheque');
     renderPagesZone();
@@ -3506,7 +3508,16 @@ function formulairePage() {
     var ed = _editionPage;
     var nom = noeud('input', { classe: 'fr-input', id: 'gpNom', attrs: { type: 'text', autocomplete: 'off', maxlength: '100', 'aria-required': 'true', 'aria-describedby': 'gpNomErreur' } });
     nom.value = ed.nom;
-    nom.addEventListener('input', function () { ed.nom = nom.value; });
+    var titre = noeud('input', { classe: 'fr-input', id: 'gpTitreBandeau', attrs: { type: 'text', autocomplete: 'off', maxlength: '100' } });
+    titre.value = ed.titre;
+    nom.addEventListener('input', function () {
+        ed.nom = nom.value;
+        if (!ed.titreManuel) {
+            ed.titre = nom.value;
+            titre.value = nom.value;
+        }
+    });
+    titre.addEventListener('input', function () { ed.titre = titre.value; ed.titreManuel = true; });
     var desc = noeud('textarea', { classe: 'fr-input', id: 'gpDesc', attrs: { autocomplete: 'off', maxlength: '500', rows: '2' } });
     desc.value = ed.description;
     desc.addEventListener('input', function () { ed.description = desc.value; });
@@ -3573,12 +3584,13 @@ function formulairePage() {
     return [
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', texte: 'Nom de la page', attrs: { 'for': 'gpNom' } }), nom,
             noeud('p', { classe: 'fr-error-text', id: 'gpNomErreur', attrs: { hidden: true } })]),
+        noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpTitreBandeau' } }, ['Titre du bandeau ', noeud('span', { classe: 'fr-hint-text', texte: 'Remplace « 📊 Diplographiques » en haut de la page. Laissé vide, le bandeau garde ce nom.' })]), titre]),
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpDesc' } }, ['Description ', noeud('span', { classe: 'fr-hint-text', texte: 'Facultative, affichée sous le nom de la page.' })]), desc]),
         choix, ordre, dispo, lect,
         noeud('div', { classe: 'gp-actions' }, [
             boutonPage('Annuler', 'fr-btn--tertiary', null, function () { _editionPage = null; renderPagesZone(); var t = document.getElementById('gpSecConsult'); if (t)
                 t.focus(); }, { id: 'gpAnnuler' }),
-            boutonPage(ed.badge ? 'Enregistrer la page' : 'Créer la page', '', 'check-line', enregistrerPage, { id: 'gpValider' })
+            boutonPage(ed.badge ? 'Enregistrer la page' : 'Publier', '', 'check-line', enregistrerPage, { id: 'gpValider' })
         ])
     ];
 }
@@ -3588,13 +3600,13 @@ function renderPagesZone() {
         return;
     z.textContent = '';
     var r = aideI('gpAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
-    var admin = sectionPage('gpSecAdmin', 'Page d\'administration', [
+    var admin = sectionPage('gpSecAdmin', 'Cette page', [
         noeud('p', { classe: 'gp-texte' }, [_pageProtegee ? 'Cette page, avec la création et les réglages des graphiques, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la création et les réglages des graphiques. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], _pageProtegee ? null : boutonPage('Cacher cette page', 'fr-btn--secondary', 'eye-off-line', reserverPage, { id: 'btnReserverPage' }));
-    var ic = aideI('gpAideConsult', 'Pages de consultation', 'Une page de consultation montre un ou plusieurs graphiques de la bibliothèque, à jour, sans onglets ni réglages. Un graphique modifié dans la bibliothèque change aussi sur ses pages. Les filtres règlent l\'affichage, pas les droits : pour la confidentialité, posez des règles d\'accès sur les tables.');
+    var ic = aideI('gpAideConsult', 'Où les lecteurs la voient', 'Une page de consultation montre un ou plusieurs graphiques de la bibliothèque, à jour, sans onglets ni réglages, avec son propre titre de bandeau. Un graphique modifié dans la bibliothèque change aussi sur ses pages. Les filtres règlent l\'affichage, pas les droits : pour la confidentialité, posez des règles d\'accès sur les tables.');
     var consult;
     if (_editionPage) {
-        consult = sectionPage('gpSecConsult', 'Pages de consultation', [noeud('p', { classe: 'gp-texte', texte: _editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null);
+        consult = sectionPage('gpSecConsult', 'Où les lecteurs la voient', [noeud('p', { classe: 'gp-texte', texte: _editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null);
     }
     else {
         var liste = noeud('ul', { classe: 'gp-pages' });
@@ -3607,10 +3619,10 @@ function renderPagesZone() {
                 boutonPage('Supprimer', 'fr-btn--tertiary-no-outline', 'delete-line', function () { return supprimerPageConsultation(x); }, { seule: true, id: 'gpSuppr' + k, aria: 'Supprimer « ' + nom + ' »' })
             ]));
         });
-        consult = sectionPage('gpSecConsult', 'Pages de consultation', [
-            noeud('p', { classe: 'gp-texte' }, ['Un ou plusieurs graphiques, sans réglages, avec les filtres que vous laissez aux lecteurs. ', ic.bouton]), ic.panneau,
-            liste.childNodes.length ? liste : noeud('p', { classe: 'gp-mention', texte: 'Aucune page pour l\'instant.' })
-        ], boutonPage('Créer une page de consultation', 'fr-btn--secondary', 'file-add-line', function () { return editerPage(null, false); }, { id: 'btnCreerPage' }));
+        consult = sectionPage('gpSecConsult', 'Où les lecteurs la voient', [
+            noeud('p', { classe: 'gp-texte' }, ['Les pages qui montrent un ou plusieurs graphiques, sans réglages, avec les filtres que vous laissez aux lecteurs. ', ic.bouton]), ic.panneau,
+            liste.childNodes.length ? liste : noeud('p', { classe: 'gp-mention', texte: 'Aucun graphique n\'est montré sur une page du document.' })
+        ], boutonPage('Publier sur une nouvelle page', 'fr-btn--secondary', 'layout-grid-line', function () { return editerPage(null, false); }, { id: 'btnCreerPage' }));
     }
     z.appendChild(admin);
     z.appendChild(consult);
@@ -3861,7 +3873,8 @@ function entetePage(nb) {
     if (!e)
         return;
     e.textContent = '';
-    e.appendChild(noeud('div', { classe: 'gp-entete__ligne' }, [noeud('h2', { classe: 'gp-entete__titre', texte: _cfgPage.nom || 'Graphiques' }),
+    var nomVisible = (_cfgPage.nom || 'Graphiques').trim() !== String(_cfgPage.titre || '').trim();
+    e.appendChild(noeud('div', { classe: 'gp-entete__ligne' }, [nomVisible ? noeud('h2', { classe: 'gp-entete__titre', texte: _cfgPage.nom || 'Graphiques' }) : null,
         noeud('p', { classe: 'fr-tag fr-tag--sm', texte: nb + (nb > 1 ? ' graphiques' : ' graphique') })]));
     if (_cfgPage.description)
         e.appendChild(noeud('p', { classe: 'gp-texte', texte: _cfgPage.description }));
@@ -3957,6 +3970,9 @@ async function afficherPageConsultation() {
     document.body.classList.add('gp-mode-page');
     ['bandeauAide'].forEach(function (id) { var e = document.getElementById(id); if (e)
         e.hidden = true; });
+    var bt = document.getElementById('bandeauTitre');
+    if (bt && _cfgPage && _cfgPage.titre)
+        bt.textContent = _cfgPage.titre;
     var nav = document.querySelector('.tab-nav');
     if (nav)
         nav.hidden = true;
@@ -5844,7 +5860,7 @@ function construireTableauModeles(zone) {
         utiliser: function (m) { relayer(chargerRequete(m.id), 'Chargement du graphique impossible.'); },
         secondaires: [
             { cle: 'Modifier', icone: 'settings-5-line', libelle: 'Modifier les réglages', faire: function (m) { relayer(modifierGraphique(m.id), 'Ouverture du graphique impossible.'); } },
-            { cle: 'Page', icone: 'layout-grid-line', libelle: 'Créer une page de consultation', faire: function (m) { relayer(editerPage(null, false, m.id), 'Création de page impossible.'); } },
+            { cle: 'Page', icone: 'layout-grid-line', libelle: 'Publier sur une nouvelle page', faire: function (m) { relayer(editerPage(null, false, m.id), 'Création de page impossible.'); } },
             { cle: 'Dupliquer', icone: 'file-add-line', libelle: 'Dupliquer', faire: function (m) { dupliquerRequete(m.id, m.nom); } },
             { cle: 'Renommer', icone: 'edit-line', libelle: 'Renommer', faire: function (m) { relayer(renommerRequete(m.id, m.nom), 'Renommage impossible.'); } },
             { cle: 'Supprimer', icone: 'delete-line', libelle: 'Supprimer', faire: function (m) { relayer(supprimerRequete(m.id), 'Suppression impossible.'); } }
