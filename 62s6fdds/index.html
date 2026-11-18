@@ -233,6 +233,9 @@
     .w-page-condition__tete { display: flex; gap: .25rem; align-items: center; }
     .w-page-condition__tete .fr-select { flex: 1; margin: 0; }
     .w-page-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-page-sous-actions { display: flex; flex-direction: column; gap: .25rem; padding-left: 1.75rem; }
+    .w-page-sous-actions[hidden] { display: none; }
+    .w-page-filtre .fr-radio-group { margin: 0; }
     .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
     .w-section-page .w-aide { margin: 0; vertical-align: middle; }
     .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
@@ -593,7 +596,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.5.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -627,8 +630,16 @@ function pageValide(o) {
         tableaux: listeTextes(o.tableaux), titre: typeof o.titre === 'string' ? o.titre : '',
         conditions: (Array.isArray(o.conditions) ? o.conditions : []).filter(function (c) { return c && typeof c.col === 'string' && c.col && Array.isArray(c.valeurs) && c.valeurs.length; })
             .map(function (c) { return { col: c.col, valeurs: c.valeurs.map(String) }; }),
-        retard: o.retard === true, ajouter: o.ajouter !== false, modifier: o.modifier !== false,
+        retard: o.retard === true, lectureSeule: lectureSeuleDe(o), ajouter: !lectureSeuleDe(o) && o.ajouter !== false, modifier: !lectureSeuleDe(o) && o.modifier !== false,
         masquees: masquees, lecteurs: lecteurs };
+}
+function lectureSeuleDe(o) { return o.lectureSeule === true || (o.ajouter === false && o.modifier === false); }
+function radioPage(nom, id, libelle, coche, surChange, indice) {
+    var r = creer('input', { attrs: { type: 'radio', name: nom, id: id }, coche: coche });
+    r.addEventListener('change', function () { if (r.checked) {
+        surChange();
+    } });
+    return creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, indice ? creer('span', { classe: 'fr-hint-text', texte: indice }) : null])]);
 }
 function lireCopie(v) {
     try {
@@ -753,6 +764,9 @@ function blocPageVolet() {
         return null;
     }
     var e = etiquettesPage(etat.page, true);
+    if (etat.page.lectureSeule) {
+        e.push('Lecture seule');
+    }
     if (!e.length && !etat.page.orpheline) {
         return null;
     }
@@ -993,7 +1007,7 @@ function resumePage(x) {
         e.push(m > 1 ? m + ' colonnes masquées' : '1 colonne masquée');
     }
     parts.push(e.length ? 'Montre : ' + e.join(' ; ') : 'Toutes les cartes');
-    parts.push(p.ajouter && p.modifier ? 'Ajout et modification des cartes' : (p.ajouter ? 'Ajout de cartes seulement' : (p.modifier ? 'Modification des cartes, sans ajout' : 'Consultation seulement')));
+    parts.push(p.lectureSeule ? 'Lecture seule' : (p.ajouter && p.modifier ? 'Ajout et modification des cartes' : (p.ajouter ? 'Ajout de cartes seulement' : 'Modification des cartes, sans ajout')));
     return parts.join('. ');
 }
 async function etapesDuKanban(t) {
@@ -1070,7 +1084,7 @@ async function editerPage(badge, dupliquer) {
         titre: p ? p.titre : nomPage, titreManuel: !!p && p.titre !== etat.nomsPages[badge],
         tableaux: p ? p.tableaux.filter(function (cle) { return !!trouverTableau(cle); }) : [etat.cleConfig],
         conditions: p ? copieJson(p.conditions) : [], retard: p ? p.retard : false,
-        ajouter: p ? p.ajouter : true, modifier: p ? p.modifier : true,
+        lectureSeule: p ? p.lectureSeule : false, ajouter: p && !p.lectureSeule ? p.ajouter : true, modifier: p && !p.lectureSeule ? p.modifier : true,
         masquees: p ? copieJson(p.masquees) : {}, lecteurs: p ? copieJson(p.lecteurs) : {}, etapes: {} };
     afficherLoader('Lecture des colonnes…');
     try {
@@ -1209,10 +1223,15 @@ function formulairePage() {
     montre.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Cartes montrées' }), editeurConditionsPage(ed),
         c.colEcheance ? casePage('aPageRetard', 'En retard seulement', ed.retard, function (v) { ed.retard = v; }, 'Seulement les cartes dont l\'échéance est dépassée.') : null]));
     noeuds.push(creer('div', { classe: 'w-page-bloc' }, montre));
-    noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Ce que les personnes peuvent faire sur la page' }),
+    var actions = creer('div', { classe: 'w-page-sous-actions', id: 'aPageActions' }, [
         casePage('aPageAjouter', 'Ajouter des cartes', ed.ajouter, function (v) { ed.ajouter = v; }),
-        casePage('aPageModifier', 'Déplacer et modifier les cartes', ed.modifier, function (v) { ed.modifier = v; }, 'Avec les commentaires et les pièces jointes.'),
-        creer('p', { classe: 'w-mention', texte: 'Rien de coché : la page sert à consulter. Ces cases ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
+        casePage('aPageModifier', 'Déplacer et modifier les cartes', ed.modifier, function (v) { ed.modifier = v; }, 'Avec les commentaires et les pièces jointes.')]);
+    actions.hidden = ed.lectureSeule;
+    noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: 'Ce que les personnes peuvent faire sur la page' }),
+        radioPage('aPageDroits', 'aPageLecture', 'Lecture seule', ed.lectureSeule, function () { ed.lectureSeule = true; actions.hidden = true; }, 'Rien ne se modifie depuis cette page, quels que soient les droits sur le document.'),
+        radioPage('aPageDroits', 'aPageEcriture', 'Selon les droits du document', !ed.lectureSeule, function () { ed.lectureSeule = false; actions.hidden = false; }, 'Les personnes autorisées sur le document peuvent :'),
+        actions,
+        creer('p', { classe: 'w-mention', texte: 'Ces choix ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
     noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' }),
         creer('p', { classe: 'w-mention', texte: 'Un élément coché reste dans le panneau de gauche de la page ; décoché, il disparaît.' })].concat(blocsLecteursPage(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
@@ -1232,7 +1251,7 @@ function valeurPage(ed) {
         }
     });
     return JSON.stringify(pageValide({ consultation: true, tableaux: ed.tableaux.slice(), titre: String(ed.titre || '').trim(),
-        conditions: ed.conditions, retard: ed.retard, ajouter: ed.ajouter, modifier: ed.modifier, masquees: masquees, lecteurs: lecteurs }));
+        conditions: ed.conditions, retard: ed.retard, lectureSeule: ed.lectureSeule, ajouter: ed.ajouter, modifier: ed.modifier, masquees: masquees, lecteurs: lecteurs }));
 }
 async function enregistrerPage() {
     var ed = etat.editionPage;
@@ -1247,6 +1266,10 @@ async function enregistrerPage() {
     }
     if (!ed.tableaux.length) {
         marquerInvalide('aPageTab0', 'Choisissez au moins un Kanban.');
+        return;
+    }
+    if (!ed.lectureSeule && !ed.ajouter && !ed.modifier) {
+        marquerInvalide('aPageAjouter', 'Cochez au moins une action, ou choisissez « Lecture seule ».');
         return;
     }
     var valeur = valeurPage(ed);
