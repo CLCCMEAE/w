@@ -509,7 +509,8 @@ body.w-agrandi .w-panneau-aide { display: none; }
 .sd-logo { position: absolute; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; container-type: inline-size; }
 .sd-logo > div, .sd-logo .w-bandeau__logo-wrap { width: 100%; display: flex; }
 .sd-logo svg { width: 100%; height: auto; }
-.sd-devise { margin: -2.5cqw 0 0 10.4cqw; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 6.6cqw; line-height: 1.12; color: var(--text-title-grey); }
+.sd-devise { font-family: Georgia, 'Times New Roman', serif; font-style: italic; fill: var(--text-title-grey); }
+.sd-devise__fond { fill: var(--background-default-grey); }
 body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en-presentation #skipLink, body.sd-en-presentation .w-panneau-aide { display: none; }
 .sd-diapo--edition .sd-texte[contenteditable="true"] { outline: 1px dashed var(--border-default-grey); outline-offset: 2px; cursor: text; }
 .sd-diapo--edition .sd-texte[contenteditable="true"]:focus { outline: 3px solid var(--border-action-high-blue-france); }
@@ -722,7 +723,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.0';
+var VERSION_WIDGET = '1.1.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -2818,13 +2819,44 @@ function placer(el, g) {
     el.style.width = g.l + 'px';
     el.style.height = g.h + 'px';
 }
+function ajouterDevise(svg) {
+    if (!svg || svg.nodeName.toLowerCase() !== 'svg') {
+        return;
+    }
+    var vb = String(svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    if (vb.length !== 4 || !(vb[2] > 0) || !(vb[3] > 0)) {
+        return;
+    }
+    var ns = 'http://www.w3.org/2000/svg';
+    var w = vb[2];
+    var taille = w * 0.046, pas = w * 0.054, haut = vb[1] + vb[3];
+    var fond = document.createElementNS(ns, 'rect');
+    fond.setAttribute('x', String(vb[0]));
+    fond.setAttribute('y', String(haut));
+    fond.setAttribute('width', String(w));
+    fond.setAttribute('height', String(pas * 3.6));
+    fond.setAttribute('class', 'sd-devise__fond');
+    svg.appendChild(fond);
+    ['Liberté', 'Égalité', 'Fraternité'].forEach(function (m, i) {
+        var t = document.createElementNS(ns, 'text');
+        t.setAttribute('x', String(vb[0] + w * 0.104));
+        t.setAttribute('y', String(haut + pas * (i + 0.6)));
+        t.setAttribute('font-size', String(taille));
+        t.setAttribute('class', 'sd-devise');
+        t.textContent = m;
+        svg.appendChild(t);
+    });
+    svg.setAttribute('viewBox', vb[0] + ' ' + vb[1] + ' ' + w + ' ' + (vb[3] + pas * 3.6));
+}
 function noeudLogo(classe, devise, g) {
     var l = logoClone();
     if (!l) {
         return null;
     }
-    var el = creer('div', { classe: 'sd-logo ' + classe, attrs: { 'aria-hidden': 'true' } }, [l,
-        devise ? creer('p', { classe: 'sd-devise' }, ['Liberté', creer('br'), 'Égalité', creer('br'), 'Fraternité']) : null]);
+    if (devise) {
+        ajouterDevise(l.querySelector('svg') || l);
+    }
+    var el = creer('div', { classe: 'sd-logo ' + classe, attrs: { 'aria-hidden': 'true' } }, [l]);
     placer(el, g);
     return el;
 }
