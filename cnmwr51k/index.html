@@ -1,0 +1,3312 @@
+<!DOCTYPE html>
+<html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<head>
+<meta name="robots" content="noindex, nofollow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diplohistorique</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
+  <style>
+    [hidden] { display: none !important; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+      background: var(--background-default-grey); color: var(--text-default-grey);
+      font-family: Marianne, arial, sans-serif; font-size: 1rem; }
+    #skipLink:focus { position: fixed; top: 0; left: 0; z-index: 9999; padding: .5rem 1rem; clip: auto; width: auto; height: auto;
+      overflow: visible; white-space: nowrap; font-size: .875rem;
+      background: var(--background-default-grey); color: var(--text-action-high-blue-france); }
+    main[hidden], div[hidden], section[hidden], p[hidden], button[hidden], .fr-btn[hidden] { display: none; }
+    .w-contenu { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.75rem; color: var(--text-default-grey); }
+    .w-titre-vue { margin: 0 0 .25rem; }
+    .w-mention { color: var(--text-mention-grey); font-size: .8125rem; margin: 0; }
+    .w-texte { font-size: .875rem; line-height: 1.55; margin: 0; color: var(--text-default-grey); }
+    .w-bandeau {display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);flex-shrink:0;color:var(--text-default-grey)}
+    #bandeau-logo {width:80px;flex-shrink:0}
+    .w-bandeau__logo-wrap {width:100%}
+        .w-bandeau__marque {display:flex;align-items:center;gap:.75rem;flex-shrink:0}
+    .w-bandeau__sep {width:1px;align-self:stretch;margin:.25rem 0;background:var(--border-default-grey);flex-shrink:0; color: var(--text-default-grey); }
+    .w-bandeau__titre {font-size:2rem;font-weight:600;color:var(--text-title-blue-france);white-space:nowrap;margin:0;line-height:1}
+    .w-bandeau__version {font-size:.75rem;color:var(--text-mention-grey);font-weight:400;margin-left:.5rem;white-space:nowrap}
+    .w-bandeau__homologue {margin-left:.5rem;white-space:nowrap}
+    .w-bandeau__homologue[hidden] {display:none}
+    .w-bandeau .fr-logo::after {display:none}
+    .w-loader { display: none; position: fixed; inset: 0; z-index: 9998;
+      background: rgba(0,0,0,.5); color: var(--text-inverted-grey); flex-direction: column; align-items: center; justify-content: center; gap: .75rem; }
+    .w-loader.actif { display: flex; }
+    .w-loader__spinner { width: 32px; height: 32px; border: 3px solid var(--border-default-grey);
+      border-top-color: var(--background-action-high-blue-france); border-radius: 50%; animation: wSpin .8s linear infinite; }
+    @keyframes wSpin { to { transform: rotate(360deg); } }
+    .w-loader__texte { font-size: .875rem; color: var(--text-inverted-grey); }
+    .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
+      background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
+    .w-overlay.actif { display: flex; }
+    .w-overlay--haut { z-index: 9995; }
+    .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
+      max-height: 100%; display: flex; flex-direction: column; }
+    .w-dialogue--etroit { max-width: 30rem; }
+    .w-overlay--lateral { justify-content: flex-end; align-items: stretch; padding: 0; }
+    .w-dialogue--lateral { max-width: 42rem; height: 100%; animation: wGlisse .2s ease-out; }
+    .w-dialogue--lateral .w-dialogue__corps { flex: 1; }
+    @keyframes wGlisse { from { transform: translateX(2rem); opacity: 0; } to { transform: none; opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .w-dialogue--lateral { animation: none; } }
+    .w-dialogue__tete { display: flex; align-items: flex-start; gap: .75rem; padding: 1.25rem 1.5rem .5rem; }
+    .w-dialogue__tete > div { flex: 1; }
+    .w-dialogue__titre { margin: 0; }
+    .w-dialogue__corps { padding: .5rem 1.5rem 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+    .w-dialogue__pied { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-default-grey); }
+    .w-dialogue__pied .w-pousse { margin-left: auto; }
+    .w-panneau { background: var(--background-alt-grey); color: var(--text-default-grey); padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+    .w-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .5rem; }
+    .w-option { display: flex; align-items: flex-start; gap: .625rem; padding: .625rem .875rem; border: 1px solid var(--border-default-grey);
+      background: var(--background-default-grey); color: var(--text-default-grey); cursor: pointer; font-size: .875rem; }
+    .w-option input { margin-top: .2rem; }
+    .w-option--choisie { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+    .w-option__exemple { display: block; font-size: .75rem; color: var(--text-mention-grey); }
+    .w-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .375rem; }
+    .w-ligne { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; border: 1px solid var(--border-default-grey);
+      background: var(--background-default-grey); color: var(--text-default-grey); flex-wrap: wrap; }
+    .w-ligne__num { width: 1.5rem; font-size: .8125rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-ligne__nom { flex: 1; min-width: 8rem; font-size: .875rem; font-weight: 500; }
+    .w-ligne .fr-input { flex: 1; min-width: 8rem; margin-top: 0; }
+    .w-ligne__info { font-size: .75rem; color: var(--text-mention-grey); }
+    .w-apercu-etapes { display: flex; gap: .375rem; background: var(--background-contrast-grey); color: var(--text-default-grey); padding: .375rem; overflow-x: auto; }
+    .w-apercu-etapes > div { flex: 1 0 5rem; background: var(--background-default-grey); color: var(--text-default-grey); padding: .5rem; min-height: 6rem;
+      font-size: .75rem; font-weight: 700; }
+    .w-form-info { border: 2px solid var(--border-action-high-blue-france); padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+    .w-form-info__actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-defile-x { overflow-x: auto; }
+    .w-centre { max-width: 40rem; margin: 2rem auto 0; text-align: center; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+    .w-outils { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .w-outils__champ { display: flex; flex-direction: column; min-width: 10rem; }
+    .w-outils__champ .fr-label { font-size: .75rem; color: var(--text-mention-grey); }
+    .w-outils__champ .fr-input, .w-outils__champ .fr-select { margin-top: .25rem; }
+    .w-disposition { display: flex; gap: 1.5rem; flex: 1; min-height: 0; position: relative; }
+    .w-principal { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .w-volet { flex: 0 0 16rem; min-height: 0; display: flex; background: var(--background-alt-grey); border-left: .25rem solid var(--border-action-high-blue-france); color: var(--text-default-grey); }
+    .w-volet__contenu { flex: 1; min-width: 0; overflow-y: auto; padding: .75rem 1rem 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .w-volet__tete { display: none; align-items: center; justify-content: space-between; gap: .5rem; }
+    .w-volet__titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-volet__bloc { display: flex; flex-direction: column; gap: .75rem; }
+    .w-volet__bloc .fr-input, .w-volet__bloc .fr-select { width: 100%; }
+    .w-volet__bloc .w-outils__champ { width: 100%; }
+    .w-volet__bloc + .w-volet__bloc { padding-top: .5rem; }
+    .w-volet__entete { display: flex; align-items: center; gap: .5rem; }
+    .w-volet__puce { flex-shrink: 0; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
+    .w-volet__h { margin: 0; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-volet__bloc .fr-label .fr-hint-text { margin-top: .125rem; }
+    .w-volet__case { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
+    .w-volet .w-aide__texte { flex: 1 0 100%; }
+    .w-volet__actions { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; }
+    .w-volet__actions .fr-btn--secondary { margin-top: .25rem; }
+    .w-volet__poignee { position: relative; flex: 0 0 .75rem; align-self: stretch; padding: 0; cursor: pointer; border: 0; border-left: 1px solid var(--border-default-grey);
+      background: var(--background-alt-grey); color: var(--text-default-grey); }
+    .w-volet__poignee::before { content: ''; position: absolute; top: 50%; left: 50%; width: .25rem; height: 1.75rem; margin: -.875rem 0 0 -.125rem;
+      border-left: 1px solid var(--border-plain-grey); border-right: 1px solid var(--border-plain-grey); }
+    .w-volet__poignee:hover { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-volet__poignee:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-volet--replie { flex-basis: auto; }
+    .w-volet--replie .w-volet__contenu { display: none; }
+    .w-volet--replie .w-volet__poignee { flex-basis: 1rem; border-left: 0; }
+    .w-volet__compte { position: absolute; top: .5rem; left: 50%; transform: translateX(-50%); min-width: 1.25rem; height: 1.25rem; padding: 0 .25rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 700; line-height: 1.25rem; text-align: center; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
+    .w-volet__compte:empty { display: none; }
+    @media (max-width: 48em) {
+      .w-volet, .w-volet--replie { display: none; position: absolute; z-index: 30; top: 0; bottom: 0; left: 0; width: min(20rem, 92%); border-right: 1px solid var(--border-plain-grey); }
+      .w-volet--mobile-ouvert, .w-volet--mobile-ouvert.w-volet--replie { display: flex; }
+      .w-volet--replie .w-volet__contenu { display: flex; }
+      .w-volet__poignee { display: none; }
+      .w-volet__tete { display: flex; }
+      .w-disposition { gap: 0; }
+    }
+    .w-champ-aide { position: relative; }
+    .w-libelle-aide { display: flex; align-items: center; gap: .25rem; }
+    .w-libelle-aide .fr-label { margin-bottom: 0; }
+    .w-aide { width: 1.5rem; height: 1.5rem; flex-shrink: 0; padding: 0; margin: -.5rem 0 0 -.25rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 0; color: var(--text-action-high-blue-france); vertical-align: super; }
+    .w-aide__rond { width: .875rem; height: .875rem; border-radius: 50%; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center;
+      font-family: Georgia, 'Times New Roman', serif; font-size: .75rem; font-weight: 700; font-style: italic; line-height: 1; }
+    .w-aide[aria-expanded="true"] .w-aide__rond { color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); border-color: var(--border-action-high-blue-france); }
+    .w-aide:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 0; }
+    .w-aide__texte { position: absolute; z-index: 20; top: 100%; left: 0; width: 18rem; max-width: 80vw; margin: .375rem 0 0; padding: .75rem; font-size: .8125rem; line-height: 1.45;
+      color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); }
+    .w-aide__texte--droite { left: auto; right: 0; }
+    .w-volet .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
+    .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
+    .w-toast__action:empty { display: none; }
+    @media print { .w-toast, .w-panneau-aide { display: none; } }
+    .w-ico::before { content: ''; display: inline-block; flex: 0 0 auto; width: var(--icon-size, 1rem); height: var(--icon-size, 1rem);
+      background-color: currentColor; -webkit-mask-image: var(--ico); mask-image: var(--ico); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .w-ico--plein { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6'/%3E%3C/svg%3E"); }
+    .w-ico--sortir { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3v6H3M15 3v6h6M21 15h-6v6M3 15h6v6'/%3E%3C/svg%3E"); }
+    @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
+    .w-sorties .w-infobulle::after { left: 0; right: auto; }
+    .w-infobulle { position: relative; overflow: visible !important; }
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
+    .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
+      min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
+    .w-infobulle--dessous::after { bottom: auto; top: calc(100% + .375rem); }
+    .w-general { display: flex; flex-direction: column; }
+    .w-general > .w-grille + .w-grille, .w-general > .w-param-apercu + .w-grille { padding-top: 0; }
+    .w-section-page { gap: .75rem; }
+    .w-section-page__bas { margin-top: auto; display: flex; justify-content: flex-end; }
+    .w-pages-liste { list-style: none; margin: 0; padding: 0; }
+    .w-pages-liste__item { display: flex; align-items: flex-start; gap: .25rem; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .w-pages-liste__texte { flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; }
+    .w-pages-liste__nom { font-weight: 700; font-size: .875rem; color: var(--text-title-grey); }
+    .w-page-bloc { display: flex; flex-direction: column; gap: .75rem; }
+    .w-page-filtre { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-page-filtre legend { font-size: .875rem; font-weight: 700; padding: 0; margin-bottom: .25rem; color: var(--text-title-grey); }
+    .w-page-filtre__valeurs { max-height: 10rem; overflow-y: auto; padding: .25rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-page-filtre .fr-checkbox-group { margin: 0; }
+    .w-page-sous-titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-page-actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+    .w-page-sous-actions { display: flex; flex-direction: column; gap: .25rem; padding-left: 1.75rem; }
+    .w-page-sous-actions[hidden] { display: none; }
+    .w-page-filtre .fr-radio-group { margin: 0; }
+    .w-section-page .w-aide__texte { position: static; width: auto; max-width: none; margin: 0; }
+    .w-section-page .w-aide { margin: 0; vertical-align: middle; }
+    .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
+    .w-filtres-page__liste .fr-tag { margin: 0; }
+    .w-infobulle--dessus::after { top: auto; bottom: calc(100% + .375rem); }
+    .w-explication { margin: .25rem 0 0; font-size: .875rem; color: var(--text-mention-grey); white-space: pre-line; max-width: 60rem; }
+    .w-explication--repliee { max-height: 4.2em; overflow: hidden; }
+    .w-apercu-couverture { height: 4rem; margin: -.75rem -.75rem 0; background: var(--background-contrast-grey); color: var(--text-mention-grey);
+      font-size: .75rem; display: flex; align-items: center; justify-content: center; }
+    .w-onglets { position: sticky; top: -1rem; z-index: 5; background: var(--background-default-grey); padding-top: .25rem; color: var(--text-default-grey); }
+    .w-lecture-seule { display: inline-flex; align-items: center; gap: .25rem; }
+    .w-liste-cases { max-height: 12rem; overflow-y: auto; border: 1px solid var(--border-default-grey); padding: .5rem .75rem; margin-top: .5rem; }
+    .w-bandeau__marque { min-width: 0; flex-shrink: 1; }
+    .w-bandeau__titre { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .w-etapes { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .25rem; }
+    .w-etapes__item { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
+    .w-etapes__segment { display: block; height: .375rem; background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-etapes__nom { font-size: .75rem; line-height: 1.25; color: var(--text-mention-grey); overflow-wrap: anywhere; }
+    .w-etapes__item--faite .w-etapes__segment { background: var(--background-flat-success); color: var(--text-inverted-success); }
+    .w-etapes__item--faite .w-etapes__nom { color: var(--text-default-success); }
+    .w-etapes__item--en-cours { background: var(--background-alt-blue-france); padding: 0 .375rem .375rem; margin: 0 -.125rem; color: var(--text-default-grey); }
+    .w-etapes__item--en-cours .w-etapes__segment { background: var(--background-active-blue-france); height: .625rem; margin: 0 -.375rem; color: var(--text-inverted-blue-france); }
+    .w-etapes__item--en-cours .w-etapes__nom { color: var(--text-action-high-blue-france); font-weight: 700; font-size: .8125rem; }
+    .w-etapes__ligne { display: flex; align-items: flex-start; gap: .25rem; min-width: 0; }
+    .w-etapes__coche { color: var(--text-default-success); flex-shrink: 0; }
+    .w-etapes__coche::before { --icon-size: 1.25rem; }
+    .w-etapes__appel { display: inline-flex; align-items: center; gap: .25rem; font-size: .8125rem; font-weight: 500; color: var(--text-action-high-blue-france);
+      background: var(--background-default-grey); border: 1px solid var(--border-action-high-blue-france); padding: .0625rem .5rem; align-self: flex-start; }
+    .w-etapes__bouton:hover .w-etapes__appel { background: var(--background-default-grey-hover); color: var(--text-action-high-blue-france); }
+    .w-etapes__bouton { display: flex; flex-direction: column; gap: .375rem; width: 100%; padding: 0 0 .25rem; margin: 0; border: 0;
+      background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+    .w-etapes__bouton:hover .w-etapes__nom { text-decoration: underline; }
+    .w-etapes__item--suivante .w-etapes__nom { color: var(--text-action-high-blue-france); text-decoration: underline; font-weight: 500; }
+    .w-etapes__item--suivante .w-etapes__segment { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-etapes__item--lien .w-etapes__nom { text-decoration: underline; }
+    .w-etapes__appel--retour { border-color: var(--border-default-grey); color: var(--text-default-grey); }
+    .w-etapes__bouton:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    @media (max-width: 40em) {
+      .w-etapes__appel { align-self: flex-end; white-space: nowrap; font-size: .75rem; padding: .125rem .375rem; }
+      .w-etapes__item:not(.w-etapes__item--en-cours) .w-etapes__nom { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    }
+    .w-statut { margin: 0; }
+    .w-statut--erreur { color: var(--text-default-error); }
+    .w-ligne--supprimee { background: var(--background-contrast-warning); border-color: var(--border-plain-warning); color: var(--text-default-warning); }
+    .w-ligne--supprimee .w-ligne__nom, .w-ligne--supprimee .fr-input { text-decoration: line-through; }
+    .w-ligne--detail-alerte { background: var(--background-contrast-warning); border-color: var(--border-plain-warning);
+      border-top: 0; font-size: .875rem; color: var(--text-default-warning); }
+    .w-ligne--detail-alerte .fr-select { width: auto; margin-top: 0; }
+    .w-ligne--ouverte { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+    .w-detail { list-style: none; }
+    .w-puces { list-style: none; margin: .25rem 0 .5rem; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+    .w-puce { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .25rem .125rem .75rem; font-size: .875rem;
+      border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-apercu-blanc { background: var(--background-default-grey); padding: .75rem 1rem; color: var(--text-default-grey); }
+    .w-apercu-titre { color: var(--text-title-blue-france); }
+    .w-c3__titre { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-section { display: flex; flex-direction: column; gap: .875rem; min-width: 0; padding: 1.25rem 1.5rem 1.5rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-section > .w-champ-aide:first-child { padding-bottom: .625rem; border-bottom: 1px solid var(--border-default-grey); }
+    .w-section .fr-select-group, .w-section .fr-input-group { margin-bottom: 0; }
+    .w-section > .fr-btn { align-self: flex-start; }
+    .w-section--danger { border-left: 4px solid var(--border-plain-error); }
+    .w-bouton-danger { color: var(--text-default-error); box-shadow: none; border: 1px solid var(--border-plain-error); }
+    .w-grille { display: grid; gap: 1.25rem; align-items: start; padding: 1.25rem; background: var(--background-alt-grey); color: var(--text-default-grey); }
+    .w-grille--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .w-grille--1-1 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .w-grille__col, .w-grille__pied { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    .w-grille__pied { grid-column: 1 / -1; }
+    @media (max-width: 62em) { .w-grille--2-1, .w-grille--1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-entete-param { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
+    .w-entete-param__textes { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
+    .w-entete-param__titre { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.5; color: var(--text-title-grey); overflow-wrap: anywhere; }
+    .w-entete-param__action { flex-shrink: 0; }
+    .w-droits { display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; }
+    .w-droits__detail:not([hidden]) { display: flex; flex-direction: column; gap: .25rem; }
+    .w-recap { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; }
+    .w-recap__groupe { padding: .75rem; background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-recap__tete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .w-recap__titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-recap__liste { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .125rem .75rem; margin: .5rem 0 0; font-size: .8125rem; line-height: 1.45; }
+    .w-recap__liste dt { color: var(--text-mention-grey); }
+    .w-recap__liste dd { margin: 0; overflow-wrap: anywhere; }
+    .w-param-apercu { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem); gap: 1.25rem; align-items: start; }
+    .w-apercu { position: sticky; top: 0; display: flex; flex-direction: column; gap: .5rem; min-width: 0; padding: 1rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px dashed var(--border-plain-grey); }
+    .w-apercu__titre { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.5; color: var(--text-title-grey); }
+    .w-apercu__corps, .w-apercu__pile { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+    @container assistant (max-width: 64rem) {
+      .w-param-apercu { grid-template-columns: minmax(0, 1fr); }
+      .w-apercu { position: static; }
+    }
+    @container assistant (max-width: 40rem) { .w-grille--2-1, .w-grille--1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-corps { flex: 1; min-height: 0; display: flex; }
+    .w-corps > .w-contenu { flex: 1 1 auto; min-width: 0; }
+    .w-bandeau__aide { margin-left: auto; flex-shrink: 0; }
+    .w-panneau-aide { flex: 0 0 24rem; width: 24rem; min-height: 0; display: flex; flex-direction: column;
+      background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-left: 1px solid var(--border-default-grey); }
+    .w-panneau-aide[hidden] { display: none; }
+    .w-panneau-aide__tete { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); }
+    .w-panneau-aide__icone { color: var(--text-action-high-blue-france); flex-shrink: 0; }
+    .w-panneau-aide__titre { flex: 1; margin: 0; font-size: 1rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+    .w-panneau-aide__onglets { order: 0; display: flex; flex-shrink: 0; gap: .25rem; margin: 0; padding: .25rem .75rem 0; list-style: none; overflow-x: auto;
+      background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-bottom: 1px solid var(--border-default-grey); }
+    .w-panneau-aide__onglets > li { margin: 0; padding: 0; }
+    .w-panneau-aide .fr-tabs__tab { display: inline-flex; align-items: center; margin: 0; padding: .375rem .625rem; border: 0; cursor: pointer; white-space: nowrap;
+      font: inherit; font-size: .875rem; font-weight: 700; line-height: 1.5; background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-panneau-aide .fr-tabs__tab[aria-selected="true"] { background-color: var(--background-contrast-yellow-tournesol); color: var(--text-active-blue-france);
+      box-shadow: inset 0 2px 0 var(--border-active-blue-france), inset 1px 0 0 var(--border-default-grey), inset -1px 0 0 var(--border-default-grey); }
+    .w-panneau-aide .fr-tabs__tab:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-panneau-aide__corps { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem .75rem 1.5rem; }
+    .w-panneau-aide__volet:not([hidden]) { display: flex; flex-direction: column; gap: .75rem; }
+    .w-panneau-aide__volet:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-panneau-aide__sous-titre { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; font-weight: 700; color: var(--text-title-grey); }
+    .w-panneau-aide__liste { margin: 0; padding-left: 1.25rem; }
+    .w-question { display: flex; flex-direction: column; gap: .25rem; }
+    .w-pas { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+    .w-pas__etape { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .625rem .75rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-pas__etape--en-cours { border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+    .w-pas__num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+      font-size: .75rem; font-weight: 700; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .w-pas__etape--faite .w-pas__num { background: var(--background-flat-success); color: var(--text-inverted-success); }
+    .w-pas__etape--a-venir .w-pas__num { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-pas__texte { display: flex; flex-direction: column; gap: .125rem; min-width: 0; font-size: .875rem; line-height: 1.5; }
+    .w-pas__nom { margin: 0; }
+    .w-pas__ici { color: var(--text-action-high-blue-france); }
+    .w-pas__points { margin: .25rem 0 0; padding-left: 1.125rem; font-size: .8125rem; }
+    body.w-agrandi .w-panneau-aide { display: none; }
+    @media (max-width: 48em) {
+      .w-panneau-aide { position: fixed; inset: 0; z-index: 1500; width: auto; flex: none; border-left: 0; }
+    }
+    .w-apercu-boite { padding: 1rem; background: var(--background-alt-grey); color: var(--text-default-grey); }
+    .w-opt { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
+    .w-opt .fr-checkbox-group, .w-opt .fr-label { margin-bottom: 0; }
+    .w-opt--liste { flex-direction: column; align-items: stretch; }
+    .w-opt .w-aide__texte { position: static; width: auto; max-width: none; margin: .25rem 0 0; flex: 1 0 100%; }
+    .w-apercu-volet { display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; padding: .75rem 1rem; font-size: .8125rem; background: var(--background-default-grey); border-left: .25rem solid var(--border-action-high-blue-france); color: var(--text-default-grey); }
+    .w-apercu-volet__titre { margin: .5rem 0 0; font-weight: 700; color: var(--text-title-grey); }
+    .w-apercu-volet__titre:first-child { margin-top: 0; }
+    .w-apercu-volet__libelle { font-size: .75rem; color: var(--text-mention-grey); }
+    .w-apercu-volet__case { display: inline-flex; align-items: center; gap: .375rem; }
+    .w-apercu-volet__case::before { content: ''; width: .875rem; height: .875rem; border: 1px solid var(--border-plain-grey); }
+    .w-apercu-volet__bouton { padding: .125rem .5rem; color: var(--text-action-high-blue-france); border: 1px solid var(--border-action-high-blue-france); }
+    .w-apercu-volet .w-apercu-champ { align-self: stretch; }
+    .w-apercu-champ { font-size: .75rem; color: var(--text-mention-grey); padding: .375rem .625rem; background: var(--background-contrast-grey);
+      border-bottom: 2px solid var(--border-plain-grey); }
+    .w-onglets { margin-bottom: 1rem; }
+    .tab-nav.w-onglets .fr-tabs__list { display: flex; flex: 0 1 auto; min-width: 0; overflow-x: auto; flex-wrap: nowrap; list-style: none; margin: 0; padding: 0; }
+    .tab-nav.w-onglets .fr-tabs__list li { flex-shrink: 0; }
+    .w-onglet { white-space: nowrap; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .tab-nav { border-bottom: 1px solid var(--border-default-grey); margin-bottom: 1.25rem; }
+    .tab-nav .fr-tabs__list { border-bottom: none; margin: 0; padding: 0; display: flex; list-style: none; gap: .25rem; flex-wrap: wrap; }
+    .tab-nav .fr-tabs__list li { margin: 0; padding: 0; }
+    @media (max-width: 48em) {
+      .w-contenu { padding: .75rem 1rem; }
+      .w-outils__champ { flex: 1 1 100%; }
+      .w-dialogue__corps, .w-dialogue__pied { padding-left: 1rem; padding-right: 1rem; }
+      .w-dialogue__tete { padding: 1rem 1rem .5rem; }
+      .w-overlay { padding: 0; align-items: stretch; }
+      .w-dialogue { max-width: none; height: 100%; }
+      .w-dialogue--etroit { max-width: none; }
+      .w-dialogue__corps { flex: 1; }
+      .w-dialogue__pied .fr-btn { flex: 1 1 auto; justify-content: center; }
+    }
+    @media (max-width: 30em) {
+      .w-bandeau { padding: .375rem .5rem; }
+      .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
+      #bandeau-logo { width: 56px; }
+      .w-bandeau__titre { font-size: 1rem; }
+      .w-bandeau__version { margin-left: .25rem; }
+    }
+    .w-barre-vue { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .w-barre-vue__texte { min-width: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap; }
+    .w-barre-vue__titre { margin: 0; }
+    .w-barre-vue__compteurs { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; }
+    .w-compteur { padding: .125rem .625rem; border-radius: 999px; font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--background-contrast-blue-france); color: var(--text-action-high-blue-france); }
+    .w-barre-vue__commandes { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; margin-left: auto; }
+    .w-ajout .fr-btn { width: 100%; justify-content: center; }
+    .w-filtres__pied { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+    .w-param { width: 100%; justify-content: center; }
+    .w-sorties, .w-volet__bloc.w-sorties { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: .5rem; }
+    .w-barre-mobile { display: none; }
+    .w-agrandi .w-bandeau, .w-agrandi .w-onglets, .w-agrandi .w-volet, .w-agrandi .w-barre-mobile { display: none; }
+    @media (max-width: 48em) {
+      .w-barre-mobile { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; }
+      .w-barre-vue__texte { flex-direction: column; align-items: flex-start; }
+      .w-barre-vue__commandes { margin-left: 0; justify-content: flex-start; }
+    }
+    @media print {
+      .w-barre-vue__commandes, .w-barre-mobile { display: none; }
+    }
+    @media print {
+      @page { size: landscape; margin: 1cm; }
+      body { height: auto; overflow: visible; display: block; }
+      .w-contenu { overflow: visible; padding: 0; display: block; }
+      .w-bandeau, .w-volet, .w-onglets, #skipLink { display: none; }
+      .w-disposition { display: block; }
+    }
+    @media print {
+      .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-barre-vue__commandes,
+      .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink, .w-ecran-seul { display: none !important; }
+    }
+    }
+  
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap; padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-toast[hidden] { display: none; }
+    .w-overlay--haut { z-index: 9998; }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
+    .w-message { max-width: 48rem; display: flex; flex-direction: column; gap: .75rem; align-items: flex-start; }
+    .w-pied-etape { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-default-grey); }
+    .w-depart__tables { display: flex; flex-direction: column; gap: .5rem; margin: .5rem 0; }
+    .w-liste-points { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .375rem; }
+    .w-alerte-page { margin-bottom: .75rem; }
+    .w-alerte-page .fr-btn { margin-top: .5rem; }
+    .w-vide { color: var(--text-mention-grey); }
+    .w-fil { display: flex; flex-direction: column; gap: 1.25rem; }
+    .w-fil__jour { display: flex; flex-direction: column; gap: .5rem; }
+    .w-fil__date { margin: 0; font-size: .9rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-fil__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--border-default-grey); }
+    .w-fil__item { display: grid; grid-template-columns: 4rem 1.25rem minmax(0, 1fr); gap: .25rem .5rem; align-items: start; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .w-fil__heure { font-size: .8125rem; color: var(--text-mention-grey); padding-top: .125rem; }
+    .w-fil__ico { color: var(--text-action-high-blue-france); padding-top: .125rem; }
+    .w-fil__item--suppression .w-fil__ico { color: var(--text-default-error); }
+    .w-fil__item--droits .w-fil__ico, .w-fil__item--partage .w-fil__ico { color: var(--text-default-warning); }
+    .w-fil__corps { min-width: 0; display: flex; flex-direction: column; gap: .25rem; }
+    .w-fil__titre { margin: 0; font-size: .875rem; overflow-wrap: anywhere; }
+    .w-fil__lien { padding: 0; border: 0; background: none; color: var(--text-action-high-blue-france); font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    .w-fil__lien:hover { text-decoration-thickness: 2px; }
+    .w-fil__valeurs { margin: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .8125rem; overflow-wrap: anywhere; }
+    .w-fil__avant, .w-fil__apres { display: inline-flex; gap: .375rem; align-items: baseline; min-width: 0; }
+    .w-fil__avant > span:last-child { color: var(--text-mention-grey); text-decoration: line-through; }
+    .w-fil__etiq { font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-fil__meta { margin: 0; font-size: .75rem; color: var(--text-mention-grey); }
+    .w-fil__liste--fiche .w-fil__item { grid-template-columns: 4rem 1.25rem minmax(0, 1fr); }
+    .w-lecteurs { list-style: none; margin: 0 0 .5rem; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
+    .w-lecteurs__item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .875rem; overflow-wrap: anywhere; }
+    .w-ligne-saisie { display: flex; gap: .5rem; align-items: center; }
+    .w-ligne-saisie .fr-input { flex: 1 1 auto; }
+    @media (max-width: 36em) { .w-fil__item { grid-template-columns: 3.25rem 1.25rem minmax(0, 1fr); } }
+    @media print { .w-fil__lien { color: var(--text-default-grey); text-decoration: none; } .w-alerte-page { display: none; } }
+    .w-entete { margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+  <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
+  <div class="w-loader" id="loader" role="status" aria-live="polite">
+    <div class="w-loader__spinner"></div>
+    <div class="w-loader__texte" id="loaderMessage">Chargement…</div>
+  </div>
+  <div class="w-overlay" id="wModale">
+    <div class="w-dialogue" id="wModaleBoite" role="dialog" aria-modal="true" aria-labelledby="wModaleTitre">
+      <div class="w-dialogue__tete">
+        <div><h2 class="fr-h6 w-dialogue__titre" id="wModaleTitre"></h2><p class="w-mention" id="wModaleSous"></p></div>
+        <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line fr-btn--icon-left" id="wModaleFermer">Fermer</button>
+      </div>
+      <div class="w-dialogue__corps" id="wModaleCorps"></div>
+      <div class="w-dialogue__pied" id="wModalePied"></div>
+    </div>
+  </div>
+  <div class="w-overlay w-overlay--visionneuse" id="wVisionneuse">
+    <div class="w-dialogue w-dialogue--visionneuse" role="dialog" aria-modal="true" aria-labelledby="wVisionneuseTitre">
+      <div class="w-dialogue__tete">
+        <div><h2 class="fr-h6 w-dialogue__titre" id="wVisionneuseTitre">Aperçu du fichier</h2></div>
+        <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-zoom-in-line fr-btn--icon-left" id="wVisionneusePlein" aria-pressed="false">Plein écran</button>
+        <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-download-line fr-btn--icon-left" id="wVisionneuseTelecharger">Télécharger</button>
+        <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line fr-btn--icon-left" id="wVisionneuseFermer">Fermer</button>
+      </div>
+      <div class="w-visionneuse__contenu" id="wVisionneuseContenu"></div>
+    </div>
+  </div>
+  <div class="w-overlay w-overlay--haut" id="wConfirmOverlay">
+    <div class="w-dialogue w-dialogue--etroit" role="alertdialog" aria-modal="true" aria-labelledby="wConfirmTitre" aria-describedby="wConfirmMsg">
+      <div class="w-dialogue__tete"><div><h2 class="fr-h6 w-dialogue__titre" id="wConfirmTitre"></h2></div></div>
+      <div class="w-dialogue__corps"><p class="w-texte" id="wConfirmMsg"></p><div id="wConfirmChamp"></div></div>
+      <div class="w-dialogue__pied">
+        <span class="w-pousse"></span>
+        <button type="button" class="fr-btn fr-btn--secondary" id="wConfirmNon">Annuler</button>
+        <button type="button" class="fr-btn" id="wConfirmOui">Confirmer</button>
+      </div>
+    </div>
+  </div>
+  <div class="w-bandeau" role="banner">
+    <div class="w-bandeau__marque">
+      <div id="bandeau-logo"></div>
+      <div class="w-bandeau__sep"></div>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">📜 Diplohistorique</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+    </div>
+    <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
+  </div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
+  <div class="w-corps">
+    <main class="w-contenu" id="contenu" tabindex="-1"></main>
+    <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
+  </div>
+<script>'use strict';
+var VERSION_WIDGET = '1.0.0';
+var HOMOLOGUE = false;
+var NOM_WIDGET = 'Diplohistorique';
+var TITRE_DEFAUT = '📜 Diplohistorique';
+var ID_HISTO = 'HISTORIQUE';
+var LABEL_HISTO = '📜 HISTORIQUE ⚡';
+var COL_JOURNAL = 'JOURNAL_DIPLO';
+var LIBELLE_JOURNAL = 'JOURNAL DIPLO';
+var MEMO_REGLE = 'Diplohistorique';
+var DELAI_API_MS = 30000;
+var DELAI_RELEVE_MS = 60000;
+var LOT_ECRITURE = 400;
+var MAX_DEFAUT = 200;
+var CONSERVATION_DEFAUT = 1095;
+var CLE_AIDE = 'diplohistorique:aide';
+var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
+var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+var MOIS_LONGS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+var JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+var TAILLE_MAX_SVG = 200000;
+var IDS_META = ['CREE_LE', 'CREE_PAR', 'MODIFIE_LE', 'MODIFIE_PAR'];
+var COLONNES_HISTO = [
+    { id: 'WIDGET', type: 'Text', label: 'WIDGET', description: 'Widget qui a écrit la ligne.' },
+    { id: 'TYPE', type: 'Text', label: 'TYPE', description: 'Nature de la ligne : SUPPRESSION, STRUCTURE, DROITS, PARTAGE, SUIVI, REGLAGES ou RELEVE.' },
+    { id: 'NOM_TABLE', type: 'Text', label: 'TABLE', description: 'Identifiant de la table concernée.' },
+    { id: 'LIGNE', type: 'Int', label: 'LIGNE', description: 'Numéro de la ligne concernée, pour une suppression.' },
+    { id: 'OBJET', type: 'Text', label: 'OBJET', description: 'Ce qui a changé : une colonne, une page, une règle, une personne.' },
+    { id: 'AVANT', type: 'Text', label: 'AVANT', description: 'Valeur avant le changement.' },
+    { id: 'APRES', type: 'Text', label: 'APRÈS', description: 'Valeur après le changement.' },
+    { id: 'QUI', type: 'Text', label: 'QUI', description: 'Personne qui a fait le changement, quand elle est connue.' },
+    { id: 'DEPUIS', type: 'DateTime:Europe/Paris', label: 'DEPUIS', description: 'Début de la période pendant laquelle le changement a eu lieu, quand l\'heure exacte n\'est pas connue.' },
+    { id: 'QUAND', type: 'DateTime:Europe/Paris', label: 'QUAND', description: 'Date et heure du changement, ou du relevé qui l\'a constaté.' },
+    { id: 'DETAIL', type: 'Text', label: 'DÉTAIL', description: 'Données complémentaires lues par le widget.' },
+    { id: 'CREE_LE', type: 'DateTime:Europe/Paris', label: 'CRÉÉ LE', formula: 'NOW()', recalcWhen: 0, description: 'Date de création de la ligne.' },
+    { id: 'CREE_PAR', type: 'Text', label: 'CRÉÉ PAR', formula: 'user.Email', recalcWhen: 0, description: 'Personne qui a créé la ligne.' },
+    { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE', formula: 'NOW()', recalcWhen: 2, description: 'Date de la dernière modification de la ligne.' },
+    { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR', formula: 'user.Email', recalcWhen: 2, description: 'Personne qui a modifié la ligne en dernier.' }
+];
+var TYPES_EVT = {
+    creation: { libelle: 'Ligne ajoutée', icone: 'add-line', filtre: 'Ajout de ligne' },
+    modification: { libelle: 'Modification', icone: 'edit-line', filtre: 'Modification de données' },
+    suppression: { libelle: 'Ligne supprimée', icone: 'delete-line', filtre: 'Suppression de ligne' },
+    structure: { libelle: 'Structure', icone: 'table-line', filtre: 'Structure du document' },
+    droits: { libelle: 'Règle d\'accès', icone: 'lock-line', filtre: 'Règles d\'accès' },
+    partage: { libelle: 'Partage', icone: 'user-line', filtre: 'Partage du document' },
+    suivi: { libelle: 'Suivi', icone: 'time-line', filtre: 'Suivi de l\'historique' }
+};
+var PERIODES = [{ valeur: '', libelle: 'Toutes les dates' }, { valeur: '1', libelle: 'Aujourd\'hui' }, { valeur: '7', libelle: '7 derniers jours' }, { valeur: '30', libelle: '30 derniers jours' }, { valeur: '365', libelle: '12 derniers mois' }];
+var MAXIMA = [100, 200, 500, 1000];
+var CONSERVATIONS = [{ valeur: 365, libelle: '1 an' }, { valeur: 1095, libelle: '3 ans' }, { valeur: 3650, libelle: '10 ans' }, { valeur: 0, libelle: 'Sans limite' }];
+var _loaderTimeout = null;
+var _loaderDelai = null;
+var _toast = { minuterie: null, texte: null, type: null, surFermeture: null };
+var _confirm = { resolution: null, retour: null, pieger: null };
+var _modale = { retour: null, pieger: null, surFermeture: null };
+var _aide = { ouvert: false, onglet: null };
+var _accesRecu = null;
+var _promesseAcces = new Promise(function (ok) { _accesRecu = ok; });
+var _minuterieReleve = null;
+var etat = {
+    niveauAcces: null, initEnCours: false, metaLueA: 0,
+    meta: { tables: {}, colonnes: {}, colParRef: {} },
+    histo: null, lignesHisto: null, config: null, ligneConfig: null, releves: {},
+    proprietaire: false, regles: null, reglesLisibles: false,
+    evenements: [], affichage: {}, refs: {},
+    recherche: '', filtres: { type: '', table: '', qui: '', periode: '' },
+    vue: 'chargement', voletMobile: false, voletReplie: false, modaleOuverte: false,
+    jeton: null, nomDoc: null, releveEnCours: false, erreurReleve: null, partagesIndisponibles: false, suppressionsIndisponibles: false
+};
+var AIDE = {
+    resume: 'Diplohistorique garde la trace des mouvements du document : lignes ajoutées, modifiées ou supprimées, tables, colonnes et pages créées ou changées, règles d\'accès et partages. Le journal est réservé aux propriétaires du document et aux personnes qu\'ils autorisent.',
+    fonctions: [
+        'Lire tous les mouvements du plus récent au plus ancien, regroupés par jour.',
+        'Chercher, et filtrer par sorte de mouvement, par table, par personne et par période.',
+        'Ouvrir l\'histoire complète d\'une ligne, même après sa suppression.',
+        'Exporter les mouvements affichés en CSV, imprimer ou enregistrer en PDF.',
+        'Choisir les tables suivies et les personnes autorisées à lire le journal.'
+    ],
+    avant: [
+        'Seul un propriétaire du document peut créer l\'historique et le paramétrer.',
+        'Les modifications de données sont notées par le document lui-même, avec la personne et l\'heure, même quand le widget est fermé.',
+        'Les suppressions de lignes, la structure, les règles d\'accès et les partages sont relevés quand un propriétaire ouvre le widget : on sait entre quels moments le changement a eu lieu, pas toujours qui l\'a fait.'
+    ],
+    etapes: {
+        'Point de départ': { titre: 'choisissez les tables à suivre.', points: ['Toutes les tables de données sont cochées : décochez celles qui ne vous intéressent pas.', 'Rien n\'est écrit dans le document avant « Créer mon historique ».'] },
+        'Le journal': { titre: 'lisez et filtrez les mouvements.', points: ['Cliquez sur un mouvement de données pour voir toute l\'histoire de la ligne.', 'Le journal se met à jour seul.'] },
+        'Paramétrages': { titre: 'tables suivies, lecteurs, conservation.', points: ['Les modifications sont enregistrées automatiquement.', 'Arrêter le suivi d\'une table efface son journal : une confirmation est demandée.'] }
+    },
+    questions: [
+        { q: 'Qui peut lire le journal ?', r: 'Les propriétaires du document, et les personnes ajoutées dans « Qui peut lire le journal » des paramétrages. Pour les autres, la colonne de journal et la table de l\'historique sont masquées par des règles d\'accès posées par le widget.' },
+        { q: 'Pourquoi la personne n\'est-elle pas indiquée pour une suppression ?', r: 'Le document ne dit pas qui a supprimé une ligne ou changé une colonne. Le widget le constate en comparant deux relevés : il indique la période pendant laquelle c\'est arrivé.' },
+        { q: 'Le journal peut-il être modifié ?', r: 'Les propriétaires gardent la main sur le document : ils pourraient modifier une cellule de journal. Le journal sert à suivre l\'activité, ce n\'est pas une preuve infalsifiable.' },
+        { q: 'Une nouvelle colonne est-elle suivie ?', r: 'Oui, dès qu\'un propriétaire ouvre le widget : il met à jour le suivi de chaque table.' }
+    ]
+};
+function chargerAccesWidget(niveau) {
+    etat.niveauAcces = niveau || null;
+    if (_accesRecu) {
+        _accesRecu();
+        _accesRecu = null;
+    }
+}
+function nbre(n, un, plusieurs) { return n + ' ' + (n > 1 ? plusieurs : un); }
+function maintenantSec() { return Date.now() / 1000; }
+function deuxChiffres(n) { return (n < 10 ? '0' : '') + n; }
+function dateLongue(ms) {
+    var d = new Date(ms);
+    return JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS_LONGS[d.getMonth()] + ' ' + d.getFullYear();
+}
+function heure(ms) {
+    var d = new Date(ms);
+    return d.getHours() + ' h ' + deuxChiffres(d.getMinutes());
+}
+function dateHeure(ms) {
+    var d = new Date(ms);
+    return d.getDate() + ' ' + MOIS_COURTS[d.getMonth()] + ' ' + d.getFullYear() + ' à ' + heure(ms);
+}
+function cleJour(ms) {
+    var d = new Date(ms);
+    return d.getFullYear() + '-' + deuxChiffres(d.getMonth() + 1) + '-' + deuxChiffres(d.getDate());
+}
+function libelleTable(tid) {
+    var t = etat.meta.tables[tid];
+    var l = t && t.libelle ? t.libelle : '';
+    return l || String(tid || '').replace(/_/g, ' ');
+}
+function infoColonne(tid, colId) {
+    var l = etat.meta.colonnes[tid] || [];
+    for (var i = 0; i < l.length; i++) {
+        if (l[i].colId === colId) {
+            return l[i];
+        }
+    }
+    return null;
+}
+function libelleColonne(tid, colId) {
+    var c = infoColonne(tid, colId);
+    return c ? (c.label || colId) : String(colId || '');
+}
+function trouverTable(motif) {
+    var m = motif.toUpperCase();
+    var res = null;
+    Object.keys(etat.meta.tables).forEach(function (t) { if (!res && t.toUpperCase().replace(/_+$/, '') === m) {
+        res = t;
+    } });
+    return res;
+}
+function tablesDonnees() {
+    return Object.keys(etat.meta.tables).filter(function (t) {
+        var m = etat.meta.tables[t];
+        return !m.resume && !estTableExclue(t) && t !== etat.histo && (m.libelle || '') !== LABEL_HISTO;
+    }).sort(function (a, b) { return libelleTable(a).localeCompare(libelleTable(b), 'fr'); });
+}
+function colonnesSuivables(tid) {
+    return (etat.meta.colonnes[tid] || []).filter(function (c) {
+        return !c.formule && !c.declencheur && c.colId !== 'manualSort' && c.colId.indexOf('gristHelper_') !== 0 && c.colId !== COL_JOURNAL && IDS_META.indexOf(c.colId) === -1 && !c.formuleVide;
+    });
+}
+function genreType(type) {
+    var t = String(type || '');
+    if (t.indexOf('RefList:') === 0) {
+        return 'refs';
+    }
+    if (t.indexOf('Ref:') === 0) {
+        return 'ref';
+    }
+    if (t.indexOf('DateTime') === 0) {
+        return 'dateheure';
+    }
+    return { Date: 'date', Bool: 'bool', Int: 'nombre', Numeric: 'nombre', ChoiceList: 'choix', Attachments: 'pj' }[t] || 'texte';
+}
+function exprColonne(c) {
+    var g = genreType(c.type);
+    var v = '$' + c.colId;
+    if (g === 'ref') {
+        return '(' + v + '.id if ' + v + ' else 0)';
+    }
+    if (g === 'refs' || g === 'pj') {
+        return '[r.id for r in (' + v + ' or [])]';
+    }
+    if (g === 'choix') {
+        return 'list(' + v + ' or [])';
+    }
+    if (g === 'date') {
+        return '((' + v + '.toordinal() - 719163) * 86400 if ' + v + ' else None)';
+    }
+    if (g === 'dateheure') {
+        return '(int(' + v + '.timestamp()) if ' + v + ' else None)';
+    }
+    return v;
+}
+function formuleJournal(tid, max) {
+    var cols = colonnesSuivables(tid);
+    return [
+        'import json',
+        'e = json.loads(json.dumps({'
+    ].concat(cols.map(function (c) { return '  "' + c.colId + '": ' + exprColonne(c) + ','; })).concat([
+        '}, default=str))',
+        'try:',
+        '  h = json.loads(value) if value else {}',
+        'except Exception:',
+        '  h = {}',
+        'if not isinstance(h, dict):',
+        '  h = {}',
+        'avant = h.get("e")',
+        'j = h.get("j") or []',
+        'q = (user.Email or "") if user else ""',
+        'n = (user.Name or "") if user else ""',
+        'l = NOW().isoformat()',
+        'if avant is None:',
+        '  j.append({"t": "c", "q": q, "n": n, "l": l})',
+        'else:',
+        '  for k, v in e.items():',
+        '    if k in avant and avant[k] != v:',
+        '      j.append({"t": "m", "c": k, "de": avant[k], "a": v, "q": q, "n": n, "l": l})',
+        'return json.dumps({"e": e, "j": j[-' + (parseInt(max, 10) || MAX_DEFAUT) + ':]}, ensure_ascii=False, default=str)'
+    ]).join('\n');
+}
+function normaliserBrut(c, v) {
+    var g = genreType(c.type);
+    if (Array.isArray(v) && v[0] === 'E') {
+        return null;
+    }
+    if (g === 'ref') {
+        return typeof v === 'number' ? v : 0;
+    }
+    if (g === 'refs' || g === 'pj' || g === 'choix') {
+        return Array.isArray(v) ? (v[0] === 'L' ? v.slice(1) : v.slice()) : [];
+    }
+    if (g === 'date') {
+        return typeof v === 'number' && v ? Math.round(v) : null;
+    }
+    if (g === 'dateheure') {
+        return typeof v === 'number' && v ? Math.trunc(v) : null;
+    }
+    if (g === 'bool') {
+        return v === true;
+    }
+    if (g === 'nombre') {
+        return typeof v === 'number' ? v : 0;
+    }
+    return v === null || v === undefined ? '' : v;
+}
+async function chargerMeta() {
+    etat.metaLueA = Date.now();
+    var t = await lireTable('_grist_Tables');
+    var c = await lireTable('_grist_Tables_column');
+    var tables = {};
+    var parRef = {};
+    for (var i = 0; i < t.id.length; i++) {
+        tables[t.tableId[i]] = { ref: t.id[i], tableId: t.tableId[i], primaryViewId: t.primaryViewId ? t.primaryViewId[i] : 0,
+            rawViewSectionRef: t.rawViewSectionRef ? t.rawViewSectionRef[i] : 0, resume: t.summarySourceTable ? !!t.summarySourceTable[i] : false, libelle: '' };
+        parRef[t.id[i]] = t.tableId[i];
+    }
+    var colonnes = {};
+    var colParRef = {};
+    for (var j = 0; j < c.id.length; j++) {
+        var tidC = parRef[c.parentId[j]];
+        if (!tidC) {
+            continue;
+        }
+        var info = { ref: c.id[j], tableRef: c.parentId[j], tableId: tidC, colId: c.colId[j], type: c.type[j] || 'Any', label: c.label ? (c.label[j] || c.colId[j]) : c.colId[j],
+            formule: Boolean(c.isFormula[j]) && Boolean(c.formula[j]), formula: c.formula[j] || '', formuleVide: Boolean(c.isFormula[j]) && !c.formula[j],
+            declencheur: !c.isFormula[j] && Boolean(c.formula[j]), recalcWhen: c.recalcWhen ? c.recalcWhen[j] : 0,
+            visibleCol: c.visibleCol ? c.visibleCol[j] : 0, pos: c.parentPos ? c.parentPos[j] : j };
+        colParRef[c.id[j]] = info;
+        (colonnes[tidC] = colonnes[tidC] || []).push(info);
+    }
+    Object.keys(colonnes).forEach(function (k) { colonnes[k].sort(function (a, b) { return a.pos - b.pos; }); });
+    var vues = {};
+    try {
+        var vs = await lireTable('_grist_Views_section');
+        var titres = {};
+        for (var v = 0; v < vs.id.length; v++) {
+            titres[vs.id[v]] = vs.title ? vs.title[v] : '';
+        }
+        var vw = await lireTable('_grist_Views');
+        for (var w = 0; w < vw.id.length; w++) {
+            vues[vw.id[w]] = vw.name ? vw.name[w] : '';
+        }
+        Object.keys(tables).forEach(function (k) { tables[k].libelle = titres[tables[k].rawViewSectionRef] || ''; });
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Noms des tables et des pages illisibles', e);
+    }
+    etat.meta = { tables: tables, colonnes: colonnes, colParRef: colParRef, vues: vues };
+}
+async function agir(actions) {
+    if (etat.niveauAcces && etat.niveauAcces !== 'full') {
+        throw new Error('Accès complet non accordé au widget : not allowed');
+    }
+    return gristAvecTimeout(grist.docApi.applyUserActions(actions), DELAI_API_MS);
+}
+async function agirParLots(actions) {
+    for (var i = 0; i < actions.length; i += LOT_ECRITURE) {
+        await agir(actions.slice(i, i + LOT_ECRITURE));
+    }
+}
+function trouverHisto() {
+    var res = null;
+    Object.keys(etat.meta.tables).forEach(function (t) {
+        var up = t.toUpperCase().replace(/_+$/, '');
+        var m = etat.meta.tables[t];
+        if (!res && (up === ID_HISTO || (m.libelle || '').indexOf(LABEL_HISTO) === 0) && infoColonne(t, 'TYPE') && infoColonne(t, 'DETAIL')) {
+            res = t;
+        }
+    });
+    return res;
+}
+async function lireHisto() {
+    var d = await lireTable(etat.histo);
+    var lignes = [];
+    for (var i = 0; i < d.id.length; i++) {
+        lignes.push({ id: d.id[i], widget: colonneDe(d, 'WIDGET', i) || '', type: colonneDe(d, 'TYPE', i) || '', table: colonneDe(d, 'NOM_TABLE', i) || '',
+            ligne: colonneDe(d, 'LIGNE', i) || 0, objet: colonneDe(d, 'OBJET', i) || '', avant: colonneDe(d, 'AVANT', i) || '', apres: colonneDe(d, 'APRES', i) || '',
+            qui: colonneDe(d, 'QUI', i) || '', depuis: colonneDe(d, 'DEPUIS', i) || 0, quand: colonneDe(d, 'QUAND', i) || 0, detail: colonneDe(d, 'DETAIL', i) || '',
+            creePar: colonneDe(d, 'CREE_PAR', i) || '' });
+    }
+    etat.lignesHisto = lignes;
+    etat.config = null;
+    etat.ligneConfig = null;
+    etat.releves = {};
+    lignes.forEach(function (l) {
+        if (l.widget !== NOM_WIDGET) {
+            return;
+        }
+        if (l.type === 'REGLAGES') {
+            etat.ligneConfig = l.id;
+            etat.config = configValide(lireJson(l.detail));
+        }
+        else if (l.type === 'RELEVE' && l.objet) {
+            etat.releves[l.objet] = { id: l.id, quand: l.quand, donnees: lireJson(l.detail) };
+        }
+    });
+}
+function lireJson(t) {
+    try {
+        var v = JSON.parse(t || 'null');
+        return v && typeof v === 'object' ? v : null;
+    }
+    catch (e) {
+        return null;
+    }
+}
+function courrielValide(a) { return typeof a === 'string' && /^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(a); }
+function configValide(c) {
+    c = c && typeof c === 'object' ? c : {};
+    var max = MAXIMA.indexOf(c.max) !== -1 ? c.max : MAX_DEFAUT;
+    var cons = CONSERVATIONS.some(function (x) { return x.valeur === c.conservation; }) ? c.conservation : CONSERVATION_DEFAUT;
+    return { tables: Array.isArray(c.tables) ? c.tables.filter(function (t) { return typeof t === 'string' && t; }) : [],
+        lecteurs: Array.isArray(c.lecteurs) ? c.lecteurs.map(function (x) { return String(x).toLowerCase(); }).filter(courrielValide) : [],
+        max: max, conservation: cons };
+}
+async function ecrireConfig() {
+    var valeur = JSON.stringify(etat.config);
+    if (etat.ligneConfig) {
+        await agir([['UpdateRecord', etat.histo, etat.ligneConfig, { DETAIL: valeur }]]);
+    }
+    else {
+        var r = await agir([['AddRecord', etat.histo, null, { WIDGET: NOM_WIDGET, TYPE: 'REGLAGES', OBJET: 'Réglages de l\'historique', DETAIL: valeur }]]);
+        etat.ligneConfig = r && r.retValues ? r.retValues[0] : null;
+    }
+}
+async function noterSuivi(objet, avant, apres, table) {
+    try {
+        await agir([['AddRecord', etat.histo, null, { WIDGET: NOM_WIDGET, TYPE: 'SUIVI', NOM_TABLE: table || '', OBJET: objet, AVANT: avant || '', APRES: apres || '', QUAND: maintenantSec() }]]);
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Mouvement de suivi non noté', e);
+    }
+}
+function formuleNonAutorise() {
+    var l = (etat.config && etat.config.lecteurs) || [];
+    return 'user.Access != OWNER' + (l.length ? ' and (user.Email or "").lower() not in ' + JSON.stringify(l) : '');
+}
+async function lireRegles() {
+    var res = await lireTable('_grist_ACLResources');
+    var rul = await lireTable('_grist_ACLRules');
+    var ressources = {};
+    for (var i = 0; i < res.id.length; i++) {
+        ressources[res.id[i]] = { id: res.id[i], tableId: colonneDe(res, 'tableId', i) || '', colIds: colonneDe(res, 'colIds', i) || '' };
+    }
+    var regles = [];
+    for (var j = 0; j < rul.id.length; j++) {
+        regles.push({ id: rul.id[j], resource: colonneDe(rul, 'resource', j) || 0, aclFormula: colonneDe(rul, 'aclFormula', j) || '', permissionsText: colonneDe(rul, 'permissionsText', j) || '',
+            rulePos: colonneDe(rul, 'rulePos', j) || 0, memo: colonneDe(rul, 'memo', j) || '', userAttributes: colonneDe(rul, 'userAttributes', j) || '' });
+    }
+    etat.regles = { ressources: ressources, regles: regles };
+    etat.reglesLisibles = res.id.length > 0 || rul.id.length > 0;
+    return etat.regles;
+}
+function reglesDuWidget() {
+    if (!etat.regles) {
+        return [];
+    }
+    return etat.regles.regles.filter(function (r) { return r.memo === MEMO_REGLE; }).map(function (r) { return { regle: r, res: etat.regles.ressources[r.resource] || { tableId: '', colIds: '' } }; });
+}
+function etatProtection() {
+    var attendu = formuleNonAutorise();
+    var nos = reglesDuWidget();
+    var manque = [];
+    var aJour = true;
+    var cibles = [{ tableId: etat.histo, colIds: '*' }].concat(((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; }).map(function (t) { return { tableId: t, colIds: COL_JOURNAL }; }));
+    cibles.forEach(function (c) {
+        var r = nos.filter(function (x) { return x.res.tableId === c.tableId && x.res.colIds === c.colIds; });
+        if (!r.length) {
+            manque.push(c);
+        }
+        else if (r.some(function (x) { return x.regle.aclFormula.indexOf(attendu) !== 0; })) {
+            aJour = false;
+        }
+    });
+    return { manque: manque, aJour: aJour, lisible: etat.reglesLisibles };
+}
+async function poserProtection() {
+    await lireRegles();
+    var attendu = formuleNonAutorise();
+    var nos = reglesDuWidget();
+    var pos = etat.regles.regles.reduce(function (m, r) { return Math.max(m, r.rulePos || 0); }, 0);
+    var actions = [];
+    nos.forEach(function (x) {
+        if (x.regle.aclFormula !== attendu && x.res.colIds === COL_JOURNAL) {
+            actions.push(['UpdateRecord', '_grist_ACLRules', x.regle.id, { aclFormula: attendu }]);
+        }
+        if (x.res.colIds === '*' && x.regle.permissionsText === 'none' && x.regle.aclFormula !== attendu) {
+            actions.push(['UpdateRecord', '_grist_ACLRules', x.regle.id, { aclFormula: attendu }]);
+        }
+    });
+    if (actions.length) {
+        await agir(actions);
+    }
+    var p = etatProtection();
+    for (var i = 0; i < p.manque.length; i++) {
+        var c = p.manque[i];
+        var resId = null;
+        Object.keys(etat.regles.ressources).forEach(function (k) {
+            var r = etat.regles.ressources[k];
+            if (r.tableId === c.tableId && r.colIds === c.colIds) {
+                resId = r.id;
+            }
+        });
+        if (!resId) {
+            var ret = await agir([['AddRecord', '_grist_ACLResources', null, { tableId: c.tableId, colIds: c.colIds }]]);
+            resId = ret.retValues[0];
+        }
+        var regles = c.colIds === '*'
+            ? [{ f: attendu, p: 'none' }, { f: 'user.Access != OWNER', p: '-CUD' }]
+            : [{ f: attendu, p: '-R' }];
+        await agir(regles.map(function (r) {
+            pos += 1;
+            return ['AddRecord', '_grist_ACLRules', null, { resource: resId, aclFormula: r.f, permissionsText: r.p, rulePos: pos, memo: MEMO_REGLE }];
+        }));
+    }
+    await lireRegles();
+}
+async function retirerProtectionTable(tid) {
+    await lireRegles();
+    var ids = reglesDuWidget().filter(function (x) { return x.res.tableId === tid && x.res.colIds === COL_JOURNAL; }).map(function (x) { return x.regle.id; });
+    if (ids.length) {
+        await agir([['BulkRemoveRecord', '_grist_ACLRules', ids]]);
+    }
+}
+async function assurerJournal(tid) {
+    var col = infoColonne(tid, COL_JOURNAL);
+    var nouveau = !col;
+    if (nouveau) {
+        var ret = await agir([['AddColumn', tid, COL_JOURNAL, { type: 'Text', isFormula: false }]]);
+        var reel = ret && ret.retValues && ret.retValues[0] && ret.retValues[0].colId ? ret.retValues[0].colId : COL_JOURNAL;
+        if (reel !== COL_JOURNAL) {
+            await agir([['RemoveColumn', tid, reel]]);
+            throw new Error('Une colonne ' + COL_JOURNAL + ' existe déjà dans ' + tid);
+        }
+        await agir([['ModifyColumn', tid, COL_JOURNAL, { type: 'Text', label: LIBELLE_JOURNAL, untieColIdFromLabel: true,
+                    description: 'Journal des modifications de la ligne, tenu par le document : ne pas modifier. Réservé aux propriétaires et aux personnes autorisées.' }]]);
+        await chargerMeta();
+    }
+    var f = formuleJournal(tid, etat.config.max);
+    col = infoColonne(tid, COL_JOURNAL);
+    if (col && (col.formula !== f || col.recalcWhen !== 2 || col.formule)) {
+        await agir([['ModifyColumn', tid, COL_JOURNAL, { isFormula: false, formula: f, recalcWhen: 2, recalcDeps: null }]]);
+    }
+    await initialiserLignes(tid);
+    return nouveau;
+}
+async function initialiserLignes(tid) {
+    var d = await lireTable(tid);
+    var cols = colonnesSuivables(tid);
+    var ids = [];
+    var valeurs = [];
+    for (var i = 0; i < d.id.length; i++) {
+        var j = d[COL_JOURNAL] ? d[COL_JOURNAL][i] : null;
+        if (j) {
+            continue;
+        }
+        var e = {};
+        cols.forEach(function (c) { e[c.colId] = normaliserBrut(c, d[c.colId] ? d[c.colId][i] : null); });
+        ids.push(d.id[i]);
+        valeurs.push(JSON.stringify({ e: e, j: [] }));
+    }
+    var actions = [];
+    for (var k = 0; k < ids.length; k += LOT_ECRITURE) {
+        var o = {};
+        o[COL_JOURNAL] = valeurs.slice(k, k + LOT_ECRITURE);
+        actions.push(['BulkUpdateRecord', tid, ids.slice(k, k + LOT_ECRITURE), o]);
+    }
+    for (var a = 0; a < actions.length; a++) {
+        await agir([actions[a]]);
+    }
+}
+async function retirerJournal(tid) {
+    if (infoColonne(tid, COL_JOURNAL)) {
+        await agir([['RemoveColumn', tid, COL_JOURNAL]]);
+    }
+    try {
+        await retirerProtectionTable(tid);
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Règle d\'accès du journal non retirée pour ' + tid, e);
+    }
+}
+async function mettreAJourJournaux() {
+    if (!etat.proprietaire || !etat.config) {
+        return;
+    }
+    for (var i = 0; i < etat.config.tables.length; i++) {
+        var t = etat.config.tables[i];
+        if (!etat.meta.tables[t]) {
+            continue;
+        }
+        var col = infoColonne(t, COL_JOURNAL);
+        var f = formuleJournal(t, etat.config.max);
+        if (!col || col.formula !== f || col.recalcWhen !== 2) {
+            try {
+                await assurerJournal(t);
+            }
+            catch (e) {
+                logSecurite('AVERTISSEMENT', 'Suivi de ' + t + ' non mis à jour', e);
+            }
+        }
+    }
+}
+async function obtenirJeton() {
+    var j = etat.jeton;
+    if (j && Date.now() < j.expire) {
+        return j;
+    }
+    var r = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: true }), 15000);
+    etat.jeton = { token: r.token, baseUrl: r.baseUrl, expire: Date.now() + Math.max(0, (r.ttlMsecs || 60000) - 30000) };
+    return etat.jeton;
+}
+async function appelApi(chemin, parametres) {
+    var j = await obtenirJeton();
+    var q = Object.keys(parametres || {}).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(parametres[k]); });
+    q.push('auth=' + encodeURIComponent(j.token));
+    var r = await fetchDelai(j.baseUrl + chemin + '?' + q.join('&'), { method: 'GET', credentials: 'omit' }, 20000);
+    if (!r.ok) {
+        throw new Error('Réponse ' + r.status + ' pour ' + chemin);
+    }
+    return r.json();
+}
+function releveStructure() {
+    var t = {}, c = {}, v = {};
+    Object.keys(etat.meta.tables).forEach(function (tid) {
+        var m = etat.meta.tables[tid];
+        if (estTableExclue(tid) || m.resume || tid === etat.histo) {
+            return;
+        }
+        t[m.ref] = { id: tid, l: m.libelle || '' };
+        (etat.meta.colonnes[tid] || []).forEach(function (x) {
+            if (x.colId === 'manualSort' || x.colId.indexOf('gristHelper_') === 0 || x.colId === COL_JOURNAL) {
+                return;
+            }
+            c[x.ref] = { t: m.ref, id: x.colId, l: x.label, ty: x.type, f: x.formula, k: x.formule ? 'f' : (x.declencheur ? 'd' : 'v') };
+        });
+    });
+    Object.keys(etat.meta.vues || {}).forEach(function (id) { v[id] = etat.meta.vues[id] || ''; });
+    return { t: t, c: c, v: v };
+}
+function nomTableReleve(r, ref) { var x = r.t[ref]; return x ? (x.l || x.id) : ''; }
+function typeLisible(ty) {
+    var g = genreType(ty);
+    return { ref: 'référence', refs: 'liste de références', dateheure: 'date et heure', date: 'date', bool: 'oui ou non', nombre: 'nombre', choix: 'choix multiple', pj: 'pièces jointes' }[g] || (ty === 'Choice' ? 'choix' : 'texte');
+}
+function natureColonne(k) { return { f: 'formule', d: 'formule de déclenchement', v: 'donnée' }[k] || ''; }
+function compareStructure(av, ap) {
+    var evts = [];
+    var ajout = function (table, objet, avant, apres) { evts.push({ table: table, objet: objet, avant: avant || '', apres: apres || '' }); };
+    Object.keys(ap.t).forEach(function (ref) {
+        var x = ap.t[ref], y = av.t[ref];
+        if (!y) {
+            ajout(x.id, 'Table « ' + (x.l || x.id) + ' » créée', '', x.l || x.id);
+        }
+        else if (y.id !== x.id || y.l !== x.l) {
+            ajout(x.id, 'Table renommée', y.l || y.id, x.l || x.id);
+        }
+    });
+    Object.keys(av.t).forEach(function (ref) { if (!ap.t[ref]) {
+        ajout(av.t[ref].id, 'Table « ' + (av.t[ref].l || av.t[ref].id) + ' » supprimée', av.t[ref].l || av.t[ref].id, '');
+    } });
+    Object.keys(ap.c).forEach(function (ref) {
+        var x = ap.c[ref], y = av.c[ref];
+        var tab = ap.t[x.t] ? ap.t[x.t].id : '';
+        if (!ap.t[x.t]) {
+            return;
+        }
+        if (!y) {
+            if (av.t[x.t]) {
+                ajout(tab, 'Colonne « ' + x.l + ' » ajoutée dans « ' + nomTableReleve(ap, x.t) + ' »', '', typeLisible(x.ty) + (x.k !== 'v' ? ', ' + natureColonne(x.k) : ''));
+            }
+            return;
+        }
+        if (y.l !== x.l || y.id !== x.id) {
+            ajout(tab, 'Colonne renommée dans « ' + nomTableReleve(ap, x.t) + ' »', y.l, x.l);
+        }
+        if (y.ty !== x.ty) {
+            ajout(tab, 'Type de « ' + x.l + ' » changé', typeLisible(y.ty), typeLisible(x.ty));
+        }
+        if (y.k !== x.k) {
+            ajout(tab, '« ' + x.l + ' » devient ' + natureColonne(x.k), natureColonne(y.k), natureColonne(x.k));
+        }
+        else if (y.f !== x.f && x.k !== 'v') {
+            ajout(tab, 'Formule de « ' + x.l + ' » modifiée', y.f, x.f);
+        }
+    });
+    Object.keys(av.c).forEach(function (ref) {
+        var y = av.c[ref];
+        if (!ap.c[ref] && ap.t[y.t]) {
+            ajout(av.t[y.t] ? av.t[y.t].id : '', 'Colonne « ' + y.l + ' » supprimée de « ' + nomTableReleve(av, y.t) + ' »', typeLisible(y.ty), '');
+        }
+    });
+    Object.keys(ap.v).forEach(function (id) {
+        if (!(id in av.v)) {
+            ajout('', 'Page « ' + ap.v[id] + ' » créée', '', ap.v[id]);
+        }
+        else if (av.v[id] !== ap.v[id]) {
+            ajout('', 'Page renommée', av.v[id], ap.v[id]);
+        }
+    });
+    Object.keys(av.v).forEach(function (id) { if (!(id in ap.v)) {
+        ajout('', 'Page « ' + av.v[id] + ' » supprimée', av.v[id], '');
+    } });
+    return evts;
+}
+function releveDroits() {
+    var r = {};
+    etat.regles.regles.forEach(function (x) {
+        var res = etat.regles.ressources[x.resource] || { tableId: '', colIds: '' };
+        r[x.id] = { cible: res.tableId + '|' + res.colIds, f: x.aclFormula, p: x.permissionsText, a: x.userAttributes ? 1 : 0, m: x.memo };
+    });
+    return r;
+}
+function cibleLisible(c) {
+    var p = String(c || '').split('|');
+    if (!p[0]) {
+        return 'les attributs utilisateur';
+    }
+    if (p[0] === '*') {
+        return 'les règles par défaut';
+    }
+    if (p[0] === '*SPECIAL') {
+        return 'la règle spéciale ' + p[1];
+    }
+    return 'la table « ' + libelleTable(p[0]) + ' »' + (p[1] && p[1] !== '*' ? ', colonnes ' + p[1].split(',').map(function (x) { return libelleColonne(p[0], x); }).join(', ') : '');
+}
+function texteRegle(x) { return x.a ? 'Attribut utilisateur' : (x.f ? 'Si ' + x.f + ' : ' : 'Sinon : ') + (x.p || ''); }
+function compareDroits(av, ap) {
+    var evts = [];
+    Object.keys(ap).forEach(function (id) {
+        var x = ap[id], y = av[id];
+        if (!y) {
+            evts.push({ table: x.cible.split('|')[0], objet: 'Règle ajoutée sur ' + cibleLisible(x.cible), avant: '', apres: texteRegle(x) });
+        }
+        else if (y.f !== x.f || y.p !== x.p || y.cible !== x.cible) {
+            evts.push({ table: x.cible.split('|')[0], objet: 'Règle modifiée sur ' + cibleLisible(x.cible), avant: texteRegle(y), apres: texteRegle(x) });
+        }
+    });
+    Object.keys(av).forEach(function (id) { if (!ap[id]) {
+        evts.push({ table: av[id].cible.split('|')[0], objet: 'Règle retirée sur ' + cibleLisible(av[id].cible), avant: texteRegle(av[id]), apres: '' });
+    } });
+    return evts;
+}
+function roleLisible(r) { return { owners: 'propriétaire', editors: 'éditeur', viewers: 'lecteur' }[r] || (r ? String(r) : 'sans accès'); }
+function comparePartages(av, ap) {
+    var evts = [];
+    Object.keys(ap).forEach(function (m) {
+        if (!(m in av)) {
+            evts.push({ objet: 'Accès donné à ' + m, avant: '', apres: roleLisible(ap[m]), qui: '' });
+        }
+        else if (av[m] !== ap[m]) {
+            evts.push({ objet: 'Rôle de ' + m + ' changé', avant: roleLisible(av[m]), apres: roleLisible(ap[m]), qui: '' });
+        }
+    });
+    Object.keys(av).forEach(function (m) { if (!(m in ap)) {
+        evts.push({ objet: 'Accès retiré à ' + m, avant: roleLisible(av[m]), apres: '', qui: '' });
+    } });
+    return evts;
+}
+async function lirePartages() {
+    var r = await appelApi('/access', {});
+    var res = {};
+    (r && Array.isArray(r.users) ? r.users : []).forEach(function (u) {
+        if (u && u.email && u.access) {
+            res[String(u.email).toLowerCase()] = u.access;
+        }
+    });
+    return res;
+}
+function ecrireEvenements(type, evts, depuis, quand, champsSup) {
+    return evts.map(function (e) {
+        var o = { WIDGET: NOM_WIDGET, TYPE: type, NOM_TABLE: e.table || '', OBJET: e.objet || '', AVANT: String(e.avant === undefined ? '' : e.avant), APRES: String(e.apres === undefined ? '' : e.apres),
+            QUI: e.qui || '', DEPUIS: depuis || null, QUAND: quand };
+        if (e.ligne) {
+            o.LIGNE = e.ligne;
+        }
+        if (e.detail) {
+            o.DETAIL = e.detail;
+        }
+        Object.keys(champsSup || {}).forEach(function (k) { o[k] = champsSup[k]; });
+        return ['AddRecord', etat.histo, null, o];
+    });
+}
+function actionReleve(objet, donnees, quand) {
+    var r = etat.releves[objet];
+    var champs = { DETAIL: JSON.stringify(donnees), QUAND: quand };
+    if (r) {
+        return ['UpdateRecord', etat.histo, r.id, champs];
+    }
+    return ['AddRecord', etat.histo, null, Object.assign({ WIDGET: NOM_WIDGET, TYPE: 'RELEVE', OBJET: objet }, champs)];
+}
+async function releverSuppressions(quand) {
+    var etatDoc;
+    try {
+        etatDoc = await appelApi('/states', {});
+    }
+    catch (e) {
+        etat.suppressionsIndisponibles = true;
+        logSecurite('INFO', 'Historique des actions du document illisible : suppressions non relevées', e);
+        return { actions: [], releve: null };
+    }
+    var etats = etatDoc && Array.isArray(etatDoc.states) ? etatDoc.states : [];
+    if (!etats.length) {
+        return { actions: [], releve: null };
+    }
+    var tete = etats[0].h;
+    var avant = etat.releves.etat ? etat.releves.etat.donnees : null;
+    var nouveau = { h: tete };
+    if (!avant || !avant.h || avant.h === tete) {
+        return { actions: [], releve: nouveau };
+    }
+    var depuis = etat.releves.etat.quand || null;
+    if (!etats.some(function (s) { return s.h === avant.h; })) {
+        return { actions: ecrireEvenements('SUPPRESSION', [{ objet: 'Suppressions non récupérables', avant: '', apres: 'L\'historique du document ne remonte plus jusqu\'au relevé précédent : les suppressions de cette période ne sont pas connues.' }], depuis, quand), releve: nouveau };
+    }
+    var cmp;
+    try {
+        cmp = await appelApi('/compare', { left: avant.h, right: tete });
+    }
+    catch (e) {
+        etat.suppressionsIndisponibles = true;
+        logSecurite('INFO', 'Comparaison des versions impossible : suppressions non relevées', e);
+        return { actions: [], releve: null };
+    }
+    var details = cmp && cmp.details ? cmp.details : null;
+    var deltas = details && details.rightChanges && details.rightChanges.tableDeltas ? details.rightChanges.tableDeltas : {};
+    var suivies = (etat.config && etat.config.tables) || [];
+    var evts = [];
+    Object.keys(deltas).forEach(function (tid) {
+        if (suivies.indexOf(tid) === -1) {
+            return;
+        }
+        var d = deltas[tid] || {};
+        var cols = d.columnDeltas || {};
+        (d.removeRows || []).forEach(function (rid) {
+            var valeurs = {};
+            var journal = '';
+            Object.keys(cols).forEach(function (col) {
+                var paire = cols[col] && cols[col][rid];
+                if (!paire) {
+                    return;
+                }
+                var avantV = Array.isArray(paire[0]) && paire[0].length === 1 ? paire[0][0] : paire[0];
+                if (col === COL_JOURNAL) {
+                    journal = typeof avantV === 'string' ? avantV : '';
+                }
+                else if (col !== 'manualSort' && IDS_META.indexOf(col) === -1) {
+                    valeurs[col] = avantV;
+                }
+            });
+            evts.push({ table: tid, ligne: rid, objet: 'Ligne ' + rid, avant: JSON.stringify(valeurs), apres: '', detail: journal });
+        });
+    });
+    return { actions: ecrireEvenements('SUPPRESSION', evts, depuis, quand), releve: nouveau };
+}
+async function releverTout() {
+    if (etat.releveEnCours || !etat.proprietaire || !etat.config) {
+        return 0;
+    }
+    etat.releveEnCours = true;
+    var nb = 0;
+    try {
+        var quand = maintenantSec();
+        await chargerMeta();
+        var actions = [];
+        var s = releveStructure();
+        var rs = etat.releves.structure;
+        if (rs && rs.donnees) {
+            var es = compareStructure(rs.donnees, s);
+            nb += es.length;
+            actions = actions.concat(ecrireEvenements('STRUCTURE', es, rs.quand, quand));
+        }
+        actions.push(actionReleve('structure', s, quand));
+        try {
+            await lireRegles();
+            if (etat.reglesLisibles) {
+                var d = releveDroits();
+                var rd = etat.releves.droits;
+                if (rd && rd.donnees) {
+                    var ed = compareDroits(rd.donnees, d);
+                    nb += ed.length;
+                    actions = actions.concat(ecrireEvenements('DROITS', ed, rd.quand, quand));
+                }
+                actions.push(actionReleve('droits', d, quand));
+            }
+        }
+        catch (e) {
+            logSecurite('INFO', 'Règles d\'accès illisibles : droits non relevés', e);
+        }
+        try {
+            var p = await lirePartages();
+            var rp = etat.releves.partages;
+            if (rp && rp.donnees) {
+                var ep = comparePartages(rp.donnees, p);
+                nb += ep.length;
+                actions = actions.concat(ecrireEvenements('PARTAGE', ep, rp.quand, quand));
+            }
+            actions.push(actionReleve('partages', p, quand));
+            etat.partagesIndisponibles = false;
+        }
+        catch (e) {
+            etat.partagesIndisponibles = true;
+            logSecurite('INFO', 'Partages du document illisibles depuis le widget', e);
+        }
+        var sup = await releverSuppressions(quand);
+        nb += sup.actions.length;
+        actions = actions.concat(sup.actions);
+        if (sup.releve) {
+            actions.push(actionReleve('etat', sup.releve, quand));
+        }
+        actions = actions.concat(actionsPurge(quand));
+        await agirParLots(actions);
+        await lireHisto();
+        etat.erreurReleve = null;
+    }
+    catch (e) {
+        etat.erreurReleve = e;
+        if (estRefusDroits(e) || estRefusGeneral(e)) {
+            etat.proprietaire = false;
+        }
+        logSecurite('AVERTISSEMENT', 'Relevé non abouti', e);
+    }
+    finally {
+        etat.releveEnCours = false;
+    }
+    return nb;
+}
+function actionsPurge(quand) {
+    var jours = etat.config ? etat.config.conservation : 0;
+    if (!jours || !etat.lignesHisto) {
+        return [];
+    }
+    var limite = quand - jours * 86400;
+    var ids = etat.lignesHisto.filter(function (l) { return l.widget === NOM_WIDGET && ['SUPPRESSION', 'STRUCTURE', 'DROITS', 'PARTAGE', 'SUIVI'].indexOf(l.type) !== -1 && l.quand && l.quand < limite; }).map(function (l) { return l.id; });
+    return ids.length ? [['BulkRemoveRecord', etat.histo, ids]] : [];
+}
+function colonneTitre(tid) {
+    var cols = colonnesSuivables(tid);
+    for (var i = 0; i < cols.length; i++) {
+        if (cols[i].type === 'Text') {
+            return cols[i].colId;
+        }
+    }
+    return cols.length ? cols[0].colId : null;
+}
+function colAffichage(c) {
+    var v = c.visibleCol ? etat.meta.colParRef[c.visibleCol] : null;
+    return v ? v.colId : colonneTitre(tableCible(c.type));
+}
+async function chargerRefs(tid, ct) {
+    var cle = tid + '|' + (ct || '');
+    if (etat.refs[cle]) {
+        return etat.refs[cle];
+    }
+    var res = {};
+    try {
+        var d = await lireTable(tid);
+        for (var i = 0; i < d.id.length; i++) {
+            res[d.id[i]] = ct && d[ct] ? texteBrut(d[ct][i]) : '';
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Références de ' + tid + ' illisibles', e);
+    }
+    etat.refs[cle] = res;
+    return res;
+}
+function tableCible(type) { var m = /^Ref(?:List)?:(.+)$/.exec(String(type || '')); return m ? m[1] : null; }
+function texteValeur(tid, colId, v) {
+    var c = infoColonne(tid, colId);
+    var g = c ? genreType(c.type) : 'texte';
+    if (v === null || v === undefined || v === '') {
+        return '';
+    }
+    if (g === 'bool') {
+        return v ? 'oui' : 'non';
+    }
+    if (g === 'date') {
+        return typeof v === 'number' ? formaterDateSec(v) : String(v);
+    }
+    if (g === 'dateheure') {
+        return typeof v === 'number' ? dateHeure(v * 1000) : String(v);
+    }
+    if (g === 'ref' || g === 'refs') {
+        var cible = tableCible(c.type);
+        var refs = cible ? etat.refs[cible + '|' + (colAffichage(c) || '')] || {} : {};
+        var l = Array.isArray(v) ? v : [v];
+        return l.filter(function (x) { return x; }).map(function (x) { var t = refs[x]; return t !== undefined && t !== null && t !== '' ? String(t) : 'n° ' + x; }).join(', ');
+    }
+    if (g === 'pj') {
+        var n = Array.isArray(v) ? v.length : 0;
+        return n ? nbre(n, 'fichier', 'fichiers') : '';
+    }
+    if (g === 'nombre') {
+        return typeof v === 'number' ? v.toLocaleString('fr-FR') : String(v);
+    }
+    if (Array.isArray(v)) {
+        return v.join(', ');
+    }
+    return String(v);
+}
+function formaterDateSec(sec) {
+    var d = new Date(sec * 1000);
+    return d.getUTCDate() + ' ' + MOIS_COURTS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
+function msDepuisIso(s) {
+    var t = Date.parse(s);
+    return isNaN(t) ? 0 : t;
+}
+async function construireEvenements() {
+    etat.refs = {};
+    var evts = [];
+    var suivies = (etat.config && etat.config.tables) || [];
+    var aRefs = {};
+    for (var i = 0; i < suivies.length; i++) {
+        var tid = suivies[i];
+        if (!etat.meta.tables[tid] || !infoColonne(tid, COL_JOURNAL)) {
+            continue;
+        }
+        (etat.meta.colonnes[tid] || []).forEach(function (c) { var t = tableCible(c.type); if (t) {
+            aRefs[t + '|' + (colAffichage(c) || '')] = [t, colAffichage(c)];
+        } });
+        var d;
+        try {
+            d = await lireTable(tid);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Table ' + tid + ' illisible', e);
+            continue;
+        }
+        var ct = colonneTitre(tid);
+        for (var k = 0; k < d.id.length; k++) {
+            var h = lireJson(d[COL_JOURNAL] ? d[COL_JOURNAL][k] : '');
+            if (!h || !Array.isArray(h.j)) {
+                continue;
+            }
+            var titre = ct && d[ct] ? texteBrut(d[ct][k]) : '';
+            ajouterJournal(evts, tid, d.id[k], titre, h.j, false);
+        }
+    }
+    var cles = Object.keys(aRefs);
+    for (var r = 0; r < cles.length; r++) {
+        if (etat.meta.tables[aRefs[cles[r]][0]]) {
+            await chargerRefs(aRefs[cles[r]][0], aRefs[cles[r]][1]);
+        }
+    }
+    (etat.lignesHisto || []).forEach(function (l) {
+        var type = { SUPPRESSION: 'suppression', STRUCTURE: 'structure', DROITS: 'droits', PARTAGE: 'partage', SUIVI: 'suivi' }[l.type];
+        if (!type) {
+            return;
+        }
+        var ms = (l.quand || 0) * 1000;
+        var e = { id: 'h' + l.id, type: type, table: l.table, ligne: l.ligne || 0, objet: l.objet, avant: l.avant, apres: l.apres,
+            qui: l.qui || (type === 'suivi' ? l.creePar : ''), releve: type !== 'suivi' ? l.creePar : '', quand: ms, depuis: (l.depuis || 0) * 1000 };
+        if (type === 'suppression' && l.ligne) {
+            var valeurs = lireJson(l.avant) || {};
+            e.valeurs = valeurs;
+            var ct2 = colonneTitre(l.table);
+            e.titre = ct2 && valeurs[ct2] !== undefined ? texteBrut(valeurs[ct2]) : '';
+            var hj = lireJson(l.detail);
+            if (hj && Array.isArray(hj.j)) {
+                ajouterJournal(evts, l.table, l.ligne, e.titre, hj.j, true);
+            }
+        }
+        evts.push(e);
+    });
+    evts.sort(function (a, b) { return b.quand - a.quand || (a.id < b.id ? 1 : -1); });
+    etat.evenements = evts;
+}
+function texteBrut(v) {
+    if (v === null || v === undefined) {
+        return '';
+    }
+    if (Array.isArray(v)) {
+        return v[0] === 'L' ? v.slice(1).join(', ') : v.join(', ');
+    }
+    return String(v);
+}
+function ajouterJournal(evts, tid, rid, titre, j, supprimee) {
+    j.forEach(function (x, n) {
+        if (!x || typeof x !== 'object') {
+            return;
+        }
+        var ms = msDepuisIso(x.l);
+        evts.push({ id: tid + ':' + rid + ':' + n + (supprimee ? ':s' : ''), type: x.t === 'c' ? 'creation' : 'modification', table: tid, ligne: rid, titre: titre, colonne: x.c || '',
+            de: x.de, a: x.a, qui: x.q || '', nom: x.n || '', quand: ms, supprimee: supprimee });
+    });
+}
+function nomPersonne(e) { return e.nom || e.qui || ''; }
+function phrase(e) {
+    var tl = libelleTable(e.table);
+    var obj = e.titre ? '« ' + e.titre + ' »' : 'la ligne n° ' + e.ligne;
+    if (e.type === 'creation') {
+        return 'Ligne ' + obj + ' ajoutée dans « ' + tl + ' »';
+    }
+    if (e.type === 'modification') {
+        return '« ' + libelleColonne(e.table, e.colonne) + ' » de ' + obj + ' (' + tl + ')';
+    }
+    if (e.type === 'suppression') {
+        return e.ligne ? 'Ligne ' + obj + ' supprimée de « ' + tl + ' »' : e.objet;
+    }
+    return e.objet;
+}
+function avantApres(e) {
+    if (e.type === 'modification') {
+        return { avant: texteValeur(e.table, e.colonne, e.de), apres: texteValeur(e.table, e.colonne, e.a) };
+    }
+    if (e.type === 'suppression' && e.ligne) {
+        return null;
+    }
+    if (e.type === 'creation') {
+        return null;
+    }
+    return { avant: e.avant || '', apres: e.apres || '' };
+}
+function texteRecherche(e) {
+    var aa = avantApres(e);
+    return normaliser([phrase(e), nomPersonne(e), e.qui, aa ? aa.avant : '', aa ? aa.apres : '', TYPES_EVT[e.type].libelle].join(' '));
+}
+function correspond(e) {
+    var f = etat.filtres;
+    if (f.type && e.type !== f.type) {
+        return false;
+    }
+    if (f.table && e.table !== f.table) {
+        return false;
+    }
+    if (f.qui && (e.qui || '').toLowerCase() !== f.qui) {
+        return false;
+    }
+    if (f.periode) {
+        var debut = new Date();
+        debut.setHours(0, 0, 0, 0);
+        var limite = debut.getTime() - (parseInt(f.periode, 10) - 1) * 86400000;
+        if (e.quand < limite) {
+            return false;
+        }
+    }
+    if (etat.recherche && texteRecherche(e).indexOf(normaliser(etat.recherche)) === -1) {
+        return false;
+    }
+    return true;
+}
+function nombreFiltres() {
+    var f = etat.filtres;
+    return (f.type ? 1 : 0) + (f.table ? 1 : 0) + (f.qui ? 1 : 0) + (f.periode ? 1 : 0) + (etat.recherche ? 1 : 0);
+}
+function personnes() {
+    var vues = {};
+    etat.evenements.forEach(function (e) { if (e.qui) {
+        vues[e.qui.toLowerCase()] = nomPersonne(e);
+    } });
+    return Object.keys(vues).sort().map(function (k) { return { valeur: k, libelle: vues[k] !== k ? vues[k] + ' (' + k + ')' : k }; });
+}
+function afficherVue(vue, garderFocus) {
+    etat.vue = vue;
+    var zone = contenu();
+    vider(zone);
+    if (vue === 'journal') {
+        rendreJournal(zone);
+    }
+    else if (vue === 'parametrage') {
+        rendreParametrage(zone);
+    }
+    else if (vue === 'depart') {
+        rendreDepart(zone);
+    }
+    else if (vue === 'reserve') {
+        rendreMessage(zone, 'Journal réservé', 'Le journal de ce document est réservé à ses propriétaires et aux personnes qu\'ils autorisent. Pour le lire, demandez à un propriétaire de vous ajouter dans « Qui peut lire le journal ».');
+    }
+    else if (vue === 'acces') {
+        rendreMessage(zone, 'Accès au document nécessaire', 'Ce widget a besoin d\'un accès complet au document. Dans le panneau de droite du widget, choisissez « Accès complet ».', true);
+    }
+    else if (vue === 'echec') {
+        rendreMessage(zone, 'Le journal n\'a pas pu être chargé', 'Vérifiez votre connexion, puis réessayez.', true);
+    }
+    if (!garderFocus) {
+        var t = document.getElementById('titreVue');
+        if (t) {
+            t.focus();
+        }
+    }
+    panneauAide();
+}
+function rendreMessage(zone, titre, texte, reessayer) {
+    zone.appendChild(creer('div', { classe: 'w-message' }, [
+        creer('h2', { classe: 'fr-h5', id: 'titreVue', texte: titre, attrs: { tabindex: '-1' } }),
+        creer('p', { classe: 'w-texte', texte: texte }),
+        reessayer ? bouton('Réessayer', null, 'refresh-line', function () { return initialiser(); }, { id: 'wReessayer' }) : null
+    ]));
+}
+function rendreDepart(zone) {
+    var tables = tablesDonnees();
+    var choisies = {};
+    tables.forEach(function (t) { choisies[t] = true; });
+    var liste = creer('div', { classe: 'w-depart__tables', attrs: { role: 'group', 'aria-labelledby': 'dTablesTitre' } });
+    tables.forEach(function (t, i) {
+        var id = 'dTable' + i;
+        var cb = creer('input', { attrs: { type: 'checkbox', id: id }, coche: true });
+        cb.addEventListener('change', function () { choisies[t] = cb.checked; majCompte(); });
+        var n = colonnesSuivables(t).length;
+        liste.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
+                creer('span', { classe: 'fr-hint-text', texte: nbre(n, 'colonne suivie', 'colonnes suivies') })])]));
+    });
+    var compte = creer('p', { classe: 'w-mention', id: 'dCompte', attrs: { 'aria-live': 'polite' } });
+    var majCompte = function () {
+        var n = tables.filter(function (t) { return choisies[t]; }).length;
+        compte.textContent = nbre(n, 'table suivie', 'tables suivies') + ' sur ' + tables.length + '.';
+        var b = document.getElementById('dCreer');
+        if (b) {
+            b.disabled = false;
+        }
+    };
+    zone.appendChild(creer('div', { classe: 'w-entete' }, [
+        creer('h2', { classe: 'fr-h4 w-titre-vue', id: 'titreVue', texte: 'Point de départ', attrs: { tabindex: '-1' } }),
+        creer('p', { classe: 'w-mention', texte: 'Rien n\'est écrit dans le document avant « Créer mon historique ».' })
+    ]));
+    var grille = creer('div', { classe: 'w-grille w-grille--1-1' }, [
+        creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'dTablesTitre' } }, [
+            creer('h3', { classe: 'w-c3__titre', id: 'dTablesTitre', texte: 'Les tables à suivre' }),
+            tables.length ? liste : creer('p', { classe: 'w-texte', texte: 'Ce document n\'a pas encore de table de données. Vous pourrez en ajouter au suivi plus tard, dans les paramétrages.' }),
+            compte
+        ]),
+        creer('aside', { classe: 'w-apercu', attrs: { 'aria-labelledby': 'dApercuTitre' } }, [
+            creer('h3', { classe: 'w-apercu__titre', id: 'dApercuTitre', texte: 'Ce que l\'historique va noter' }),
+            creer('ul', { classe: 'w-texte w-liste-points' }, [
+                creer('li', { texte: 'Chaque ligne ajoutée ou modifiée dans les tables suivies, avec la personne, l\'heure, l\'ancienne et la nouvelle valeur. Le document le note lui-même, même widget fermé.' }),
+                creer('li', { texte: 'Les lignes supprimées, avec leurs dernières valeurs et leur histoire.' }),
+                creer('li', { texte: 'Les tables, colonnes, formules et pages créées, renommées ou supprimées.' }),
+                creer('li', { texte: 'Les règles d\'accès et les partages du document.' })
+            ]),
+            creer('p', { classe: 'w-mention', texte: 'Le journal sera lisible par les propriétaires du document seulement. Vous pourrez autoriser d\'autres personnes dans les paramétrages.' })
+        ])
+    ]);
+    zone.appendChild(grille);
+    zone.appendChild(creer('div', { classe: 'w-pied-etape' }, [creer('span', { classe: 'w-pousse' }),
+        bouton('Créer mon historique', null, 'check-line', function () { return creerHistorique(tables.filter(function (t) { return choisies[t]; })); }, { id: 'dCreer' })]));
+    majCompte();
+}
+async function sonderProprietaire() {
+    var cible = tablesDonnees()[0] || null;
+    if (!cible) {
+        return true;
+    }
+    try {
+        var r = await agir([['AddRecord', '_grist_ACLResources', null, { tableId: cible, colIds: COL_JOURNAL }]]);
+        var id = r && r.retValues ? r.retValues[0] : null;
+        if (id) {
+            await agir([['RemoveRecord', '_grist_ACLResources', id]]);
+        }
+        return true;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Essai d\'écriture des règles d\'accès refusé', e);
+        return !(estRefusDroits(e) || estRefusGeneral(e));
+    }
+}
+async function creerHistorique(tables) {
+    afficherLoader('Création de l\'historique…');
+    try {
+        await chargerMeta();
+        if (!(await sonderProprietaire())) {
+            masquerLoader();
+            afficherErreur('Seul un propriétaire du document peut créer l\'historique.');
+            return;
+        }
+        var existant = trouverHisto();
+        if (!existant) {
+            var ret = await agir([['AddTable', ID_HISTO, COLONNES_HISTO.map(function (c) { return { id: c.id, type: c.type, label: c.label }; })]]);
+            var rv = ret && ret.retValues && ret.retValues[0] ? ret.retValues[0] : {};
+            existant = rv.table_id || ID_HISTO;
+            var vues = Array.isArray(rv.views) ? rv.views.map(function (v) { return v && v.id; }).filter(Boolean) : [];
+            if (vues.length) {
+                try {
+                    await agir(vues.map(function (v) { return ['RemoveRecord', '_grist_Views', v]; }));
+                }
+                catch (e) {
+                    logSecurite('INFO', 'Page créée avec la table non supprimée', e);
+                }
+            }
+            for (var i = 0; i < COLONNES_HISTO.length; i++) {
+                var c = COLONNES_HISTO[i];
+                var p = { description: c.description };
+                if (c.formula) {
+                    p.isFormula = false;
+                    p.formula = c.formula;
+                    p.recalcWhen = c.recalcWhen;
+                    p.recalcDeps = null;
+                }
+                try {
+                    await agir([['ModifyColumn', existant, c.id, p]]);
+                }
+                catch (e) {
+                    logSecurite('AVERTISSEMENT', 'Réglage de la colonne ' + c.id + ' non posé', e);
+                }
+            }
+            await chargerMeta();
+            var m = etat.meta.tables[existant];
+            if (m && m.rawViewSectionRef) {
+                await agir([['UpdateRecord', '_grist_Views_section', m.rawViewSectionRef, { title: LABEL_HISTO, description: 'Historique des mouvements du document : suppressions, structure, règles d\'accès, partages et réglages. Table tenue par un widget, réservée aux propriétaires.' }]]);
+                await chargerMeta();
+                existant = trouverHisto() || existant;
+            }
+        }
+        etat.histo = existant;
+        await lireHisto();
+        etat.config = configValide({ tables: tables, lecteurs: [], max: MAX_DEFAUT, conservation: CONSERVATION_DEFAUT });
+        await ecrireConfig();
+        for (var k = 0; k < tables.length; k++) {
+            afficherLoader('Suivi de « ' + libelleTable(tables[k]) + ' »…');
+            await assurerJournal(tables[k]);
+        }
+        afficherLoader('Protection du journal…');
+        try {
+            await poserProtection();
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Règles d\'accès non posées', e);
+        }
+        await noterSuivi('Historique créé', '', nbre(tables.length, 'table suivie', 'tables suivies') + (tables.length ? ' : ' + tables.map(libelleTable).join(', ') : ''));
+        etat.proprietaire = true;
+        await lireHisto();
+        await releverTout();
+        await chargerJournal();
+        masquerLoader();
+        afficherVue('journal');
+        afficherSucces('Votre historique est prêt.');
+    }
+    catch (e) {
+        masquerLoader();
+        if (estRefusDroits(e) || estRefusGeneral(e)) {
+            afficherErreur('Seul un propriétaire du document peut créer l\'historique.', e);
+        }
+        else {
+            afficherErreur('La création de l\'historique n\'a pas abouti. Réessayez ; ce qui a déjà été créé sera réutilisé.', e);
+        }
+    }
+}
+async function chargerJournal() {
+    await construireEvenements();
+}
+function rendreJournal(zone) {
+    var replie = voletReplie();
+    var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'tVolet', attrs: { 'aria-label': 'Recherche et filtres' } });
+    var c = creer('div', { classe: 'w-volet__contenu', id: 'tVoletContenu' });
+    c.appendChild(creer('div', { classe: 'w-volet__tete' }, [
+        creer('p', { classe: 'w-volet__titre', texte: 'Recherche et filtres' }),
+        bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'tVoletFermer' })
+    ]));
+    var rech = saisie('tRecherche', etat.recherche, { type: 'search', indice: 'Ligne, colonne, valeur, personne…' });
+    rech.addEventListener('input', function () { etat.recherche = rech.value; redessinerFil(); });
+    c.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'tVoletRech' } }, [
+        titreVolet('search-line', 'Rechercher', 'tVoletRech', 'Cherche dans les lignes, les colonnes, les valeurs et les personnes, sans tenir compte des accents ni des majuscules.'),
+        creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'tRecherche' }, texte: 'Rechercher dans le journal' }), rech])
+    ]));
+    var filtres = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'tVoletFil' } }, [titreVolet('filter-line', 'Filtres', 'tVoletFil')]);
+    var champFiltre = function (id, libelle, options, cle) {
+        var s = liste(id, options, etat.filtres[cle]);
+        s.addEventListener('change', function () { etat.filtres[cle] = s.value; redessinerFil(); });
+        filtres.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: libelle }), s]));
+    };
+    champFiltre('tFType', 'Sorte de mouvement', [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(TYPES_EVT).map(function (k) { return { valeur: k, libelle: TYPES_EVT[k].filtre }; })), 'type');
+    var tabs = {};
+    etat.evenements.forEach(function (e) { if (e.table && etat.meta.tables[e.table]) {
+        tabs[e.table] = true;
+    } });
+    ((etat.config && etat.config.tables) || []).forEach(function (t) { if (etat.meta.tables[t]) {
+        tabs[t] = true;
+    } });
+    champFiltre('tFTable', 'Table', [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(tabs).sort(function (a, b) { return libelleTable(a).localeCompare(libelleTable(b), 'fr'); }).map(function (t) { return { valeur: t, libelle: libelleTable(t) }; })), 'table');
+    champFiltre('tFQui', 'Personne', [{ valeur: '', libelle: 'Toutes' }].concat(personnes()), 'qui');
+    champFiltre('tFPeriode', 'Période', PERIODES, 'periode');
+    filtres.appendChild(creer('div', { classe: 'w-filtres__pied' }, [
+        creer('p', { classe: 'w-mention', id: 'tFiltresCompte' }),
+        bouton('Effacer les filtres', 'discret', null, function () {
+            etat.filtres = { type: '', table: '', qui: '', periode: '' };
+            etat.recherche = '';
+            afficherVue('journal', true);
+            annoncer('Filtres effacés : tous les mouvements sont affichés.');
+            var f = document.getElementById('tRecherche');
+            if (f) {
+                f.focus();
+            }
+        }, { petit: true, id: 'tEffacer' })
+    ]));
+    c.appendChild(filtres);
+    if (etat.proprietaire) {
+        c.appendChild(creer('section', { classe: 'w-volet__bloc w-volet__pied', attrs: { 'aria-label': 'Paramétrages' } }, [
+            bouton('Paramétrages de cet historique', 'secondaire', 'settings-5-line', function () { afficherVue('parametrage'); }, { petit: true, id: 'tPerso', classe: 'w-param' })
+        ]));
+    }
+    c.appendChild(sortiesVolet([
+        { libelle: 'Imprimer', icone: 'printer-line', action: imprimerVue, id: 'tImprimer' },
+        { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'tPdf' },
+        { libelle: 'Exporter en CSV', icone: 'download-line', action: exporterCsv, id: 'tCsv' }
+    ]));
+    volet.appendChild(c);
+    volet.appendChild(creer('button', { classe: 'w-volet__poignee', id: 'tVoletPoignee', attrs: { type: 'button', 'aria-expanded': replie ? 'false' : 'true', 'aria-controls': 'tVoletContenu',
+            'aria-label': (replie ? 'Afficher' : 'Masquer') + ' le panneau des filtres' }, clic: function () { basculerVolet(!voletReplie()); } }));
+    var principal = creer('div', { classe: 'w-principal' });
+    principal.appendChild(creer('div', { classe: 'w-barre-mobile' }, [
+        bouton('Recherche et filtres', 'secondaire', 'filter-line', function () { ouvrirVoletMobile(true); }, { petit: true, id: 'tVoletMobile' })
+    ]));
+    principal.appendChild(barreVue('Historique du document', [], [boutonPleinEcran()]));
+    alertesJournal().forEach(function (a) { principal.appendChild(a); });
+    principal.appendChild(creer('div', { classe: 'w-fil', id: 'tFil' }));
+    zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
+    redessinerFil();
+}
+function alertesJournal() {
+    var res = [];
+    if (!etat.proprietaire) {
+        return res;
+    }
+    var p = etatProtection();
+    if (p.lisible && (p.manque.length || !p.aJour)) {
+        var corps = creer('div', null, [creer('p', { texte: 'Les règles d\'accès qui réservent le journal aux propriétaires et aux personnes autorisées ' + (p.manque.length ? 'manquent' : 'ne sont plus à jour') + '. Tant qu\'elles ne sont pas posées, les autres personnes peuvent lire la colonne de journal des tables suivies.' }),
+            bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant(); }, { petit: true, id: 'tProteger' })]);
+        res.push(creer('div', { classe: 'w-alerte-page' }, [alerte('warning', null, corps)]));
+    }
+    return res;
+}
+async function protegerMaintenant() {
+    afficherLoader('Protection du journal…');
+    try {
+        await poserProtection();
+        await releverSilencieux();
+        masquerLoader();
+        afficherVue('journal', true);
+        var f = document.getElementById('titreVue');
+        if (f) {
+            f.focus();
+        }
+        afficherSucces('Le journal est protégé.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur('Les règles d\'accès n\'ont pas pu être posées. Seul un propriétaire du document peut le faire.', e);
+    }
+}
+async function releverSilencieux() {
+    await chargerMeta();
+    var quand = maintenantSec();
+    var actions = [actionReleve('structure', releveStructure(), quand)];
+    try {
+        await lireRegles();
+        if (etat.reglesLisibles) {
+            actions.push(actionReleve('droits', releveDroits(), quand));
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Règles d\'accès illisibles', e);
+    }
+    await agir(actions);
+    await lireHisto();
+}
+function filtrees() { return etat.evenements.filter(correspond); }
+function redessinerFil() {
+    var fil = document.getElementById('tFil');
+    if (!fil) {
+        return;
+    }
+    vider(fil);
+    var l = filtrees();
+    var total = etat.evenements.length;
+    majCompteurs([nbre(l.length, 'mouvement', 'mouvements')].concat(total > l.length ? [(total - l.length) + ' masqué' + (total - l.length > 1 ? 's' : '')] : [])
+        .concat([nbre(((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; }).length, 'table suivie', 'tables suivies')]));
+    var p = document.getElementById('tFiltresCompte');
+    if (p) {
+        p.textContent = l.length + ' sur ' + nbre(total, 'mouvement', 'mouvements');
+    }
+    var eff = document.getElementById('tEffacer');
+    if (eff) {
+        eff.hidden = nombreFiltres() === 0;
+    }
+    if (!total) {
+        fil.appendChild(creer('p', { classe: 'w-texte w-vide', texte: 'Aucun mouvement pour l\'instant. Le journal se remplira dès la première modification dans une table suivie.' }));
+        return;
+    }
+    if (!l.length) {
+        fil.appendChild(creer('p', { classe: 'w-texte w-vide', texte: 'Aucun mouvement ne correspond à vos filtres.' }));
+        return;
+    }
+    var jour = null;
+    var ul = null;
+    l.forEach(function (e) {
+        var k = cleJour(e.quand);
+        if (k !== jour) {
+            jour = k;
+            var idj = 'tJour' + k;
+            ul = creer('ul', { classe: 'w-fil__liste', attrs: { 'aria-labelledby': idj } });
+            var dl = dateLongue(e.quand);
+            fil.appendChild(creer('section', { classe: 'w-fil__jour' }, [creer('h3', { classe: 'w-fil__date', id: idj, texte: dl.charAt(0).toUpperCase() + dl.slice(1) }), ul]));
+        }
+        ul.appendChild(rendreEvenement(e));
+    });
+}
+function rendreEvenement(e, sansLien) {
+    var t = TYPES_EVT[e.type];
+    var aa = avantApres(e);
+    var donnees = (e.type === 'creation' || e.type === 'modification' || e.type === 'suppression') && e.ligne && e.table;
+    var titre = donnees && !sansLien
+        ? creer('button', { classe: 'w-fil__lien', texte: phrase(e), attrs: { type: 'button', 'aria-label': phrase(e) + ' : voir l\'historique de la ligne' }, clic: function () { ouvrirLigne(e.table, e.ligne); } })
+        : creer('span', { classe: 'w-fil__phrase', texte: phrase(e) });
+    var meta = [];
+    if (nomPersonne(e)) {
+        meta.push(creer('span', { texte: nomPersonne(e) }));
+    }
+    else if (e.depuis && e.type !== 'suivi') {
+        meta.push(creer('span', { texte: 'entre le ' + dateHeure(e.depuis) + ' et le ' + dateHeure(e.quand) }));
+    }
+    if (e.releve && !nomPersonne(e)) {
+        meta.push(creer('span', { texte: 'relevé par ' + e.releve }));
+    }
+    if (e.supprimee) {
+        meta.push(creer('span', { texte: 'ligne supprimée depuis' }));
+    }
+    var li = creer('li', { classe: 'w-fil__item w-fil__item--' + e.type }, [
+        creer('span', { classe: 'w-fil__heure', texte: heure(e.quand) }),
+        creer('span', { classe: 'w-fil__ico fr-icon-' + t.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
+        creer('div', { classe: 'w-fil__corps' }, [
+            creer('p', { classe: 'w-fil__titre' }, [creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
+            aa && (aa.avant || aa.apres) ? creer('p', { classe: 'w-fil__valeurs' }, e.type !== 'modification' && !aa.avant ? [creer('span', { texte: aa.apres })] : [
+                creer('span', { classe: 'w-fil__avant' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Avant' }), creer('span', { texte: aa.avant || '(vide)' })]),
+                creer('span', { classe: 'w-fil__apres' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Après' }), creer('span', { texte: aa.apres || '(vide)' })])
+            ]) : null,
+            e.type === 'suppression' && e.valeurs ? creer('p', { classe: 'w-fil__valeurs' }, [creer('span', { texte: resumeValeurs(e.table, e.valeurs) })]) : null,
+            meta.length ? creer('p', { classe: 'w-fil__meta' }, meta.reduce(function (acc, m, i) { if (i) {
+                acc.push(' · ');
+            } acc.push(m); return acc; }, [])) : null
+        ])
+    ]);
+    return li;
+}
+function resumeValeurs(tid, valeurs) {
+    return Object.keys(valeurs).filter(function (k) { return valeurs[k] !== '' && valeurs[k] !== null && !(Array.isArray(valeurs[k]) && valeurs[k].length <= 1 && valeurs[k][0] === 'L'); }).slice(0, 8).map(function (k) {
+        var v = valeurs[k];
+        if (Array.isArray(v) && v[0] === 'L') {
+            v = v.slice(1);
+        }
+        return libelleColonne(tid, k) + ' : ' + texteValeur(tid, k, v);
+    }).join(' ; ');
+}
+function ouvrirLigne(tid, rid) {
+    var evts = etat.evenements.filter(function (e) { return e.table === tid && e.ligne === rid && (e.type === 'creation' || e.type === 'modification' || e.type === 'suppression'); });
+    var titre = '';
+    evts.some(function (e) { if (e.titre) {
+        titre = e.titre;
+        return true;
+    } return false; });
+    var ul = creer('ul', { classe: 'w-fil__liste w-fil__liste--fiche' });
+    evts.forEach(function (e) { ul.appendChild(rendreEvenement(e, true)); });
+    var corps = [creer('p', { classe: 'w-mention', texte: nbre(evts.length, 'mouvement', 'mouvements') + ', du plus récent au plus ancien.' }), evts.length ? ul : creer('p', { classe: 'w-texte', texte: 'Aucun mouvement noté pour cette ligne.' })];
+    ouvrirModale({ titre: titre ? '« ' + titre + ' »' : 'Ligne n° ' + rid, sousTitre: 'Table : ' + libelleTable(tid) + ' · ligne n° ' + rid, laterale: true, corps: corps, fermerDehors: true, pied: [] });
+}
+function csvCellule(v) {
+    var s = String(v === null || v === undefined ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) {
+        s = '\'' + s;
+    }
+    return '"' + s.replace(/"/g, '""') + '"';
+}
+function exporterCsv() {
+    var l = filtrees();
+    var lignes = [['Date', 'Heure', 'Sorte', 'Table', 'Ligne', 'Mouvement', 'Avant', 'Après', 'Personne', 'Relevé entre le']];
+    l.forEach(function (e) {
+        var aa = avantApres(e) || { avant: '', apres: '' };
+        var d = new Date(e.quand);
+        lignes.push([d.getFullYear() + '-' + deuxChiffres(d.getMonth() + 1) + '-' + deuxChiffres(d.getDate()), heure(e.quand), TYPES_EVT[e.type].libelle, e.table ? libelleTable(e.table) : '', e.ligne || '',
+            phrase(e), aa.avant, e.type === 'suppression' && e.valeurs ? resumeValeurs(e.table, e.valeurs) : aa.apres, nomPersonne(e) + (e.nom && e.qui ? ' (' + e.qui + ')' : ''), !nomPersonne(e) && e.depuis ? dateHeure(e.depuis) : '']);
+    });
+    var texte = '﻿' + lignes.map(function (r) { return r.map(csvCellule).join(';'); }).join('\r\n');
+    var blob = new Blob([texte], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'historique-' + cleJour(Date.now()) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    afficherSucces(nbre(l.length, 'mouvement exporté', 'mouvements exportés') + '.');
+}
+function imprimerVue() { window.print(); }
+function imprimerPdf() {
+    toast('Dans la fenêtre d\'impression, choisissez « Enregistrer au format PDF ».', { type: 'info' });
+    setTimeout(imprimerVue, 400);
+}
+function voletReplie() {
+    try {
+        var v = window.localStorage.getItem('diplohistorique.voletReplie');
+        if (v !== null) {
+            return v === '1';
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Choix du panneau non relu', e);
+    }
+    return !!etat.voletReplie;
+}
+function basculerVolet(replier) {
+    etat.voletReplie = replier;
+    try {
+        window.localStorage.setItem('diplohistorique.voletReplie', replier ? '1' : '0');
+    }
+    catch (e) {
+        logSecurite('INFO', 'Choix du panneau non mémorisé', e);
+    }
+    afficherVue('journal', true);
+    var f = document.getElementById('tVoletPoignee');
+    if (f) {
+        f.focus();
+    }
+    annoncer(replier ? 'Panneau des filtres masqué.' : 'Panneau des filtres affiché.');
+}
+function ouvrirVoletMobile(ouvrir) {
+    etat.voletMobile = ouvrir;
+    afficherVue('journal', true);
+    var f = document.getElementById(ouvrir ? 'tRecherche' : 'tVoletMobile');
+    if (f) {
+        f.focus();
+    }
+}
+function rendreParametrage(zone) {
+    zone.appendChild(creer('div', { classe: 'w-entete-param fr-mb-2w' }, [
+        creer('div', { classe: 'w-entete-param__textes' }, [
+            creer('h2', { classe: 'w-entete-param__titre', id: 'titreVue', texte: 'Paramétrages de « Historique du document »', attrs: { tabindex: '-1' } }),
+            creer('p', { classe: 'w-mention', id: 'aStatut', attrs: { 'aria-live': 'polite' }, texte: 'Les modifications sont enregistrées automatiquement.' })
+        ]),
+        creer('div', { classe: 'w-entete-param__action' }, [bouton('Retour à l\'historique', 'secondaire', 'arrow-go-back-line', function () { return revenirAuJournal(); }, { petit: true, id: 'aRetour' })])
+    ]));
+    var col1 = [sectionTables(), sectionLecteurs()];
+    var col2 = [sectionConservation(), sectionProtection(), sectionSupprimer()];
+    zone.appendChild(creer('div', { classe: 'w-param-apercu' }, [
+        creer('div', { classe: 'w-grille w-grille--1-1' }, [creer('div', { classe: 'w-grille__col' }, col1), creer('div', { classe: 'w-grille__col' }, col2)]),
+        apercuParametrage()
+    ]));
+}
+function statut(texte, erreur) {
+    var z = document.getElementById('aStatut');
+    if (z) {
+        z.textContent = texte;
+        z.classList.toggle('w-statut--erreur', !!erreur);
+    }
+}
+async function revenirAuJournal() {
+    afficherLoader('Mise à jour du journal…');
+    try {
+        await chargerJournal();
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Journal non relu', e);
+    }
+    masquerLoader();
+    afficherVue('journal');
+}
+function redessinerParametrage(focusId) {
+    afficherVue('parametrage', true);
+    var f = focusId ? document.getElementById(focusId) : null;
+    if (f) {
+        f.focus();
+    }
+}
+function sectionTables() {
+    var tables = tablesDonnees();
+    var s = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aTablesTitre' } }, [
+        creer('h3', { classe: 'w-c3__titre', id: 'aTablesTitre', texte: 'Tables suivies' }),
+        creer('p', { classe: 'w-mention', texte: 'Cochez une table pour la suivre. Décocher arrête le suivi et efface son journal.' })
+    ]);
+    tables.forEach(function (t, i) {
+        var id = 'aTable' + i;
+        var cb = creer('input', { attrs: { type: 'checkbox', id: id }, coche: etat.config.tables.indexOf(t) !== -1 });
+        cb.addEventListener('change', function () { relayer(changerSuivi(t, cb.checked, id, cb), 'Suivi d\'une table'); });
+        s.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
+                creer('span', { classe: 'fr-hint-text', texte: nbre(colonnesSuivables(t).length, 'colonne suivie', 'colonnes suivies') })])]));
+    });
+    if (!tables.length) {
+        s.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune table de données dans ce document.' }));
+    }
+    return s;
+}
+async function changerSuivi(t, suivre, idFocus, cb) {
+    if (!suivre) {
+        var ok = await confirmerAction('Arrêter le suivi de « ' + libelleTable(t) + ' » ?', 'Le journal des lignes de cette table est effacé du document. Les suppressions, la structure et les droits déjà relevés restent dans l\'historique.', 'Arrêter le suivi', { danger: true });
+        if (!ok) {
+            cb.checked = true;
+            return;
+        }
+    }
+    statut('Modification en cours…');
+    afficherLoader(suivre ? 'Suivi de « ' + libelleTable(t) + ' »…' : 'Arrêt du suivi…');
+    try {
+        if (suivre) {
+            if (etat.config.tables.indexOf(t) === -1) {
+                etat.config.tables.push(t);
+            }
+            await ecrireConfig();
+            await assurerJournal(t);
+            await poserProtection();
+            await releverSilencieux();
+            await noterSuivi('Suivi de « ' + libelleTable(t) + ' » commencé', '', libelleTable(t), t);
+        }
+        else {
+            etat.config.tables = etat.config.tables.filter(function (x) { return x !== t; });
+            await ecrireConfig();
+            await retirerJournal(t);
+            await releverSilencieux();
+            await noterSuivi('Suivi de « ' + libelleTable(t) + ' » arrêté', libelleTable(t), '', t);
+        }
+        await chargerMeta();
+        await lireHisto();
+        masquerLoader();
+        redessinerParametrage(idFocus);
+        statut('Enregistré.');
+        annoncer(suivre ? 'Table suivie.' : 'Suivi arrêté.');
+    }
+    catch (e) {
+        masquerLoader();
+        statut('Modification non enregistrée.', true);
+        afficherErreur('Le changement de suivi n\'a pas abouti. Vérifiez que vous êtes propriétaire du document.', e);
+        await lireHisto();
+        redessinerParametrage(idFocus);
+    }
+}
+function sectionLecteurs() {
+    var s = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aLecteursTitre' } }, [
+        creer('h3', { classe: 'w-c3__titre', id: 'aLecteursTitre', texte: 'Qui peut lire le journal' }),
+        creer('p', { classe: 'w-texte', texte: 'Les propriétaires du document, toujours.' })
+    ]);
+    var ul = creer('ul', { classe: 'w-lecteurs' });
+    etat.config.lecteurs.forEach(function (m, i) {
+        ul.appendChild(creer('li', { classe: 'w-lecteurs__item' }, [creer('span', { texte: m }),
+            boutonIcone('Retirer ' + m, 'close-line', function () { return changerLecteurs(etat.config.lecteurs.filter(function (x) { return x !== m; }), 'Accès au journal retiré à ' + m, m, '', i > 0 ? 'aLecteurRetirer' + (i - 1) : 'aLecteurSaisie'); },
+                { variante: 'discret', id: 'aLecteurRetirer' + i })]));
+    });
+    if (etat.config.lecteurs.length) {
+        s.appendChild(ul);
+    }
+    var champ = saisie('aLecteurSaisie', '', { type: 'email', indice: 'prenom.nom@exemple.fr' });
+    var ajouter = function () {
+        var v = champ.value.trim().toLowerCase();
+        if (!courrielValide(v)) {
+            champ.setAttribute('aria-invalid', 'true');
+            statut('Adresse électronique non valable.', true);
+            annoncer('Adresse électronique non valable.');
+            champ.focus();
+            return null;
+        }
+        if (etat.config.lecteurs.indexOf(v) !== -1) {
+            statut('Cette personne peut déjà lire le journal.');
+            return null;
+        }
+        return changerLecteurs(etat.config.lecteurs.concat([v]), 'Accès au journal donné à ' + v, '', v, 'aLecteurSaisie');
+    };
+    champ.addEventListener('keydown', function (e) { if (e.key === 'Enter') {
+        e.preventDefault();
+        relayer(ajouter(), 'Ajout d\'un lecteur');
+    } });
+    s.appendChild(creer('div', { classe: 'fr-input-group' }, [
+        creer('label', { classe: 'fr-label', attrs: { 'for': 'aLecteurSaisie' }, texte: 'Autoriser une personne', }),
+        creer('div', { classe: 'w-ligne-saisie' }, [champ, bouton('Ajouter', 'secondaire', 'add-line', ajouter, { petit: true, id: 'aLecteurAjouter' })])
+    ]));
+    return s;
+}
+async function changerLecteurs(liste, objet, avant, apres, idFocus) {
+    statut('Modification en cours…');
+    var ancienne = etat.config.lecteurs;
+    try {
+        etat.config.lecteurs = liste;
+        await ecrireConfig();
+        await poserProtection();
+        await releverSilencieux();
+        await noterSuivi(objet, avant, apres);
+        await lireHisto();
+        redessinerParametrage(idFocus);
+        statut('Enregistré.');
+        annoncer(objet + '.');
+    }
+    catch (e) {
+        etat.config.lecteurs = ancienne;
+        statut('Modification non enregistrée.', true);
+        afficherErreur('L\'accès au journal n\'a pas pu être changé. Seul un propriétaire du document peut le faire.', e);
+    }
+}
+function sectionConservation() {
+    var s = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aConsTitre' } }, [creer('h3', { classe: 'w-c3__titre', id: 'aConsTitre', texte: 'Conservation' })]);
+    var selMax = liste('aMax', MAXIMA.map(function (m) { return { valeur: m, libelle: m + ' derniers mouvements' }; }), etat.config.max);
+    selMax.addEventListener('change', function () { relayer(changerReglage('max', parseInt(selMax.value, 10), 'aMax'), 'Nombre de mouvements par ligne'); });
+    s.appendChild(groupeChamp('Mouvements gardés pour chaque ligne', selMax, 'Au-delà, les plus anciens sont effacés de la ligne.'));
+    var selCons = liste('aCons', CONSERVATIONS, etat.config.conservation);
+    selCons.addEventListener('change', function () { relayer(changerReglage('conservation', parseInt(selCons.value, 10), 'aCons'), 'Durée de conservation'); });
+    s.appendChild(groupeChamp('Durée de conservation des suppressions, de la structure et des droits', selCons, 'Les mouvements plus anciens sont effacés à l\'ouverture du widget. Les données personnelles ne se gardent que le temps nécessaire.'));
+    return s;
+}
+async function changerReglage(cle, valeur, idFocus) {
+    statut('Modification en cours…');
+    var ancien = etat.config[cle];
+    etat.config[cle] = valeur;
+    afficherLoader('Enregistrement…');
+    try {
+        await ecrireConfig();
+        if (cle === 'max') {
+            await chargerMeta();
+            await mettreAJourJournaux();
+        }
+        await noterSuivi(cle === 'max' ? 'Mouvements gardés par ligne' : 'Durée de conservation', cle === 'max' ? String(ancien) : libelleConservation(ancien), cle === 'max' ? String(valeur) : libelleConservation(valeur));
+        await lireHisto();
+        masquerLoader();
+        redessinerParametrage(idFocus);
+        statut('Enregistré.');
+    }
+    catch (e) {
+        etat.config[cle] = ancien;
+        masquerLoader();
+        statut('Modification non enregistrée.', true);
+        afficherErreur('Le réglage n\'a pas été enregistré.', e);
+    }
+}
+function notesReleve() {
+    var notes = [];
+    if (etat.suppressionsIndisponibles) {
+        notes.push('les suppressions de lignes');
+    }
+    if (etat.partagesIndisponibles) {
+        notes.push('les partages du document');
+    }
+    return notes.length ? creer('p', { classe: 'w-mention', texte: 'Sur cette instance, le widget ne peut pas relever ' + notes.join(' ni ') + '. Les autres mouvements sont bien notés.' }) : null;
+}
+function libelleConservation(v) {
+    var x = CONSERVATIONS.filter(function (c) { return c.valeur === v; })[0];
+    return x ? x.libelle : String(v);
+}
+function sectionProtection() {
+    var p = etatProtection();
+    var ok = p.lisible && !p.manque.length && p.aJour;
+    return creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aProtTitre' } }, [
+        creer('h3', { classe: 'w-c3__titre', id: 'aProtTitre', texte: 'Protection du journal' }),
+        alerte(ok ? 'success' : 'warning', null, ok ? 'Les règles d\'accès sont en place : le journal n\'est lisible que par les propriétaires et les personnes autorisées.'
+            : 'Les règles d\'accès du journal ' + (p.manque.length ? 'manquent' : 'ne sont plus à jour') + '.'),
+        ok ? null : bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant().then(function () { redessinerParametrage('aProtTitre'); }); }, { petit: true, id: 'aProteger' }),
+        creer('p', { classe: 'w-mention', texte: 'Les règles sont visibles dans « Permissions avancées », rubrique « Outils » du panneau de gauche du document, avec la mention « ' + MEMO_REGLE + ' ».' })
+    ]);
+}
+function sectionSupprimer() {
+    return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
+        creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: 'Supprimer l\'historique' }),
+        creer('p', { classe: 'w-mention', texte: 'Le suivi s\'arrête : les colonnes de journal des tables suivies et les règles d\'accès du widget sont retirées. La table « ' + LABEL_HISTO + ' » reste dans le document avec ce qu\'elle contient.' }),
+        creer('div', {}, [bouton('Supprimer l\'historique', 'secondaire', 'delete-line', supprimerHistorique, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })])
+    ]);
+}
+async function supprimerHistorique() {
+    var n = etat.config.tables.length;
+    var ok = await confirmerAction('Supprimer l\'historique ?', 'Le journal des lignes de ' + nbre(n, 'table suivie', 'tables suivies') + ' est effacé, et cela ne peut pas être annulé. La table « ' + LABEL_HISTO + ' » reste dans le document.', 'Supprimer l\'historique', { danger: true });
+    if (!ok) {
+        return;
+    }
+    afficherLoader('Suppression de l\'historique…');
+    try {
+        var tables = etat.config.tables.slice();
+        for (var i = 0; i < tables.length; i++) {
+            if (etat.meta.tables[tables[i]]) {
+                await retirerJournal(tables[i]);
+            }
+        }
+        await lireRegles();
+        var ids = reglesDuWidget().map(function (x) { return x.regle.id; });
+        if (ids.length) {
+            await agir([['BulkRemoveRecord', '_grist_ACLRules', ids]]);
+        }
+        await noterSuivi('Historique supprimé', nbre(tables.length, 'table suivie', 'tables suivies'), '');
+        var aRetirer = (etat.lignesHisto || []).filter(function (l) { return l.widget === NOM_WIDGET && (l.type === 'REGLAGES' || l.type === 'RELEVE'); }).map(function (l) { return l.id; });
+        if (aRetirer.length) {
+            await agir([['BulkRemoveRecord', etat.histo, aRetirer]]);
+        }
+        etat.config = null;
+        await chargerMeta();
+        masquerLoader();
+        afficherVue('depart');
+        afficherSucces('Historique supprimé.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur('La suppression de l\'historique n\'a pas abouti.', e);
+    }
+}
+function apercuParametrage() {
+    var t = etat.config.tables.filter(function (x) { return !!etat.meta.tables[x]; });
+    return creer('aside', { classe: 'w-apercu', attrs: { 'aria-labelledby': 'aApercuTitre' } }, [
+        creer('h3', { classe: 'w-apercu__titre', id: 'aApercuTitre', texte: 'Aperçu' }),
+        creer('p', { classe: 'w-mention w-apercu__note', texte: 'Ce que l\'historique suit en ce moment.' }),
+        creer('div', { classe: 'w-apercu__corps' }, [
+            creer('p', { classe: 'w-texte' }, [creer('strong', { texte: nbre(t.length, 'table suivie', 'tables suivies') }), t.length ? ' : ' + t.map(libelleTable).join(', ') : '']),
+            creer('p', { classe: 'w-texte' }, [creer('strong', { texte: 'Lecteurs : ' }), 'les propriétaires' + (etat.config.lecteurs.length ? ', ' + etat.config.lecteurs.join(', ') : '')]),
+            creer('p', { classe: 'w-texte' }, [creer('strong', { texte: 'Par ligne : ' }), etat.config.max + ' derniers mouvements']),
+            creer('p', { classe: 'w-texte' }, [creer('strong', { texte: 'Conservation : ' }), libelleConservation(etat.config.conservation)]),
+            notesReleve()
+        ])
+    ]);
+}
+function toast(message, opts) {
+    opts = opts || {};
+    var z = document.getElementById('wToast');
+    if (!z) {
+        return;
+    }
+    fermerToast(false);
+    var type = opts.type || 'info';
+    _toast.type = type;
+    var classe = { succes: 'success', erreur: 'error', avertissement: 'warning', info: 'info' }[type] || 'info';
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + classe;
+    z.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
+    z.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
+    var msg = document.getElementById('wToastMsg');
+    msg.textContent = '';
+    var act = document.getElementById('wToastAction');
+    vider(act);
+    if (opts.action) {
+        var a = opts.action;
+        act.appendChild(bouton(a.libelle, 'secondaire', 'arrow-go-back-line', function () { fermerToast(false); return a.fn(); }, { petit: true, id: 'wToastBouton' }));
+    }
+    _toast.surFermeture = opts.surFermeture || null;
+    z.hidden = false;
+    _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
+    var duree = opts.duree !== undefined ? opts.duree : (type === 'erreur' || type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000));
+    if (duree > 0) {
+        _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
+    }
+}
+function fermerToast(avecFin) {
+    clearTimeout(_toast.minuterie);
+    _toast.minuterie = null;
+    clearTimeout(_toast.texte);
+    _toast.texte = null;
+    var fin = _toast.surFermeture;
+    _toast.surFermeture = null;
+    _toast.type = null;
+    var z = document.getElementById('wToast');
+    if (z && !z.hidden) {
+        var focusDedans = z.contains(document.activeElement);
+        z.hidden = true;
+        vider(document.getElementById('wToastAction'));
+        if (focusDedans) {
+            var t = document.getElementById('titreVue');
+            if (t) {
+                t.focus();
+            }
+        }
+    }
+    if (fin && avecFin) {
+        fin();
+    }
+}
+function afficherErreur(message, erreur) {
+    logSecurite('ERREUR', message, erreur);
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
+}
+function afficherSucces(message) {
+    logSecurite('INFO', message);
+    toast(message, { type: 'succes' });
+}
+function confirmerAction(titre, message, libelleOui, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+        var ov = document.getElementById('wConfirmOverlay');
+        if (!ov) {
+            resolve(false);
+            return;
+        }
+        if (_confirm.resolution) {
+            _confirm.resolution(false);
+        }
+        _confirm.resolution = resolve;
+        document.getElementById('wConfirmTitre').textContent = titre;
+        document.getElementById('wConfirmMsg').textContent = message || '';
+        vider(document.getElementById('wConfirmChamp'));
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui;
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
+        _confirm.retour = document.activeElement;
+        ov.classList.add('actif');
+        void ov.offsetHeight;
+        _confirm.pieger = fabriquerPiege(ov, function () { terminerConfirmation(false); });
+        ov.addEventListener('keydown', _confirm.pieger);
+        document.getElementById(opts.danger ? 'wConfirmNon' : 'wConfirmOui').focus();
+    });
+}
+function terminerConfirmation(oui) {
+    var ov = document.getElementById('wConfirmOverlay');
+    ov.classList.remove('actif');
+    if (_confirm.pieger) {
+        ov.removeEventListener('keydown', _confirm.pieger);
+        _confirm.pieger = null;
+    }
+    var r = _confirm.retour;
+    _confirm.retour = null;
+    if (r && document.body.contains(r) && typeof r.focus === 'function') {
+        r.focus();
+    }
+    var res = _confirm.resolution;
+    _confirm.resolution = null;
+    if (res) {
+        res(!!oui);
+    }
+}
+function contexteAide() {
+    if (etat.vue === 'depart') {
+        return { etapes: ['Point de départ', 'Le journal', 'Paramétrages'], courante: 0 };
+    }
+    if (etat.vue === 'parametrage') {
+        return { etapes: ['Point de départ', 'Le journal', 'Paramétrages'], courante: 2 };
+    }
+    return { etapes: ['Point de départ', 'Le journal', 'Paramétrages'], courante: etat.vue === 'journal' ? 1 : -1 };
+}
+async function determinerProprietaire() {
+    etat.proprietaire = false;
+    try {
+        await lireRegles();
+        etat.proprietaire = reglesDuWidget().length > 0 || etat.reglesLisibles;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Règles d\'accès illisibles : pas de paramétrage', e);
+    }
+}
+async function initialiser() {
+    if (etat.initEnCours) {
+        return;
+    }
+    etat.initEnCours = true;
+    afficherLoader('Chargement de l\'historique…');
+    try {
+        try {
+            etat.nomDoc = await gristAvecTimeout(grist.docApi.getDocName(), 5000);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Nom du document non lu', e);
+        }
+        await attendreAcces();
+        if (etat.niveauAcces && etat.niveauAcces !== 'full') {
+            masquerLoader();
+            afficherLogoRepli();
+            afficherVue('acces');
+            return;
+        }
+        await chargerMeta();
+        relayer(chargerLogo(), 'Chargement du logo impossible');
+        etat.histo = trouverHisto();
+        if (!etat.histo) {
+            masquerLoader();
+            afficherVue('depart');
+            return;
+        }
+        try {
+            await lireHisto();
+        }
+        catch (e) {
+            logSecurite('INFO', 'Historique illisible : réservé', e);
+            masquerLoader();
+            afficherVue('reserve');
+            return;
+        }
+        if (!etat.config) {
+            await determinerProprietaire();
+            masquerLoader();
+            afficherVue(etat.proprietaire ? 'depart' : 'reserve');
+            return;
+        }
+        await determinerProprietaire();
+        if (etat.proprietaire) {
+            await mettreAJourJournaux();
+            await releverTout();
+        }
+        await chargerJournal();
+        masquerLoader();
+        afficherVue('journal');
+        demarrerReleves();
+    }
+    catch (e) {
+        masquerLoader();
+        logSecurite('ERREUR', 'Initialisation', e);
+        afficherErreur('Le chargement n\'a pas abouti.', e);
+        afficherVue('echec');
+    }
+    finally {
+        etat.initEnCours = false;
+    }
+}
+function demarrerReleves() {
+    if (_minuterieReleve) {
+        clearInterval(_minuterieReleve);
+    }
+    _minuterieReleve = setInterval(function () {
+        if (document.visibilityState !== 'visible' || etat.vue !== 'journal' || etat.modaleOuverte || etat.releveEnCours) {
+            return;
+        }
+        relayer((async function () {
+            if (etat.proprietaire) {
+                await releverTout();
+            }
+            else {
+                await lireHisto();
+            }
+            await chargerJournal();
+            if (etat.vue === 'journal' && !etat.modaleOuverte) {
+                var actif = document.activeElement ? document.activeElement.id : null;
+                afficherVue('journal', true);
+                if (actif && document.getElementById(actif)) {
+                    document.getElementById(actif).focus();
+                }
+            }
+        })(), 'Relecture automatique');
+    }, DELAI_RELEVE_MS);
+}
+function logSecurite(niveau, message, details) {
+    var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
+    if (niveau === 'ERREUR') {
+        if (details !== undefined) {
+            console.error(ligne, details);
+        }
+        else {
+            console.error(ligne);
+        }
+    }
+    else if (niveau === 'AVERTISSEMENT') {
+        if (details !== undefined) {
+            console.warn(ligne, details);
+        }
+        else {
+            console.warn(ligne);
+        }
+    }
+    else {
+        if (details !== undefined) {
+            console.log(ligne, details);
+        }
+        else {
+            console.log(ligne);
+        }
+    }
+}
+function afficherLoader(message) {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+    }
+    _loaderTimeout = setTimeout(function () {
+        masquerLoader();
+        logSecurite('AVERTISSEMENT', 'Voile de chargement masque automatiquement apres 60 s');
+    }, 60000);
+    var texte = document.getElementById('loaderMessage');
+    if (texte) {
+        texte.textContent = message || 'Chargement…';
+    }
+    var voileEnCours = document.getElementById('loader');
+    if (voileEnCours && voileEnCours.classList.contains('actif')) {
+        return;
+    }
+    if (_loaderDelai) {
+        return;
+    }
+    _loaderDelai = setTimeout(function () {
+        _loaderDelai = null;
+        var voile = document.getElementById('loader');
+        if (voile) {
+            voile.classList.add('actif');
+        }
+    }, 250);
+}
+function masquerLoader() {
+    if (_loaderTimeout) {
+        clearTimeout(_loaderTimeout);
+        _loaderTimeout = null;
+    }
+    if (_loaderDelai) {
+        clearTimeout(_loaderDelai);
+        _loaderDelai = null;
+    }
+    var voile = document.getElementById('loader');
+    if (voile) {
+        void voile.offsetHeight;
+        voile.classList.remove('actif');
+    }
+}
+function relayer(promesse, quoi) {
+    if (promesse && typeof promesse.catch === 'function') {
+        promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
+    }
+    return promesse;
+}
+function purifierHTML(contenu, usage) {
+    if (typeof DOMPurify === 'undefined' || !DOMPurify.isSupported) {
+        logSecurite('AVERTISSEMENT', 'Bibliotheque d assainissement indisponible : contenu enrichi non insere');
+        return null;
+    }
+    if (usage !== 'svg') {
+        return null;
+    }
+    return DOMPurify.sanitize(String(contenu), {
+        USE_PROFILES: { svg: true },
+        FORBID_TAGS: ['style', 'foreignObject', 'image', 'use', 'a', 'animate', 'animateTransform', 'animateMotion', 'set']
+    });
+}
+function injecterSvgSecurise(container, svgTexte) {
+    container.textContent = '';
+    if (!svgTexte) {
+        return false;
+    }
+    if (String(svgTexte).length > TAILLE_MAX_SVG) {
+        logSecurite('AVERTISSEMENT', 'Logo trop volumineux, ignore');
+        return false;
+    }
+    var propre = purifierHTML(svgTexte, 'svg');
+    if (!propre) {
+        return false;
+    }
+    var wrap = document.createElement('div');
+    wrap.className = 'w-bandeau__logo-wrap';
+    wrap.innerHTML = propre;
+    var svg = wrap.firstElementChild;
+    if (!svg || wrap.children.length !== 1 || String(svg.nodeName).toLowerCase() !== 'svg') {
+        logSecurite('AVERTISSEMENT', 'Logo hors format SVG');
+        return false;
+    }
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    container.appendChild(wrap);
+    return true;
+}
+function afficherLogoRepli() {
+    var c = document.getElementById('bandeau-logo');
+    if (!c || document.getElementById('logoRepli')) {
+        return;
+    }
+    c.textContent = '';
+    var p = document.createElement('p');
+    p.className = 'fr-logo';
+    p.id = 'logoRepli';
+    p.style.fontSize = '.38rem';
+    p.appendChild(document.createTextNode('Ministère'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode("de l'Europe"));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('et des Affaires'));
+    p.appendChild(document.createElement('br'));
+    p.appendChild(document.createTextNode('étrangères'));
+    c.appendChild(p);
+}
+function genererLogoMEAE() {
+    var cs = getComputedStyle(document.documentElement);
+    var cB = cs.getPropertyValue('--text-action-high-blue-france').trim();
+    var cR = cs.getPropertyValue('--background-flat-error').trim();
+    var cG = cs.getPropertyValue('--text-mention-grey').trim();
+    var svgTpl = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.3 200" style="width:100%;height:auto" aria-hidden="true" focusable="false"><g><rect fill="__W__" width="301.3" height="200"/></g><g><path d="M31.4,91.5V70.9h5.3l5,8.5l5-8.5h5.3v20.6h-4.2V76.8l-4.6,7.6h-2.9l-4.6-7.6v14.7H31.4z"/><path d="M57.7,91.5V70.9h4.2v20.6H57.7z"/><path d="M67.6,91.5V70.9H73l9.2,14.8V70.9h4.2v20.6h-5.4l-9.2-14.8v14.8H67.6z"/><path d="M92.2,91.5V70.9h4.2v20.6H92.2z"/><path d="M100.3,88.7l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2c-1-0.9-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2c1,0.9,1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S101.2,89.7,100.3,88.7z"/><path d="M117,74.7v-3.8h16.9v3.8h-6.4v16.8h-4.2V74.7H117z"/><path d="M137.6,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H137.6z M141.7,69.1l-3.8-4h4.3l3.3,4H141.7z"/><path d="M154.5,91.5V70.9h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H154.5z M161,74.4h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S161.9,74.4,161,74.4z"/><path d="M173.9,91.5V70.9h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H173.9z"/><path d="M31.4,122.7v-20.7h8.1c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H31.4z M39.6,105.9h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S40.5,105.9,39.6,105.9z"/><path d="M54.5,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H54.5z"/><path d="M79.1,122.7v-20.7h4.2v16.8h7.8v3.8H79.1z"/><path d="M93.7,110.6h-3.5l2.7-8.5h4.2L93.7,110.6z"/><path d="M100.4,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H100.4z"/><path d="M129.3,115v-12.9h4.2v12.6c0,2.7-0.8,4.8-2.3,6.4s-3.5,2.3-6.1,2.3s-4.6-0.8-6.1-2.3s-2.2-3.7-2.2-6.4v-12.6h4.2V115c0,1.4,0.4,2.5,1.1,3.2s1.8,1.2,3.1,1.2s2.3-0.4,3-1.2S129.3,116.4,129.3,115z"/><path d="M138.7,122.7v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H138.7z M145.3,105.6h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S146.2,105.6,145.3,105.6z"/><path d="M167.2,101.5c1.6,0,3.1,0.3,4.4,0.9s2.5,1.4,3.5,2.4s1.7,2.1,2.2,3.5s0.8,2.7,0.8,4.2s-0.3,2.9-0.8,4.2s-1.3,2.5-2.2,3.5s-2.1,1.8-3.5,2.4s-2.8,0.9-4.4,0.9s-3.1-0.3-4.5-0.9s-2.5-1.4-3.5-2.4s-1.7-2.1-2.2-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4S165.6,101.5,167.2,101.5z M167.2,119.4c1,0,1.9-0.2,2.7-0.5s1.5-0.9,2.1-1.5s1-1.4,1.4-2.2s0.5-1.8,0.5-2.8s-0.2-1.9-0.5-2.8s-0.8-1.6-1.4-2.2s-1.3-1.1-2.1-1.5s-1.7-0.5-2.7-0.5s-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.3,1.1,2.1,1.5S166.2,119.4,167.2,119.4z"/><path d="M182.1,122.7v-20.7h6.8c2.3,0,4,0.6,5.4,1.7s2,2.6,2,4.5s-0.7,3.4-2,4.5s-3.1,1.7-5.4,1.7h-2.6v8.3H182.1z M189.1,105.6h-2.8v5.2h2.8c0.9,0,1.6-0.2,2.1-0.7s0.8-1.1,0.8-1.9s-0.3-1.4-0.8-1.9S190,105.6,189.1,105.6z"/><path d="M199.7,122.7v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H199.7z"/><path d="M31.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z"/><path d="M46.6,137.1v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M74.9,153.9v-20.7H83c1.6,0,3.1,0.3,4.5,0.8s2.5,1.3,3.5,2.2s1.7,2,2.2,3.3s0.8,2.6,0.8,4s-0.3,2.7-0.8,4s-1.3,2.3-2.2,3.3s-2.1,1.7-3.5,2.2s-2.9,0.8-4.5,0.8H74.9z M83.1,137.1h-4v13h4c1,0,1.8-0.2,2.7-0.5s1.5-0.8,2.1-1.4s1-1.3,1.4-2.1s0.5-1.6,0.5-2.6s-0.2-1.8-0.5-2.6s-0.8-1.5-1.4-2.1s-1.3-1-2.1-1.4S84,137.1,83.1,137.1z"/><path d="M98,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H98z"/><path d="M113.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S114,152.1,113.1,151.1z"/><path d="M137,153.9l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H137z M144.8,145h5.7l-2.8-7.8L144.8,145z"/><path d="M161.4,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H161.4z"/><path d="M177.1,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v8.7H177.1z"/><path d="M188.3,153.9l7.8-20.7h5.5l7.8,20.7H205l-2-5.4h-8.3l-2,5.4H188.3z M196,145h5.7l-2.8-7.8L196,145z"/><path d="M212.6,153.9v-20.7h4.2v20.7H212.6z"/><path d="M222.6,153.9v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H222.6z M229.1,136.8h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S230,136.8,229.1,136.8z"/><path d="M242,153.9v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H242z"/><path d="M257.1,151.1l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S258,152.1,257.1,151.1z"/><path d="M31.4,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H31.4z M39.3,162.7h-3.8l3.3-4h4.3L39.3,162.7z"/><path d="M46.6,168.3v-3.8h16.9v3.8h-6.4v16.8H53v-16.8H46.6z"/><path d="M67.2,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H67.2z M73.8,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S74.7,168,73.8,168z"/><path d="M85,185.1l7.8-20.7h5.5l7.8,20.7h-4.5l-2-5.4h-8.3l-2,5.4H85z M92.7,176.2h5.7l-2.8-7.8L92.7,176.2z"/><path d="M109.3,185.1v-20.7h5.4l9.2,14.8v-14.8h4.2v20.7h-5.4l-9.2-14.8v14.8H109.3z"/><path d="M143.3,181.8c1,0,1.9-0.2,2.7-0.5s1.5-0.8,2.1-1.3v-3.5h-5.3v-3.8h9.4v8.8c-1,1.3-2.2,2.3-3.8,3.1s-3.3,1.2-5.2,1.2c-1.7,0-3.2-0.3-4.6-0.9s-2.6-1.4-3.6-2.4s-1.8-2.1-2.3-3.5s-0.8-2.7-0.8-4.2s0.3-2.9,0.8-4.2s1.3-2.5,2.2-3.5s2.1-1.8,3.5-2.4s2.8-0.9,4.5-0.9c1.9,0,3.5,0.4,5,1.2s2.7,1.8,3.7,3l-3.3,2.6c-0.6-0.8-1.3-1.5-2.3-2.1s-2-0.8-3.1-0.8c-1,0-1.9,0.2-2.7,0.5s-1.5,0.9-2.1,1.5s-1,1.4-1.4,2.2s-0.5,1.8-0.5,2.8s0.2,1.9,0.5,2.8s0.8,1.6,1.4,2.2s1.4,1.1,2.2,1.5S142.3,181.8,143.3,181.8z"/><path d="M157,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H157z M161.2,162.7l-3.8-4h4.3l3.3,4H161.2z"/><path d="M173.9,185.1v-20.7h6.3c2.3,0,4.1,0.6,5.4,1.7s2,2.6,2,4.5c0,1.2-0.3,2.3-0.9,3.2s-1.4,1.6-2.4,2.1l6.5,9.1h-5l-5.5-8.3h-2.2v8.3H173.9z M180.4,168h-2.4v5.2h2.4c0.9,0,1.6-0.2,2.1-0.7s0.7-1.1,0.7-1.9s-0.2-1.4-0.7-1.9S181.3,168,180.4,168z"/><path d="M193.3,185.1v-20.7h12v3.6h-7.8v4.8h6.7v3.6h-6.7v5.2h7.8v3.6H193.3z"/><path d="M208.4,182.3l3-2.8c0.6,0.8,1.3,1.4,2.1,1.9s1.6,0.7,2.5,0.7c0.8,0,1.5-0.2,1.9-0.6s0.7-1,0.7-1.8c0-0.9-0.5-1.6-1.5-2.1s-2.1-1-3.2-1.6s-2.3-1.3-3.2-2.2s-1.5-2.2-1.5-3.9c0-0.8,0.2-1.6,0.5-2.3s0.8-1.4,1.4-1.9s1.3-1,2.1-1.3s1.7-0.5,2.7-0.5c1.5,0,2.9,0.3,4.1,1s2.2,1.5,3.1,2.5l-3.1,2.7c-0.6-0.8-1.3-1.4-1.9-1.9s-1.4-0.7-2.2-0.7c-0.7,0-1.3,0.2-1.7,0.6s-0.6,0.9-0.6,1.5c0,0.9,0.5,1.6,1.5,2.1s2.1,1,3.2,1.6s2.3,1.3,3.2,2.2s1.5,2.2,1.5,4c0,1-0.2,1.8-0.6,2.6s-0.9,1.4-1.5,1.9s-1.3,0.9-2.2,1.2s-1.7,0.4-2.7,0.4c-1.7,0-3.2-0.3-4.5-0.9S209.3,183.3,208.4,182.3z"/></g><g><path fill="__B__" d="M63.6,53.3c0.3-0.3,0.6-0.6,0.9-1h0c0.6-0.6,1.1-1.3,1.8-1.8c0.2-0.2,0.4-0.3,0.6-0.5c0.1-0.1,0.1-0.2,0.1-0.2c-0.3,0.1-0.4,0.3-0.7,0.4c-0.1,0-0.1-0.1-0.1-0.1c0.2-0.1,0.4-0.3,0.6-0.4c-0.1,0-0.1-0.1-0.1-0.1C66,49.6,65.5,50,65,50.5c-0.1,0.1-0.2-0.1-0.3-0.1c-0.8,0.3-1.4,1-2.2,1.3v-0.1c-0.3,0.1-0.6,0.3-1,0.4c-0.5,0.1-0.9,0.1-1.3,0.1c-0.6,0.1-1.3,0.2-1.9,0.3c-0.3,0.1-0.7,0.2-1,0.4c0,0-0.1,0.1-0.1,0.1c-0.1,0.1-0.2,0.2-0.4,0.3c-0.3,0.2-0.6,0.5-0.9,0.7c-0.3,0.3-0.6,0.6-0.9,0.8c0,0,0,0,0-0.1c0-0.1,0.1-0.2,0.1-0.2c0.1-0.1,0.1-0.2,0.2-0.2c0.1-0.1,0.1-0.2,0.2-0.3c0.3-0.3,0.6-0.5,0.9-0.7c0,0,0.1-0.1,0.1-0.1C56.1,52.9,56,53,55.9,53c-0.1,0.1-0.2,0.4-0.4,0.3c0,0,0,0,0-0.1c0,0,0-0.1,0.1-0.1c0,0,0-0.1,0.1-0.1c0.1-0.1,0.2-0.2,0.4-0.3c0.2-0.1,0.4-0.2,0.6-0.3c0,0,0.1-0.1,0.1-0.1c-0.3,0.1-0.6,0.2-0.9,0.4c0.1-0.1,0.2-0.2,0.3-0.3c1.7-1.3,4.1-1,6.1-1.7c0.2-0.1,0.3-0.2,0.5-0.3c0.3-0.1,0.5-0.4,0.8-0.5c0.4-0.3,0.7-0.7,0.9-1.2c0-0.1-0.1-0.1-0.1-0.1c-0.7,0.8-1.5,1.3-2.4,1.8c-1.1,0.6-2.4,0.5-3.5,0.6c0.1-0.1,0.2-0.1,0.3-0.1c0-0.2,0.1-0.2,0.2-0.3H59c0.1,0,0.1-0.1,0.1-0.1c0.1,0,0.3-0.1,0.2-0.1c-0.2-0.2-0.5,0.2-0.8,0c0.1-0.1,0.1-0.3,0.2-0.3h0.2c0-0.1,0.1-0.2,0.1-0.2c0.8-0.5,1.6-0.9,2.3-1.3c-0.2,0-0.3,0.2-0.4,0.1c0.1,0,0-0.2,0.1-0.2c0.6-0.2,1.1-0.5,1.7-0.7c-0.2,0-0.4,0.2-0.6,0c0.1-0.1,0.2-0.2,0.3-0.2v-0.2c0-0.1,0.1-0.1,0.1-0.1c-0.1,0-0.1-0.1-0.1-0.1c0.1-0.1,0.2-0.1,0.3-0.2c-0.1,0-0.2,0-0.2-0.1c0.2-0.2,0.4-0.3,0.7-0.3c-0.1-0.1-0.2,0-0.2-0.1c0-0.1,0.1-0.1,0.1-0.1H63c-0.1-0.1-0.1-0.2-0.1-0.2c0.3-0.4,0.3-0.9,0.5-1.3c-0.5,0.6-1.4,0.8-2.2,1h-0.3c-0.3,0.1-0.6,0.1-0.9-0.1c-0.2-0.1-0.3-0.3-0.5-0.4c-0.4-0.3-0.9-0.5-1.3-0.6C56.8,44.2,55.4,44,54,44c0.6-0.3,1.2-0.3,1.9-0.5c0.9-0.3,1.8-0.6,2.7-0.5c-0.2-0.1-0.4,0-0.5,0c-0.8-0.1-1.5,0.2-2.3,0.3c-0.5,0.1-1,0.3-1.6,0.4c-0.3,0.1-0.5,0.4-0.9,0.4v-0.2c0.5-0.6,1.2-1.3,2-1.3c1-0.2,1.9,0,2.8,0.1c0.7,0.1,1.3,0.2,2,0.4c0.3,0,0.3,0.4,0.5,0.5c0.3,0.1,0.6,0,1,0.2c0-0.1-0.1-0.2,0-0.3c0.2-0.2,0.5,0.1,0.7-0.1c0.4-0.3-0.4-0.7-0.6-1.1c0-0.1,0.1-0.1,0.1-0.1c0.4,0.4,0.7,0.8,1.3,1.1c0.3,0.1,0.9,0.3,0.8-0.1c-0.3-0.6-0.8-1.1-1.2-1.6v-0.2c-0.1,0-0.1-0.1-0.2-0.1V41c-0.2-0.1-0.2-0.3-0.3-0.5c-0.2-0.3-0.1-0.6-0.2-1C62.1,39.3,62,39,62,38.7c-0.2-0.9-0.4-1.7-0.5-2.6c-0.1-1,0.6-1.8,1.1-2.7c0.4-0.6,0.8-1.3,1.5-1.7c0.2-0.6,0.6-1.2,1-1.7c0.4-0.5,1.1-0.8,1.7-1.1c0.7-0.3,1.4-0.5,1.4-0.5H31.4v28.3h26c1-0.7,2-1.1,3.5-1.8C61.5,54.6,63.1,53.9,63.6,53.3"/><path fill="__R__" d="M109.3,28.3H78.8c0,0,0.1,0,0.3,0.1c0.2,0.1,0.6,0.3,0.8,0.4c0.4,0.2,0.8,0.5,1,0.9c0.1,0.2,0.3,0.5,0.2,0.7c-0.1,0.3-0.2,0.7-0.4,0.8c-0.3,0.2-0.7,0.2-1.1,0.1c-0.2,0-0.4-0.1-0.6-0.1c0.8,0.3,1.6,0.7,2.1,1.4c0.1,0.1,0.3,0.2,0.5,0.2c0.1,0,0.1,0.1,0.1,0.2c-0.1,0.1-0.2,0.2-0.2,0.3h0.2c0.3-0.1,0.2-0.6,0.6-0.5c0.3,0.2,0.4,0.5,0.2,0.8c-0.2,0.2-0.4,0.4-0.6,0.5c-0.1,0.1-0.1,0.3,0,0.4c0.2,0.2,0.2,0.4,0.3,0.6c0.2,0.4,0.2,0.8,0.4,1.2c0.2,0.8,0.4,1.6,0.4,2.4c0,0.4-0.2,0.8-0.1,1.2c0.1,0.4,0.4,0.8,0.6,1.1c0.2,0.3,0.4,0.5,0.6,0.9c0.3,0.5,0.9,1.1,0.6,1.7c-0.2,0.4-0.8,0.3-1.1,0.5c-0.3,0.3-0.1,0.7,0.1,1c0.3,0.5-0.3,0.8-0.7,1c0.1,0.2,0.3,0.1,0.4,0.2c0.1,0.3,0.3,0.4,0.2,0.7c-0.2,0.3-0.9,0.5-0.5,1c0.2,0.4,0.1,0.8-0.1,1.2c-0.2,0.5-0.6,0.7-1,0.8c-0.3,0.1-0.7,0.1-1,0.1c-0.9-0.1-1.8-0.4-2.7-0.4c-0.3,0.1-0.5,0.1-0.7,0.2c-0.2,0.2-0.5,0.4-0.6,0.6c0,0-0.1,0.1-0.1,0.1c0,0,0,0.1-0.1,0.1c-0.2,0.2-0.3,0.4-0.4,0.6c0,0,0,0.1,0,0.1c-0.2,0.3-0.3,0.7-0.4,1c-0.4,1.2-0.2,2.3,0.1,2.5c0.1,0.1,1.8,0.6,2.9,1.1c0.6,0.2,0.9,0.4,1.3,0.6h29.9V28.3z"/><path fill="__G__" d="M80.7,38.7c0.2,0.1,0.5,0.1,0.5,0.2c-0.1,0.4-0.7,0.5-1.1,1H80c-0.2,0.1-0.1,0.4-0.3,0.4c-0.2-0.1-0.3,0-0.5,0.1c0.2,0.2,0.5,0.4,0.8,0.3c0.1,0,0.2,0.1,0.2,0.2c0,0,0.1,0,0.1-0.1c0.1,0,0.1,0,0.1,0.1V41c-0.2,0.2-0.4,0.1-0.6,0.2c0.4,0.1,0.9,0.1,1.2,0c0.3-0.1,0-0.6,0.2-0.9c-0.1,0,0-0.2-0.1-0.2c0.1-0.1,0.2-0.3,0.3-0.3c0.1,0,0.3-0.1,0.3-0.2c0-0.1-0.2-0.2-0.2-0.3c0.3-0.2,0.6-0.5,0.5-0.9c-0.1-0.2-0.5-0.2-0.8-0.3c-0.3-0.1-0.6,0-0.9,0.1c-0.3,0-0.5,0.2-0.8,0.2c-0.4,0.1-0.7,0.3-1,0.5c0.4-0.2,0.8-0.2,1.2-0.3C80.1,38.7,80.3,38.6,80.7,38.7"/></g></svg>';
+    return svgTpl.replace(/__W__/g, 'white').replace(/__B__/g, cB).replace(/__R__/g, cR).replace(/__G__/g, cG);
+}
+async function chargerLogo() {
+    var container = document.getElementById('bandeau-logo');
+    if (!container) {
+        return;
+    }
+    var logoSvg = null;
+    try {
+        var centrale = trouverTable('BIBLIOTHEQUE_CENTRALE');
+        if (centrale) {
+            var data = await lireTable(centrale);
+            for (var i = 0; i < data.id.length; i++) {
+                if ((data.WIDGET ? data.WIDGET[i] : '') === '__RESSOURCE__' && (data.NOM ? data.NOM[i] : '') === 'LOGO_SVG') {
+                    logoSvg = data.CONTENU ? data.CONTENU[i] : '';
+                    break;
+                }
+            }
+            if (!logoSvg) {
+                logoSvg = genererLogoMEAE();
+                try {
+                    await agir([['AddRecord', centrale, null, { WIDGET: '__RESSOURCE__', NOM: 'LOGO_SVG', CONTENU: logoSvg }]]);
+                    logSecurite('INFO', 'Logo MEAE stocké dans la bibliothèque centrale');
+                }
+                catch (e) {
+                    logSecurite('INFO', 'Stockage logo non possible', e);
+                }
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Chargement logo depuis biblio non possible', e);
+    }
+    if (!logoSvg) {
+        logoSvg = genererLogoMEAE();
+    }
+    if (!injecterSvgSecurise(container, logoSvg)) {
+        afficherLogoRepli();
+    }
+}
+function annoncer(message) {
+    var zone = document.getElementById('annonce');
+    if (!zone) {
+        return;
+    }
+    zone.textContent = '';
+    setTimeout(function () { zone.textContent = message; }, 50);
+}
+function classesIcone(icone) { return icone.indexOf('w-ico--') === 0 ? 'w-ico ' + icone : 'fr-icon-' + icone; }
+function boutonIcone(libelle, icone, action, opts) {
+    opts = opts || {};
+    var propre = icone.indexOf('w-ico--') === 0;
+    var attrs = { 'data-infobulle': libelle };
+    if (opts.attrs) {
+        Object.keys(opts.attrs).forEach(function (k) { attrs[k] = opts.attrs[k]; });
+    }
+    return bouton(libelle, opts.variante === undefined ? 'secondaire' : opts.variante, propre ? null : icone, action, { petit: opts.petit !== false, iconeSeule: true, id: opts.id, aria: libelle, desactive: opts.desactive,
+        classe: 'w-infobulle' + (propre ? ' fr-btn--icon-only ' + classesIcone(icone) : '') + (opts.classe ? ' ' + opts.classe : ''), attrs: attrs });
+}
+function barreVue(titre, compteurs, commandes) {
+    return creer('div', { classe: 'w-barre-vue' }, [
+        creer('div', { classe: 'w-barre-vue__texte' }, [
+            creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', texte: titre, attrs: { tabindex: '-1' } }),
+            creer('p', { classe: 'w-barre-vue__compteurs', id: 'wCompteurs' }, compteurs.map(etiquetteCompteur))
+        ]),
+        creer('div', { classe: 'w-barre-vue__commandes' }, commandes)
+    ]);
+}
+function etiquetteCompteur(texte) { return creer('span', { classe: 'w-compteur', texte: texte }); }
+function majCompteurs(compteurs) {
+    var p = document.getElementById('wCompteurs');
+    if (!p) {
+        return;
+    }
+    vider(p);
+    compteurs.forEach(function (t) { p.appendChild(etiquetteCompteur(t)); });
+}
+function pleinEcranActif() { return !!document.fullscreenElement || document.body.classList.contains('w-agrandi'); }
+function pleinEcran() {
+    if (document.fullscreenElement) {
+        relayer(document.exitFullscreen(), 'Sortie du plein écran');
+        return;
+    }
+    if (document.body.classList.contains('w-agrandi')) {
+        agrandir(false);
+        return;
+    }
+    var el = document.documentElement;
+    if (!document.fullscreenEnabled || typeof el.requestFullscreen !== 'function') {
+        agrandir(true);
+        return;
+    }
+    var r;
+    try {
+        r = el.requestFullscreen();
+    }
+    catch (e) {
+        agrandir(true);
+        return;
+    }
+    if (r && typeof r.then === 'function') {
+        r.then(function () { majBoutonPleinEcran(); }).catch(function (e) { logSecurite('INFO', 'Plein écran refusé par la plateforme : affichage agrandi', e); agrandir(true); });
+    }
+}
+function agrandir(oui) {
+    document.body.classList.toggle('w-agrandi', oui);
+    majBoutonPleinEcran();
+    annoncer(oui ? 'Affichage agrandi.' : 'Affichage normal.');
+}
+function boutonPleinEcran() {
+    var actif = pleinEcranActif();
+    return boutonIcone(actif ? 'Quitter le plein écran' : 'Plein écran', actif ? 'w-ico--sortir' : 'w-ico--plein', pleinEcran, { id: 'wPleinEcran' });
+}
+function majBoutonPleinEcran() {
+    var b = document.getElementById('wPleinEcran');
+    if (!b) {
+        return;
+    }
+    var avaitFocus = document.activeElement === b;
+    var nb = boutonPleinEcran();
+    b.parentNode.replaceChild(nb, b);
+    if (avaitFocus) {
+        nb.focus();
+    }
+}
+function creer(tag, o, enfants) {
+    var n = document.createElement(tag);
+    o = o || {};
+    if (o.classe) {
+        n.className = o.classe;
+    }
+    if (o.id) {
+        n.id = o.id;
+    }
+    if (o.texte !== undefined && o.texte !== null) {
+        n.textContent = String(o.texte);
+    }
+    if (o.attrs) {
+        Object.keys(o.attrs).forEach(function (k) {
+            var v = o.attrs[k];
+            if (v === null || v === undefined || v === false) {
+                return;
+            }
+            n.setAttribute(k, v === true ? '' : String(v));
+        });
+    }
+    if (tag === 'button' && !n.hasAttribute('type')) {
+        n.setAttribute('type', 'button');
+    }
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') {
+        n.setAttribute('autocomplete', 'off');
+    }
+    if (o.valeur !== undefined && o.valeur !== null) {
+        n.value = String(o.valeur);
+    }
+    if (o.coche) {
+        n.checked = true;
+    }
+    if (o.clic) {
+        n.addEventListener('click', o.clic);
+    }
+    if (o.change) {
+        n.addEventListener('change', o.change);
+    }
+    if (o.saisie) {
+        n.addEventListener('input', o.saisie);
+    }
+    (enfants || []).forEach(function (e) {
+        if (e === null || e === undefined || e === false) {
+            return;
+        }
+        n.appendChild(typeof e === 'string' ? document.createTextNode(e) : e);
+    });
+    return n;
+}
+function bouton(libelle, variante, icone, clic, o) {
+    o = o || {};
+    var classes = ['fr-btn'];
+    if (variante === 'secondaire') {
+        classes.push('fr-btn--secondary');
+    }
+    if (variante === 'tertiaire') {
+        classes.push('fr-btn--tertiary');
+    }
+    if (variante === 'discret') {
+        classes.push('fr-btn--tertiary-no-outline');
+    }
+    if (o.petit) {
+        classes.push('fr-btn--sm');
+    }
+    if (icone) {
+        classes.push('fr-icon-' + icone);
+        classes.push(o.iconeSeule ? 'fr-btn--icon-only' : (o.iconeDroite ? 'fr-btn--icon-right' : 'fr-btn--icon-left'));
+    }
+    if (o.classe) {
+        classes.push(o.classe);
+    }
+    var b = creer('button', { classe: classes.join(' '), texte: o.iconeSeule ? null : libelle, id: o.id,
+        attrs: { 'aria-label': o.aria || null, disabled: o.desactive || null } }, o.iconeSeule ? [creer('span', { classe: 'fr-sr-only', texte: libelle })] : null);
+    if (o.attrs) {
+        Object.keys(o.attrs).forEach(function (k) { b.setAttribute(k, o.attrs[k]); });
+    }
+    if (clic) {
+        b.addEventListener('click', function (e) {
+            var r = clic(e);
+            if (r && typeof r.then === 'function') {
+                relayer(r, 'Action : ' + libelle);
+            }
+        });
+    }
+    return b;
+}
+function groupeChamp(libelle, champ, aide, obligatoire) {
+    var id = champ.id;
+    var lab = creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle]);
+    if (obligatoire) {
+        lab.appendChild(document.createTextNode(' '));
+        lab.appendChild(creer('span', { texte: '(obligatoire)', classe: 'w-mention', attrs: { 'aria-hidden': 'true' } }));
+        champ.setAttribute('aria-required', 'true');
+    }
+    if (aide) {
+        lab.appendChild(creer('span', { classe: 'fr-hint-text', texte: aide }));
+    }
+    return creer('div', { classe: 'fr-input-group' }, [lab, champ]);
+}
+function saisie(id, valeur, o) {
+    o = o || {};
+    if (o.multiligne) {
+        return creer('textarea', { classe: 'fr-input', id: id, valeur: valeur || '', attrs: { rows: o.lignes || 3, placeholder: o.indice || null } });
+    }
+    return creer('input', { classe: 'fr-input', id: id, valeur: valeur || '',
+        attrs: { type: o.type || 'text', placeholder: o.indice || null, inputmode: o.clavier || null } });
+}
+function liste(id, options, valeur, o) {
+    o = o || {};
+    var s = creer('select', { classe: 'fr-select', id: id });
+    if (o.vide !== undefined) {
+        s.appendChild(creer('option', { texte: o.vide, attrs: { value: '' } }));
+    }
+    options.forEach(function (op) {
+        var opt = creer('option', { texte: op.libelle, attrs: { value: op.valeur } });
+        if (String(op.valeur) === String(valeur)) {
+            opt.selected = true;
+        }
+        s.appendChild(opt);
+    });
+    return s;
+}
+function alerte(type, titre, texte) {
+    var a = creer('div', { classe: 'fr-alert fr-alert--sm fr-alert--' + type });
+    if (titre) {
+        a.appendChild(creer('h3', { classe: 'fr-alert__title', texte: titre }));
+    }
+    if (texte) {
+        a.appendChild(typeof texte === 'string' ? creer('p', { texte: texte }) : texte);
+    }
+    return a;
+}
+function vider(n) { while (n.firstChild) {
+    n.removeChild(n.firstChild);
+} }
+function normaliser(s) {
+    return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+function gristAvecTimeout(promesse, delaiMs) {
+    return Promise.race([promesse, new Promise(function (_, rejeter) {
+            setTimeout(function () { rejeter(new Error('Délai dépassé')); }, delaiMs);
+        })]);
+}
+async function lireTable(tid) {
+    var delais = [10000, 20000, DELAI_API_MS];
+    var derniere = null;
+    for (var essai = 0; essai < delais.length; essai++) {
+        try {
+            return await gristAvecTimeout(grist.docApi.fetchTable(tid), delais[essai]);
+        }
+        catch (e) {
+            derniere = e;
+            logSecurite('AVERTISSEMENT', 'Lecture de ' + tid + ' sans réponse, nouvel essai', e);
+            if (essai < delais.length - 1) {
+                await new Promise(function (ok) { setTimeout(ok, 1000); });
+            }
+        }
+    }
+    throw derniere;
+}
+function estRefusDroits(e) {
+    var m = String((e && (e.message || e)) || '');
+    return /blocked by|access rules|acl_deny|permission|not allowed|insufficient|read.?only|viewer/i.test(m);
+}
+function estRefusGeneral(e) {
+    var m = String((e && (e.message || e)) || '');
+    return /no write access|read.?only|viewer|cannot edit|non accord/i.test(m);
+}
+function attendreAcces() { return Promise.race([_promesseAcces, new Promise(function (ok) { setTimeout(ok, 3000); })]); }
+function valeurCellule(v) {
+    if (Array.isArray(v) && v[0] === 'E') {
+        return '';
+    }
+    return v;
+}
+function colonneDe(donnees, col, i) {
+    return donnees && donnees[col] ? valeurCellule(donnees[col][i]) : undefined;
+}
+function elementsFocusables(racine) {
+    return Array.prototype.filter.call(racine.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'), function (n) { return !n.disabled && n.offsetParent !== null; });
+}
+function fabriquerPiege(racine, fermer) {
+    return function (e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            fermer();
+            return;
+        }
+        if (e.key !== 'Tab') {
+            return;
+        }
+        var f = elementsFocusables(racine);
+        if (!f.length) {
+            return;
+        }
+        var premier = f[0];
+        var dernier = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === premier) {
+            e.preventDefault();
+            dernier.focus();
+        }
+        else if (!e.shiftKey && document.activeElement === dernier) {
+            e.preventDefault();
+            premier.focus();
+        }
+    };
+}
+function ouvrirModale(o) {
+    var ov = document.getElementById('wModale');
+    var boite = document.getElementById('wModaleBoite');
+    boite.className = 'w-dialogue' + (o.etroite ? ' w-dialogue--etroit' : '') + (o.laterale ? ' w-dialogue--lateral' : '');
+    ov.classList.toggle('w-overlay--lateral', !!o.laterale);
+    document.getElementById('wModaleTitre').textContent = o.titre;
+    var sous = document.getElementById('wModaleSous');
+    sous.textContent = o.sousTitre || '';
+    sous.hidden = !o.sousTitre;
+    var corps = document.getElementById('wModaleCorps');
+    vider(corps);
+    (o.corps || []).forEach(function (n) { if (n) {
+        corps.appendChild(n);
+    } });
+    var pied = document.getElementById('wModalePied');
+    vider(pied);
+    (o.pied || []).forEach(function (n) { if (n) {
+        pied.appendChild(n);
+    } });
+    if (!etat.modaleOuverte) {
+        _modale.retour = document.activeElement;
+    }
+    _modale.surFermeture = o.surFermeture || null;
+    _modale.fermerDehors = !!o.fermerDehors;
+    if (!_modale.dehorsBranche) {
+        _modale.dehorsBranche = true;
+        ov.addEventListener('mousedown', function (e) { _modale.departDehors = e.target === ov; });
+        ov.addEventListener('click', function (e) {
+            if (_modale.fermerDehors && _modale.departDehors && e.target === ov) {
+                fermerModale();
+            }
+            _modale.departDehors = false;
+        });
+    }
+    etat.modaleOuverte = true;
+    ov.classList.add('actif');
+    void ov.offsetHeight;
+    if (_modale.pieger) {
+        ov.removeEventListener('keydown', _modale.pieger);
+    }
+    _modale.pieger = fabriquerPiege(boite, fermerModale);
+    ov.addEventListener('keydown', _modale.pieger);
+    var cible = o.focus ? document.getElementById(o.focus) : null;
+    var f = cible || elementsFocusables(corps)[0] || document.getElementById('wModaleFermer');
+    if (f) {
+        f.focus();
+    }
+}
+function fermerModale() {
+    var ov = document.getElementById('wModale');
+    if (!ov.classList.contains('actif')) {
+        return;
+    }
+    ov.classList.remove('actif');
+    if (_modale.pieger) {
+        ov.removeEventListener('keydown', _modale.pieger);
+        _modale.pieger = null;
+    }
+    etat.modaleOuverte = false;
+    var rappel = _modale.surFermeture;
+    _modale.surFermeture = null;
+    if (rappel) {
+        rappel();
+    }
+    var r = _modale.retour;
+    _modale.retour = null;
+    if (r && document.body.contains(r) && typeof r.focus === 'function') {
+        r.focus();
+    }
+}
+function contenu() { return document.getElementById('contenu'); }
+function aide(id, sujet, texte, aDroite) {
+    var panneau = creer('p', { classe: 'w-aide__texte' + (aDroite ? ' w-aide__texte--droite' : ''), id: id + '_aide', texte: texte });
+    panneau.hidden = true;
+    var b = creer('button', { classe: 'w-aide', attrs: { type: 'button', 'aria-label': 'Aide : ' + sujet, 'aria-expanded': 'false', 'aria-controls': id + '_aide' } }, [creer('span', { classe: 'w-aide__rond', texte: 'i', attrs: { 'aria-hidden': 'true' } })]);
+    var basculer = function (ouvrir) {
+        panneau.hidden = !ouvrir;
+        b.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
+    };
+    b.addEventListener('click', function () { basculer(panneau.hidden); });
+    b.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panneau.hidden) {
+        e.stopPropagation();
+        basculer(false);
+    } });
+    return { bouton: b, panneau: panneau };
+}
+function titreVolet(icone, texte, id, explication) {
+    var a = explication ? aide(id, texte, explication) : null;
+    var tete = creer('div', { classe: 'w-volet__entete' }, [
+        creer('span', { classe: 'w-volet__puce fr-icon-' + icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
+        creer('h3', { classe: 'w-volet__h', id: id, texte: texte }), a ? a.bouton : null
+    ]);
+    return a ? creer('div', {}, [tete, a.panneau]) : tete;
+}
+function sortiesVolet(liste) {
+    return creer('div', { classe: 'w-volet__bloc w-sorties', attrs: { role: 'group', 'aria-label': 'Imprimer et exporter' } }, liste.map(function (s) { return boutonIcone(s.libelle, s.icone, s.action, { id: s.id }); }));
+}
+function lireEtatAide() {
+    try {
+        var v = JSON.parse(window.localStorage.getItem(CLE_AIDE) || 'null');
+        if (v && typeof v === 'object') {
+            _aide.ouvert = v.ouvert === true;
+            _aide.onglet = ONGLETS_AIDE.some(function (o) { return o.cle === v.onglet; }) ? v.onglet : null;
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Aide : état non relu par le navigateur', e);
+    }
+}
+function ecrireEtatAide() {
+    try {
+        window.localStorage.setItem(CLE_AIDE, JSON.stringify({ ouvert: _aide.ouvert, onglet: _aide.onglet }));
+    }
+    catch (e) {
+        logSecurite('INFO', 'Aide : état non mémorisé par le navigateur', e);
+    }
+}
+function ongletAide(ctx) { return _aide.onglet || (ctx.courante >= 0 ? 'pas' : 'resume'); }
+function basculerAide(ouvrir) {
+    _aide.ouvert = !!ouvrir;
+    ecrireEtatAide();
+    panneauAide();
+    if (ouvrir) {
+        var t = document.getElementById('wAideTitre');
+        if (t) {
+            t.focus();
+        }
+    }
+    else {
+        var b = document.getElementById('bandeauAide');
+        if (b) {
+            b.focus();
+        }
+    }
+}
+function choisirOngletAide(cle) {
+    _aide.onglet = cle;
+    ecrireEtatAide();
+    panneauAide();
+    var o = document.getElementById('wAideOnglet_' + cle);
+    if (o) {
+        o.focus();
+    }
+}
+function panneauAide() {
+    var p = document.getElementById('wPanneauAide');
+    var btn = document.getElementById('bandeauAide');
+    if (!p) {
+        return;
+    }
+    if (btn) {
+        btn.setAttribute('aria-expanded', _aide.ouvert ? 'true' : 'false');
+        btn.classList.toggle('fr-btn--secondary', !_aide.ouvert);
+    }
+    document.body.classList.toggle('w-aide-ouverte', _aide.ouvert);
+    var actif = document.activeElement && p.contains(document.activeElement) ? document.activeElement.id : null;
+    vider(p);
+    p.hidden = !_aide.ouvert;
+    if (!_aide.ouvert) {
+        return;
+    }
+    var ctx = contexteAide();
+    var courant = ongletAide(ctx);
+    p.appendChild(creer('div', { classe: 'w-panneau-aide__tete' }, [
+        creer('span', { classe: 'fr-icon-question-line w-panneau-aide__icone', attrs: { 'aria-hidden': 'true' } }),
+        creer('h2', { classe: 'w-panneau-aide__titre', id: 'wAideTitre', texte: 'Aide', attrs: { tabindex: '-1' } }),
+        bouton('Fermer', 'discret', 'close-line', function () { basculerAide(false); }, { petit: true, id: 'wAideFermer', aria: 'Fermer l\'aide' })
+    ]));
+    var liste = creer('ul', { classe: 'w-panneau-aide__onglets', attrs: { role: 'tablist', 'aria-label': 'Rubriques de l\'aide' } });
+    ONGLETS_AIDE.forEach(function (o, i) {
+        var choisi = o.cle === courant;
+        var b = creer('button', { classe: 'fr-tabs__tab', id: 'wAideOnglet_' + o.cle, texte: o.libelle, attrs: { type: 'button', role: 'tab', 'aria-selected': choisi ? 'true' : 'false',
+                'aria-controls': 'wAideVolet_' + o.cle, tabindex: choisi ? '0' : '-1' } });
+        b.addEventListener('click', function () { choisirOngletAide(o.cle); });
+        b.addEventListener('keydown', function (e) {
+            var j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ONGLETS_AIDE.length - 1 }[e.key];
+            if (j === undefined) {
+                return;
+            }
+            e.preventDefault();
+            choisirOngletAide(ONGLETS_AIDE[(j + ONGLETS_AIDE.length) % ONGLETS_AIDE.length].cle);
+        });
+        liste.appendChild(creer('li', { attrs: { role: 'presentation' } }, [b]));
+    });
+    p.appendChild(liste);
+    var corps = creer('div', { classe: 'w-panneau-aide__corps' });
+    ONGLETS_AIDE.forEach(function (o) {
+        var v = creer('div', { classe: 'w-panneau-aide__volet', id: 'wAideVolet_' + o.cle, attrs: { role: 'tabpanel', 'aria-labelledby': 'wAideOnglet_' + o.cle, tabindex: '0' } });
+        v.hidden = o.cle !== courant;
+        if (o.cle === courant) {
+            (o.cle === 'resume' ? voletAideResume() : (o.cle === 'pas' ? voletAidePas(ctx) : voletAideQuestions())).forEach(function (n) { v.appendChild(n); });
+        }
+        corps.appendChild(v);
+    });
+    p.appendChild(corps);
+    var f = actif ? document.getElementById(actif) : null;
+    if (f) {
+        f.focus();
+    }
+    var ici = p.querySelector('.w-pas__etape--en-cours');
+    if (ici) {
+        corps.scrollTop = Math.max(0, ici.offsetTop - corps.offsetTop - 16);
+    }
+}
+function voletAideResume() {
+    return [creer('p', { classe: 'w-texte', texte: AIDE.resume }),
+        creer('h3', { classe: 'w-panneau-aide__sous-titre', texte: 'Ce que vous pouvez faire' }),
+        creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, AIDE.fonctions.map(function (t) { return creer('li', { texte: t }); })),
+        creer('h3', { classe: 'w-panneau-aide__sous-titre', texte: 'Avant de commencer' }),
+        creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, AIDE.avant.map(function (t) { return creer('li', { texte: t }); }))];
+}
+function voletAidePas(ctx) {
+    var res = [];
+    if (ctx.repere) {
+        res.push(creer('p', { classe: 'w-mention', texte: ctx.repere }));
+    }
+    var ol = creer('ol', { classe: 'w-pas' });
+    ctx.etapes.forEach(function (nom, i) {
+        var fiche = AIDE.etapes[nom] || { titre: '', points: [] };
+        var etatE = ctx.courante < 0 ? 'neutre' : (i < ctx.courante ? 'faite' : (i === ctx.courante ? 'en-cours' : 'a-venir'));
+        var detail = ctx.courante < 0 || etatE === 'en-cours';
+        var li = creer('li', { classe: 'w-pas__etape w-pas__etape--' + etatE }, [
+            creer('span', { classe: 'w-pas__num' + (etatE === 'faite' ? ' fr-icon-check-line fr-icon--sm' : ''), texte: etatE === 'faite' ? null : String(i + 1), attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pas__texte' }, [
+                creer('p', { classe: 'w-pas__nom' }, [creer('strong', { texte: nom }), etatE === 'en-cours' ? creer('span', { classe: 'w-pas__ici', texte: ' (vous êtes ici)' }) : null,
+                    etatE === 'faite' ? creer('span', { classe: 'fr-sr-only', texte: ' (terminée)' }) : null, fiche.titre ? ' : ' + fiche.titre : null]),
+                detail && fiche.points.length ? creer('ul', { classe: 'w-pas__points' }, fiche.points.map(function (t) { return creer('li', { texte: t }); })) : null
+            ])
+        ]);
+        if (etatE === 'en-cours') {
+            li.setAttribute('aria-current', 'step');
+        }
+        ol.appendChild(li);
+    });
+    res.push(ol);
+    return res;
+}
+function voletAideQuestions() {
+    return AIDE.questions.map(function (x) {
+        return creer('div', { classe: 'w-question' }, [creer('h3', { classe: 'w-panneau-aide__sous-titre', texte: x.q }), creer('p', { classe: 'w-texte', texte: x.r })]);
+    });
+}
+function brancherAide() {
+    lireEtatAide();
+    var btn = document.getElementById('bandeauAide');
+    var p = document.getElementById('wPanneauAide');
+    if (btn) {
+        btn.addEventListener('click', function () { basculerAide(!_aide.ouvert); });
+        btn.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _aide.ouvert) {
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        } });
+    }
+    if (p) {
+        p.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || e.defaultPrevented) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            basculerAide(false);
+        });
+    }
+    panneauAide();
+}
+function estTableExclue(tid) {
+    if (!tid) {
+        return true;
+    }
+    var brut = String(tid);
+    var up = brut.toUpperCase();
+    if (brut.indexOf('_grist') === 0) {
+        return true;
+    }
+    if (brut.indexOf('GristHidden_') === 0) {
+        return true;
+    }
+    if (brut === 'GristDocTour') {
+        return true;
+    }
+    if (up === 'BIBLIOTHEQUE_CENTRALE') {
+        return true;
+    }
+    if (up.indexOf('BIBLIOTHEQUE') !== -1 && brut.charAt(brut.length - 1) === '_') {
+        return true;
+    }
+    if (up.indexOf('ONLY') !== -1) {
+        return true;
+    }
+    if (up.indexOf('_SUMMARY_') !== -1 || up.indexOf('GRISTSUMMARY_') !== -1) {
+        return true;
+    }
+    return false;
+}
+async function fetchDelai(url, options, delaiMs) {
+    var ctrl = new AbortController();
+    var minut = setTimeout(function () { ctrl.abort(); }, delaiMs);
+    try {
+        options.signal = ctrl.signal;
+        return await fetch(url, options);
+    }
+    finally {
+        clearTimeout(minut);
+    }
+}
+document.getElementById('bandeauVersion').textContent = 'v' + VERSION_WIDGET;
+(function () { var b = document.getElementById('bandeauHomologue'); if (b) {
+    b.hidden = !HOMOLOGUE;
+} })();
+document.getElementById('wModaleFermer').addEventListener('click', fermerModale);
+document.getElementById('wConfirmNon').addEventListener('click', function () { terminerConfirmation(false); });
+document.getElementById('wConfirmOui').addEventListener('click', function () { terminerConfirmation(true); });
+document.getElementById('wToastFermer').addEventListener('click', function () { fermerToast(true); });
+document.addEventListener('fullscreenchange', majBoutonPleinEcran);
+brancherAide();
+grist.ready({ requiredAccess: 'full' });
+grist.onOptions(function (opts, interaction) { chargerAccesWidget(interaction && interaction.accessLevel); });
+grist.onRecords(function () { });
+relayer(initialiser(), 'Initialisation');
+</script>
+</body>
+</html>
