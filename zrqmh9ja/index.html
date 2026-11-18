@@ -1698,7 +1698,7 @@ body.w-agrandi .w-volet {
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.1.0";
+var VERSION_WIDGET = "1.1.1";
 var HOMOLOGUE = false;
 var NOM_WIDGET = "Diploarchive";
 var DELAI_API_MS = 6e4;
@@ -3790,8 +3790,8 @@ function rendreListe(sc) {
   majActions();
   if (!vis.length) {
     var textes = {
-      traiter: "Aucun dossier à traiter : aucun n'a atteint sa durée de conservation.",
-      bientot: "Aucun dossier n'atteint sa durée de conservation dans les 3 prochains mois.",
+      traiter: "Aucun dossier à traiter : aucun ne remplit les filtres de la règle pour l'instant.",
+      bientot: "Aucun dossier ne remplira les filtres dans les 3 prochains mois.",
       attente: "Aucun dossier en attente."
     };
     sc.appendChild(creer("p", { classe: "w-texte fr-p-2w", id: "vVide", texte: etat.filtres.texte ? "Aucun dossier pour cette recherche." : textes[etat.filtres.vue] }));
@@ -5880,7 +5880,7 @@ async function supprimerRegle(r) {
 }
 var ONGLETS_AIDE = ["À quoi ça sert", "Pas à pas", "Questions"];
 var FICHES_AIDE = [
-  { cle: "creation0", titre: "Création : Les dossiers", texte: "Sélectionnez la table des dossiers à archiver. Seules les tables qui ont une colonne de date sont proposées." },
+  { cle: "creation0", titre: "Création : Les dossiers", texte: "Sélectionnez la table des dossiers à archiver. Les tables qui contiennent des données personnelles (étiquette violette) sont proposées d'abord ; décochez « Seulement les tables avec des données personnelles » pour voir toutes les tables qui ont une date ou une colonne de choix." },
   { cle: "creation1", titre: "Création : Les filtres", texte: "Donnez un nom à la règle (obligatoire). Ajoutez une condition par critère : une colonne, une comparaison, puis les valeurs (cases à cocher pour un statut, calendrier pour une date). Choisissez « toutes les conditions » ou « au moins une ». La phrase sous les conditions et l'aperçu montrent tout de suite les dossiers concernés." },
   { cle: "creation2", titre: "Création : Traitements", texte: "Cochez les champs personnels à vider lors d'une anonymisation. Les champs qui ressemblent à des données personnelles sont déjà cochés : vérifiez-les. Choisissez les traitements proposés : les deux, anonymisation seulement ou suppression seulement." },
   { cle: "creation3", titre: "Création : Tables liées", texte: "Pour chaque table qui pointe vers les dossiers : anonymiser aussi ses lignes (et quels champs), et ce qu'elles deviennent en cas de suppression définitive." },
@@ -5974,7 +5974,7 @@ function rendreAide() {
     }));
   };
   if (etat.aide.onglet === 0) {
-    corps.appendChild(creer("p", { texte: "Diploarchive repère les dossiers arrivés au terme de leur durée de conservation et les archive : une archive Excel pour le service des archives, puis l'anonymisation ou la suppression des données dans le document." }));
+    corps.appendChild(creer("p", { texte: "Diploarchive repère les dossiers à archiver, selon les filtres que vous choisissez (durée de conservation, plage de dates, statut...), et les archive : une archive Excel pour le service des archives, puis l'anonymisation ou la suppression des données dans le document." }));
     corps.appendChild(creer("h3", { texte: "Deux traitements" }));
     corps.appendChild(puces([
       "Anonymisation, proposée en premier : les champs personnels sont vidés, les lignes restent. Les statistiques (nombres, dates, statuts, montants) sont conservées.",
@@ -6014,6 +6014,11 @@ function rendreAide() {
   } else {
     var q = [
       ["Je ne vois pas les cases à cocher ni les boutons.", "Vos droits sur ce document ne le permettent pas, ou l'archivage a été réservé aux propriétaires. Vous pouvez tout de même consulter les listes et l'historique."],
+      ["Comment archiver selon un statut ?", "Étape « Les filtres » : ajoutez une condition sur la colonne du statut, comparaison « est l'une des valeurs cochées », puis cochez les valeurs (par exemple « Candidat n'a pas répondu »). Les valeurs viennent de la colonne : rien à saisir, donc ni faute de frappe ni erreur de majuscule."],
+      ["Comment archiver une période ?", "Ajoutez une condition sur une colonne de date, comparaison « est entre le », puis choisissez les deux dates dans le calendrier (elles sont incluses). « est avant le » et « est après le » ne prennent qu'une date."],
+      ["Différence entre « date de plus de » et « est entre le » ?", "« date de plus de 2 ans » se calcule chaque jour à partir de la date du jour : la liste s'allonge toute seule et l'échéancier des 3 prochains mois est proposé. « est entre le » porte sur des dates fixes."],
+      ["« Toutes les conditions » ou « au moins une » ?", "Toutes : le dossier doit remplir chaque condition (par exemple clos ET fini depuis plus de 2 ans). Au moins une : une seule suffit. La phrase « À archiver : les dossiers dont... » sous les conditions dit exactement ce qui sera retenu."],
+      ["Pourquoi aucun dossier n'est proposé ?", "Une règle sans condition, ou avec une condition incomplète (aucune valeur cochée, date manquante...), ne propose aucun dossier : c'est voulu, pour ne jamais tout archiver par erreur. Le message indique ce qui manque."],
       ["Que contient l'archive ?", "Un onglet « Lisez-moi » (règle, critère, traitement, date, nombres de lignes), puis un onglet par table : les dossiers et leurs lignes liées, avec toutes les colonnes, en valeurs lisibles."],
       ["Et les fichiers joints ?", "Ils ne sont pas dans le fichier Excel : leurs noms y sont listés. Pour les remettre au service des archives, téléchargez-les depuis le document avant le traitement."],
       ["Puis-je annuler une anonymisation ou une suppression ?", "Non : l'archive Excel est la seule copie qui reste. C'est pourquoi elle doit être téléchargée et son enregistrement confirmé avant le traitement."],
@@ -6039,7 +6044,7 @@ function rendreMessage(vue) {
     acces: ["Accès au document nécessaire", "Ce widget a besoin d'un accès complet au document pour lire les dossiers et enregistrer l'historique. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »)."],
     hors: ["Widget à ajouter dans un document", "Ce widget s'utilise dans un document : ajoutez-le à une page en tant que vue personnalisée."],
     recharger: ["La règle est créée", "La table de l'historique sera lisible après un rechargement du widget."],
-    aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table des dossiers, leur durée de conservation et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
+    aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table des dossiers, les filtres qui désignent ceux à archiver et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
     echec: ["Chargement impossible", "Les données du document n'ont pas pu être lues. Réessayez dans un instant."]
   };
   var t = textes[vue] || textes.echec;
