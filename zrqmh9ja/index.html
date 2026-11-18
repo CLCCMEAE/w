@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploarchive
   ============================================================================
-  Version     : 1.0.1
+  Version     : 1.0.2
   Date        : 18/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -32,6 +32,9 @@
 
   HISTORIQUE
   ----------
+  1.0.2 - 18/11/2026 - CSNC - Choix de la table : étiquette « Données
+          personnelles » avec les champs repérés, ces tables en tête, filtre
+          « Seulement les tables avec des données personnelles » coché par défaut.
   1.0.1 - 18/11/2026 - CSNC - Choix de la table : cartes compactes sans
           aperçu ; tables de l'utilisatrice d'abord, puis tables des widgets
           qui ont une vraie date (tables internes retirées) ; dates de
@@ -426,6 +429,8 @@
     .w-carte-table:hover { background: var(--background-alt-grey); color: var(--text-default-grey); }
     .w-carte-table--choisie { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .w-carte-table__nom { font-weight: 700; font-size: .875rem; }
+    .w-carte-table__perso { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; }
+    .w-carte-table__champs { font-size: .75rem; color: var(--text-default-grey); }
     .w-carte-table__dates { font-size: .75rem; color: var(--text-mention-grey); }
     .w-carte-table__bas { margin-top: auto; padding-top: .5rem; display: flex; justify-content: flex-end; }
 </style>
@@ -475,7 +480,7 @@
 <script>
 'use strict';
 /* === SECTION : CONSTANTES === */
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.0.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploarchive';
 var DELAI_API_MS = 60000;
@@ -543,6 +548,9 @@ var ETAPES_CREATION = ['Les dossiers', 'La règle', 'Traitements', 'Tables liée
 var ETAPES_PARAM = ['Général', 'La règle', 'Traitements', 'Tables liées'];
 var MOTS_PERSONNELS = ['nom', 'prenom', 'email', 'courriel', 'mail', 'telephone', 'tel', 'portable', 'mobile', 'adresse', 'naissance', 'nir', 'secu', 'securite sociale',
   'passeport', 'iban', 'photo', 'piece', 'identite', 'civilite', 'domicile', 'code postal', 'ville', 'nationalite', 'sexe', 'genre', 'signature', 'commentaire', 'observation', 'note'];
+
+var MOTS_PERSONNELS_FORTS = ['nom', 'noms', 'prenom', 'prenoms', 'naissance', 'email', 'e mail', 'mail', 'courriel', 'telephone', 'tel', 'portable', 'adresse',
+  'code postal', 'nir', 'securite sociale', 'secu', 'passeport', 'piece d identite', 'carte d identite', 'iban', 'photo', 'nationalite'];
 
 var _confirm = { resolution: null, retour: null, pieger: null };
 var _minuterieToast = null;
@@ -1550,6 +1558,13 @@ function estPersonnel(c) {
   var n = ' ' + normaliserTexte(c.label || c.colId) + ' ';
   if (/^Attachments/.test(c.type)) { return true; }
   return MOTS_PERSONNELS.some(function (m) { return n.indexOf(' ' + m + ' ') !== -1 || n.indexOf(' ' + m + 's ') !== -1; });
+}
+
+function champsPersonnelsForts(tid) {
+  return colonnesDonnees(tid).filter(function (c) {
+    var n = ' ' + normaliserTexte(c.label || c.colId) + ' ';
+    return MOTS_PERSONNELS_FORTS.some(function (m) { return n.indexOf(' ' + m + ' ') !== -1; });
+  }).map(function (c) { return c.label || c.colId; });
 }
 
 function champsSuggeres(tid, exclure) {
@@ -2567,10 +2582,16 @@ function ouvrirCreation() {
 function tablesAvecDates() {
   var l = tablesUtilisatrice().filter(function (t) { return colonnesDates(t).length; });
   var vraie = function (t) { return colonnesDates(t).some(function (c) { return !estDateSuivi(c); }); };
+  var perso = {};
+  l.forEach(function (t) { perso[t] = champsPersonnelsForts(t); });
+  var trier = function (liste) {
+    return liste.map(function (t, i) { return { t: t, i: i }; }).sort(function (a, b) { return perso[b.t].length - perso[a.t].length || a.i - b.i; }).map(function (x) { return x.t; });
+  };
   var miennes = l.filter(function (t) { return !tableDeWidget(t); });
   return {
-    miennes: miennes.filter(vraie).concat(miennes.filter(function (t) { return !vraie(t); })),
-    widgets: l.filter(function (t) { return tableDeWidget(t) && vraie(t); })
+    miennes: trier(miennes.filter(vraie)).concat(trier(miennes.filter(function (t) { return !vraie(t); }))),
+    widgets: trier(l.filter(function (t) { return tableDeWidget(t) && vraie(t); })),
+    perso: perso
   };
 }
 
@@ -2611,6 +2632,16 @@ function rendreCreation() {
   if (c.etape === 0) {
     var groupes = tablesAvecDates();
     bloc.appendChild(creer('p', { classe: 'w-texte fr-text--lg fr-mb-0', texte: 'Sélectionner la table des dossiers à archiver' }));
+    if (c.filtrePerso === undefined) { c.filtrePerso = true; }
+    var nbPerso = groupes.miennes.concat(groupes.widgets).filter(function (t) { return groupes.perso[t].length; }).length;
+    if (c.filtrePerso && nbPerso) {
+      groupes.miennes = groupes.miennes.filter(function (t) { return groupes.perso[t].length; });
+      groupes.widgets = groupes.widgets.filter(function (t) { return groupes.perso[t].length; });
+    }
+    if (nbPerso) {
+      bloc.appendChild(caseACocher('cFiltrePerso', 'Seulement les tables avec des données personnelles', c.filtrePerso, function (v) { c.filtrePerso = v; rendreCreation(); refocaliser('cFiltrePerso'); },
+        'Champs repérés d\'après leur libellé : nom, prénom, naissance, courriel, téléphone, adresse... Décochez pour voir toutes les tables.'));
+    }
     if (!groupes.miennes.length && !groupes.widgets.length) {
       bloc.appendChild(alerte('info', 'Aucune table ne convient', 'Une règle d\'archivage part d\'une colonne de date (fin de mandat, clôture du dossier...). Aucune table de ce document n\'en a pour l\'instant.'));
     }
@@ -2623,7 +2654,10 @@ function rendreCreation() {
         annoncer('Table « ' + libelleTable(t) + ' » choisie.');
       }, { petit: true, id: 'cTable_' + t, iconeDroite: !choisi });
       var div = creer('div', { classe: 'w-carte-table' + (choisi ? ' w-carte-table--choisie' : '') }, [
-        creer('span', { classe: 'w-carte-table__nom', texte: libelleTable(t) }), creer('span', { classe: 'w-carte-table__dates', texte: 'Dates : ' + dates.join(', ') }),
+        creer('span', { classe: 'w-carte-table__nom', texte: libelleTable(t) }),
+        groupes.perso[t].length ? creer('span', { classe: 'w-carte-table__perso' }, [creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine', texte: 'Données personnelles' }),
+          creer('span', { classe: 'w-carte-table__champs', texte: groupes.perso[t].join(', ') })]) : null,
+        creer('span', { classe: 'w-carte-table__dates', texte: 'Dates : ' + dates.join(', ') }),
         creer('span', { classe: 'w-carte-table__bas' }, [b])]);
       div.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { b.click(); } });
       return div;
