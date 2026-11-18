@@ -540,7 +540,6 @@
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-barre-vue__commandes,
       .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink, .w-ecran-seul { display: none !important; }
     }
-    }
     .w-carte__neuf { margin: 0; line-height: 1; }
     .w-nouv { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
     .w-nouv[hidden] { display: none; }
@@ -607,7 +606,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.0';
+var VERSION_WIDGET = '1.6.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -1491,6 +1490,7 @@ var COLONNES_CENTRALE_UTILES = ['WIDGET', 'CLE', 'VALEUR', 'VERSION_CREATION', '
 var IDS_META = ['CREE_LE', 'CREE_PAR', 'MODIFIE_LE', 'MODIFIE_PAR'];
 var COL_HISTORIQUE = 'KANBAN_HISTORIQUE';
 var COL_COMMENTAIRE = 'KANBAN_COMMENTAIRE';
+var COL_JOURNAL_DIPLO = 'JOURNAL_DIPLO';
 var IDS_TECHNIQUES = ['KANBAN', COL_HISTORIQUE, COL_COMMENTAIRE];
 var MAX_EVENEMENTS = 300;
 var IDS_RESERVES = ['ID', 'MANUALSORT', 'TITRE', 'COLONNE', 'ORDRE'].concat(IDS_TECHNIQUES, IDS_META);
@@ -3574,8 +3574,9 @@ async function chargerDonnees() {
         if (c.historique && d[COL_HISTORIQUE]) {
             valeurs[COL_HISTORIQUE] = colonneDe(d, COL_HISTORIQUE, k);
         }
+        var journalDiplo = c.historique && d[COL_JOURNAL_DIPLO] ? colonneDe(d, COL_JOURNAL_DIPLO, k) : null;
         cartes.push({ id: d.id[k], titre: colonneDe(d, c.colTitre, k), cle: cle, brut: brut,
-            ordre: c.colOrdreCartes ? colonneDe(d, c.colOrdreCartes, k) : null, valeurs: valeurs,
+            ordre: c.colOrdreCartes ? colonneDe(d, c.colOrdreCartes, k) : null, valeurs: valeurs, journalDiplo: journalDiplo,
             destCourriel: c.courriel && c.courriel.dest ? colonneDe(d, c.courriel.dest, k) : null });
     }
     if (src.type === 'text') {
@@ -3633,6 +3634,9 @@ function exprSuivi(tid, colId) {
     return '$' + colId;
 }
 function colonnesSuivies(tid) {
+    if (infoColonne(tid, COL_JOURNAL_DIPLO)) {
+        return [];
+    }
     var cfgs = etat.tableaux.map(function (t) { return t.config; }).filter(function (cfg) { return cfg && cfg.tableCartes === tid; });
     if (etat.config && etat.config.tableCartes === tid && cfgs.indexOf(etat.config) === -1) {
         cfgs.push(etat.config);
@@ -3755,7 +3759,7 @@ async function reparerColonnesVides(c) {
         logSecurite('INFO', 'Colonnes en formule vide non réparées (droits insuffisants)', e);
     }
 }
-function journalCarte(carte) {
+function journalKanban(carte) {
     var v = carte && carte.valeurs ? carte.valeurs[COL_HISTORIQUE] : null;
     if (!v || typeof v !== 'string') {
         return [];
@@ -3767,6 +3771,47 @@ function journalCarte(carte) {
     catch (e) {
         return [];
     }
+}
+function texteValeurDiplo(colId, v) {
+    if (v === null || v === undefined || v === '') {
+        return '';
+    }
+    var col = colonneCartes(colId);
+    var t = col ? String(col.type || '') : '';
+    if (Array.isArray(v) && (t.indexOf('RefList:') === 0 || t === 'ChoiceList' || t === 'Attachments')) {
+        v = ['L'].concat(v);
+    }
+    var r = texteValeur(colId, v);
+    return r === undefined || r === null ? '' : String(r);
+}
+function journalDiplo(carte) {
+    var v = carte ? carte.journalDiplo : null;
+    if (!v || typeof v !== 'string') {
+        return [];
+    }
+    var h;
+    try {
+        h = JSON.parse(v);
+    }
+    catch (e) {
+        return [];
+    }
+    return (h && Array.isArray(h.j) ? h.j : []).filter(function (x) { return x && typeof x === 'object'; }).map(function (x) {
+        return x.t === 'c' ? { type: 'debut', qui: x.n || x.q || '', le: x.l }
+            : { type: 'modification', champ: x.c, de: texteValeurDiplo(x.c, x.de), a: texteValeurDiplo(x.c, x.a), qui: x.n || x.q || '', le: x.l };
+    });
+}
+function journalCarte(carte) {
+    var k = journalKanban(carte);
+    var dj = journalDiplo(carte);
+    if (!dj.length) {
+        return k;
+    }
+    var cle = function (e) { return (e.type === 'debut' ? 'debut' : e.champ) + '|' + String(e.le || '').slice(0, 16); };
+    var vus = {};
+    dj.forEach(function (e) { vus[cle(e)] = true; });
+    var res = k.filter(function (e) { return e.type === 'commentaire' || !vus[cle(e)]; }).concat(dj);
+    return res.map(function (e, i) { return { e: e, i: i, t: Date.parse(e.le) || 0 }; }).sort(function (a, b) { return a.t - b.t || a.i - b.i; }).map(function (x) { return x.e; });
 }
 function nbCommentaires(carte) {
     return journalCarte(carte).filter(function (e) { return e.type === 'commentaire'; }).length;
@@ -9694,6 +9739,9 @@ async function relireFil(carte, ul) {
     if (i !== -1 && d[COL_HISTORIQUE]) {
         carte.valeurs[COL_HISTORIQUE] = d[COL_HISTORIQUE][i];
     }
+    if (i !== -1 && d[COL_JOURNAL_DIPLO]) {
+        carte.journalDiplo = d[COL_JOURNAL_DIPLO][i];
+    }
     if (ul) {
         rendreFil(ul, carte);
     }
@@ -9739,7 +9787,8 @@ function blocActivite(carte) {
     } });
     return { noeud: creer('div', { classe: 'w-activite' }, [
             !etat.peutModifier ? null : creer('div', { classe: 'w-activite__saisie' }, [creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'wActTexte' }, texte: 'Écrire un commentaire (Ctrl + Entrée pour envoyer)' }), zone, envoi]),
-            c.mode === 'creation' ? null : creer('p', { classe: 'w-mention fr-mb-0', texte: 'Modifications faites dans le Kanban comme directement dans la table, depuis l\'activation du suivi.' }),
+            infoColonne(c.tableCartes, COL_JOURNAL_DIPLO) ? creer('p', { classe: 'w-mention fr-mb-0', texte: 'Modifications de toutes les informations de la carte, notées par l\'historique du document.' })
+                : (c.mode === 'creation' ? null : creer('p', { classe: 'w-mention fr-mb-0', texte: 'Modifications faites dans le Kanban comme directement dans la table, depuis l\'activation du suivi.' })),
             ul
         ]), fil: ul };
 }
@@ -10258,6 +10307,10 @@ async function chargerTout() {
     if (!verifierConfig()) {
         afficherVue('invalide');
         return;
+    }
+    if (etat.config.historique && etat.peutParametrer && !etat.page && etat.niveauAcces === 'full' && infoColonne(etat.config.tableCartes, COL_HISTORIQUE)
+        && infoColonne(etat.config.tableCartes, COL_HISTORIQUE).formula !== formuleHistorique(etat.config.tableCartes)) {
+        await assurerHistorique(etat.config);
     }
     await chargerDonnees();
     afficherVue('tableau');
