@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - Diploworkflow
   ============================================================================
-  Version     : 1.7.2
+  Version     : 1.7.3
   Date        : 16/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -54,6 +54,17 @@
 
   HISTORIQUE
   ----------
+  1.7.3 - 17/11/2026 - CSNC - Retours de test :
+          - Ctrl+Z : historique de 50 modifications, sans limite de temps
+            (avant : une seule, pendant 12 secondes, et vidée par certaines
+            actions) ; annulables aussi les saisies de la fiche et les
+            couleurs de catégorie ou de type ;
+          - un nouveau clic sur l'élément déjà choisi choisit celui qui est
+            en dessous (section cachée par d'autres éléments) ;
+          - « Mettre à l'arrière-plan » à côté de « Mettre au premier plan »,
+            icônes plus parlantes ;
+          - curseur main au survol des éléments, pour montrer qu'on peut les
+            déplacer.
   1.7.2 - 17/11/2026 - CSNC - Infobulles affichées au-dessus des boutons (le
           pointeur ne les cache plus) ; « Ranger » redevient une icône seule.
   1.7.1 - 17/11/2026 - CSNC - Bouton « Ranger » avec son libellé, plus visible.
@@ -486,6 +497,9 @@
     .w-import__actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
     .w-btn-texte { width: auto !important; padding: 0 .5rem !important; gap: .375rem; display: inline-flex; align-items: center; }
     .w-btn-texte__libelle { font-size: .875rem; font-weight: 500; }
+    /* On voit qu'un element se deplace : main au survol, main fermee en glissant. */
+    .w-toile:not(.w-toile--lier) .w-el { cursor: grab; }
+    .w-toile:not(.w-toile--lier) .w-el:active { cursor: grabbing; }
     .w-pop__sens { font-size: .75rem; color: var(--text-mention-grey); }
     .w-pop__sep { display: block; height: 1px; margin: .375rem 0; background: var(--border-default-grey); }
     .w-pop__item--icone { display: flex; align-items: center; gap: .5rem; }
@@ -836,7 +850,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.7.2';
+var VERSION_WIDGET = '1.7.3';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1510,7 +1524,8 @@ var ICONES_SVG = {
   couleur: 'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM12 4v16',
   ouvrir: 'M14 4h6v6M20 4L10 14M18 14v6H4V6h6',
   dupliquer: 'M8 8h12v12H8zM16 8V4H4v12h4',
-  premier: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+  premier: 'M12 20V8M7 13l5-5 5 5M4 4h16',
+  arriere: 'M12 4v12M7 11l5 5 5-5M4 20h16',
   corbeille: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
   vote: 'M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z',
   devote: 'M5 12h14',
@@ -3214,7 +3229,8 @@ function placerCtx() {
       if (sel.some(function (e) { return e.type !== 'Section' && e.type !== 'Image'; })) { items.push(bouton('Copier dans une table', 'discret', null, function (ev) { ouvrirCopieTable(ev.currentTarget); }, { svg: 'table', id: 'cCopierTable', attrs: { 'aria-haspopup': 'true' } })); }
       items.push(creer('span', { classe: 'w-ctx__sep' }));
       items.push(bouton('Dupliquer (Ctrl+D)', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', id: 'cDupliquer' }));
-      items.push(bouton('Premier plan', 'discret', null, function () { return premierPlan(); }, { svg: 'premier', id: 'cPremier' }));
+      items.push(bouton('Mettre au premier plan', 'discret', null, function () { return premierPlan(); }, { svg: 'premier', id: 'cPremier' }));
+      items.push(bouton('Mettre à l\'arrière-plan', 'discret', null, function () { return arrierePlan(); }, { svg: 'arriere', id: 'cArriere' }));
       items.push(bouton('Supprimer (Suppr)', 'discret', null, function () { return supprimerSelection(); }, { svg: 'corbeille', id: 'cSupprimer', classe: 'w-bulle--droite' }));
       /* « Ajouter à la suite » en dernier, bleu comme le « + » de la barre
          d'outils. */
@@ -3478,7 +3494,7 @@ function surPointeurBas(ev) {
       if (k !== -1) { return; }
     } else if (etat.selection.indexOf(idEl) === -1) {
       selectionner([idEl], true);
-    } else { etat.lienSel = null; }
+    } else { etat.lienSel = null; var cycler = etat.selection.length === 1 ? { x: ev.clientX, y: ev.clientY } : null; }
     if (!etat.peutModifier) { return; }
     /* Deplacement : la selection, plus le contenu des sections choisies. */
     var aDeplacer = {};
@@ -3490,7 +3506,7 @@ function surPointeurBas(ev) {
     var depart = {};
     Object.keys(aDeplacer).forEach(function (k2) { var x = etat.parId[k2]; depart[k2] = { x: x.x, y: x.y }; });
     var b0 = boiteDe(Object.keys(aDeplacer).map(function (k3) { return etat.parId[k3]; }));
-    etat.geste = { type: 'deplacer', p0: p, depart: depart, ref: idEl, bouge: false, boite0: b0 };
+    etat.geste = { type: 'deplacer', p0: p, depart: depart, ref: idEl, bouge: false, boite0: b0, cycler: cycler || null };
     return;
   }
   if (zoneLien) {
@@ -3615,7 +3631,12 @@ function surPointeurHaut(ev) {
   annulerGesteVisuel();
   if (g.type === 'vue') { memoriserCamera(); placerCtx(); return; }
   if (g.type === 'deplacer') {
-    if (!g.bouge || !g.delta || (!g.delta.x && !g.delta.y)) { placerCtx(); return; }
+    if (!g.bouge || !g.delta || (!g.delta.x && !g.delta.y)) {
+      /* Nouveau clic sur l'element deja choisi : on choisit celui qui est
+         en dessous (une section cachee par d'autres elements, par exemple). */
+      if (g.cycler && selectionnerDessous(g.ref, g.cycler.x, g.cycler.y)) { return; }
+      placerCtx(); return;
+    }
     relayer(enregistrerPositions(g.depart, 'Déplacement'), 'Déplacement');
     return;
   }
@@ -3799,19 +3820,25 @@ function erreurEcriture(e, message) {
   afficherErreur(message, e);
 }
 
-/* inverse : fonction qui rend les actions d'annulation (ou une promesse). */
+/* Historique d'annulation (1.7.3) : pile de 50 modifications, sans limite
+   de temps. Ctrl+Z et « Annuler » reprennent la plus recente. Une action
+   sans inverse (vote, fiche...) ne vide plus la pile.
+   inverse : fonction qui rend les actions d'annulation (ou une promesse). */
+var MAX_ANNULATIONS = 50;
 function proposerAnnulation(message, inverse) {
-  if (!inverse) { etat.annulation = null; afficherToast(message); return; }
-  var jeton = {};
-  etat.annulation = { fn: inverse, jeton: jeton };
+  if (!inverse) { if (message) { afficherToast(message); } return; }
+  etat.annulations = etat.annulations || [];
+  etat.annulations.push({ fn: inverse, tableau: etat.tableauId });
+  if (etat.annulations.length > MAX_ANNULATIONS) { etat.annulations.shift(); }
   var b = bouton('Annuler', 'secondaire', 'arrow-go-back-line', function () { return annulerDerniere(); }, { petit: true, id: 'tAnnuler' });
   afficherToast(message, [b], DELAI_ANNULER_MS);
-  setTimeout(function () { if (etat.annulation && etat.annulation.jeton === jeton) { etat.annulation = null; } }, DELAI_ANNULER_MS);
 }
 
 async function annulerDerniere() {
-  var x = etat.annulation;
-  etat.annulation = null;
+  var pile = etat.annulations || [];
+  var i = pile.length - 1;
+  while (i >= 0 && pile[i].tableau !== etat.tableauId) { i--; }
+  var x = i >= 0 ? pile.splice(i, 1)[0] : null;
   masquerToast();
   if (!x) { annoncer('Rien à annuler.'); return; }
   try {
@@ -3935,6 +3962,37 @@ function appliquerLocal(e, champs) {
   var m = { TYPE: 'type', FORME: 'forme', LIBELLE: 'libelle', DESCRIPTION: 'description', COULEUR: 'couleur', POSITION_X: 'x', POSITION_Y: 'y', LARGEUR: 'w', HAUTEUR: 'h',
     ORDRE: 'ordre', RESPONSABLE: 'responsable', STATUT: 'statut', VOTES: 'votes', FICHE_TABLE: 'ficheTable', FICHE_LIGNE: 'ficheLigne' };
   Object.keys(champs).forEach(function (k) { if (m[k]) { e[m[k]] = champs[k] === null ? '' : champs[k]; } });
+}
+
+function selectionnerDessous(id, x, y) {
+  var ids = [];
+  document.elementsFromPoint(x, y).forEach(function (n) {
+    var d = n.closest ? n.closest('#vMonde .w-el') : null;
+    if (d) { var k = Number(d.getAttribute('data-id')); if (ids.indexOf(k) === -1) { ids.push(k); } }
+  });
+  if (ids.length < 2) { return false; }
+  var i = ids.indexOf(id);
+  var suivant = ids[(i + 1) % ids.length];
+  if (suivant === id) { return false; }
+  selectionner([suivant], true);
+  var e = etat.parId[suivant];
+  annoncer('Élément en dessous choisi' + (e && e.libelle ? ' : ' + e.libelle : '') + '.');
+  afficherToast('Élément en dessous choisi. Recliquez pour passer au suivant.');
+  return true;
+}
+
+/* Arriere-plan : l'element passe sous les autres (au-dessus des sections). */
+async function arrierePlan() {
+  var sel = elementsSelectionnes().filter(function (e) { return e.type !== 'Section'; });
+  if (!sel.length) { annoncer('Les sections restent toujours sous les autres éléments.'); return; }
+  var tous = elementsDuTableau().filter(function (e) { return e.type !== 'Section'; });
+  var min = tous.reduce(function (m, e) { return Math.min(m, e.ordre || 0); }, Infinity);
+  var avant = sel.map(function (e) { return e.ordre; });
+  sel.forEach(function (e, i) { e.ordre = min - sel.length + i; });
+  rendreMonde();
+  await ecrire(sel.map(function (e) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: e.ordre }]; }), 'Passé à l\'arrière-plan.', function () {
+    return sel.map(function (e, i) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: avant[i] }]; });
+  });
 }
 
 async function premierPlan() {
@@ -4201,6 +4259,9 @@ function enregistrerChampFiche(e, champs, differe) {
   var faire = async function () {
     try {
       await agir([['UpdateRecord', etat.tables.el, e.id, champs]]);
+      var retour = {}; Object.keys(avant).forEach(function (k) { retour[k] = avant[k] === undefined ? null : avant[k]; });
+      etat.annulations = etat.annulations || [];
+      etat.annulations.push({ fn: function () { return [['UpdateRecord', etat.tables.el, e.id, retour]]; }, tableau: etat.tableauId });
       var s = document.getElementById('wFicheStatut');
       if (s) { s.textContent = 'Enregistré à ' + heure(); }
       if (etat.vueType === 'toile') { rendreMonde(); } else { rendreListe(); }
@@ -6199,10 +6260,11 @@ async function recolorerType(t, cle, nouvelle, cleType) {
   var els = etat.elements.filter(function (e) { return e.tableau === t.id && cleType(e) === cle; });
   if (!els.length) { return; }
   try {
+    var avantT = els.map(function (e) { return e.couleur; });
     await agir([['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { COULEUR: els.map(function () { return nouvelle; }) }]]);
     etat.signature = '';
     await rafraichir(true);
-    afficherToast(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + '.');
+    proposerAnnulation(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + '.', function () { return [['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { COULEUR: avantT }]]; });
   } catch (e) { erreurEcriture(e, 'La couleur n\'a pas été changée.'); }
 }
 
@@ -6217,7 +6279,11 @@ async function recolorerCategorie(t, ancienne, nouvelle) {
     await ecrireConfig();
     etat.signature = '';
     await rafraichir(true);
-    afficherToast(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + ', légende mise à jour.');
+    proposerAnnulation(pluriel(els.length, 'élément recoloré', 'éléments recolorés') + ', légende mise à jour.', async function () {
+      t.legende.forEach(function (l) { if (l.couleur === nouvelle) { l.couleur = ancienne; } });
+      await ecrireConfig();
+      return els.length ? [['BulkUpdateRecord', etat.tables.el, els.map(function (e) { return e.id; }), { COULEUR: els.map(function () { return ancienne; }) }]] : [];
+    });
   } catch (e) { erreurEcriture(e, 'La couleur de la catégorie n\'a pas été changée.'); }
 }
 
