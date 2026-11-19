@@ -875,7 +875,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.2';
+var VERSION_WIDGET = '1.1.3';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -7259,6 +7259,9 @@ function rendrePlan(zone) {
         if (dm) {
             cont.appendChild(dm);
         }
+    }
+    if (estAgent()) {
+        cont.appendChild(blocFiltresAgent());
     }
     var mes = estConsoleAdmin() ? null : blocMesReservations();
     if (mes) {
@@ -14354,7 +14357,7 @@ function remplirResultats(z, L) {
     var pas = r.pas * 60;
     var w = jourRecherche(L);
     var f = etat.v.filtres || {};
-    var salles = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
+    var salles = sallesActives().filter(function (s) { return (!f.batiment || s.batiment === f.batiment) && (!estAgent() || !f.couloir || s.cle === f.couloir); });
     if (!salles.length) {
         z.appendChild(alerte('info', null, 'Aucune salle active.'));
         return;
@@ -14624,7 +14627,8 @@ function ouvrirCreneau(debut) {
         }
         debut = prochain;
     }
-    etat.creneau = { quand: jour, heure: 'precise', de: Math.round((debut - jour) / 60), duree: 60, nb: '', equip: [], repeter: false };
+    var fa = etat.v && etat.v.filtres ? etat.v.filtres : {};
+    etat.creneau = { quand: jour, heure: 'precise', de: Math.round((debut - jour) / 60), duree: 60, nb: fa.agentNb || '', equip: Array.isArray(fa.agentEquip) ? fa.agentEquip.slice() : [], repeter: false };
     rendreCreneau(null);
 }
 function rendreCreneau(focusId) {
@@ -14801,8 +14805,8 @@ function rendreSemaineAgent() {
         }
     }
     var h0 = Math.floor(rH.ouverture), h1 = Math.ceil(rH.fermeture);
-    var f = v.filtres || {};
-    var salles = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
+    var salles = sallesFiltreesAgent();
+    var unique = salles.length === 1;
     var moi = moiCourant();
     var mesResa = moi && infoColonne(c.table, 'CREE_PAR') ? etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi; }) : [];
     var zone = creer('div', { classe: 's-sem', id: 'sSemaine' });
@@ -14834,9 +14838,9 @@ function rendreSemaineAgent() {
                 var debut = Math.max(s0, Math.ceil(maint / (r.pas * 60)) * r.pas * 60);
                 var libres = salles.filter(function (s) { return salleLibrePour(s, [{ s: debut, e: Math.min(e0, debut + HEURE) }]).libre; }).length;
                 var ratio = salles.length ? libres / salles.length : 0;
-                var texte = libres ? pluriel(libres, 'salle libre', 'salles libres') : 'Complet';
+                var texte = unique ? (libres ? salles[0].nom + ' libre' : salles[0].nom + ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle ne correspond'));
                 cell = creer('button', { classe: 's-sem__case' + (libres ? '' : ' s-sem__case--complet'), attrs: { type: 'button', role: 'gridcell', 'aria-label': majusculeInitiale(JOURS_NOMS[rangJour(w)]) + ' ' + texteMur(w, false) + ', ' + texteHeureMur(debut) + ' : ' + texte + '. Réserver.' } },
-                    [creer('span', { classe: 's-sem__libres', texte: libres ? pluriel(libres, 'libre') : 'Complet' }),
+                    [creer('span', { classe: 's-sem__libres', texte: unique ? (libres ? 'Libre' : 'Prise') : (libres ? pluriel(libres, 'libre') : (salles.length ? 'Complet' : '-')) }),
                         creer('span', { classe: 's-sem__plus fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })].concat(chips));
                 cell.style.setProperty('--s-taux', String(ratio));
                 (function (d) { cell.addEventListener('click', function () { ouvrirCreneau(d); }); })(debut);
@@ -14858,6 +14862,96 @@ function ajusterHauteurSemaine() {
     z.style.height = Math.max(320, window.innerHeight - haut - 16) + 'px';
 }
 window.addEventListener('resize', function () { ajusterHauteurSemaine(); });
+function sallesFiltreesAgent() {
+    var f = etat.v.filtres || {};
+    var nb = /^\d+$/.test(String(f.agentNb || '').trim()) ? parseInt(f.agentNb, 10) : null;
+    var eq = Array.isArray(f.agentEquip) ? f.agentEquip : [];
+    return sallesActives().filter(function (s) {
+        if (f.batiment && s.batiment !== f.batiment) {
+            return false;
+        }
+        if (f.couloir && s.cle !== f.couloir) {
+            return false;
+        }
+        if (nb !== null && s.capacite !== null && s.capacite < nb) {
+            return false;
+        }
+        return eq.every(function (x) { return s.equipements.indexOf(x) !== -1 || (x === 'Visioconférence' && s.visio); });
+    });
+}
+function blocFiltresAgent() {
+    var v = etat.v;
+    var f = v.filtres;
+    if (!Array.isArray(f.agentEquip)) {
+        f.agentEquip = [];
+    }
+    var maj = function (id) { setTimeout(function () {
+        if (v.mode === 'semaine') {
+            redessinerTimeline();
+        }
+        else {
+            afficherVue('plan', true);
+        }
+        var n = id ? document.getElementById(id) : null;
+        if (n) {
+            n.focus();
+        }
+    }, 0); };
+    var bloc = creer('section', { classe: 'w-volet__bloc s-filtres-agent', attrs: { 'aria-labelledby': 'pFiltAgT' } }, [titreVolet('filter-line', 'Affiner', 'pFiltAgT', null)]);
+    var auj = aujourdhuiMur(fuseauPlan(etat.config));
+    var date = saisie('pAgDate', dateVersSaisie(Math.max(v.date, auj)), { type: 'date' });
+    date.setAttribute('min', dateVersSaisie(auj));
+    date.addEventListener('change', function () { var w = saisieVersDate(date.value); if (w !== null) {
+        v.date = w;
+        memoriserEtatVue();
+        var t = document.getElementById('cPeriode');
+        maj('pAgDate');
+        if (t) {
+            setTimeout(function () { t.textContent = titrePeriode(); }, 0);
+        }
+    } });
+    bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgDate' }, texte: 'Aller au' }), date]));
+    var nb = saisie('pAgNb', f.agentNb || '', { type: 'number', clavier: 'numeric' });
+    nb.setAttribute('min', '1');
+    nb.classList.add('s-champ-court');
+    nb.addEventListener('change', function () { f.agentNb = nb.value; maj('pAgNb'); });
+    bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgNb' }, texte: 'Personnes' }), nb]));
+    var eqs = equipementsPossibles().slice();
+    if (eqs.indexOf('Visioconférence') === -1 && toutesLesSalles().some(function (s) { return s.visio; })) {
+        eqs.unshift('Visioconférence');
+    }
+    if (eqs.length) {
+        var g = creer('div', { classe: 's-puces', attrs: { role: 'group', 'aria-labelledby': 'pAgEqT' } });
+        eqs.forEach(function (x, k) {
+            var on = f.agentEquip.indexOf(x) !== -1;
+            g.appendChild(puceChoix('pAgEq' + k, x, on, function () {
+                f.agentEquip = on ? f.agentEquip.filter(function (y) { return y !== x; }) : f.agentEquip.concat([x]);
+                maj('pAgEq' + k);
+            }));
+        });
+        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('p', { classe: 'fr-label', id: 'pAgEqT', texte: 'Il me faut' }), g]));
+    }
+    var bats = [];
+    toutesLesSalles().forEach(function (s) { if (s.batiment && bats.indexOf(s.batiment) === -1) {
+        bats.push(s.batiment);
+    } });
+    if (bats.length > 1) {
+        bats.sort(function (a, b) { return a.localeCompare(b, 'fr'); });
+        var sb = liste('pAgBat', bats.map(function (x) { return { valeur: x, libelle: x }; }), f.batiment || '', { vide: 'Tous' });
+        sb.addEventListener('change', function () { f.batiment = sb.value; maj('pAgBat'); });
+        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgBat' }, texte: 'Bâtiment' }), sb]));
+    }
+    var salles = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
+    if (salles.length > 1) {
+        var ss = liste('pAgSalle', salles.map(function (s) { return { valeur: s.cle, libelle: s.nom + (s.capacite !== null ? ' (' + pluriel(s.capacite, 'place') + ')' : '') }; }), f.couloir || '', { vide: 'Toutes' });
+        ss.addEventListener('change', function () { f.couloir = ss.value; maj('pAgSalle'); });
+        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgSalle' }, texte: 'Salle' }), ss]));
+    }
+    if (f.agentNb || f.agentEquip.length || f.batiment || f.couloir) {
+        bloc.appendChild(bouton('Tout effacer', 'discret', 'close-line', function () { f.agentNb = ''; f.agentEquip = []; f.batiment = ''; f.couloir = ''; afficherVue('plan', true); }, { petit: true, id: 'pAgEffacer' }));
+    }
+    return bloc;
+}
 async function initialiser() {
     if (etat.initEnCours) {
         return;
