@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Diplodoublon</title>
+  <title>WuitDoublon</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -907,7 +907,9 @@
   }
   @media print { .w-toast, .w-panneau-aide, .w-bandeau__aide { display: none !important; } }
   .app > .w-corps { flex: 1; }
-  </style>
+  
+  .w-wuit { color: var(--blue-france-main-525); }
+</style>
 </head>
 <body>
 <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
@@ -921,7 +923,7 @@
       <div class="w-bandeau__marque">
         <div id="bandeau-logo"></div>
         <div class="w-bandeau__sep"></div>
-        <h1 class="w-bandeau__titre">🧹 Diplodoublon</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+        <h1 class="w-bandeau__titre">🧹 WuitDoublon</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
       </div>
       <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
     </div>
@@ -1263,7 +1265,7 @@ function confirmerAction(titre, msg, libelleOui, opts) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.4.0';
 var NOM_WIDGET = 'Diplodoublon';
 var HOMOLOGUE = false;
 (function () {
@@ -1274,7 +1276,7 @@ var HOMOLOGUE = false;
     if (badge)
         badge.hidden = !HOMOLOGUE;
 })();
-logSecurite('INFO', 'Widget Diplodoublon v' + VERSION_WIDGET + ' - initialisation terminée');
+logSecurite('INFO', 'Widget WuitDoublon v' + VERSION_WIDGET + ' - initialisation terminée');
 let NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 const LABEL_TABLE_CENTRALE = "📦 BIBLIOTHÈQUE CENTRALE ⚡";
 var COLONNES_CENTRALE = [
@@ -3793,7 +3795,7 @@ function brancherAide() {
     panneauAide();
 }
 var AIDE = {
-    resume: 'Diplodoublon repère les lignes en double dans une table, par exemple une même personne saisie deux fois, puis vous aide à les fusionner sans perdre d\'information.',
+    resume: 'WuitDoublon repère les lignes en double dans une table, par exemple une même personne saisie deux fois, puis vous aide à les fusionner sans perdre d\'information.',
     fonctions: ['Choisir les champs à comparer, à l\'identique ou de façon approchée', 'Voir les doublons groupe par groupe', 'Choisir la ligne à garder et, champ par champ, la valeur à conserver', 'Fusionner un groupe ou tous les groupes d\'un coup ; les liens des autres tables suivent la ligne gardée'],
     avant: ['Il faut le droit de modifier la table : la fusion supprime des lignes.', 'Pensez à une copie du document avant une grosse reprise de données.'],
     etapes: {
@@ -3848,6 +3850,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 1500);
 });
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
