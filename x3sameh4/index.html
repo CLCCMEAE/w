@@ -1045,7 +1045,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.34';
+var VERSION_WIDGET = '1.1.35';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -3732,6 +3732,9 @@ function boutonIcone(libelle, icone, action, opts) {
     var attrs = { 'data-infobulle': libelle };
     if (opts.attrs) {
         Object.keys(opts.attrs).forEach(function (k) { attrs[k] = opts.attrs[k]; });
+    }
+    if (!propre && icone && iconeDispo([icone, '-absente-']) === '-absente-') {
+        return bouton(libelle, opts.variante === undefined ? 'secondaire' : opts.variante, null, action, { petit: opts.petit !== false, id: opts.id, desactive: opts.desactive, classe: opts.classe || null });
     }
     return bouton(libelle, opts.variante === undefined ? 'secondaire' : opts.variante, propre ? null : icone, action, { petit: opts.petit !== false, iconeSeule: true, id: opts.id, aria: libelle, desactive: opts.desactive,
         classe: 'w-infobulle' + (propre ? ' fr-btn--icon-only ' + classesIcone(icone) : '') + (opts.classe ? ' ' + opts.classe : ''), attrs: attrs });
@@ -10311,7 +10314,7 @@ function modeleAcl(titre, blocs, prefixe) {
         creer('tbody', {}, blocs.map(function (b) {
             return b.regles.map(function (r, i) {
                 var cond = r.condition ? creer('span', { classe: 's-acl__cond' }, [creer('code', { texte: r.condition }),
-                    boutonIcone('Copier la condition', 'file-copy-line', function () { return copierTexte(r.condition, null, 'Condition copiée : collez-la dans la ligne de la règle.'); }, { variante: 'discret', id: prefixe + 'C' + (k++) })])
+                    bouton('Copier', 'discret', iconeDispo(['file-copy-line', 'clipboard-line', 'file-copy-2-line', 'file-text-line']), function () { return copierTexte(r.condition, null, 'Condition copiée : collez-la dans la ligne de la règle.'); }, { petit: true, id: prefixe + 'C' + (k++), aria: 'Copier la condition ' + r.condition })])
                     : creer('span', { classe: 's-acl__autres', texte: 'Tous les autres' });
                 return creer('tr', { classe: i === 0 ? 's-acl__debut' : '' }, [
                     i === 0 ? creer('td', { classe: 's-acl__cols', attrs: { rowspan: String(b.regles.length) }, texte: b.colonnes }) : null,
