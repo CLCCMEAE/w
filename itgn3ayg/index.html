@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diplographiques</title>
+  <title>WuitGraphiques</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -280,7 +280,9 @@
       .w-bandeau__aide, .w-panneau-aide, .w-toast, .w-acces { display: none !important; }
       body.w-aide-ouverte { padding-right: 0; }
     }
-  </style>
+  
+  .w-wuit { color: var(--blue-france-main-525); }
+</style>
 </head>
 <body>
   <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
@@ -312,7 +314,7 @@
       <div class="w-bandeau__marque">
         <div id="bandeau-logo"></div>
         <div class="w-bandeau__sep"></div>
-        <h1 class="w-bandeau__titre" id="bandeauTitre">📊 Diplographiques</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+        <h1 class="w-bandeau__titre" id="bandeauTitre">📊 WuitGraphiques</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
       </div>
       <div class="w-bandeau__spacer"></div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
@@ -440,7 +442,7 @@ var SOCLE = {
     cle: "diplographiques",
     relancer: null,
     aide: {
-        "resume": "Diplographiques dessine des graphiques à partir de vos tables : barres, courbe, aires, camembert, anneau ou planning. Les graphiques se mettent à jour avec vos données, et des pages de consultation les montrent sans les réglages.",
+        "resume": "WuitGraphiques dessine des graphiques à partir de vos tables : barres, courbe, aires, camembert, anneau ou planning. Les graphiques se mettent à jour avec vos données, et des pages de consultation les montrent sans les réglages.",
         "fonctions": [
             "Choisir le type de graphique et la table",
             "Compter les lignes ou faire la somme, la moyenne, le minimum ou le maximum d'une colonne",
@@ -1559,7 +1561,7 @@ let couleursPerso = {};
 let derniereAgregation = null;
 let colonneCouleurActuelle = null;
 let elementCouleurEnCours = null;
-var VERSION_WIDGET = '1.3.2';
+var VERSION_WIDGET = '1.4.0';
 var HOMOLOGUE = false;
 let etatType = 'barres';
 let typeSuggere = null;
@@ -1826,7 +1828,7 @@ async function initialiser() {
             if (badge)
                 badge.hidden = !HOMOLOGUE;
         })();
-        logSecurite('INFO', 'Widget Diplographiques v' + VERSION_WIDGET + ' - initialisation terminée', { tables: tablesDisponibles.length });
+        logSecurite('INFO', 'Widget WuitGraphiques v' + VERSION_WIDGET + ' - initialisation terminée', { tables: tablesDisponibles.length });
     }
     catch (error) {
         masquerLoader();
@@ -3584,7 +3586,7 @@ function formulairePage() {
     return [
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', texte: 'Nom de la page', attrs: { 'for': 'gpNom' } }), nom,
             noeud('p', { classe: 'fr-error-text', id: 'gpNomErreur', attrs: { hidden: true } })]),
-        noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpTitreBandeau' } }, ['Titre du bandeau ', noeud('span', { classe: 'fr-hint-text', texte: 'Remplace « 📊 Diplographiques » en haut de la page. Laissé vide, le bandeau garde ce nom.' })]), titre]),
+        noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpTitreBandeau' } }, ['Titre du bandeau ', noeud('span', { classe: 'fr-hint-text', texte: 'Remplace « 📊 WuitGraphiques » en haut de la page. Laissé vide, le bandeau garde ce nom.' })]), titre]),
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpDesc' } }, ['Description ', noeud('span', { classe: 'fr-hint-text', texte: 'Facultative, affichée sous le nom de la page.' })]), desc]),
         choix, ordre, dispo, lect,
         noeud('div', { classe: 'gp-actions' }, [
@@ -6079,6 +6081,32 @@ async function supprimerRequete(idModele) {
         afficherErreur('Suppression impossible.', e);
     }
 }
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
