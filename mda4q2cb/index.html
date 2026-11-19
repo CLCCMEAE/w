@@ -48,7 +48,7 @@
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -325,12 +325,11 @@
       .w-barre-vue__commandes { margin-left: 0; justify-content: flex-start; }
     }
     .w-agrandi .w-bandeau, .w-agrandi .w-onglets, .w-agrandi .w-volet { display: none; }
-    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
-    .w-toast--succes { border-left-color: var(--border-plain-success); }
-    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
     @media print { .w-toast { display: none; } }
@@ -647,14 +646,14 @@
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.1';
+var VERSION_WIDGET = '1.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocalendrier';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOCALENDRIER';
@@ -1205,7 +1204,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les calendriers et leurs événements ne sont pas touchés.', 'Supprimer la page');
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les calendriers et leurs événements ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -2026,7 +2025,7 @@ function masquerLoader() {
 }
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function masquerErreur() { if (_toast.type === 'erreur') {
     fermerToast(true);
@@ -3308,7 +3307,9 @@ function fermerModale() {
         planifierRafraichissement();
     }
 }
-function confirmerAction(titre, message, libelleOui, saisieInitiale) {
+function confirmerAction(titre, message, libelleOui, opts) {
+    opts = opts || {};
+    var saisieInitiale = opts.saisie;
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -3328,7 +3329,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
         void ov.offsetHeight;
@@ -3343,7 +3346,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -3485,7 +3488,7 @@ function marquerInvalide(id, message, sansFocus) {
 }
 function signalerSaisie(message) {
     logSecurite('INFO', 'Saisie refusée : ' + message);
-    toast(message, { type: 'erreur', duree: 10000 });
+    toast(message, { type: 'erreur' });
 }
 function titreVolet(icone, texte, id, explication) {
     var a = explication ? aide(id, texte, explication) : null;
@@ -3577,7 +3580,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -3593,7 +3597,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -6954,18 +6958,25 @@ async function supprimerSuite(it, serie) {
     if (!ids.length) {
         return;
     }
-    var ok = await confirmerAction('Supprimer ' + pluriel(ids.length, 'occurrence') + ' ?', 'Cette occurrence de « ' + it.titre + ' » et les suivantes de la série seront supprimées de ' + libelleTable(c.table) + '. Les précédentes sont gardées.', 'Supprimer');
+    var ok = await confirmerAction('Supprimer ' + pluriel(ids.length, 'occurrence') + ' de « ' + it.titre + ' » ?', 'Cette occurrence et les suivantes de la série seront supprimées de ' + libelleTable(c.table) + '. Les précédentes sont gardées. Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true });
     if (!ok) {
         return;
     }
     try {
+        var copie = await copieLignes(c.table, ids);
         await agir([['BulkRemoveRecord', c.table, ids]]);
         if (etat.modaleOuverte) {
             _modale.surFermeture = null;
             fermerModale();
         }
         await rafraichirMaintenant(true);
-        afficherSucces(pluriel(ids.length, 'occurrence supprimée', 'occurrences supprimées') + '.');
+        var msg = pluriel(ids.length, 'occurrence supprimée', 'occurrences supprimées') + '.';
+        if (copie) {
+            toast(msg, { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () { return retablirLignes(c.table, copie, pluriel(ids.length, 'occurrence rétablie', 'occurrences rétablies') + '.'); } } });
+        }
+        else {
+            afficherSucces(msg);
+        }
     }
     catch (e) {
         afficherErreur('La suppression n\'a pas abouti. Vos droits ne le permettent peut-être pas.', e);
@@ -7196,7 +7207,7 @@ async function allerAuPlan(cle) {
     if (enCreation()) {
         if (creationCommencee()) {
             var ok = await confirmerAction('Abandonner la création ?', etat.brouillon.tablesCreees ? 'Le calendrier n\'est pas créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.'
-                : 'Rien n\'a été créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.', 'Abandonner');
+                : 'Rien n\'a été créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.', 'Abandonner', { destructif: true });
             if (!ok) {
                 var f = document.getElementById('pOngletNouveau');
                 if (f) {
@@ -7270,7 +7281,7 @@ function rendrePlan(zone) {
     var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'pVolet', attrs: { 'aria-label': 'Filtres' } });
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'pVoletContenu' });
     cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: 'Recherche et filtres' }),
-        bouton('Fermer le volet', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
+        bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
     if (peutAjouterEvenements()) {
         cont.appendChild(ajoutVolet('Ajouter un événement', ajouterEvenement, 'pAjouter'));
     }
@@ -7349,7 +7360,7 @@ function rendrePlan(zone) {
         cont.appendChild(blocAPlanifier());
     }
     if (etat.peutParametrer) {
-        cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce calendrier', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { id: 'pParametres' })]));
+        cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce calendrier', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'pParametres' })]));
     }
     cont.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimerPlan, id: 'pImprimer' },
@@ -7766,7 +7777,7 @@ function rendreInvalide(zone) {
     zone.appendChild(creer('div', { classe: 'w-centre' }, [titreVue('Le calendrier ne retrouve plus ses données'),
         creer('p', { classe: 'w-texte', texte: 'La table, la colonne du titre ou la colonne de date de ce calendrier n\'existe plus dans ce document, ou a été renommée.' }),
         etat.peutParametrer ? creer('div', { classe: 'w-form-info__actions' }, [bouton('Ouvrir les paramètres', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }),
-            bouton('Supprimer le calendrier', null, 'delete-line', supprimerPlan)])
+            bouton('Supprimer le calendrier', 'secondaire', 'delete-line', supprimerPlan, { classe: 'w-bouton-danger' })])
             : creer('p', { classe: 'w-texte', texte: 'Signalez-le à un propriétaire du document.' })]));
 }
 function rendreAucun(zone) {
@@ -8182,7 +8193,7 @@ function colonnesCopiables() {
 }
 async function supprimerItem(it, avant) {
     var c = etat.config;
-    var ok = await confirmerAction('Supprimer l\'événement ?', '« ' + it.titre + ' » sera supprimé de la table ' + libelleTable(c.table) + '. Vous pourrez l\'annuler par Ctrl + Z dans le document.', 'Supprimer');
+    var ok = await confirmerAction('Supprimer l\'événement « ' + it.titre + ' » ?', 'Il sera supprimé de la table ' + libelleTable(c.table) + '. Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true });
     if (!ok) {
         return false;
     }
@@ -8191,14 +8202,66 @@ async function supprimerItem(it, avant) {
     }
     afficherLoader('Suppression…');
     try {
+        var copie = await copieLignes(c.table, [it.id]);
         await agir([['RemoveRecord', c.table, it.id]]);
         masquerLoader();
+        if (copie) {
+            var titre = it.titre;
+            setTimeout(function () {
+                toast('Événement « ' + titre + ' » supprimé.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () { return retablirLignes(c.table, copie, 'Événement rétabli.'); } } });
+            }, 0);
+        }
         return true;
     }
     catch (e) {
         masquerLoader();
         afficherErreur('L\'événement n\'a pas pu être supprimé.', e);
         return false;
+    }
+}
+async function copieLignes(tid, ids) {
+    try {
+        var d = await lireTable(tid);
+        var cols = Object.keys(d).filter(function (col) {
+            if (col === 'id' || col.indexOf('gristHelper_') === 0) {
+                return false;
+            }
+            var info = infoColonne(tid, col);
+            return col === 'manualSort' || (info && !info.formule && !info.formuleVide);
+        });
+        var res = { ids: [], valeurs: {} };
+        cols.forEach(function (col) { res.valeurs[col] = []; });
+        ids.forEach(function (rid) {
+            var i = d.id.indexOf(rid);
+            if (i === -1) {
+                return;
+            }
+            res.ids.push(rid);
+            cols.forEach(function (col) { res.valeurs[col].push(d[col][i]); });
+        });
+        return res.ids.length ? res : null;
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Copie avant suppression', e);
+        return null;
+    }
+}
+async function retablirLignes(tid, copie, message) {
+    afficherLoader('Rétablissement…');
+    try {
+        try {
+            await agir([['BulkAddRecord', tid, copie.ids, copie.valeurs]]);
+        }
+        catch (e) {
+            await agir([['BulkAddRecord', tid, copie.ids.map(function () { return null; }), copie.valeurs]]);
+        }
+        masquerLoader();
+        await rafraichirMaintenant(true);
+        afficherSucces(message);
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur('La suppression n\'a pas pu être annulée. Vos droits ne le permettent peut-être pas.', e);
     }
 }
 async function apresSuppression() {
@@ -8565,7 +8628,7 @@ function ouvrirItem(it, focusId) {
             relayer(sauver(), 'Enregistrement à la fermeture');
             etat.itemOuvert = null;
         },
-        pied: [etat.peutModifier ? bouton('Supprimer', 'discret', 'delete-line', supprimer, { id: 'fdSupprimer', aria: 'Supprimer cet événement', classe: 'c-supprimer' }) : null, creer('span', { classe: 'w-pousse' }), statut] });
+        pied: [etat.peutModifier ? bouton('Supprimer l\'événement', 'discret', 'delete-line', supprimer, { id: 'fdSupprimer', classe: 'c-supprimer' }) : null, creer('span', { classe: 'w-pousse' }), statut] });
 }
 function valeursNouvelItem(jourMur, cleCouloir, heureMur) {
     var c = etat.config;
@@ -8836,7 +8899,7 @@ async function quitterParametrage() {
         await sauvegarderBrouillon();
         if (aChange(b)) {
             var raison = raisonNonEnregistrable(b);
-            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter');
+            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter', { destructif: true });
             if (!quitter) {
                 return false;
             }
@@ -8854,7 +8917,7 @@ async function annulerCreation() {
     var b = etat.brouillon;
     if (b && (b.cfg || b.tablesCreees)) {
         var ok = await confirmerAction('Abandonner la création ?', b.tablesCreees ? 'Le calendrier n\'est pas créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.'
-            : 'Rien n\'a été créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.', 'Abandonner');
+            : 'Rien n\'a été créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -8880,7 +8943,7 @@ async function proposerSuppressionTables(b) {
     var noms = l.map(function (t) { return '« ' + libelleTable(t) + ' »'; }).join(' et ');
     var plus = l.length > 1;
     var ok = await confirmerAction('Supprimer les tables créées ?', (plus ? 'Les tables ' : 'La table ') + noms + (plus ? ' ont été créées' : ' a été créée')
-        + ' pour le modèle choisi. ' + (plus ? 'Les supprimer' : 'La supprimer') + ' ? Les lignes qui y ont été saisies seront perdues.', 'Supprimer les tables');
+        + ' pour le modèle choisi. ' + (plus ? 'Les supprimer' : 'La supprimer') + ' ? Les lignes qui y ont été saisies seront perdues.', 'Supprimer les tables', { danger: true });
     if (ok) {
         try {
             await agir(l.map(function (t) { return ['RemoveTable', t]; }));
@@ -10444,7 +10507,7 @@ async function supprimerPlan() {
     var nbP = pagesDuPlan(etat.cleConfig).length;
     var ok = await confirmerAction('Supprimer le calendrier « ' + ((c && c.name) || '') + ' » ?', 'Le calendrier disparaît des onglets. '
         + (c && etat.meta.tables[c.table] ? 'Sa table « ' + libelleTable(c.table) + ' » et ses lignes restent dans le document.' : '')
-        + (nbP ? ' ' + (nbP > 1 ? nbP + ' pages de consultation le montrent : elles ne le montreront plus.' : 'Une page de consultation le montre : elle ne le montrera plus.') : ''), 'Supprimer le calendrier');
+        + (nbP ? ' ' + (nbP > 1 ? nbP + ' pages de consultation le montrent : elles ne le montreront plus.' : 'Une page de consultation le montre : elle ne le montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer le calendrier', { danger: true });
     if (!ok) {
         return;
     }
