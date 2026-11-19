@@ -804,6 +804,7 @@
     .s-sem__case:hover .s-sem__plus, .s-sem__case:focus-visible .s-sem__plus { display: inline-flex; }
     .s-sem__mien { position: relative; z-index: 1; font: inherit; font-size: .75rem; font-weight: 700; border: 0; padding: .125rem .375rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .s-sem__legende { margin: .5rem 0 0; }
+    .s-sem__autres { position: relative; z-index: 1; font-size: .75rem; font-weight: 700; color: var(--text-action-high-blue-france); }
     .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
     .s-dm { width: 100%; display: flex; gap: .75rem; align-items: center; text-align: left; font: inherit; cursor: pointer; padding: .75rem; border: 1px solid var(--border-active-blue-france); border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .s-dm:hover { background: var(--background-alt-blue-france-hover); }
@@ -875,7 +876,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.3';
+var VERSION_WIDGET = '1.1.4';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -7263,7 +7264,7 @@ function rendrePlan(zone) {
     if (estAgent()) {
         cont.appendChild(blocFiltresAgent());
     }
-    var mes = estConsoleAdmin() ? null : blocMesReservations();
+    var mes = null;
     if (mes) {
         cont.appendChild(mes);
     }
@@ -13702,12 +13703,6 @@ async function enregistrerReservation() {
             ids = ret2 && ret2.retValues && Array.isArray(ret2.retValues[0]) ? ret2.retValues[0] : [];
         }
         await rafraichirMaintenant();
-        await retenirMoi(ids);
-        var ancienMes = document.querySelector('#pVoletContenu .s-mes:not(.s-mes--valider)');
-        var nouveauMes = blocMesReservations();
-        if (ancienMes && nouveauMes) {
-            ancienMes.parentNode.replaceChild(nouveauMes, ancienMes);
-        }
         var depasse = await controlerLimitePersonne(ids);
         if (depasse) {
             masquerLoader();
@@ -14526,27 +14521,6 @@ function allerDerniereMinute() {
     }
     annoncer('Salles libres maintenant.');
 }
-function moiCourant() {
-    var m = lireStockage('moi');
-    return typeof m === 'string' && m ? m : null;
-}
-async function retenirMoi(ids) {
-    var c = etat.config;
-    if (!ids || !ids.length || !infoColonne(c.table, 'CREE_PAR')) {
-        return;
-    }
-    try {
-        var d = await lireTable(c.table);
-        var i = d && d.id ? d.id.indexOf(ids[0]) : -1;
-        var q = i === -1 ? null : valeurCellule(colonneDe(d, 'CREE_PAR', i));
-        if (typeof q === 'string' && q) {
-            ecrireStockage('moi', q);
-        }
-    }
-    catch (e) {
-        logSecurite('INFO', 'Auteur de la réservation non relu', e);
-    }
-}
 function ligneReservationVolet(it, id) {
     var c = etat.config;
     var s = salleParCle(it.couloirs[0]);
@@ -14559,29 +14533,6 @@ function ligneReservationVolet(it, id) {
     ]);
     bt.addEventListener('click', function () { ouvrirItem(it, null); });
     return creer('li', {}, [bt]);
-}
-function blocMesReservations() {
-    var c = etat.config;
-    if (!infoColonne(c.table, 'CREE_PAR')) {
-        return null;
-    }
-    var moi = moiCourant();
-    var maint = maintenantMur(fuseauPlan(c));
-    var bloc = creer('section', { classe: 'w-volet__bloc s-mes', attrs: { 'aria-labelledby': 'pMesT' } }, [titreVolet('calendar-2-line', 'Mes réservations', 'pMesT', null)]);
-    if (!moi) {
-        bloc.appendChild(creer('p', { classe: 'w-mention fr-mb-0', texte: 'Vos réservations apparaîtront ici après votre première réservation.' }));
-        return bloc;
-    }
-    var mes = etat.items.filter(function (it) { return it.s !== null && it.e > maint && !statutInactif(it) && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi; }).sort(function (a, b) { return a.s - b.s; });
-    if (!mes.length) {
-        bloc.appendChild(creer('p', { classe: 'w-mention fr-mb-0', texte: 'Aucune réservation à venir.' }));
-        return bloc;
-    }
-    bloc.appendChild(creer('ul', { classe: 's-mes__liste' }, mes.slice(0, 5).map(function (it, k) { return ligneReservationVolet(it, 'pMes' + k); })));
-    if (mes.length > 5) {
-        bloc.appendChild(creer('p', { classe: 'w-mention fr-mb-0', texte: 'Et ' + pluriel(mes.length - 5, 'autre') + '.' }));
-    }
-    return bloc;
 }
 function blocAValider() {
     var c = etat.config;
@@ -14750,8 +14701,7 @@ function appliquerOngletAdmin() {
 function ouvrirFicheAgent(it) {
     var c = etat.config;
     var s = salleParCle(it.couloirs[0]);
-    var moi = moiCourant();
-    var mienne = moi && infoColonne(c.table, 'CREE_PAR') && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi;
+    var mienne = true;
     var st = texteStatut(it);
     var sv = statutsDe(c);
     var dl = creer('dl', { classe: 'w-recap__liste' });
@@ -14761,6 +14711,11 @@ function ouvrirFicheAgent(it) {
     } };
     ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
     ajout('Créneau', texteCreneau(it.s, it.e));
+    var colQ = c.colDemandeur && infoColonne(c.table, c.colDemandeur) ? c.colDemandeur : (infoColonne(c.table, 'CREE_PAR') ? 'CREE_PAR' : null);
+    if (colQ) {
+        var q = valeurCellule(valeurLigne(it.i, colQ));
+        ajout('Réservé par', q === null || q === undefined ? '' : String(q));
+    }
     if (mienne) {
         ajout('Statut', st);
         formulaireDe(c).demandes.forEach(function (x) {
@@ -14784,10 +14739,10 @@ function ouvrirFicheAgent(it) {
             corps.push(creer('p', { classe: 'w-mention', texte: 'Il est trop tard pour annuler ici : prévenez un gestionnaire.' }));
         }
         else {
-            pied.unshift(bouton('Annuler ma réservation', 'tertiaire', 'calendar-close-line', function () { fermerModale(); return changerStatut(it, sv.annulee, 'annulee'); }, { id: 'fAnnulerResa' }));
+            pied.unshift(bouton('Annuler la réservation', 'tertiaire', 'calendar-close-line', function () { fermerModale(); return changerStatut(it, sv.annulee, 'annulee'); }, { id: 'fAnnulerResa' }));
         }
     }
-    ouvrirModale({ titre: mienne ? it.titre || 'Ma réservation' : (s ? s.nom : 'Salle') + ' : réservée', laterale: true, corps: corps, pied: pied, fermerDehors: true });
+    ouvrirModale({ titre: it.titre || (s ? s.nom : 'Réservation'), laterale: true, corps: corps, pied: pied, fermerDehors: true });
 }
 function rendreSemaineAgent() {
     var c = etat.config;
@@ -14807,8 +14762,11 @@ function rendreSemaineAgent() {
     var h0 = Math.floor(rH.ouverture), h1 = Math.ceil(rH.fermeture);
     var salles = sallesFiltreesAgent();
     var unique = salles.length === 1;
-    var moi = moiCourant();
-    var mesResa = moi && infoColonne(c.table, 'CREE_PAR') ? etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi; }) : [];
+    var clesSalles = salles.map(function (s) { return s.cle; });
+    var colQui = c.colDemandeur && infoColonne(c.table, c.colDemandeur) ? c.colDemandeur : (infoColonne(c.table, 'CREE_PAR') ? 'CREE_PAR' : null);
+    var quiDe = function (it) { var q = colQui ? valeurCellule(valeurLigne(it.i, colQui)) : ''; q = q === null || q === undefined ? '' : String(q); return q.indexOf('@') !== -1 ? q.split('@')[0].replace(/[._]/g, ' ') : q; };
+    var resas = etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && clesSalles.indexOf(it.couloirs[0]) !== -1; });
+    var premiereHeure = function (w) { return w + h0 * HEURE; };
     var zone = creer('div', { classe: 's-sem', id: 'sSemaine' });
     var grille = creer('div', { classe: 's-sem__grille', attrs: { role: 'grid', 'aria-label': 'Salles libres de la semaine' } });
     grille.style.gridTemplateColumns = '3.5rem repeat(' + jours.length + ', minmax(0, 1fr))';
@@ -14829,8 +14787,16 @@ function rendreSemaineAgent() {
             var passe = e0 <= maint;
             var ferme = !!fermetureDuJour(w, r, null) || h < rH.ouverture - 0.001 && h + 1 <= rH.ouverture || h >= rH.fermeture;
             var cell;
-            var mien = mesResa.filter(function (it) { return it.s < e0 && it.e > s0; });
-            var chips = mien.map(function (it) { var sl = salleParCle(it.couloirs[0]); return creer('button', { classe: 's-sem__mien', attrs: { type: 'button', title: 'Ma réservation : ' + (sl ? sl.nom : '') + ', ' + texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) }, texte: (sl ? sl.nom : 'Ma réservation') + ' · ' + texteHeureMur(it.s), clic: function (e) { e.stopPropagation(); ouvrirItem(it); } }); });
+            var ici = resas.filter(function (it) { var d = Math.max(it.s, premiereHeure(w)); return d >= s0 && d < e0 && it.e > s0; }).sort(function (a, b) { return a.s - b.s; });
+            var chips = ici.slice(0, 3).map(function (it) {
+                var sl = salleParCle(it.couloirs[0]);
+                var qui = quiDe(it);
+                var lib = (sl ? sl.nom : '') + ' · ' + texteHeureMur(it.s) + '-' + texteHeureMur(it.e) + (qui ? ' · ' + qui : '');
+                return creer('button', { classe: 's-sem__mien', attrs: { type: 'button', title: lib + (it.titre ? ' : ' + it.titre : '') }, texte: lib, clic: function (e) { e.stopPropagation(); ouvrirItem(it); } });
+            });
+            if (ici.length > 3) {
+                chips.push(creer('span', { classe: 's-sem__autres', texte: '+' + (ici.length - 3), attrs: { title: ici.slice(3).map(function (it) { var sl = salleParCle(it.couloirs[0]); return (sl ? sl.nom : '') + ' ' + texteHeureMur(it.s) + '-' + texteHeureMur(it.e) + (quiDe(it) ? ' · ' + quiDe(it) : ''); }).join(', ') } }));
+            }
             if (passe || ferme) {
                 cell = creer('div', { classe: 's-sem__case s-sem__case--passe', attrs: { role: 'gridcell', 'aria-label': JOURS_NOMS[rangJour(w)] + ' ' + deux(h) + ':00 : ' + (ferme ? 'fermé' : 'passé') } }, chips);
             }
@@ -14840,7 +14806,7 @@ function rendreSemaineAgent() {
                 var ratio = salles.length ? libres / salles.length : 0;
                 var texte = unique ? (libres ? salles[0].nom + ' libre' : salles[0].nom + ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle ne correspond'));
                 cell = creer('button', { classe: 's-sem__case' + (libres ? '' : ' s-sem__case--complet'), attrs: { type: 'button', role: 'gridcell', 'aria-label': majusculeInitiale(JOURS_NOMS[rangJour(w)]) + ' ' + texteMur(w, false) + ', ' + texteHeureMur(debut) + ' : ' + texte + '. Réserver.' } },
-                    [creer('span', { classe: 's-sem__libres', texte: unique ? (libres ? 'Libre' : 'Prise') : (libres ? pluriel(libres, 'libre') : (salles.length ? 'Complet' : '-')) }),
+                    [creer('span', { classe: 's-sem__libres', texte: unique ? salles[0].nom + (libres ? ' libre' : ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle')) }),
                         creer('span', { classe: 's-sem__plus fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })].concat(chips));
                 cell.style.setProperty('--s-taux', String(ratio));
                 (function (d) { cell.addEventListener('click', function () { ouvrirCreneau(d); }); })(debut);
@@ -14849,7 +14815,6 @@ function rendreSemaineAgent() {
         });
     }
     zone.appendChild(grille);
-    zone.appendChild(creer('p', { classe: 'w-mention s-sem__legende', texte: 'Chaque case indique le nombre de salles libres. Cliquez sur une case pour réserver.' }));
     setTimeout(ajusterHauteurSemaine, 0);
     return zone;
 }
