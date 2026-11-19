@@ -836,6 +836,15 @@
     .s-sem__mien { position: relative; z-index: 1; font: inherit; font-size: .75rem; font-weight: 700; border: 0; padding: .125rem .375rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .s-sem__legende { margin: .5rem 0 0; }
     .s-sem__autres { position: relative; z-index: 1; font-size: .75rem; font-weight: 700; color: var(--text-action-high-blue-france); }
+    .s-sem__case--cible { outline: 3px solid var(--border-plain-success); outline-offset: -3px; background: var(--background-contrast-success); }
+    .s-sem__case--cible .s-sem__libres { color: var(--text-default-success); font-weight: 700; }
+    .s-jr__cible { position: absolute; left: 3px; right: 3px; display: flex; align-items: center; justify-content: center; gap: .25rem; border: 2px solid var(--border-plain-success); background: var(--background-contrast-success); color: var(--text-default-success); font-size: .75rem; font-weight: 700; z-index: 2; cursor: pointer; }
+    .s-jr__cible:hover { background: var(--background-action-low-success, var(--background-contrast-success-hover)); }
+    .s-recherche-msg { margin-top: .75rem; }
+    .s-recherche-msg .fr-btn { margin-top: .5rem; }
+    .s-titre-nav { display: inline-flex; align-items: center; gap: .25rem; }
+    .s-cases-eq { margin: 0; }
+    .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
     .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
     .s-dm { width: 100%; display: flex; gap: .75rem; align-items: center; text-align: left; font: inherit; cursor: pointer; padding: .75rem; border: 1px solid var(--border-active-blue-france); border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .s-dm:hover { background: var(--background-alt-blue-france-hover); }
@@ -907,7 +916,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.5';
+var VERSION_WIDGET = '1.1.6';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -5575,8 +5584,18 @@ function titrePeriode() {
     return majusculeInitiale(MOIS_LONGS[p.m]) + ' ' + p.a;
 }
 function majusculeInitiale(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+function oublierDateAgent() {
+    if (etat.v && etat.v.filtres && etat.v.filtres.agentDate) {
+        etat.v.filtres.agentDate = '';
+        var e = document.getElementById('pAgDate');
+        if (e) {
+            e.value = '';
+        }
+    }
+}
 function deplacerPeriode(sens) {
     var v = etat.v;
+    oublierDateAgent();
     if (v.mode === 'jour' || v.mode === 'occupation') {
         v.date += sens * JOUR;
         if (v.ouvres || (v.mode === 'occupation' && !reglesDe(etat.config).jours[5] && !reglesDe(etat.config).jours[6])) {
@@ -5597,6 +5616,7 @@ function deplacerPeriode(sens) {
     annoncer(titrePeriode() + '.');
 }
 function allerAuJour(w, annonce) {
+    oublierDateAgent();
     etat.v.date = Math.floor(w / JOUR) * JOUR;
     memoriserEtatVue();
     redessinerTimeline(true);
@@ -6513,11 +6533,6 @@ function barreNavigation() {
     if (permises.length < 2) {
         seg.hidden = true;
     }
-    if (estAgent()) {
-        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) { if (b.id === 'pVue_libres') {
-            b.hidden = true;
-        } });
-    }
     var aller = saisie('pAller', dateVersSaisie(v.date), { type: 'date' });
     aller.classList.add('c-aller__champ');
     aller.setAttribute('tabindex', '-1');
@@ -6544,13 +6559,15 @@ function barreNavigation() {
         aller.classList.add('c-aller__champ--visible');
         aller.focus();
     });
+    var sansNav = ['list', 'salles', 'libres', 'stats'].indexOf(v.mode) !== -1;
     var nav = creer('div', { classe: 'gp-outils__groupe c-nav' }, [
-        boutonIcone('Période précédente', 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }),
-        bouton('Aujourd\'hui', 'secondaire', null, function () { allerAuJour(aujourdhuiMur(fuseauPlan(etat.config)), true); }, { petit: true, id: 'pAujourdhui' }),
-        boutonIcone('Période suivante', 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' })
+        bouton('Aujourd\'hui', 'secondaire', null, function () { allerAuJour(aujourdhuiMur(fuseauPlan(etat.config)), true); }, { petit: true, id: 'pAujourdhui' })
     ]);
-    nav.hidden = ['list', 'salles', 'libres', 'stats'].indexOf(v.mode) !== -1;
-    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre'] : [creer('span', { classe: 'c-aller' }, [periode, aller])]));
+    nav.hidden = sansNav;
+    var libellesPer = { jour: ['Jour précédent', 'Jour suivant'], semaine: ['Semaine précédente', 'Semaine suivante'], mois: ['Mois précédent', 'Mois suivant'] }[v.mode] || ['Période précédente', 'Période suivante'];
+    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
+        : [creer('span', { classe: 's-titre-nav' }, [boutonIcone(libellesPer[0], 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }), creer('span', { classe: 'c-aller' }, [periode, aller]),
+            boutonIcone(libellesPer[1], 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' })])]));
     return { vues: seg, nav: nav, titre: titre };
 }
 function choisirVue(m) {
@@ -7288,15 +7305,8 @@ function rendrePlan(zone) {
     var replie = voletReplie();
     var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'pVolet', attrs: { 'aria-label': 'Filtres' } });
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'pVoletContenu' });
-    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: 'Réserver et suivre' }),
+    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: estAgent() ? 'Trouver une salle' : 'Réserver et suivre' }),
         bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
-    if (peutAjouterEvenements() && !estConsoleAdmin()) {
-        cont.appendChild(ajoutVolet('Réserver une salle', allerRecherche, 'pAjouter'));
-        var dm = tuileDerniereMinute();
-        if (dm) {
-            cont.appendChild(dm);
-        }
-    }
     if (estAgent()) {
         cont.appendChild(blocFiltresAgent());
     }
@@ -7434,15 +7444,7 @@ function rendrePlan(zone) {
 }
 function barreOutils() {
     var nav = barreNavigation();
-    var occ = etat.v.mode === 'occupation';
-    var aideCal = aide('cAideCal', 'utiliser le planning', occ
-        ? (etat.peutModifier ? 'Chaque ligne est une salle, de l\'ouverture à la fermeture. Cliquez sur un créneau libre pour réserver la salle à cette heure, sur une réservation pour la voir, la valider ou l\'annuler. Les zones grisées sont hors des heures de réservation.'
-            : 'Chaque ligne est une salle, de l\'ouverture à la fermeture. Cliquez sur une réservation pour la voir.')
-        : (etat.peutModifier ? 'Survolez un jour pour lire toutes ses réservations. Cliquez sur une heure libre pour réserver. Glissez une réservation pour la déplacer, le bas d\'un bloc pour changer sa fin. Au clavier : flèches entre les jours, Entrée pour la loupe, Page suivante et précédente pour changer de période.'
-            : 'Survolez un jour pour lire toutes ses réservations. Au clavier : flèches entre les jours, Entrée pour la loupe, Page suivante et précédente pour changer de période.'), true);
-    return barreVue(nav.titre, [], [nav.nav, nav.vues,
-        boutonPleinEcran(),
-        creer('span', { classe: 'w-champ-aide c-ligne__aide' }, [aideCal.bouton, aideCal.panneau])]);
+    return barreVue(nav.titre, [], [nav.nav, nav.vues]);
 }
 function ajouterEvenement() {
     var v = etat.v;
@@ -7551,13 +7553,6 @@ function majPrincipal() {
     var dmZone = document.getElementById('pDmZone');
     if (dmZone) {
         dmZone.remove();
-    }
-    if (v.mode === 'occupation' && v.date === aujourdhuiMur(fuseauPlan(c))) {
-        var bdm = bandeauDerniereMinute();
-        if (bdm) {
-            bdm.id = 'pDmZone';
-            zoneP.parentNode.insertBefore(bdm, zoneP);
-        }
     }
     if (!etat.tl || !zoneP.contains(etat.tl.racine)) {
         vider(zoneP);
@@ -14529,6 +14524,22 @@ function ouvrirConfirmation(pre) {
 }
 function allerRecherche(garder) {
     var v = etat.v;
+    if (estAgent()) {
+        var cA = etat.config;
+        var tzA = fuseauPlan(cA);
+        var aujA = aujourdhuiMur(tzA);
+        var jA = v && v.date > aujA ? Math.floor(v.date / JOUR) * JOUR : aujA;
+        if (garder === true && v.libres) {
+            jA = typeof v.libres.quand === 'number' ? v.libres.quand : (v.libres.quand === 'demain' ? aujA + JOUR : aujA);
+        }
+        var rA = reglesDe(cA);
+        var debA = jA === aujA ? Math.ceil(maintenantMur(tzA) / (rA.pas * 60)) * rA.pas * 60 : jA + rA.ouverture * HEURE;
+        if (debA > jA + rA.fermeture * HEURE - rA.pas * 60) {
+            jA = prochainJourOuvert(cA, jA + JOUR);
+            debA = jA + rA.ouverture * HEURE;
+        }
+        return ouvrirCreneau(debA);
+    }
     etatRecherche();
     if (v.libres.quand === 'maintenant' && garder !== true) {
         v.libres.quand = 'auj';
@@ -14546,6 +14557,10 @@ function allerRecherche(garder) {
 }
 function allerDerniereMinute() {
     var v = etat.v;
+    if (estAgent()) {
+        var tzD = fuseauPlan(etat.config);
+        return ouvrirCreneau(Math.ceil(maintenantMur(tzD) / (reglesDe(etat.config).pas * 60)) * reglesDe(etat.config).pas * 60);
+    }
     etatRecherche();
     v.libres.quand = 'maintenant';
     v.mode = 'libres';
@@ -14591,7 +14606,7 @@ function blocAValider() {
 function estAgent() { return !!etat.page || !etat.peutParametrer; }
 function vuesPermises() {
     if (estAgent()) {
-        return ['jour', 'semaine', 'mois', 'libres'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
+        return ['jour', 'semaine', 'mois'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
     }
     if (estConsoleAdmin()) {
         return etat.v && etat.v.mode === 'stats' ? VUES_CALENDRIER.filter(function (x) { return x.id === 'stats'; })
@@ -14615,8 +14630,17 @@ function ouvrirCreneau(debut) {
         debut = prochain;
     }
     var fa = etat.v && etat.v.filtres ? etat.v.filtres : {};
-    etat.creneau = { quand: jour, heure: 'precise', de: Math.round((debut - jour) / 60), duree: 60, nb: fa.agentNb || '', equip: Array.isArray(fa.agentEquip) ? fa.agentEquip.slice() : [], repeter: false };
+    etat.creneau = { quand: jour, heure: 'precise', de: Math.round((debut - jour) / 60), duree: dureeAgent(), nb: fa.agentNb || '', equip: Array.isArray(fa.agentEquip) ? fa.agentEquip.slice() : [], repeter: false };
     rendreCreneau(null);
+}
+function casesEquipements(prefixe, liste, coches, surChange) {
+    var fs = creer('fieldset', { classe: 'fr-fieldset s-cases-eq', attrs: { 'aria-labelledby': prefixe + 'Leg' } }, [creer('legend', { classe: 'fr-fieldset__legend fr-text--regular', id: prefixe + 'Leg', texte: 'Il me faut' })]);
+    liste.forEach(function (x, k) {
+        var cb = creer('input', { attrs: { type: 'checkbox', id: prefixe + k }, coche: coches.indexOf(x) !== -1 });
+        cb.addEventListener('change', function () { surChange(cb.checked ? coches.concat([x]) : coches.filter(function (y) { return y !== x; })); });
+        fs.appendChild(creer('div', { classe: 'fr-fieldset__element' }, [creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': prefixe + k }, texte: x })])]));
+    });
+    return fs;
 }
 function rendreCreneau(focusId) {
     var L = etat.creneau;
@@ -14638,25 +14662,18 @@ function rendreCreneau(focusId) {
     var hd = liste('cHeure', heures, String(L.de));
     hd.addEventListener('change', function () { L.de = parseInt(hd.value, 10); refaire('cHeure'); });
     var du = selectValeurs('cDuree', durees, L.duree, function (m) { return texteDuree(m, L.de, r); }, function (v) { L.duree = v; refaire('cDuree'); });
-    var nb = saisie('cNb', L.nb, { type: 'number', clavier: 'numeric' });
-    nb.setAttribute('min', '1');
-    nb.addEventListener('change', function () { L.nb = nb.value; refaire('cNb'); });
+    var aujC = aujourdhuiMur(fuseauPlan(c));
+    var jourC = saisie('cJour', dateVersSaisie(L.quand), { type: 'date' });
+    jourC.setAttribute('min', dateVersSaisie(aujC));
+    jourC.addEventListener('change', function () { var w = saisieVersDate(jourC.value); if (w !== null && w >= aujC) {
+        L.quand = w;
+        refaire('cJour');
+    } });
     var res = creer('div', { classe: 's-resultats', attrs: { 'aria-live': 'polite' } });
     remplirResultats(res, L);
-    var corps = [creer('div', { id: 'cCreneau', attrs: { tabindex: '-1' } }, [creer('p', { classe: 's-creneau-jour', texte: majusculeInitiale(texteJourLong(L.quand)) })]),
-        creer('div', { classe: 's-grille3' }, [groupeChamp('À', hd), groupeChamp('Pendant', du), groupeChamp('Personnes', nb)]), res];
-    var pied = [bouton('Annuler', 'secondaire', null, fermerModale, { id: 'cAnnuler' }), creer('span', { classe: 'w-pousse' }),
-        bouton('Plus de critères', 'tertiaire', 'search-line', function () {
-            var v = etat.v;
-            etatRecherche();
-            v.libres.quand = L.quand;
-            v.libres.heure = 'precise';
-            v.libres.de = L.de;
-            v.libres.duree = L.duree;
-            v.libres.nb = L.nb;
-            fermerModale();
-            allerRecherche(true);
-        }, { id: 'cRecherche' })];
+    var corps = [creer('div', { id: 'cCreneau', attrs: { tabindex: '-1' } }, [creer('div', { classe: 's-grille2' }, [groupeChamp('Jour', jourC), groupeChamp('À', hd)])]),
+        creer('div', { classe: 's-grille2' }, [groupeChamp('Pendant', du)]), res];
+    var pied = [bouton('Annuler', 'secondaire', null, fermerModale, { id: 'cAnnuler' })];
     if (etat.modaleOuverte && document.getElementById('cCreneau')) {
         var zc = document.getElementById('wModaleCorps');
         vider(zc);
@@ -14667,7 +14684,7 @@ function rendreCreneau(focusId) {
         }
         return;
     }
-    ouvrirModale({ titre: 'Choisir une salle', laterale: true, corps: corps, pied: pied, focus: focusId || 'cHeure', surFermeture: function () { etat.creneau = null; } });
+    ouvrirModale({ titre: 'Réserver une salle', laterale: true, corps: corps, pied: pied, focus: focusId || 'cHeure', surFermeture: function () { etat.creneau = null; } });
 }
 function estConsoleAdmin() { return !etat.page && etat.peutParametrer && !!etat.config && !enCreation(); }
 function ongletAdminCourant() {
@@ -14838,21 +14855,45 @@ function rendreSemaineAgent() {
             }
             else {
                 var debut = Math.max(s0, Math.ceil(maint / (r.pas * 60)) * r.pas * 60);
-                var libres = salles.filter(function (s) { return salleLibrePour(s, [{ s: debut, e: Math.min(e0, debut + HEURE) }]).libre; }).length;
+                var cible = v.cible && v.cible.debut >= s0 && v.cible.debut < e0 && clesSalles.indexOf(v.cible.salle) !== -1 ? v.cible : null;
+                if (cible) {
+                    debut = cible.debut;
+                }
+                var dureeS = dureeAgent() * 60;
+                var libres = salles.filter(function (s) { return salleLibrePour(s, [{ s: debut, e: debut + dureeS }]).libre; }).length;
                 var ratio = salles.length ? libres / salles.length : 0;
                 var texte = unique ? (libres ? salles[0].nom + ' libre' : salles[0].nom + ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle ne correspond'));
-                cell = creer('button', { classe: 's-sem__case' + (libres ? '' : ' s-sem__case--complet'), attrs: { type: 'button', role: 'gridcell', 'aria-label': majusculeInitiale(JOURS_NOMS[rangJour(w)]) + ' ' + texteMur(w, false) + ', ' + texteHeureMur(debut) + ' : ' + texte + '. Réserver.' } },
-                    [creer('span', { classe: 's-sem__libres', texte: unique ? salles[0].nom + (libres ? ' libre' : ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle')) }),
+                var tropTard = !libres && debut + dureeS > w + rH.fermeture * HEURE;
+                if (tropTard) {
+                    texte = 'Fermeture à ' + texteHeure(rH.fermeture);
+                }
+                var texteCase = cible ? 'Libre à ' + texteHeureMur(cible.debut) : tropTard ? texte : (unique ? salles[0].nom + (libres ? ' libre' : ' prise') : (libres ? pluriel(libres, 'salle libre', 'salles libres') : (salles.length ? 'Complet' : 'Aucune salle')));
+                cell = creer('button', { classe: 's-sem__case' + (libres ? '' : ' s-sem__case--complet') + (cible ? ' s-sem__case--cible' : ''), id: cible ? 'sCible' : null, attrs: { type: 'button', role: 'gridcell', 'aria-label': majusculeInitiale(JOURS_NOMS[rangJour(w)]) + ' ' + texteMur(w, false) + ', ' + texteHeureMur(debut) + ' : ' + (cible ? 'premier créneau libre' : texte) + '. Réserver.' } },
+                    [creer('span', { classe: 's-sem__libres', texte: texteCase }),
                         creer('span', { classe: 's-sem__plus fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })].concat(chips));
                 cell.style.setProperty('--s-taux', String(ratio));
-                (function (d) { cell.addEventListener('click', function () { ouvrirCreneau(d); }); })(debut);
+                (function (d, cb, sUnique, libre) { cell.addEventListener('click', function () {
+                    if (cb) {
+                        return ouvrirConfirmation({ salle: cb.salle, debut: cb.debut, fin: cb.fin });
+                    }
+                    if (sUnique && libre) {
+                        return ouvrirConfirmation({ salle: sUnique.cle, debut: d, fin: d + dureeS });
+                    }
+                    ouvrirCreneau(d);
+                }); })(debut, cible, unique ? salles[0] : null, libres > 0);
             }
             grille.appendChild(cell);
         });
     }
     zone.appendChild(grille);
-    setTimeout(ajusterHauteurSemaine, 0);
+    setTimeout(function () { ajusterHauteurSemaine(); montrerCible(); }, 0);
     return zone;
+}
+function montrerCible() {
+    var e = document.getElementById('sCible');
+    if (e && e.scrollIntoView) {
+        e.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
 }
 function ajusterHauteurSemaine() {
     var z = document.getElementById('sSemaine');
@@ -14880,57 +14921,148 @@ function sallesFiltreesAgent() {
         return eq.every(function (x) { return s.equipements.indexOf(x) !== -1 || (x === 'Visioconférence' && s.visio); });
     });
 }
+function dureeAgent() {
+    var f = etat.v && etat.v.filtres ? etat.v.filtres : {};
+    return typeof f.agentDuree === 'number' && f.agentDuree > 0 ? f.agentDuree : 60;
+}
+function criteresAgentActifs(f) {
+    return !!(String(f.agentNb || '').trim() || (f.agentEquip || []).length || f.batiment || f.couloir || (typeof f.agentDuree === 'number' && f.agentDuree !== 60));
+}
+function premierCreneauLibre(salles, depuis, dureeMin, jusqua) {
+    var c = etat.config;
+    var r = reglesDe(c);
+    var pas = r.pas * 60;
+    var d = dureeMin * 60;
+    var maint = maintenantMur(fuseauPlan(c));
+    var min = Math.max(depuis, Math.ceil(maint / pas) * pas);
+    for (var j = Math.floor(min / JOUR) * JOUR; j <= jusqua; j += JOUR) {
+        var mieux = null;
+        salles.forEach(function (s) {
+            var propres = reglesPropres(c, s.cle);
+            if (fermetureDuJour(j, r, propres)) {
+                return;
+            }
+            var hj = horairesDuJour(r, rangJour(j), propres);
+            if (!hj || hj.f <= hj.o) {
+                return;
+            }
+            var t0 = Math.max(j + hj.o * HEURE, min);
+            t0 = j + Math.ceil((t0 - j) / pas) * pas;
+            for (var t = t0; t + d <= j + hj.f * HEURE && (!mieux || t < mieux.debut); t += pas) {
+                if (salleLibrePour(s, [{ s: t, e: t + d }]).libre) {
+                    mieux = { salle: s.cle, debut: t, fin: t + d };
+                    break;
+                }
+            }
+        });
+        if (mieux) {
+            return mieux;
+        }
+    }
+    return null;
+}
+function texteCibleAgent(cb) {
+    var s = salleParCle(cb.salle);
+    return texteJourLong(Math.floor(cb.debut / JOUR) * JOUR) + ' à ' + texteHeureMur(cb.debut) + (s ? ', ' + s.nom : '');
+}
+function appliquerRechercheAgent(focusId) {
+    var v = etat.v;
+    var f = v.filtres;
+    var tz = fuseauPlan(etat.config);
+    var auj = aujourdhuiMur(tz);
+    var horizon = 120 * JOUR;
+    f.agentMsg = null;
+    v.cible = null;
+    var date = typeof f.agentDate === 'number' && f.agentDate >= auj ? f.agentDate : null;
+    if (date === null) {
+        f.agentDate = '';
+    }
+    var salles = sallesFiltreesAgent();
+    if (date === null && !criteresAgentActifs(f)) {
+        v.mode = 'jour';
+        v.date = auj;
+    }
+    else if (!salles.length) {
+        f.agentMsg = messageAucuneSalle(f);
+        if (date !== null) {
+            v.mode = 'jour';
+            v.date = date;
+        }
+    }
+    else if (date !== null) {
+        v.mode = 'jour';
+        v.date = date;
+        v.cible = premierCreneauLibre(salles, date, dureeAgent(), date);
+        if (!v.cible) {
+            var ensuite = premierCreneauLibre(salles, date + JOUR, dureeAgent(), date + horizon);
+            f.agentMsg = ensuite ? { texte: 'Rien de libre ce jour-là. Prochain créneau : ' + texteCibleAgent(ensuite) + '.', libelle: 'Voir ce jour', action: function () { f.agentDate = Math.floor(ensuite.debut / JOUR) * JOUR; appliquerRechercheAgent('pAgDate'); } }
+                : { texte: 'Rien de libre ce jour-là, ni dans les 4 mois qui suivent.' };
+        }
+    }
+    else {
+        v.cible = premierCreneauLibre(salles, 0, dureeAgent(), auj + horizon);
+        if (v.cible) {
+            v.mode = 'semaine';
+            v.date = Math.floor(v.cible.debut / JOUR) * JOUR;
+        }
+        else {
+            f.agentMsg = { texte: 'Aucun créneau libre dans les 4 prochains mois.' };
+        }
+    }
+    memoriserEtatVue();
+    afficherVue('plan', true);
+    var n = focusId ? document.getElementById(focusId) : null;
+    if (n) {
+        n.focus();
+    }
+    annoncer(f.agentMsg ? f.agentMsg.texte : (v.cible ? 'Premier créneau libre : ' + texteCibleAgent(v.cible) + '.' : titrePeriode() + '.'));
+}
+function messageAucuneSalle(f) {
+    var candidates = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
+    var nb = /^\d+$/.test(String(f.agentNb || '').trim()) ? parseInt(f.agentNb, 10) : null;
+    var cap = candidates.filter(function (s) { return s.capacite !== null; }).sort(function (a, b) { return b.capacite - a.capacite; });
+    if (nb !== null && cap.length && cap[0].capacite < nb) {
+        var g = cap[0];
+        return { texte: 'Aucune salle ne compte ' + nb + ' places. La plus grande : ' + g.nom + ', ' + pluriel(g.capacite, 'place') + '.', libelle: 'Voir ' + g.nom,
+            action: function () { f.agentNb = ''; f.couloir = g.cle; appliquerRechercheAgent('pAgSalle'); } };
+    }
+    if ((f.agentEquip || []).length) {
+        return { texte: f.agentEquip.length > 1 ? 'Aucune salle n\'a tout cet équipement.' : 'Aucune salle n\'a cet équipement.' };
+    }
+    return { texte: 'Aucune salle ne correspond.' };
+}
 function blocFiltresAgent() {
     var v = etat.v;
     var f = v.filtres;
     if (!Array.isArray(f.agentEquip)) {
         f.agentEquip = [];
     }
-    var maj = function (id) { setTimeout(function () {
-        if (v.mode === 'semaine') {
-            redessinerTimeline();
-        }
-        else {
-            afficherVue('plan', true);
-        }
-        var n = id ? document.getElementById(id) : null;
-        if (n) {
-            n.focus();
-        }
-    }, 0); };
-    var bloc = creer('section', { classe: 'w-volet__bloc s-filtres-agent', attrs: { 'aria-labelledby': 'pFiltAgT' } }, [titreVolet('filter-line', 'Affiner', 'pFiltAgT', null)]);
+    var r = reglesDe(etat.config);
+    var bloc = creer('section', { classe: 'w-volet__bloc s-filtres-agent', attrs: { 'aria-label': 'Critères de recherche' } });
+    var champ = function (id, libelle, el) { bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: libelle }), el])); };
     var auj = aujourdhuiMur(fuseauPlan(etat.config));
-    var date = saisie('pAgDate', dateVersSaisie(Math.max(v.date, auj)), { type: 'date' });
+    var date = saisie('pAgDate', typeof f.agentDate === 'number' && f.agentDate >= auj ? dateVersSaisie(f.agentDate) : '', { type: 'date' });
     date.setAttribute('min', dateVersSaisie(auj));
-    date.addEventListener('change', function () { var w = saisieVersDate(date.value); if (w !== null) {
-        v.date = w;
-        memoriserEtatVue();
-        var t = document.getElementById('cPeriode');
-        maj('pAgDate');
-        if (t) {
-            setTimeout(function () { t.textContent = titrePeriode(); }, 0);
-        }
-    } });
-    bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgDate' }, texte: 'Aller au' }), date]));
+    date.addEventListener('change', function () {
+        var w = date.value ? saisieVersDate(date.value) : null;
+        f.agentDate = w !== null && w >= auj ? w : '';
+        appliquerRechercheAgent('pAgDate');
+    });
+    champ('pAgDate', 'Date', date);
     var nb = saisie('pAgNb', f.agentNb || '', { type: 'number', clavier: 'numeric' });
     nb.setAttribute('min', '1');
     nb.classList.add('s-champ-court');
-    nb.addEventListener('change', function () { f.agentNb = nb.value; maj('pAgNb'); });
-    bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgNb' }, texte: 'Personnes' }), nb]));
+    nb.addEventListener('change', function () { f.agentNb = nb.value; appliquerRechercheAgent('pAgNb'); });
+    champ('pAgNb', 'Personnes', nb);
+    var durees = dureesProposees(r, null).filter(function (m) { return m <= 480; });
+    var du = selectValeurs('pAgDuree', durees, durees.indexOf(dureeAgent()) !== -1 ? dureeAgent() : durees[0], function (m) { return texteDuree(m, null, r); }, function (m) { f.agentDuree = m; appliquerRechercheAgent('pAgDuree'); });
+    champ('pAgDuree', 'Durée', du);
     var eqs = equipementsPossibles().slice();
     if (eqs.indexOf('Visioconférence') === -1 && toutesLesSalles().some(function (s) { return s.visio; })) {
         eqs.unshift('Visioconférence');
     }
     if (eqs.length) {
-        var g = creer('div', { classe: 's-puces', attrs: { role: 'group', 'aria-labelledby': 'pAgEqT' } });
-        eqs.forEach(function (x, k) {
-            var on = f.agentEquip.indexOf(x) !== -1;
-            g.appendChild(puceChoix('pAgEq' + k, x, on, function () {
-                f.agentEquip = on ? f.agentEquip.filter(function (y) { return y !== x; }) : f.agentEquip.concat([x]);
-                maj('pAgEq' + k);
-            }));
-        });
-        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('p', { classe: 'fr-label', id: 'pAgEqT', texte: 'Il me faut' }), g]));
+        bloc.appendChild(casesEquipements('pAgEq', eqs, f.agentEquip, function (l) { f.agentEquip = l; appliquerRechercheAgent(null); }));
     }
     var bats = [];
     toutesLesSalles().forEach(function (s) { if (s.batiment && bats.indexOf(s.batiment) === -1) {
@@ -14939,17 +15071,34 @@ function blocFiltresAgent() {
     if (bats.length > 1) {
         bats.sort(function (a, b) { return a.localeCompare(b, 'fr'); });
         var sb = liste('pAgBat', bats.map(function (x) { return { valeur: x, libelle: x }; }), f.batiment || '', { vide: 'Tous' });
-        sb.addEventListener('change', function () { f.batiment = sb.value; maj('pAgBat'); });
-        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgBat' }, texte: 'Bâtiment' }), sb]));
+        sb.addEventListener('change', function () { f.batiment = sb.value; if (f.couloir && salleParCle(f.couloir) && salleParCle(f.couloir).batiment !== f.batiment) {
+            f.couloir = '';
+        } appliquerRechercheAgent('pAgBat'); });
+        champ('pAgBat', 'Bâtiment', sb);
     }
     var salles = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
     if (salles.length > 1) {
         var ss = liste('pAgSalle', salles.map(function (s) { return { valeur: s.cle, libelle: s.nom + (s.capacite !== null ? ' (' + pluriel(s.capacite, 'place') + ')' : '') }; }), f.couloir || '', { vide: 'Toutes' });
-        ss.addEventListener('change', function () { f.couloir = ss.value; maj('pAgSalle'); });
-        bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAgSalle' }, texte: 'Salle' }), ss]));
+        ss.addEventListener('change', function () { f.couloir = ss.value; appliquerRechercheAgent('pAgSalle'); });
+        champ('pAgSalle', 'Salle', ss);
     }
-    if (f.agentNb || f.agentEquip.length || f.batiment || f.couloir) {
-        bloc.appendChild(bouton('Tout effacer', 'discret', 'close-line', function () { f.agentNb = ''; f.agentEquip = []; f.batiment = ''; f.couloir = ''; afficherVue('plan', true); }, { petit: true, id: 'pAgEffacer' }));
+    if (f.agentMsg) {
+        var m = creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm s-recherche-msg', attrs: { role: 'status' } }, [creer('p', { texte: f.agentMsg.texte })]);
+        if (f.agentMsg.action) {
+            m.appendChild(bouton(f.agentMsg.libelle, 'secondaire', null, f.agentMsg.action, { petit: true, id: 'pAgMsgBtn' }));
+        }
+        bloc.appendChild(m);
+    }
+    if (typeof f.agentDate === 'number' || criteresAgentActifs(f)) {
+        bloc.appendChild(bouton('Tout effacer', 'tertiaire', 'close-line', function () {
+            f.agentDate = '';
+            f.agentNb = '';
+            f.agentDuree = 60;
+            f.agentEquip = [];
+            f.batiment = '';
+            f.couloir = '';
+            appliquerRechercheAgent('pAgDate');
+        }, { petit: true, id: 'pAgEffacer' }));
     }
     return bloc;
 }
@@ -15024,6 +15173,15 @@ function rendreJourAgent() {
             b.addEventListener('click', function (e) { e.stopPropagation(); ouvrirItem(it); });
             col.appendChild(b);
         });
+        var cb = v.cible && v.cible.salle === s.cle && v.cible.debut >= debut && v.cible.debut < debut + duree ? v.cible : null;
+        if (cb) {
+            var bc = creer('button', { classe: 's-jr__cible', id: 'sCible', attrs: { type: 'button', 'aria-label': 'Premier créneau libre : ' + s.nom + ', ' + texteHeureMur(cb.debut) + ' - ' + texteHeureMur(cb.fin) + '. Réserver.' } },
+                [creer('span', { classe: 'fr-icon-add-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: 'Libre ' + texteHeureMur(cb.debut) + ' - ' + texteHeureMur(cb.fin) })]);
+            bc.style.top = pct(cb.debut) + '%';
+            bc.style.height = Math.max(4, pct(Math.min(cb.fin, debut + duree)) - pct(cb.debut)) + '%';
+            bc.addEventListener('click', function (e) { e.stopPropagation(); ouvrirConfirmation({ salle: cb.salle, debut: cb.debut, fin: cb.fin }); });
+            col.appendChild(bc);
+        }
         if (!fermeS && peutAjouterEvenements()) {
             var fantome = creer('span', { classe: 's-jr__fantome', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line s-jr__plus' }), creer('span', { classe: 's-jr__fantome-h' })]);
             col.appendChild(fantome);
@@ -15051,7 +15209,7 @@ function rendreJourAgent() {
                 col.style.cursor = 'pointer';
                 fantome.style.display = 'flex';
                 fantome.style.top = pct(jour + m * 60) + '%';
-                fantome.style.height = (pct(jour + Math.min(m + 60, hj.f * 60) * 60) - pct(jour + m * 60)) + '%';
+                fantome.style.height = (pct(jour + Math.min(m + dureeAgent(), hj.f * 60) * 60) - pct(jour + m * 60)) + '%';
                 fantome.lastChild.textContent = deux(Math.floor(m / 60)) + ':' + deux(m % 60);
             });
             col.addEventListener('mouseleave', function () { fantome.style.display = 'none'; });
@@ -15063,7 +15221,7 @@ function rendreJourAgent() {
                 if (!possible(m)) {
                     return;
                 }
-                var fin = Math.min(m + 60, hj.f * 60);
+                var fin = Math.min(m + dureeAgent(), hj.f * 60);
                 var suivante = etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && it.couloirs[0] === s.cle && it.s > jour + m * 60; }).sort(function (a, b) { return a.s - b.s; })[0];
                 var finW = jour + fin * 60;
                 if (suivante && suivante.s < finW) {
@@ -15078,7 +15236,7 @@ function rendreJourAgent() {
     tete.style.gridTemplateColumns = '3.5rem repeat(' + n + ', minmax(8rem, 1fr))';
     corps.style.gridTemplateColumns = '3.5rem repeat(' + n + ', minmax(8rem, 1fr))';
     zone.appendChild(creer('div', { classe: 's-jr__defile' }, [tete, corps]));
-    setTimeout(ajusterHauteurSemaine, 0);
+    setTimeout(function () { ajusterHauteurSemaine(); montrerCible(); }, 0);
     return zone;
 }
 function rendreMoisAgent() {
