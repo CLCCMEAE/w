@@ -185,14 +185,14 @@ h2.w-section__title{margin:0}
 .w-confirm-actions{display:flex;justify-content:flex-end;gap:.75rem}
 #mainScreen{display:block}
   [hidden] { display: none !important; }
-  .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-    max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-    border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
-  .w-toast--succes { border-left-color: var(--border-plain-success); }
-  .w-toast--erreur { border-left-color: var(--border-plain-error); }
+  .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+    padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
+  .w-toast__action:empty { display: none; }
+  .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+  .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
   .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
   .w-infobulle { position: relative; overflow: visible !important; }
-  .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
+  .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
     padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
     color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
   .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
@@ -272,10 +272,6 @@ h2.w-section__title{margin:0}
   </div>
   <div class="w-bandeau__spacer"></div>
   <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
-</div>
-<div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert">
-  <p id="wErreurMsg"></p>
-  <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button>
 </div>
 </div>
 <div class="w-corps">
@@ -414,7 +410,7 @@ h2.w-section__title{margin:0}
 </main>
 <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
 </div>
-<div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+<div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
 function echapperHTML(texte) {
     if (!texte && texte !== 0)
@@ -507,31 +503,17 @@ function masquerLoader() {
         voile.classList.remove('actif');
     }
 }
-var _minuterieErreur = null;
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    var bandeau = document.getElementById('wErreur');
-    var texte = document.getElementById('wErreurMsg');
-    if (texte) {
-        texte.textContent = message || 'Une erreur est survenue.';
-    }
-    if (bandeau) {
-        bandeau.classList.add('actif');
-    }
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-    }
-    _minuterieErreur = setTimeout(masquerErreur, 10000);
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
-function masquerErreur() {
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-        _minuterieErreur = null;
-    }
-    var bandeau = document.getElementById('wErreur');
-    if (bandeau) {
-        bandeau.classList.remove('actif');
-    }
+function masquerErreur() { if (_toast.type === 'erreur') {
+    fermerToast();
+} }
+function infobulle(el, texte) {
+    el.classList.add('w-infobulle');
+    el.setAttribute('data-infobulle', texte);
+    el.removeAttribute('title');
 }
 function ecouter(id, evenement, gestionnaire) {
     var el = document.getElementById(id);
@@ -640,7 +622,8 @@ document.addEventListener('keydown', function (e) {
     if (ov && ov.classList.contains('actif'))
         _fermerConfirm(false);
 });
-function confirmerAction(titre, contenu, avertissement) {
+function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
+    opts = opts || {};
     return new Promise(function (resolve) {
         _confirmResolve = resolve;
         var t = $('wConfirmTitre'), m = $('wConfirmMsg');
@@ -659,12 +642,17 @@ function confirmerAction(titre, contenu, avertissement) {
                 m.appendChild(av);
             }
         }
-        ouvrirModale('wConfirmOverlay', 'wConfirmOui');
+        var oui = $('wConfirmOui');
+        if (oui) {
+            oui.textContent = libelleOui || 'Confirmer';
+            oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
+        }
+        ouvrirModale('wConfirmOverlay', opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui');
     });
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.4.4';
+var VERSION_WIDGET = '1.5.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Gestion des utilisateurs';
 var NOM_WIDGET_ANCIEN = 'utilisateurs';
@@ -870,6 +858,45 @@ async function apiUpdate(id, data) {
     if (a.updateRecord)
         return a.updateRecord(NOM_TABLE_CENTRALE, id, d);
     return a.applyUserActions([['UpdateRecord', NOM_TABLE_CENTRALE, id, d]]);
+}
+async function copieLigne(rid) {
+    try {
+        var d = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
+        var i = d.id.indexOf(rid);
+        if (i === -1) {
+            return null;
+        }
+        var v = {};
+        Object.keys(d).forEach(function (col) {
+            if (INTERNAL_COLS.has(col) && col !== 'manualSort') {
+                return;
+            }
+            if (formulaCols.has(col) || col.indexOf('gristHelper_') === 0) {
+                return;
+            }
+            v[col] = d[col][i];
+        });
+        return { id: rid, valeurs: v };
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Copie avant suppression', e);
+        return null;
+    }
+}
+async function retablirLigne(copie) {
+    try {
+        try {
+            await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, copie.id, copie.valeurs]]);
+        }
+        catch (e) {
+            await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, copie.valeurs]]);
+        }
+        await refreshUsers(true);
+        toast('Suppression annulée.', { type: 'succes' });
+    }
+    catch (e2) {
+        afficherErreur('La suppression n’a pas pu être annulée.', e2);
+    }
 }
 async function apiDelete(ids) {
     if (!accesComplet()) {
@@ -2010,14 +2037,14 @@ function renderTableHeader() {
             btnEditCol.type = 'button';
             btnEditCol.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-edit-line';
             btnEditCol.style.cssText = 'font-size:.75rem;padding:.1rem .2rem;margin-left:.25rem;color:var(--text-action-high-blue-france);vertical-align:middle;height:auto;min-height:0;line-height:1';
-            btnEditCol.title = 'Modifier ce champ';
+            infobulle(btnEditCol, 'Modifier ce champ');
             btnEditCol.setAttribute('aria-label', 'Modifier le champ ' + colId);
             (function (cid) { btnEditCol.addEventListener('click', function (e) { e.stopPropagation(); ouvrirEditionChamp(th, cid); }); })(colId);
             var btnDelCol = document.createElement('button');
             btnDelCol.type = 'button';
-            btnDelCol.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-close-line';
+            btnDelCol.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-delete-line';
             btnDelCol.style.cssText = 'font-size:.75rem;padding:.1rem .2rem;margin-left:.15rem;color:var(--text-default-error);vertical-align:middle;height:auto;min-height:0;line-height:1';
-            btnDelCol.title = 'Supprimer ce champ';
+            infobulle(btnDelCol, 'Supprimer ce champ');
             btnDelCol.setAttribute('aria-label', 'Supprimer le champ ' + colId);
             (function (cid) { btnDelCol.addEventListener('click', function (e) { e.stopPropagation(); relayer(removeCustomField(cid), 'Suppression du champ impossible'); }); })(colId);
             th.appendChild(spanLabel);
@@ -2305,7 +2332,7 @@ function renderTableBody() {
             iconeOeil.style.fontSize = '.9rem';
             btnView.appendChild(iconeOeil);
             var intitule = 'Voir en tant que ' + ((prenom || '') + ' ' + (nom || email)).trim();
-            btnView.title = intitule;
+            infobulle(btnView, intitule);
             btnView.setAttribute('aria-label', intitule);
             btnView.target = '_top';
             btnView.rel = 'noopener noreferrer';
@@ -2522,28 +2549,26 @@ function renderTableBody() {
         var tdDel = document.createElement('td');
         tdDel.style.textAlign = 'center';
         var btnD = document.createElement('button');
-        btnD.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-delete-bin-line';
+        btnD.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-delete-line';
         btnD.type = 'button';
-        btnD.title = 'Supprimer ' + ((r.PRENOM || '') + ' ' + (r.NOM || '')).trim();
+        infobulle(btnD, 'Supprimer ' + ((r.PRENOM || '') + ' ' + (r.NOM || '')).trim());
         btnD.setAttribute('aria-label', 'Supprimer ' + ((r.PRENOM || '') + ' ' + cleanText(r.NOM || '').toUpperCase()).trim());
         btnD.addEventListener('click', async function () {
             var prenom = cleanText(r.PRENOM || '');
             var nomMaj2 = cleanText(r.NOM || '').toUpperCase();
             var label = (prenom + ' ' + nomMaj2).trim() || r.EMAIL || '#' + r.id;
-            var frag = document.createDocumentFragment();
-            frag.appendChild(document.createTextNode('Retirer '));
-            var fort = document.createElement('strong');
-            fort.textContent = label;
-            frag.appendChild(fort);
-            frag.appendChild(document.createTextNode(' du registre ?'));
-            var avert = 'La ligne est retirée du registre : les règles d’accès qui s’appuient sur le statut Actif ne pourront plus s’y référer. N’oubliez pas de supprimer également cet utilisateur dans « Gérer les utilisateurs » (icône de partage en haut à droite).';
-            if (!await confirmerAction('Supprimer du registre', frag, avert))
+            var avert = 'Les règles d’accès qui s’appuient sur le statut Actif ne pourront plus s’y référer. N’oubliez pas de supprimer également cet utilisateur dans « Gérer les utilisateurs » (icône de partage en haut à droite).';
+            if (!await confirmerAction('Supprimer « ' + label + ' » du registre ?', 'Sa ligne est supprimée du registre. Vous pourrez annuler la suppression juste après.', avert, 'Supprimer', { danger: true }))
                 return;
             btnD.disabled = true;
+            var copie = await copieLigne(r.id);
             apiDelete([r.id]).then(function () {
                 return refreshUsers(true);
             }).then(function () {
                 focaliserConteneur('tbody');
+                if (copie) {
+                    toast('Ligne de « ' + label + ' » supprimée du registre.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () { return retablirLigne(copie); } } });
+                }
             }).catch(function (e) {
                 btnD.disabled = false;
                 afficherErreur('Erreur de suppression', e);
@@ -2707,13 +2732,7 @@ async function removeCustomField(colId) {
     var label = f ? f.label : (fd ? fd.label : colId);
     if (!f && !fd)
         return;
-    var msg = document.createDocumentFragment();
-    msg.appendChild(document.createTextNode('Supprimer le champ '));
-    var fortC = document.createElement('strong');
-    fortC.textContent = label;
-    msg.appendChild(fortC);
-    msg.appendChild(document.createTextNode(' et toutes ses données ?'));
-    if (!await confirmerAction('Supprimer le champ', msg))
+    if (!await confirmerAction('Supprimer le champ « ' + label + ' » ?', 'Le champ et toutes ses données sont supprimés du registre. Cette action est définitive.', null, 'Supprimer le champ', { danger: true }))
         return;
     try {
         afficherLoader('Suppression du champ…');
@@ -4594,7 +4613,7 @@ ecouter('btnCopierEmails', 'click', function () {
         var copies = emails.length + (emails.length > 1 ? ' adresses copiées.' : ' adresse copiée.');
         toast(nonActifs > 0
             ? copies + ' ' + nonActifs + (nonActifs > 1 ? ' adresses non copiées' : ' adresse non copiée') + ' : ces utilisateurs ne sont pas actifs. Activez-les avant de les inviter, ou copiez leur adresse à la main.'
-            : copies, { type: nonActifs > 0 ? 'info' : 'succes', duree: nonActifs > 0 ? 10000 : 6000 });
+            : copies, { type: nonActifs > 0 ? 'avertissement' : 'succes' });
     }).catch(function () {
         afficherErreur('Copie non autorisée dans cet environnement.');
     });
@@ -4629,7 +4648,6 @@ function appliquerRecherche() {
         badge.textContent = visible + (filtre ? ' sur ' + rows.length : '');
 }
 ecouter('searchUsers', 'input', appliquerRecherche);
-ecouter('wErreurFermer', 'click', masquerErreur);
 ecouter('btnAddUser', 'click', function (e) { e.preventDefault(); relayer(addUserByEmail(), 'Ajout de l’utilisateur impossible'); });
 ecouter('newEmail', 'keydown', function (e) {
     if (e.key === 'Enter') {
@@ -4658,7 +4676,7 @@ function creerEl(tag, classe, texte, attrs, enfants) {
 function viderEl(n) { while (n && n.firstChild) {
     n.removeChild(n.firstChild);
 } }
-var _toast = { minuterie: null, texte: null };
+var _toast = { minuterie: null, texte: null, type: null };
 function toast(message, opts) {
     opts = opts || {};
     var z = document.getElementById('wToast');
@@ -4667,13 +4685,26 @@ function toast(message, opts) {
     }
     fermerToast();
     var type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + type;
+    _toast.type = type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[type] || 'info');
+    z.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
+    var act = document.getElementById('wToastAction');
+    viderEl(act);
+    if (opts.action) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.id = 'wToastBouton';
+        b.className = 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-arrow-go-back-line fr-btn--icon-left';
+        b.textContent = opts.action.libelle;
+        b.addEventListener('click', function () { fermerToast(); relayer(opts.action.fn(), 'Action du message'); });
+        act.appendChild(b);
+    }
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (type === 'erreur' || type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(fermerToast, duree);
     }
@@ -4683,10 +4714,12 @@ function fermerToast() {
     _toast.minuterie = null;
     clearTimeout(_toast.texte);
     _toast.texte = null;
+    _toast.type = null;
     var z = document.getElementById('wToast');
     if (z && !z.hidden) {
         var focusDedans = z.contains(document.activeElement);
         z.hidden = true;
+        viderEl(document.getElementById('wToastAction'));
         if (focusDedans) {
             var c = document.getElementById('contenu');
             if (c) {
@@ -4930,6 +4963,7 @@ var AIDE = {
 function contexteAide() { return { etapes: ['Ajouter au registre', 'Activer et choisir le rôle', 'Ouvrir l\'accès au document', 'Poser les règles'], courante: -1 }; }
 var _registreLance = false;
 async function demarrer() {
+    masquerErreur();
     await attendreAcces();
     if (accesRefuse(_niveauAcces)) {
         afficherEcranAcces(true);
