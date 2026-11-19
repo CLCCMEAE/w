@@ -783,6 +783,37 @@
     .s-mes__quand { font-weight: 700; font-size: .8125rem; color: var(--text-action-high-blue-france); }
     .s-mes__quoi { font-size: .8125rem; }
     .s-mes__ligne .fr-badge { align-self: flex-start; }
+    .s-mois { display: flex; flex-direction: column; min-height: 20rem; }
+    .s-mois__grille { flex: 1; display: grid; gap: 2px; grid-auto-rows: minmax(4.5rem, 1fr); }
+    .s-mois__entete { padding: .375rem; text-align: center; font-weight: 700; font-size: .875rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .s-mois__jour { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .375rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); font: inherit; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .s-mois__jour:hover, .s-mois__jour:focus-visible { outline: 2px solid var(--border-active-blue-france); outline-offset: -2px; }
+    .s-mois__jour--hors { opacity: .6; }
+    .s-mois__jour--passe { cursor: default; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, var(--background-alt-grey) 4px 8px); color: var(--text-mention-grey); }
+    .s-mois__jour--auj .s-mois__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); border-radius: 50%; padding: 0 .375rem; }
+    .s-mois__num { font-weight: 700; }
+    .s-mois__info { font-size: .75rem; color: var(--text-mention-grey); }
+    .s-mois__barre { width: 100%; height: .375rem; background: color-mix(in srgb, var(--background-flat-success) 30%, var(--background-default-grey)); display: block; }
+    .s-mois__barre-pris { display: block; height: 100%; background: var(--background-action-high-blue-france); }
+    .s-jr { display: flex; flex-direction: column; min-height: 20rem; gap: .5rem; }
+    .s-jr__defile { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+    .s-jr__tete { display: grid; gap: 2px; position: sticky; top: 0; z-index: 2; background: var(--background-default-grey); }
+    .s-jr__salle { display: flex; flex-direction: column; gap: .125rem; padding: .375rem .5rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .s-jr__salle .s-code { background: transparent; color: inherit; border-color: rgba(255,255,255,.5); }
+    .s-jr__corps { flex: 1; display: grid; gap: 2px; min-height: 30rem; position: relative; }
+    .s-jr__regle { position: relative; }
+    .s-jr__heure { position: absolute; right: .375rem; transform: translateY(-50%); font-size: .75rem; color: var(--text-mention-grey); }
+    .s-jr__heure:first-child { transform: none; }
+    .s-jr__col { position: relative; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); cursor: pointer; }
+    .s-jr__trait { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border-default-grey); }
+    .s-jr__hors { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, var(--background-alt-grey) 4px 8px); pointer-events: none; }
+    .s-jr__resa { position: absolute; left: 3px; right: 3px; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0; overflow: hidden; text-align: left; font: inherit; font-size: .75rem; padding: .125rem .375rem; border: 0; border-left: 4px solid var(--border-action-high-blue-france);
+      background: var(--background-alt-blue-france); color: var(--text-default-grey); cursor: pointer; }
+    .s-jr__resa--attente { border-left-color: var(--border-plain-warning); background: var(--background-contrast-warning); }
+    .s-jr__resa-heure { font-weight: 700; }
+    .s-jr__resa-objet { color: var(--text-mention-grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .s-jr__fantome { position: absolute; left: 3px; right: 3px; display: none; align-items: center; justify-content: center; gap: .375rem; border: 2px dashed var(--border-plain-success); background: color-mix(in srgb, var(--background-flat-success) 12%, transparent); pointer-events: none; z-index: 1; font-size: .75rem; font-weight: 700; color: var(--text-default-success); }
+    .s-jr__plus { width: 1.75rem; height: 1.75rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--background-flat-success); color: var(--text-inverted-success); }
     .s-sem { display: flex; flex-direction: column; min-height: 20rem; }
     .s-sem__grille { flex: 1; display: grid; gap: 2px; min-height: 0; }
     .s-sem__coin { }
@@ -876,7 +907,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.4';
+var VERSION_WIDGET = '1.1.5';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -4341,7 +4372,7 @@ function chargerEtatVue() {
     }
     if (estAgent()) {
         var rA = reglesDe(etat.config);
-        v.mode = 'semaine';
+        v.mode = 'jour';
         v.ouvres = !rA.jours[5] && !rA.jours[6];
     }
     etat.v = v;
@@ -5578,11 +5609,11 @@ function creerTimeline(o) {
     return { racine: racine, apercu: !!(o && o.apercu) };
 }
 function redessinerTimeline() {
-    if (etat.vue === 'plan' && estAgent() && etat.v && etat.v.mode === 'semaine') {
+    if (etat.vue === 'plan' && estAgent() && etat.v && ['semaine', 'jour', 'mois'].indexOf(etat.v.mode) !== -1) {
         var zs = document.getElementById('pZone');
         if (zs) {
             vider(zs);
-            zs.appendChild(rendreSemaineAgent());
+            zs.appendChild(etat.v.mode === 'jour' ? rendreJourAgent() : (etat.v.mode === 'mois' ? rendreMoisAgent() : rendreSemaineAgent()));
         }
         var ts = document.getElementById('cPeriode');
         if (ts) {
@@ -6476,11 +6507,16 @@ function barreNavigation() {
     var v = etat.v;
     var permises = vuesPermises();
     if (!permises.some(function (x) { return x.id === v.mode; })) {
-        v.mode = estAgent() ? 'semaine' : 'libres';
+        v.mode = estAgent() ? 'jour' : 'libres';
     }
     var seg = segmentIcones('pVue', permises, v.mode, choisirVue, 'Vue');
-    if (permises.length < 2 || estAgent()) {
+    if (permises.length < 2) {
         seg.hidden = true;
+    }
+    if (estAgent()) {
+        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) { if (b.id === 'pVue_libres') {
+            b.hidden = true;
+        } });
     }
     var aller = saisie('pAller', dateVersSaisie(v.date), { type: 'date' });
     aller.classList.add('c-aller__champ');
@@ -7484,7 +7520,7 @@ function majPrincipal() {
         return;
     }
     if (!vuesPermises().some(function (x) { return x.id === v.mode; })) {
-        v.mode = estAgent() ? 'semaine' : 'libres';
+        v.mode = estAgent() ? 'jour' : 'libres';
     }
     if (v.mode === 'salles') {
         vider(zoneP);
@@ -7498,9 +7534,9 @@ function majPrincipal() {
         etat.tl = null;
         return;
     }
-    if (v.mode === 'semaine' && estAgent()) {
+    if (['semaine', 'jour', 'mois'].indexOf(v.mode) !== -1 && estAgent()) {
         vider(zoneP);
-        zoneP.appendChild(rendreSemaineAgent());
+        zoneP.appendChild(v.mode === 'jour' ? rendreJourAgent() : (v.mode === 'mois' ? rendreMoisAgent() : rendreSemaineAgent()));
         etat.tl = null;
         return;
     }
@@ -10194,7 +10230,7 @@ async function creerPlan() {
         var pageOk = false;
         if (pageAgents) {
             await lirePlans();
-            pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'semaine', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
+            pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'jour', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
             afficherLoader('Création de votre planning…');
         }
         etat.brouillon = null;
@@ -14232,7 +14268,7 @@ function rendreLibres() {
     var rafr = function (focusId) { setTimeout(function () { redessinerVueLibres(focusId); }, 0); };
     var zone = creer('div', { classe: 's-libres' });
     if (estAgent()) {
-        zone.appendChild(bouton('Retour à la semaine', 'tertiaire', 'arrow-left-line', function () { etat.v.mode = 'semaine'; memoriserEtatVue(); afficherVue('plan', true); }, { petit: true, id: 'lRetourSemaine' }));
+        zone.appendChild(bouton('Retour au planning', 'tertiaire', 'arrow-left-line', function () { etat.v.mode = 'jour'; memoriserEtatVue(); afficherVue('plan', true); }, { petit: true, id: 'lRetourSemaine' }));
     }
     var rHeures = reglesHeuresLarges(c);
     var quand = creer('div', { classe: 's-puces', attrs: { role: 'group', 'aria-labelledby': 'lQuandT' } });
@@ -14555,7 +14591,7 @@ function blocAValider() {
 function estAgent() { return !!etat.page || !etat.peutParametrer; }
 function vuesPermises() {
     if (estAgent()) {
-        return ['semaine', 'libres'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
+        return ['jour', 'semaine', 'mois', 'libres'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
     }
     if (estConsoleAdmin()) {
         return etat.v && etat.v.mode === 'stats' ? VUES_CALENDRIER.filter(function (x) { return x.id === 'stats'; })
@@ -14916,6 +14952,205 @@ function blocFiltresAgent() {
         bloc.appendChild(bouton('Tout effacer', 'discret', 'close-line', function () { f.agentNb = ''; f.agentEquip = []; f.batiment = ''; f.couloir = ''; afficherVue('plan', true); }, { petit: true, id: 'pAgEffacer' }));
     }
     return bloc;
+}
+function rendreJourAgent() {
+    var c = etat.config;
+    var r = reglesDe(c);
+    var rH = reglesHeuresLarges(c);
+    var tz = fuseauPlan(c);
+    var maint = maintenantMur(tz);
+    var v = etat.v;
+    var jour = Math.floor(v.date / JOUR) * JOUR;
+    var h0 = Math.floor(rH.ouverture), h1 = Math.ceil(rH.fermeture);
+    var debut = jour + h0 * HEURE, duree = (h1 - h0) * HEURE;
+    var pct = function (w) { return Math.max(0, Math.min(100, (w - debut) / duree * 100)); };
+    var salles = sallesFiltreesAgent();
+    var colQui = c.colDemandeur && infoColonne(c.table, c.colDemandeur) ? c.colDemandeur : (infoColonne(c.table, 'CREE_PAR') ? 'CREE_PAR' : null);
+    var quiDe = function (it) { var q = colQui ? valeurCellule(valeurLigne(it.i, colQui)) : ''; q = q === null || q === undefined ? '' : String(q); return q.indexOf('@') !== -1 ? q.split('@')[0].replace(/[._]/g, ' ') : q; };
+    var zone = creer('div', { classe: 's-jr', id: 'sSemaine' });
+    var fermeJour = !jourOuvertRegle(r, rangJour(jour)) ? 'Les salles ne se réservent pas le ' + JOURS_NOMS[rangJour(jour)] : fermetureDuJour(jour, r, null);
+    if (fermeJour) {
+        zone.appendChild(alerte('info', null, majusculeInitiale(fermeJour) + '.'));
+    }
+    if (!salles.length) {
+        zone.appendChild(alerte('info', null, 'Aucune salle ne correspond.'));
+        return zone;
+    }
+    var tete = creer('div', { classe: 's-jr__tete' }, [creer('div', { classe: 's-jr__coin' })]);
+    var corps = creer('div', { classe: 's-jr__corps' });
+    var regle = creer('div', { classe: 's-jr__regle', attrs: { 'aria-hidden': 'true' } });
+    for (var h = h0; h < h1; h++) {
+        var lb = creer('span', { classe: 's-jr__heure', texte: deux(h) + ':00' });
+        lb.style.top = pct(jour + h * HEURE) + '%';
+        regle.appendChild(lb);
+    }
+    corps.appendChild(regle);
+    salles.forEach(function (s) {
+        tete.appendChild(creer('div', { classe: 's-jr__salle' }, [creer('strong', { texte: s.nom }), creer('span', { classe: 's-codes' }, infosSalle(s).slice(0, 1).concat(s.visio ? [code(ICONES_EQUIPEMENTS[0].icones, null, 'Visioconférence')] : []))]));
+        var propres = reglesPropres(c, s.cle);
+        var hj = horairesDuJour(r, rangJour(jour), propres);
+        var fermeS = fermeJour || fermetureDuJour(jour, r, propres);
+        var col = creer('div', { classe: 's-jr__col', attrs: { role: 'group', 'aria-label': s.nom } });
+        for (var hh = h0 + 1; hh < h1; hh++) {
+            var tr = creer('span', { classe: 's-jr__trait', attrs: { 'aria-hidden': 'true' } });
+            tr.style.top = pct(jour + hh * HEURE) + '%';
+            col.appendChild(tr);
+        }
+        var zonesInactives = [];
+        if (fermeS) {
+            zonesInactives.push([debut, debut + duree]);
+        }
+        else {
+            zonesInactives.push([debut, Math.max(debut, Math.min(debut + duree, jour + hj.o * HEURE))]);
+            zonesInactives.push([Math.min(debut + duree, jour + hj.f * HEURE), debut + duree]);
+            zonesInactives.push([debut, Math.min(debut + duree, maint)]);
+        }
+        zonesInactives.forEach(function (z) { if (z[1] > z[0]) {
+            var hors = creer('span', { classe: 's-jr__hors', attrs: { 'aria-hidden': 'true' } });
+            hors.style.top = pct(z[0]) + '%';
+            hors.style.height = (pct(z[1]) - pct(z[0])) + '%';
+            col.appendChild(hors);
+        } });
+        etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && it.couloirs[0] === s.cle && it.s < debut + duree && it.e > debut; }).forEach(function (it) {
+            var qui = quiDe(it);
+            var st = texteStatut(it);
+            var att = c.colStatus && st && st === statutsDe(c).attente;
+            var b = creer('button', { classe: 's-jr__resa' + (att ? ' s-jr__resa--attente' : ''), attrs: { type: 'button', title: (it.titre || '') + (qui ? ' · ' + qui : '') } }, [
+                creer('span', { classe: 's-jr__resa-heure', texte: texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) + (att ? ' · en attente' : '') }),
+                qui ? creer('span', { classe: 's-jr__resa-qui', texte: qui }) : null,
+                it.titre ? creer('span', { classe: 's-jr__resa-objet', texte: it.titre }) : null]);
+            b.style.top = pct(Math.max(it.s, debut)) + '%';
+            b.style.height = Math.max(2, pct(Math.min(it.e, debut + duree)) - pct(Math.max(it.s, debut))) + '%';
+            b.addEventListener('click', function (e) { e.stopPropagation(); ouvrirItem(it); });
+            col.appendChild(b);
+        });
+        if (!fermeS && peutAjouterEvenements()) {
+            var fantome = creer('span', { classe: 's-jr__fantome', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line s-jr__plus' }), creer('span', { classe: 's-jr__fantome-h' })]);
+            col.appendChild(fantome);
+            var heureSouris = function (e) {
+                var rc = col.getBoundingClientRect();
+                var m = h0 * 60 + (e.clientY - rc.top) / rc.height * (h1 - h0) * 60;
+                return Math.floor(m / r.pas) * r.pas;
+            };
+            var possible = function (m) {
+                var d = jour + m * 60;
+                return d >= Math.ceil(maint / (r.pas * 60)) * r.pas * 60 && m >= hj.o * 60 && m < hj.f * 60
+                    && !etat.items.some(function (it) { return it.s !== null && !statutInactif(it) && it.couloirs[0] === s.cle && it.s <= d && it.e > d; });
+            };
+            col.addEventListener('mousemove', function (e) {
+                if (e.target.closest('.s-jr__resa')) {
+                    fantome.style.display = 'none';
+                    return;
+                }
+                var m = heureSouris(e);
+                if (!possible(m)) {
+                    fantome.style.display = 'none';
+                    col.style.cursor = 'not-allowed';
+                    return;
+                }
+                col.style.cursor = 'pointer';
+                fantome.style.display = 'flex';
+                fantome.style.top = pct(jour + m * 60) + '%';
+                fantome.style.height = (pct(jour + Math.min(m + 60, hj.f * 60) * 60) - pct(jour + m * 60)) + '%';
+                fantome.lastChild.textContent = deux(Math.floor(m / 60)) + ':' + deux(m % 60);
+            });
+            col.addEventListener('mouseleave', function () { fantome.style.display = 'none'; });
+            col.addEventListener('click', function (e) {
+                if (e.target.closest('.s-jr__resa')) {
+                    return;
+                }
+                var m = heureSouris(e);
+                if (!possible(m)) {
+                    return;
+                }
+                var fin = Math.min(m + 60, hj.f * 60);
+                var suivante = etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && it.couloirs[0] === s.cle && it.s > jour + m * 60; }).sort(function (a, b) { return a.s - b.s; })[0];
+                var finW = jour + fin * 60;
+                if (suivante && suivante.s < finW) {
+                    finW = suivante.s;
+                }
+                ouvrirConfirmation({ salle: s.cle, debut: jour + m * 60, fin: finW });
+            });
+        }
+        corps.appendChild(col);
+    });
+    var n = salles.length;
+    tete.style.gridTemplateColumns = '3.5rem repeat(' + n + ', minmax(8rem, 1fr))';
+    corps.style.gridTemplateColumns = '3.5rem repeat(' + n + ', minmax(8rem, 1fr))';
+    zone.appendChild(creer('div', { classe: 's-jr__defile' }, [tete, corps]));
+    setTimeout(ajusterHauteurSemaine, 0);
+    return zone;
+}
+function rendreMoisAgent() {
+    var c = etat.config;
+    var r = reglesDe(c);
+    var tz = fuseauPlan(c);
+    var maint = maintenantMur(tz);
+    var auj = aujourdhuiMur(tz);
+    var v = etat.v;
+    var p = partiesJour(v.date);
+    var premier = v.date - (p.j - 1) * JOUR;
+    var debutGrille = premier - rangJour(premier) * JOUR;
+    var joursOuverts = [];
+    for (var k = 0; k < 7; k++) {
+        if (jourOuvertRegle(r, k)) {
+            joursOuverts.push(k);
+        }
+    }
+    var salles = sallesFiltreesAgent();
+    var cles = salles.map(function (s) { return s.cle; });
+    var zone = creer('div', { classe: 's-mois', id: 'sSemaine' });
+    var grille = creer('div', { classe: 's-mois__grille', attrs: { role: 'grid', 'aria-label': 'Occupation des salles du mois' } });
+    grille.style.gridTemplateColumns = 'repeat(' + joursOuverts.length + ', minmax(0, 1fr))';
+    joursOuverts.forEach(function (k) { grille.appendChild(creer('div', { classe: 's-mois__entete', texte: majusculeInitiale(JOURS_NOMS[k]), attrs: { role: 'columnheader' } })); });
+    for (var w = debutGrille; w < premier + 32 * JOUR; w += JOUR) {
+        var pj = partiesJour(w);
+        if (w > premier && pj.j === 1) {
+            break;
+        }
+        if (joursOuverts.indexOf(rangJour(w)) === -1) {
+            continue;
+        }
+        var horsMois = pj.m !== p.m;
+        var passe = w + JOUR <= maint;
+        var ferme = fermetureDuJour(w, r, null);
+        var ouvert = 0, pris = 0, nb = 0;
+        salles.forEach(function (s) {
+            var hj = horairesDuJour(r, rangJour(w), reglesPropres(c, s.cle));
+            if (fermetureDuJour(w, r, reglesPropres(c, s.cle))) {
+                return;
+            }
+            ouvert += Math.max(0, hj.f - hj.o) * HEURE;
+        });
+        etat.items.forEach(function (it) {
+            if (it.s === null || statutInactif(it) || cles.indexOf(it.couloirs[0]) === -1 || it.s >= w + JOUR || it.e <= w) {
+                return;
+            }
+            nb++;
+            pris += Math.min(it.e, w + JOUR) - Math.max(it.s, w);
+        });
+        var taux = ouvert ? Math.min(1, pris / ouvert) : 0;
+        var contenu = [creer('span', { classe: 's-mois__num', texte: String(pj.j) })];
+        if (ferme) {
+            contenu.push(creer('span', { classe: 's-mois__info', texte: ferme }));
+        }
+        else if (!passe) {
+            var barre = creer('span', { classe: 's-mois__barre', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 's-mois__barre-pris' })]);
+            barre.firstChild.style.width = Math.round(taux * 100) + '%';
+            contenu.push(barre);
+            contenu.push(creer('span', { classe: 's-mois__info', texte: nb ? pluriel(nb, 'réservation') : 'Tout est libre' }));
+        }
+        var actif = !passe && !ferme;
+        var cell = creer(actif ? 'button' : 'div', { classe: 's-mois__jour' + (horsMois ? ' s-mois__jour--hors' : '') + (actif ? '' : ' s-mois__jour--passe') + (w === auj ? ' s-mois__jour--auj' : ''),
+            attrs: actif ? { type: 'button', 'aria-label': majusculeInitiale(texteJourLong(w)) + ' : ' + (nb ? pluriel(nb, 'réservation') : 'tout est libre') + '. Voir la journée.' } : { role: 'gridcell' } }, contenu);
+        if (actif) {
+            (function (jour) { cell.addEventListener('click', function () { v.date = jour; v.mode = 'jour'; memoriserEtatVue(); afficherVue('plan', true); }); })(w);
+        }
+        grille.appendChild(cell);
+    }
+    zone.appendChild(grille);
+    setTimeout(ajusterHauteurSemaine, 0);
+    return zone;
 }
 async function initialiser() {
     if (etat.initEnCours) {
