@@ -998,7 +998,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.29';
+var VERSION_WIDGET = '1.1.30';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -1740,7 +1740,13 @@ async function reduireVue(vue, sec) {
         retirer(spec);
         spec.collapsed = (spec.collapsed || []).filter(function (c) { return c.leaf !== sec; }).concat([{ leaf: sec }]);
         await agir([['UpdateRecord', '_grist_Views', vue, { layoutSpec: JSON.stringify(spec) }]]);
-        return true;
+        var v2 = await lireTable('_grist_Views');
+        var spec2 = JSON.parse((v2.layoutSpec || [])[v2.id.indexOf(vue)] || '{}') || {};
+        var ok = (spec2.collapsed || []).some(function (c) { return c.leaf === sec; });
+        if (!ok) {
+            logSecurite('AVERTISSEMENT', 'Disposition de la page relue sans la vue repliée : ' + JSON.stringify(spec2));
+        }
+        return ok;
     }
     catch (e) {
         logSecurite('INFO', 'Vue de protection non réduite', e);
@@ -1768,33 +1774,12 @@ async function replierProtection() {
     redessinerEtape('aSecAdmin');
 }
 async function cacherPage() {
-    var ligne = null;
-    var badgeAvant;
-    var optionsPosees = false;
     afficherLoader('Préparation de la page…');
     try {
-        if (!etat.badge || !etat.copies[etat.badge]) {
-            if (typeof grist.setOptions !== 'function') {
-                throw new Error('Réglage du widget indisponible');
-            }
-            var badge = nouveauBadge();
-            var champs = { CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ admin: true }), VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
-            if (etat.biblioCentrale) {
-                champs.WIDGET = NOM_WIDGET;
-            }
-            var ret = await agir([['AddRecord', etat.biblio, null, champs]]);
-            ligne = ret && ret.retValues ? ret.retValues[0] : null;
-            var ancien = etat.badge;
-            badgeAvant = ancien;
-            etat.badge = badge;
-            try {
-                await gristAvecTimeout(Promise.resolve(grist.setOptions({ copie: badge })), DELAI_API_MS);
-                optionsPosees = true;
-            }
-            catch (eO) {
-                etat.badge = ancien;
-                throw eO;
-            }
+        var d = await lireTable('_grist_Views_section');
+        var vue = (etat.badge ? vueDuBadge(d, etat.badge) : null) || vueDeCetteConsole(d);
+        if (!vue) {
+            throw new Error('La page de ce widget n\'a pas été retrouvée dans le document');
         }
         var o = trouverOwner() || await creerTableOwner();
         var ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
@@ -1806,21 +1791,7 @@ async function cacherPage() {
         if (!ref) {
             throw new Error('La table « ' + TITRE_OWNER + ' » n\'a pas été retrouvée après sa création');
         }
-        var vue = null, d = null;
-        for (var essai = 0; essai < 12 && !vue; essai++) {
-            if (essai) {
-                await new Promise(function (ok) { setTimeout(ok, 500); });
-            }
-            d = await lireTable('_grist_Views_section');
-            vue = vueDuBadge(d, etat.badge);
-        }
-        if (!vue && d) {
-            vue = vueDeCetteConsole(d);
-        }
-        if (!vue) {
-            throw new Error('La page de ce widget n\'a pas été retrouvée dans le document');
-        }
-        ligne = null;
+        d = await lireTable('_grist_Views_section');
         var reduite = true;
         var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })[0];
         if (existante) {
@@ -1842,18 +1813,6 @@ async function cacherPage() {
     }
     catch (e) {
         masquerLoader();
-        if (ligne) {
-            await agir([['RemoveRecord', etat.biblio, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
-            if (optionsPosees) {
-                etat.badge = badgeAvant || null;
-                try {
-                    await gristAvecTimeout(Promise.resolve(grist.setOptions({ copie: badgeAvant || null })), DELAI_API_MS);
-                }
-                catch (eR) {
-                    logSecurite('AVERTISSEMENT', 'Réglage du widget non rétabli après échec', eR);
-                }
-            }
-        }
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
 }
