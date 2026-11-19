@@ -849,14 +849,15 @@
     white-space: nowrap;
   }
   [hidden] { display: none !important; }
-  .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-    max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-    border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
-  .w-toast--succes { border-left-color: var(--border-plain-success); }
-  .w-toast--erreur { border-left-color: var(--border-plain-error); }
+  .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+    padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
+  .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+  .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
+  .w-confirm-titre { margin: 0 0 .5rem; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
+  .w-rec-field__cum-btn.w-infobulle { position: absolute; }
   .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
   .w-infobulle { position: relative; overflow: visible !important; }
-  .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
+  .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
     padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
     color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
   .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
@@ -925,10 +926,6 @@
       <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
     </div>
   </header>
-  <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert">
-    <p id="wErreurMsg">Une erreur est survenue</p>
-    <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button>
-  </div>
   <div class="w-corps">
   <main class="w-main w-corps__contenu" id="contenu" tabindex="-1">
     <div class="w-acces" id="wAcces" hidden>
@@ -1061,10 +1058,11 @@
   </main>
   <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 </div>
-<div class="w-confirm-overlay" id="wConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="wConfirmMsg">
+<div class="w-confirm-overlay" id="wConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="wConfirmTitre" aria-describedby="wConfirmMsg">
   <div class="w-confirm-box">
+    <p class="w-confirm-titre" id="wConfirmTitre"></p>
     <p class="w-confirm-msg" id="wConfirmMsg"></p>
     <div class="w-confirm-actions">
       <button type="button" class="fr-btn fr-btn--secondary" id="wConfirmNon">Annuler</button>
@@ -1171,32 +1169,13 @@ function masquerLoader() {
         voile.classList.remove('actif');
     }
 }
-var _minuterieErreur = null;
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    var bandeau = document.getElementById('wErreur');
-    var texte = document.getElementById('wErreurMsg');
-    if (texte) {
-        texte.textContent = message || 'Une erreur est survenue.';
-    }
-    if (bandeau) {
-        bandeau.classList.add('actif');
-    }
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-    }
-    _minuterieErreur = setTimeout(masquerErreur, 10000);
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
-function masquerErreur() {
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-        _minuterieErreur = null;
-    }
-    var bandeau = document.getElementById('wErreur');
-    if (bandeau) {
-        bandeau.classList.remove('actif');
-    }
-}
+function masquerErreur() { if (_toast.type === 'erreur') {
+    fermerToast();
+} }
 function ecouter(id, evenement, gestionnaire) {
     var el = document.getElementById(id);
     if (el) {
@@ -1228,13 +1207,22 @@ ecouter('wConfirmOui', 'click', function () { _fermerConfirm(true); });
 ecouter('wConfirmNon', 'click', function () { _fermerConfirm(false); });
 var _focusAvantConfirm = null;
 var _piegeConfirm = null;
-function confirmerAction(msg) {
+function confirmerAction(titre, msg, libelleOui, opts) {
+    opts = opts || {};
     return new Promise(function (resolve) {
         _confirmResolve = resolve;
+        var titreEl = document.getElementById('wConfirmTitre');
         var msgEl = document.getElementById('wConfirmMsg');
+        var oui = document.getElementById('wConfirmOui');
         var overlay = document.getElementById('wConfirmOverlay');
+        if (titreEl)
+            titreEl.textContent = titre;
         if (msgEl)
-            msgEl.textContent = msg;
+            msgEl.textContent = msg || '';
+        if (oui) {
+            oui.textContent = libelleOui || 'Confirmer';
+            oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
+        }
         if (!overlay) {
             resolve(false);
             return;
@@ -1242,7 +1230,7 @@ function confirmerAction(msg) {
         _focusAvantConfirm = document.activeElement;
         overlay.classList.add('actif');
         void overlay.offsetHeight;
-        var premierBouton = overlay.querySelector('button');
+        var premierBouton = opts.danger || opts.destructif ? document.getElementById('wConfirmNon') : oui;
         if (premierBouton) {
             try {
                 premierBouton.focus();
@@ -1275,7 +1263,7 @@ function confirmerAction(msg) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.3.0';
 var NOM_WIDGET = 'Diplodoublon';
 var HOMOLOGUE = false;
 (function () {
@@ -2641,10 +2629,10 @@ function buildRecordCard(gi, rec, cols, actRecs, isExcluded) {
         }
         let cumBtn = '';
         if (im && !isExcluded && !isSelected && !nonFusionnable) {
-            cumBtn = '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary w-rec-field__cum-btn' +
+            cumBtn = '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary w-rec-field__cum-btn w-infobulle' +
                 (isCumulated ? ' w-rec-field__cum-btn--active' : '') +
                 '" data-cum="1" data-f="' + echapperHTML(col.id) + '" data-r="' + echapperHTML(rec.id) +
-                '" aria-label="Cumuler cette valeur" title="Cumuler cette valeur">+</button>';
+                '" aria-label="Cumuler cette valeur" data-infobulle="Cumuler cette valeur">+</button>';
         }
         fld.innerHTML = labelHtml + valueHtml + cumBtn;
         if (!isExcluded && !nonFusionnable) {
@@ -3091,9 +3079,9 @@ async function mergeGroup(gi, dejaConfirme) {
     const planRefs = planifierRedirections(delIdsPrevus, keepId);
     if (!dejaConfirme) {
         const aSupprimer = delIdsPrevus.length;
-        const ok = await confirmerAction('Conserver la ligne #' + keepId + ' et supprimer ' + aSupprimer + ' ligne' + (aSupprimer > 1 ? 's' : '') +
+        const ok = await confirmerAction('Fusionner ' + (aSupprimer + 1) + ' lignes en une seule ?', 'La ligne n° ' + keepId + ' est conservée et ' + aSupprimer + ' ligne' + (aSupprimer > 1 ? 's sont supprimées' : ' est supprimée') +
             (planRefs.total ? ', en redirigeant ' + resumePlanRefs(planRefs) + ' vers la ligne conservée' : '') +
-            ' ? Cette action est irréversible.');
+            '. Cette action est définitive.', 'Fusionner', { danger: true });
         if (!ok)
             return 'ignore';
     }
@@ -3395,7 +3383,7 @@ async function mergeAll() {
     finally {
         masquerLoader();
     }
-    if (!await confirmerAction('Fusionner les ' + S.duplicateGroups.length + ' groupe(s)' + resumeTotal + ' ? Cette action est irréversible.'))
+    if (!await confirmerAction('Fusionner les ' + S.duplicateGroups.length + ' groupe(s) de doublons ?', 'Dans chaque groupe, une ligne est conservée et les autres sont supprimées' + resumeTotal + '. Cette action est définitive.', 'Tout fusionner', { danger: true }))
         return;
     let i = 0, laisses = 0, garde = S.duplicateGroups.length + 1;
     while (i < S.duplicateGroups.length && garde-- > 0) {
@@ -3447,7 +3435,6 @@ function setEmpty(icon, title, desc) {
     el.querySelector('p').textContent = desc;
 }
 function bindGlobal() {
-    ecouter('wErreurFermer', 'click', masquerErreur);
     ecouter('tableSelect', 'change', () => {
         relayer((async () => {
             S.selectedTable = $('tableSelect').value;
@@ -3549,7 +3536,7 @@ function creerEl(tag, classe, texte, attrs, enfants) {
 function viderEl(n) { while (n && n.firstChild) {
     n.removeChild(n.firstChild);
 } }
-var _toast = { minuterie: null, texte: null };
+var _toast = { minuterie: null, texte: null, type: null };
 function toast(message, opts) {
     opts = opts || {};
     var z = document.getElementById('wToast');
@@ -3558,18 +3545,21 @@ function toast(message, opts) {
     }
     fermerToast();
     var type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + type;
+    _toast.type = type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[type] || 'info');
+    z.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (type === 'erreur' || type === 'avertissement' ? 0 : 6000) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(fermerToast, duree);
     }
 }
 function fermerToast() {
+    _toast.type = null;
     clearTimeout(_toast.minuterie);
     _toast.minuterie = null;
     clearTimeout(_toast.texte);
@@ -3833,7 +3823,7 @@ suivreAcces(function () { demarrer(); });
 document.addEventListener('DOMContentLoaded', () => {
     bindGlobal();
     brancherAide();
-    ecouter('wAccesReessayer', 'click', () => { demarrer(); });
+    ecouter('wAccesReessayer', 'click', () => { masquerErreur(); demarrer(); });
     demarrer();
     setTimeout(() => {
         window.addEventListener('error', (evt) => {
