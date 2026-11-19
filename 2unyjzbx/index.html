@@ -42,7 +42,7 @@
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-overlay--visionneuse { z-index: 9993; }
     .w-dialogue--visionneuse { max-width: 72rem; height: 85vh; }
     .w-dialogue--visionneuse.w-dialogue--plein { position: fixed; inset: 0; max-width: none; height: 100%; max-height: none; }
@@ -184,12 +184,11 @@
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
-    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
-    .w-toast--succes { border-left-color: var(--border-plain-success); }
-    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
     @media print { .w-toast, .w-panneau-aide { display: none; } }
@@ -596,14 +595,14 @@
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.5.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocity';
 var ID_BIBLIO = 'BIBLIOTHEQUE_VILLE';
@@ -1067,7 +1066,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les villes et leurs tables ne sont pas touchées.', 'Supprimer la page');
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les villes et leurs tables ne sont pas touchées. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -1609,7 +1608,7 @@ function afficherErreur(message, erreur) {
         message = MSG_NON_CONFIRMEE;
     }
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function relayer(promesse, quoi) {
     if (promesse && typeof promesse.catch === 'function') {
@@ -3036,6 +3035,11 @@ function fermerModale() {
     }
 }
 function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon) {
+    var opts = {};
+    if (saisieInitiale !== null && typeof saisieInitiale === 'object') {
+        opts = saisieInitiale;
+        saisieInitiale = undefined;
+    }
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -3055,7 +3059,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon)
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         document.getElementById('wConfirmNon').textContent = libelleNon || 'Annuler';
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
@@ -3074,7 +3080,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon)
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -6581,7 +6587,7 @@ async function allerALaVille(cle) {
     }
     var abandonConfirme = false;
     if (enCreation() && etat.brouillon.etape > 1) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle ville ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle ville ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             var f = document.getElementById('vOngletNouveau');
             if (f) {
@@ -6650,7 +6656,7 @@ function rendreInvalide(zone) {
                 : 'La table ou l\'une des colonnes principales de la ville (nom ou étape) n\'existe plus dans ce document, ou a été renommée.' }),
         etat.peutParametrer ? creer('div', { classe: 'w-tuile__bas' }, [
             technique ? null : bouton('Corriger les paramétrages', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(3); }),
-            bouton('Supprimer cette ville', null, 'delete-line', supprimerVille)
+            bouton('Supprimer la ville', 'secondaire', 'delete-line', supprimerVille, { classe: 'w-bouton-danger' })
         ])
             : creer('p', { classe: 'w-texte', texte: 'Signalez-le à un propriétaire du document.' })]));
 }
@@ -6960,7 +6966,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -6976,7 +6983,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -8704,7 +8711,7 @@ function editeurPiecesJointes(p, colId, libelle, modifiable) {
                 creer('span', { classe: 'w-pj__taille', texte: formaterTaille(meta.taille) }),
                 apercu ? bouton('Consulter', 'discret', 'eye-line', function () { return consulterPJ(fid); }, { petit: true, aria: 'Consulter ' + meta.nom }) : null,
                 bouton('Télécharger', 'discret', 'download-line', function () { return telechargerPJ(fid); }, { petit: true, iconeSeule: true, aria: 'Télécharger ' + meta.nom }),
-                modifiable ? bouton('Retirer', 'discret', 'delete-line', function () { return retirerPJ(p.id, colId, fid, dessiner); }, { petit: true, iconeSeule: true, aria: 'Retirer ' + meta.nom }) : null
+                modifiable ? bouton('Retirer', 'discret', 'close-line', function () { return retirerPJ(p.id, colId, fid, dessiner); }, { petit: true, iconeSeule: true, aria: 'Retirer ' + meta.nom }) : null
             ]));
         });
     };
@@ -10038,7 +10045,7 @@ async function sortirParametragesUneFois(afficher) {
             masquerLoader();
         }
         if (!ok) {
-            var quitter = await confirmerAction('Quitter sans enregistrer ?', 'La dernière modification n\'a pas pu être enregistrée.', 'Quitter');
+            var quitter = await confirmerAction('Quitter les paramétrages ?', 'La dernière modification n\'a pas pu être enregistrée. Elle sera perdue.', 'Quitter', { destructif: true });
             if (!quitter) {
                 return false;
             }
@@ -10099,7 +10106,7 @@ function piedAssistant(b, noms) {
 async function annulerCreation() {
     var b = etat.brouillon;
     if (b && b.cfg) {
-        var ok = await confirmerAction('Abandonner la création ?', b.tablesCreees ? 'La ville n\'est pas créée. Les choix faits pour la nouvelle ville ne sont pas conservés.' : 'Rien n\'a été créé. Les choix faits pour la nouvelle ville ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', b.tablesCreees ? 'La ville n\'est pas créée. Les choix faits pour la nouvelle ville ne sont pas conservés.' : 'Rien n\'a été créé. Les choix faits pour la nouvelle ville ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -10628,7 +10635,7 @@ async function creerVilleUneFois() {
 async function supprimerVille() {
     var nom = etat.config ? etat.config.nom : '';
     var nbP = pagesDeLaVille(etat.cleConfig).length;
-    var ok = await confirmerAction('Supprimer la ville « ' + nom + ' » ?', 'Seuls ses réglages sont effacés. La table et ses lignes ne sont pas touchées.' + (nbP ? ' ' + nbP + (nbP > 1 ? ' pages de consultation la montrent : elles ne la montreront plus.' : ' page de consultation la montre : elle ne la montrera plus.') : ''), 'Supprimer la ville');
+    var ok = await confirmerAction('Supprimer la ville « ' + nom + ' » ?', 'Seuls ses réglages sont effacés. La table et ses lignes ne sont pas touchées.' + (nbP ? ' ' + nbP + (nbP > 1 ? ' pages de consultation la montrent : elles ne la montreront plus.' : ' page de consultation la montre : elle ne la montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer la ville', { danger: true });
     if (!ok) {
         return;
     }
@@ -11128,7 +11135,7 @@ async function proposerSuppressionTables(b) {
         return;
     }
     var noms = l.map(function (t) { return '« ' + nomTable(t) + ' »'; }).join(' et ');
-    var ok = await confirmerAction('Supprimer les tables créées ?', 'Les tables ' + noms + ' ont été créées pour le modèle choisi tout à l\'heure. Les supprimer ? Les lignes saisies dedans seront perdues.', 'Supprimer les tables');
+    var ok = await confirmerAction('Supprimer les tables créées ?', 'Les tables ' + noms + ' ont été créées pour le modèle choisi tout à l\'heure. Les supprimer ? Les lignes saisies dedans seront perdues.', 'Supprimer les tables', { danger: true });
     if (ok) {
         try {
             await agir(l.map(function (t) { return ['RemoveTable', t]; }));
