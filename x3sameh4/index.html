@@ -998,7 +998,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.28';
+var VERSION_WIDGET = '1.1.29';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -1643,7 +1643,10 @@ async function referenceWidget() {
 }
 function titreOwner() { var t = etat.meta && etat.meta.tables ? trouverOwner() : null; return t ? libelleTable(t) : TITRE_OWNER; }
 function trouverOwner() {
-    return Object.keys(etat.meta.tables).filter(function (t) { return t.toUpperCase().indexOf(ID_OWNER) !== -1 || t.toUpperCase().indexOf(ID_OWNER_ANCIEN) !== -1; })[0] || null;
+    return Object.keys(etat.meta.tables).filter(function (t) { return t.toUpperCase().indexOf(ID_OWNER) !== -1; })[0] || null;
+}
+function tablesProtection() {
+    return Object.keys(etat.meta.tables).filter(function (t) { var u = t.toUpperCase(); return u.indexOf(ID_OWNER) !== -1 || u.indexOf(ID_OWNER_ANCIEN) !== -1; });
 }
 function vueDeCetteConsole(d) {
     var chemin = location.pathname.replace(/index\.html?$/, '');
@@ -1694,13 +1697,26 @@ async function majPages() {
                 etat.nomsPages[x] = String((v.name || [])[k] || '');
             }
         });
-        var o = trouverOwner();
-        if (!etat.badge || !o) {
+        var refs = tablesProtection().map(function (t) { return etat.meta.tables[t].ref; });
+        if (!refs.length) {
             return;
         }
-        var vue = vueDuBadge(d, etat.badge);
-        var ref = etat.meta.tables[o].ref;
-        etat.pageProtegee = !!vue && d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; });
+        var vue = (etat.badge ? vueDuBadge(d, etat.badge) : null) || vueDeCetteConsole(d);
+        var secs = vue ? d.id.filter(function (x, i) { return d.parentId[i] === vue && refs.indexOf(d.tableRef[i]) !== -1; }) : [];
+        etat.pageProtegee = secs.length > 0;
+        etat.protection = null;
+        if (secs.length) {
+            var kv = v.id.indexOf(vue);
+            var specP = {};
+            try {
+                specP = JSON.parse((v.layoutSpec || [])[kv] || '{}') || {};
+            }
+            catch (eS) {
+                specP = {};
+            }
+            var replies = (specP.collapsed || []).map(function (c) { return c.leaf; });
+            etat.protection = { vue: vue, secs: secs, repliee: secs.every(function (x) { return replies.indexOf(x) !== -1; }) };
+        }
     }
     catch (e) {
         logSecurite('INFO', 'Pages du document non lues', e);
@@ -1730,6 +1746,26 @@ async function reduireVue(vue, sec) {
         logSecurite('INFO', 'Vue de protection non réduite', e);
         return false;
     }
+}
+async function replierProtection() {
+    var p = etat.protection;
+    if (!p) {
+        return;
+    }
+    afficherLoader('Repli de la vue…');
+    var ok = true;
+    for (var i = 0; i < p.secs.length; i++) {
+        ok = (await reduireVue(p.vue, p.secs[i])) && ok;
+    }
+    await majPages();
+    masquerLoader();
+    if (ok) {
+        afficherSucces('La vue de protection est repliée en haut de la page.');
+    }
+    else {
+        afficherErreur('La vue n\'a pas pu être repliée. Vous pouvez la replier vous-même : menu de la vue, « Réduire le widget ».', null);
+    }
+    redessinerEtape('aSecAdmin');
 }
 async function cacherPage() {
     var ligne = null;
@@ -1786,7 +1822,11 @@ async function cacherPage() {
         }
         ligne = null;
         var reduite = true;
-        if (!d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })) {
+        var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })[0];
+        if (existante) {
+            reduite = await reduireVue(vue, existante);
+        }
+        else {
             var r = await agir([['CreateViewSection', ref, vue, 'record', null, null]]);
             var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
             if (sec) {
@@ -10243,7 +10283,8 @@ function etapeGeneral() {
     var col2 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecAdmin' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecAdmin', texte: 'Cette page de paramétrage' })]),
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Elle est cachée aux agents et aux gestionnaires : seuls les propriétaires la voient.' : 'Elle est visible par tous les membres du document.', ' ', r.bouton]), r.panneau,
-        etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' })
+        etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }),
+        etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection en haut de la page', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null
     ]);
     var pages = pagesDuPlan(etat.cleConfig);
     var aAgents = pages.some(function (x) { return !etat.copies[x].gestion; });
