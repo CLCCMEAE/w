@@ -43,7 +43,7 @@ main[hidden], div[hidden], section[hidden], p[hidden], button[hidden], .fr-btn[h
 .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
 .w-overlay.actif { display: flex; }
-.w-overlay--haut { z-index: 9995; }
+.w-overlay--haut { z-index: 9997; }
 .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
 .w-dialogue--etroit { max-width: 30rem; }
@@ -173,12 +173,11 @@ main[hidden], div[hidden], section[hidden], p[hidden], button[hidden], .fr-btn[h
 .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
 .w-sorties .w-infobulle::after { left: 0; right: auto; }
-.w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+.w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
 .w-toast[hidden] { display: none; }
-.w-toast--succes { border-left-color: var(--border-plain-success); }
-.w-toast--erreur { border-left-color: var(--border-plain-error); }
+.w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+.w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
 .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
 .w-toast__action:empty { display: none; }
 @media print {
@@ -756,14 +755,14 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.2.1';
+var VERSION_WIDGET = '1.3.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -1048,7 +1047,7 @@ function afficherErreur(message, erreur) {
         message = MSG_NON_CONFIRMEE;
     }
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function relayer(promesse, quoi) {
     if (promesse && typeof promesse.catch === 'function') {
@@ -1722,6 +1721,11 @@ function fermerModale() {
     }
 }
 function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon) {
+    var opts = {};
+    if (saisieInitiale !== null && typeof saisieInitiale === 'object') {
+        opts = saisieInitiale;
+        saisieInitiale = undefined;
+    }
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -1741,7 +1745,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon)
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         document.getElementById('wConfirmNon').textContent = libelleNon || 'Annuler';
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
@@ -1760,7 +1766,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleNon)
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -2177,7 +2183,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -2193,11 +2200,14 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
 }
+function masquerErreur() { if (_toast.type === 'erreur') {
+    fermerToast(true);
+} }
 function fermerToast(avecFin) {
     clearTimeout(_toast.minuterie);
     _toast.minuterie = null;
@@ -2707,6 +2717,9 @@ function noterRefus(e) {
     return { local: true };
 }
 async function chargerTout() {
+    if (etat.vue === 'echec' || etat.vue === 'acces') {
+        masquerErreur();
+    }
     etat.niveauUtilise = etat.niveauAcces;
     if (accesRefuse()) {
         afficherVue('acces');
@@ -3444,7 +3457,7 @@ async function allerPresentation(id) {
     if (enCreation()) {
         var b = etat.brouillon;
         if (b.etape > 1 || b.depart) {
-            var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle présentation ne sont pas conservés.', 'Abandonner');
+            var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle présentation ne sont pas conservés.', 'Abandonner', { destructif: true });
             if (!ok) {
                 var f = document.getElementById('sOngletNouveau');
                 if (f) {
@@ -4375,6 +4388,13 @@ async function supprimerDiapo(id) {
     if (!d) {
         return;
     }
+    if (!(await confirmerAction('Supprimer la diapositive « ' + libelleDiapo(d) + ' » ?', 'Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true }))) {
+        return;
+    }
+    d = diapoParId(id);
+    if (!d) {
+        return;
+    }
     var i = indexDiapo(id);
     var champs = instantane(d);
     try {
@@ -4390,7 +4410,7 @@ async function supprimerDiapo(id) {
         if (f) {
             f.focus();
         }
-        toast('Diapositive « ' + libelleDiapo(d) + ' » supprimée.', { type: 'succes', action: { libelle: 'Annuler', fn: annulerModif, id: 'sToastAnnuler' } });
+        toast('Diapositive « ' + libelleDiapo(d) + ' » supprimée.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: annulerModif, id: 'sToastAnnuler' } });
     }
     catch (e) {
         noterRefus(e);
@@ -4898,7 +4918,7 @@ function rendreAssistant(zone) {
 async function annulerCreation() {
     var b = etat.brouillon;
     if (b && (b.depart || b.etape > 1)) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle présentation ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle présentation ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -5290,7 +5310,7 @@ async function supprimerPresentation() {
         return;
     }
     var n = etat.diapos.length;
-    var ok = await confirmerAction('Supprimer la présentation « ' + nomPres(p) + ' » ?', 'La présentation et ' + accordSl(n, 'diapositive', 'diapositives') + ', ainsi que ses pages à partager, sont effacées du document.', 'Supprimer la présentation');
+    var ok = await confirmerAction('Supprimer la présentation « ' + nomPres(p) + ' » ?', 'La présentation et ' + accordSl(n, 'diapositive', 'diapositives') + ', ainsi que ses pages à partager, sont effacées du document. Cette action est définitive.', 'Supprimer la présentation', { danger: true });
     if (!ok) {
         return;
     }
@@ -6715,7 +6735,7 @@ async function supprimerPagesSpeciales(surFin) {
     if (!p) {
         return;
     }
-    var ok = await confirmerAction('Supprimer les pages de projection et de télécommande ?', 'Les deux pages disparaissent du document. La présentation et ses diapositives ne sont pas touchées.', 'Supprimer les pages');
+    var ok = await confirmerAction('Supprimer les pages de projection et de télécommande ?', 'Les deux pages disparaissent du document. La présentation et ses diapositives ne sont pas touchées. Cette action est définitive.', 'Supprimer les pages', { danger: true });
     if (!ok) {
         return;
     }
