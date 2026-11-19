@@ -44,7 +44,7 @@
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -119,12 +119,11 @@
       display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; line-height: 1;
       background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .w-plus:hover { background: var(--background-action-high-blue-france-hover); color: var(--text-inverted-blue-france); }
-    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
-    .w-toast--succes { border-left-color: var(--border-plain-success); }
-    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
     @media print { .w-toast, .w-panneau-aide { display: none; } }
@@ -467,14 +466,14 @@
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.5.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplomatrice';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_MATRICES';
@@ -1058,7 +1057,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les matrices et leurs tables ne sont pas touchées.', 'Supprimer la page');
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les matrices et leurs tables ne sont pas touchées. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -1583,7 +1582,7 @@ function masquerLoader() {
 }
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function relayer(promesse, quoi) {
     if (promesse && typeof promesse.catch === 'function') {
@@ -1815,7 +1814,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -1831,7 +1831,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -3189,7 +3189,7 @@ function marquerInvalide(id, message, sansFocus) {
 }
 function signalerSaisie(message) {
     logSecurite('INFO', 'Saisie refusée : ' + message);
-    toast(message, { type: 'erreur', duree: 10000 });
+    toast(message, { type: 'erreur' });
 }
 function uid() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 'u' + etat.uidSeq; }
 function titreColonne(texte, explication, id) {
@@ -3979,7 +3979,7 @@ function rendreMessage(zone, vue) {
     }
     var bloc = creer('div', { classe: 'w-centre' }, [titreVue(t[0]), creer('p', { classe: 'w-texte', texte: t[1] })]);
     if (vue === 'invalide') {
-        bloc.appendChild(etat.peutParametrer ? bouton('Supprimer cette matrice', null, 'delete-line', supprimerMatrice, { id: 'mSupprimer' })
+        bloc.appendChild(etat.peutParametrer ? bouton('Supprimer la matrice', 'secondaire', 'delete-line', supprimerMatrice, { id: 'mSupprimer', classe: 'w-bouton-danger' })
             : creer('p', { classe: 'w-texte', texte: 'Signalez-le à un propriétaire du document.' }));
     }
     if (vue === 'recharger') {
@@ -4501,7 +4501,7 @@ var LIBELLES_ANNULATION = { deplacement: 'Annuler le déplacement', modification
 function proposerAnnulation(message, id, avant, type) {
     type = type || 'deplacement';
     var annulation = { id: id, valeurs: avant, table: etat.config.table, cle: etat.cleConfig, type: type };
-    toast(message, { duree: DELAI_ANNULATION_MS,
+    toast(message, { type: 'succes', duree: DELAI_ANNULATION_MS,
         action: { libelle: LIBELLES_ANNULATION[type], fn: function () { relayer(annulerDerniereAction(), 'Annulation de la dernière action'); } },
         surFermeture: function () { if (etat.annulation === annulation) {
             etat.annulation = null;
@@ -4523,7 +4523,13 @@ async function annulerDerniereAction() {
     var noms = { deplacement: 'du déplacement', modification: 'de la modification', suppression: 'de la suppression' };
     try {
         if (a.type === 'suppression') {
-            var ret = await agir([['AddRecord', a.table, null, a.valeurs]]);
+            var ret;
+            try {
+                ret = await agir([['AddRecord', a.table, a.id || null, a.valeurs]]);
+            }
+            catch (eId) {
+                ret = await agir([['AddRecord', a.table, null, a.valeurs]]);
+            }
             a.id = ret && ret.retValues ? ret.retValues[0] : null;
             await chargerDonnees();
         }
@@ -4723,8 +4729,8 @@ async function ouvrirFiche(el) {
     }
     var ecrire = peutEcrire();
     ouvrirModale({ titre: el.titre || 'Sans titre', sousTitre: c.nom, laterale: true, fermerDehors: true, corps: corps,
-        pied: [creer('span', { classe: 'w-pousse' }),
-            ecrire ? bouton('Supprimer', 'tertiaire', 'delete-line', function () { return supprimerCarte(el); }, { id: 'fSupprimer' }) : null,
+        pied: [ecrire ? bouton('Supprimer la carte', 'discret', 'delete-line', function () { return supprimerCarte(el); }, { id: 'fSupprimer' }) : null,
+            creer('span', { classe: 'w-pousse' }),
             carteMobile() ? bouton('Déplacer', 'secondaire', 'drag-move-2-line', function () { fermerModale(); ouvrirDeplacement(el); }, { id: 'fDeplacer' }) : null,
             bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fFermer' }),
             ecrire && ficheModifiable() ? bouton('Modifier', null, 'edit-line', function () { return ouvrirEdition(el); }, { id: 'fModifier' }) : null] });
@@ -5018,7 +5024,7 @@ async function enregistrerFiche(el, editeurs) {
 async function supprimerCarte(el) {
     var c = etat.config;
     var titre = el.titre || 'Sans titre';
-    var ok = await confirmerAction('Supprimer la carte « ' + titre + ' » ?', 'La ligne est supprimée de la table. Vous pourrez annuler juste après.', 'Supprimer');
+    var ok = await confirmerAction('Supprimer la carte « ' + titre + ' » ?', 'La ligne est supprimée de la table. Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true });
     if (!ok || !peutEcrire()) {
         return;
     }
@@ -5036,7 +5042,7 @@ async function supprimerCarte(el) {
         redessinerMatrice();
         var message = 'Carte « ' + titre + ' » supprimée.';
         annoncer(message);
-        proposerAnnulation(message, null, valeurs, 'suppression');
+        proposerAnnulation(message, el.id, valeurs, 'suppression');
         var t = document.getElementById('titreVue');
         if (t) {
             t.focus();
@@ -5291,7 +5297,7 @@ async function quitterAssistant() {
         }
     }
     else if (b && b.etape > 1) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle matrice ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour la nouvelle matrice ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return false;
         }
@@ -5611,7 +5617,7 @@ async function sortirParametrages(afficher) {
         await sauvegarderBrouillon();
         if (JSON.stringify(b.cfg) !== b.initial) {
             var raison = raisonNonEnregistrable(b);
-            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée et sera perdue.' + (raison ? ' ' + raison : ''), 'Quitter');
+            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée et sera perdue.' + (raison ? ' ' + raison : ''), 'Quitter', { destructif: true });
             if (!quitter) {
                 return false;
             }
@@ -6364,7 +6370,7 @@ async function creerMatrice() {
 }
 async function supprimerMatrice() {
     var nbP = pagesDeLaMatrice(etat.cleConfig).length;
-    var ok = await confirmerAction('Supprimer la matrice « ' + ((etat.config && etat.config.nom) || '') + ' » ?', 'La matrice disparaît des onglets et ses réglages sont effacés. Sa table et ses lignes restent dans le document.' + (nbP ? ' ' + pluriel(nbP, 'page') + ' de consultation la ' + (nbP > 1 ? 'montrent : elles ne la montreront plus.' : 'montre : elle ne la montrera plus.') : ''), 'Supprimer la matrice');
+    var ok = await confirmerAction('Supprimer la matrice « ' + ((etat.config && etat.config.nom) || '') + ' » ?', 'La matrice disparaît des onglets et ses réglages sont effacés. Sa table et ses lignes restent dans le document.' + (nbP ? ' ' + pluriel(nbP, 'page') + ' de consultation la ' + (nbP > 1 ? 'montrent : elles ne la montreront plus.' : 'montre : elle ne la montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer la matrice', { danger: true });
     if (!ok) {
         return;
     }
@@ -6392,6 +6398,11 @@ async function supprimerMatrice() {
     }
 }
 function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleSaisie) {
+    var opts = {};
+    if (saisieInitiale !== null && typeof saisieInitiale === 'object') {
+        opts = saisieInitiale;
+        saisieInitiale = undefined;
+    }
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -6411,7 +6422,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleSais
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp(libelleSaisie || 'Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
         void ov.offsetHeight;
@@ -6426,7 +6439,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale, libelleSais
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
