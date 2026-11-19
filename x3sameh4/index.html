@@ -783,6 +783,27 @@
     .s-mes__quand { font-weight: 700; font-size: .8125rem; color: var(--text-action-high-blue-france); }
     .s-mes__quoi { font-size: .8125rem; }
     .s-mes__ligne .fr-badge { align-self: flex-start; }
+    .s-sem { display: flex; flex-direction: column; min-height: 20rem; }
+    .s-sem__grille { flex: 1; display: grid; gap: 2px; min-height: 0; }
+    .s-sem__coin { }
+    .s-sem__jour { display: flex; flex-direction: column; align-items: center; padding: .375rem .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .s-sem__jour--auj { box-shadow: inset 0 -4px 0 var(--background-flat-success); }
+    .s-sem__jour--passe { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+    .s-sem__jour-nom { font-weight: 700; font-size: .875rem; }
+    .s-sem__jour-num { font-size: .8125rem; }
+    .s-sem__jour-ferme { font-size: .75rem; }
+    .s-sem__heure { font-size: .75rem; color: var(--text-mention-grey); text-align: right; padding-right: .375rem; }
+    .s-sem__case { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; padding: .25rem .375rem; border: 1px solid var(--border-default-grey); font: inherit; text-align: left; cursor: pointer; overflow: hidden;
+      background: color-mix(in srgb, var(--background-flat-success) calc(var(--s-taux, 0) * 22%), var(--background-default-grey)); color: var(--text-default-grey); }
+    .s-sem__case:hover, .s-sem__case:focus-visible { outline: 2px solid var(--border-active-blue-france); outline-offset: -2px; }
+    .s-sem__case--complet { background: var(--background-alt-grey); }
+    .s-sem__case--passe { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, var(--background-alt-grey) 4px 8px); border-color: transparent; }
+    .s-sem__libres { font-size: .75rem; color: var(--text-mention-grey); }
+    .s-sem__plus { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 2rem; height: 2rem; border-radius: 50%; display: none; align-items: center; justify-content: center;
+      background: var(--background-flat-success); color: var(--text-inverted-success); }
+    .s-sem__case:hover .s-sem__plus, .s-sem__case:focus-visible .s-sem__plus { display: inline-flex; }
+    .s-sem__mien { position: relative; z-index: 1; font: inherit; font-size: .75rem; font-weight: 700; border: 0; padding: .125rem .375rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-sem__legende { margin: .5rem 0 0; }
     .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
     .s-dm { width: 100%; display: flex; gap: .75rem; align-items: center; text-align: left; font: inherit; cursor: pointer; padding: .75rem; border: 1px solid var(--border-active-blue-france); border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .s-dm:hover { background: var(--background-alt-blue-france-hover); }
@@ -854,7 +875,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.1';
+var VERSION_WIDGET = '1.1.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -5556,6 +5577,18 @@ function creerTimeline(o) {
     return { racine: racine, apercu: !!(o && o.apercu) };
 }
 function redessinerTimeline() {
+    if (etat.vue === 'plan' && estAgent() && etat.v && etat.v.mode === 'semaine') {
+        var zs = document.getElementById('pZone');
+        if (zs) {
+            vider(zs);
+            zs.appendChild(rendreSemaineAgent());
+        }
+        var ts = document.getElementById('cPeriode');
+        if (ts) {
+            ts.textContent = titrePeriode();
+        }
+        return;
+    }
     var tl = etat.tl;
     if (!tl || etat.vue !== 'plan' || ['list', 'salles', 'libres', 'stats'].indexOf(etat.v.mode) !== -1) {
         return;
@@ -6445,7 +6478,7 @@ function barreNavigation() {
         v.mode = estAgent() ? 'semaine' : 'libres';
     }
     var seg = segmentIcones('pVue', permises, v.mode, choisirVue, 'Vue');
-    if (permises.length < 2) {
+    if (permises.length < 2 || estAgent()) {
         seg.hidden = true;
     }
     var aller = saisie('pAller', dateVersSaisie(v.date), { type: 'date' });
@@ -7458,6 +7491,12 @@ function majPrincipal() {
     if (v.mode === 'libres') {
         vider(zoneP);
         zoneP.appendChild(rendreLibres());
+        etat.tl = null;
+        return;
+    }
+    if (v.mode === 'semaine' && estAgent()) {
+        vider(zoneP);
+        zoneP.appendChild(rendreSemaineAgent());
         etat.tl = null;
         return;
     }
@@ -14194,6 +14233,9 @@ function rendreLibres() {
     var L = etatRecherche();
     var rafr = function (focusId) { setTimeout(function () { redessinerVueLibres(focusId); }, 0); };
     var zone = creer('div', { classe: 's-libres' });
+    if (estAgent()) {
+        zone.appendChild(bouton('Retour à la semaine', 'tertiaire', 'arrow-left-line', function () { etat.v.mode = 'semaine'; memoriserEtatVue(); afficherVue('plan', true); }, { petit: true, id: 'lRetourSemaine' }));
+    }
     var rHeures = reglesHeuresLarges(c);
     var quand = creer('div', { classe: 's-puces', attrs: { role: 'group', 'aria-labelledby': 'lQuandT' } });
     [['maintenant', 'Maintenant'], ['auj', 'Aujourd\'hui'], ['demain', 'Demain']].forEach(function (x) {
@@ -14743,6 +14785,79 @@ function ouvrirFicheAgent(it) {
     }
     ouvrirModale({ titre: mienne ? it.titre || 'Ma réservation' : (s ? s.nom : 'Salle') + ' : réservée', laterale: true, corps: corps, pied: pied, fermerDehors: true });
 }
+function rendreSemaineAgent() {
+    var c = etat.config;
+    var r = reglesDe(c);
+    var rH = reglesHeuresLarges(c);
+    var tz = fuseauPlan(c);
+    var maint = maintenantMur(tz);
+    var auj = aujourdhuiMur(tz);
+    var v = etat.v;
+    var lundi = v.date - rangJour(v.date) * JOUR;
+    var jours = [];
+    for (var k = 0; k < 7; k++) {
+        if (jourOuvertRegle(r, k)) {
+            jours.push(lundi + k * JOUR);
+        }
+    }
+    var h0 = Math.floor(rH.ouverture), h1 = Math.ceil(rH.fermeture);
+    var f = v.filtres || {};
+    var salles = sallesActives().filter(function (s) { return !f.batiment || s.batiment === f.batiment; });
+    var moi = moiCourant();
+    var mesResa = moi && infoColonne(c.table, 'CREE_PAR') ? etat.items.filter(function (it) { return it.s !== null && !statutInactif(it) && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi; }) : [];
+    var zone = creer('div', { classe: 's-sem', id: 'sSemaine' });
+    var grille = creer('div', { classe: 's-sem__grille', attrs: { role: 'grid', 'aria-label': 'Salles libres de la semaine' } });
+    grille.style.gridTemplateColumns = '3.5rem repeat(' + jours.length + ', minmax(0, 1fr))';
+    grille.style.gridTemplateRows = 'auto repeat(' + (h1 - h0) + ', minmax(2.5rem, 1fr))';
+    grille.appendChild(creer('div', { classe: 's-sem__coin', attrs: { role: 'columnheader' } }));
+    jours.forEach(function (w) {
+        var passe = w + JOUR <= maint;
+        var ferme = fermetureDuJour(w, r, null);
+        grille.appendChild(creer('div', { classe: 's-sem__jour' + (passe ? ' s-sem__jour--passe' : '') + (w === auj ? ' s-sem__jour--auj' : ''), attrs: { role: 'columnheader' } }, [
+            creer('span', { classe: 's-sem__jour-nom', texte: majusculeInitiale(JOURS_NOMS[rangJour(w)]) }),
+            creer('span', { classe: 's-sem__jour-num', texte: texteMur(w, false).replace(/ \d{4}$/, '') }),
+            ferme ? creer('span', { classe: 's-sem__jour-ferme', texte: ferme }) : null]));
+    });
+    for (var h = h0; h < h1; h++) {
+        grille.appendChild(creer('div', { classe: 's-sem__heure', texte: deux(h) + ':00', attrs: { role: 'rowheader' } }));
+        jours.forEach(function (w) {
+            var s0 = w + h * HEURE, e0 = s0 + HEURE;
+            var passe = e0 <= maint;
+            var ferme = !!fermetureDuJour(w, r, null) || h < rH.ouverture - 0.001 && h + 1 <= rH.ouverture || h >= rH.fermeture;
+            var cell;
+            var mien = mesResa.filter(function (it) { return it.s < e0 && it.e > s0; });
+            var chips = mien.map(function (it) { var sl = salleParCle(it.couloirs[0]); return creer('button', { classe: 's-sem__mien', attrs: { type: 'button', title: 'Ma réservation : ' + (sl ? sl.nom : '') + ', ' + texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) }, texte: (sl ? sl.nom : 'Ma réservation') + ' · ' + texteHeureMur(it.s), clic: function (e) { e.stopPropagation(); ouvrirItem(it); } }); });
+            if (passe || ferme) {
+                cell = creer('div', { classe: 's-sem__case s-sem__case--passe', attrs: { role: 'gridcell', 'aria-label': JOURS_NOMS[rangJour(w)] + ' ' + deux(h) + ':00 : ' + (ferme ? 'fermé' : 'passé') } }, chips);
+            }
+            else {
+                var debut = Math.max(s0, Math.ceil(maint / (r.pas * 60)) * r.pas * 60);
+                var libres = salles.filter(function (s) { return salleLibrePour(s, [{ s: debut, e: Math.min(e0, debut + HEURE) }]).libre; }).length;
+                var ratio = salles.length ? libres / salles.length : 0;
+                var texte = libres ? pluriel(libres, 'salle libre', 'salles libres') : 'Complet';
+                cell = creer('button', { classe: 's-sem__case' + (libres ? '' : ' s-sem__case--complet'), attrs: { type: 'button', role: 'gridcell', 'aria-label': majusculeInitiale(JOURS_NOMS[rangJour(w)]) + ' ' + texteMur(w, false) + ', ' + texteHeureMur(debut) + ' : ' + texte + '. Réserver.' } },
+                    [creer('span', { classe: 's-sem__libres', texte: libres ? pluriel(libres, 'libre') : 'Complet' }),
+                        creer('span', { classe: 's-sem__plus fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })].concat(chips));
+                cell.style.setProperty('--s-taux', String(ratio));
+                (function (d) { cell.addEventListener('click', function () { ouvrirCreneau(d); }); })(debut);
+            }
+            grille.appendChild(cell);
+        });
+    }
+    zone.appendChild(grille);
+    zone.appendChild(creer('p', { classe: 'w-mention s-sem__legende', texte: 'Chaque case indique le nombre de salles libres. Cliquez sur une case pour réserver.' }));
+    setTimeout(ajusterHauteurSemaine, 0);
+    return zone;
+}
+function ajusterHauteurSemaine() {
+    var z = document.getElementById('sSemaine');
+    if (!z) {
+        return;
+    }
+    var haut = z.getBoundingClientRect().top;
+    z.style.height = Math.max(320, window.innerHeight - haut - 16) + 'px';
+}
+window.addEventListener('resize', function () { ajusterHauteurSemaine(); });
 async function initialiser() {
     if (etat.initEnCours) {
         return;
