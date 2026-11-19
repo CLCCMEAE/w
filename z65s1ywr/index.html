@@ -315,18 +315,21 @@
       border-top-color: var(--background-action-high-blue-france); border-radius: 50%; animation: wSpin .8s linear infinite; }
     @keyframes wSpin { to { transform: rotate(360deg); } }
     .w-loader__texte { font-size: .875rem; color: var(--text-inverted-grey); }
-    .w-messages { position: fixed; z-index: 9997; right: 1rem; bottom: 1rem; width: min(26rem, calc(100% - 2rem)); display: flex; flex-direction: column; gap: .5rem; }
-    .w-erreur, .w-toast { display: none; background: var(--background-default-grey); color: var(--text-default-grey); }
-    .w-erreur.actif, .w-toast.actif { display: block; }
-    .w-toast__ligne { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-    .w-toast__ligne p { flex: 1 1 12rem; margin: 0; }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-toast[hidden] { display: none; }
+    .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
+    .w-toast__action:empty { display: none; }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
+    .w-bouton-danger { color: var(--text-default-error); box-shadow: none; border: 1px solid var(--border-plain-error); }
 
   /* === SECTION : FENETRES === */
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       /* Voile de superposition : derogation documentee, voir .w-loader */
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 44rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -789,7 +792,7 @@
      l'emporter sur les regles d'ecran et celles du DSFR. */
     @media print {
       html, body { height: auto !important; overflow: visible !important; display: block !important; }
-      .w-bandeau, .w-onglets, .w-volet, .w-aide-panneau, .w-messages, .w-loader, .w-overlay, .w-barre__droite, .w-compteurs, #skipLink,
+      .w-bandeau, .w-onglets, .w-volet, .w-aide-panneau, .w-toast, .w-loader, .w-overlay, .w-barre__droite, .w-compteurs, #skipLink,
         .w-outils, .w-ctx, .w-pop, .w-minicarte, .w-fiche, .w-poignee-taille, .w-lasso, .w-edition, .w-source, .fr-btn { display: none !important; }
       .w-page, .w-contenu, .w-contenu--principal, .w-disposition, .w-principal, .w-scene { display: block !important; overflow: visible !important; height: auto !important; padding: 0 !important; }
       .w-mention-papier { display: block; margin: 0 0 .5rem; font-size: .8125rem; }
@@ -850,10 +853,7 @@
 
   <nav class="tab-nav w-onglets" id="wOnglets" aria-label="Tableaux blancs" hidden></nav>
 
-  <div class="w-messages" id="wMessages">
-    <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert"><p id="wErreurMsg"></p><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button></div>
-    <div class="w-toast fr-alert fr-alert--success fr-alert--sm" id="wToast" role="status"><div class="w-toast__ligne"><p id="wToastMsg"></p><span id="wToastActions"></span></div></div>
-  </div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastActions"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-bulle w-bulle--droite" id="wToastFermer" aria-label="Fermer le message" data-bulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
 
   <div class="w-page">
@@ -867,7 +867,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.8.0';
+var VERSION_WIDGET = '1.9.0';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1558,7 +1558,7 @@ async function creerPageConsultation(nom, valeur) {
 }
 async function supprimerPageConsultation(badge) {
   var nom = etat.nomsPages[badge] || '';
-  var ok = await confirmer('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux blancs et leurs tables ne sont pas touchés.', 'Supprimer la page');
+  var ok = await confirmer('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux blancs et leurs tables ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
   if (!ok) { return; }
   afficherLoader('Suppression de la page…');
   try {
@@ -1862,22 +1862,42 @@ function masquerLoader() {
   if (voile) { void voile.offsetHeight; voile.classList.remove('actif'); }
 }
 
-var _minuterieErreur = null;
 
 function afficherErreur(message, erreur) {
   logSecurite('ERREUR', message, erreur);
-  var bandeau = document.getElementById('wErreur');
-  var texte = document.getElementById('wErreurMsg');
-  if (texte) { texte.textContent = message || 'Une erreur est survenue.'; }
-  if (bandeau) { bandeau.classList.add('actif'); }
-  if (_minuterieErreur) { clearTimeout(_minuterieErreur); }
-  _minuterieErreur = setTimeout(masquerErreur, 10000);
+  montrerMessage('erreur', message || 'Une erreur est survenue.', null, 0);
 }
 
-function masquerErreur() {
-  if (_minuterieErreur) { clearTimeout(_minuterieErreur); _minuterieErreur = null; }
-  var bandeau = document.getElementById('wErreur');
-  if (bandeau) { bandeau.classList.remove('actif'); }
+function masquerErreur() { if (_typeMessage === 'erreur') { fermerMessage(); } }
+
+var _typeMessage = null;
+function montrerMessage(type, message, actions, duree) {
+  var t = document.getElementById('wToast');
+  var m = document.getElementById('wToastMsg');
+  var z = document.getElementById('wToastActions');
+  if (!t || !m || !z) { return; }
+  fermerMessage();
+  _typeMessage = type;
+  t.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[type] || 'info');
+  t.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
+  t.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
+  m.textContent = message;
+  (actions || []).forEach(function (a) { z.appendChild(a); });
+  t.hidden = false;
+  var d = duree === undefined || duree === null ? (type === 'erreur' || type === 'avertissement' ? 0 : ((actions || []).length ? 12000 : 6000)) : duree;
+  if (d > 0) { _minuterieToast = setTimeout(fermerMessage, d); }
+}
+
+function fermerMessage() {
+  if (_minuterieToast) { clearTimeout(_minuterieToast); _minuterieToast = null; }
+  _typeMessage = null;
+  var t = document.getElementById('wToast');
+  if (t && !t.hidden) {
+    var focusDedans = t.contains(document.activeElement);
+    t.hidden = true;
+    vider(document.getElementById('wToastActions'));
+    if (focusDedans) { var c = document.getElementById('titreVue'); if (c) { c.focus(); } }
+  }
 }
 
 function relayer(promesse, quoi) {
@@ -2023,32 +2043,14 @@ async function chargerLogo() {
    bouton Annuler eventuel. Les erreurs passent par afficherErreur(). */
 function afficherToast(message, actions, duree) {
   logSecurite('INFO', message);
-  var t = document.getElementById('wToast');
-  var m = document.getElementById('wToastMsg');
-  var z = document.getElementById('wToastActions');
-  if (!t || !m || !z) { return; }
-  m.textContent = message;
-  vider(z);
-  (actions || []).forEach(function (a) { z.appendChild(a); });
-  t.classList.add('actif');
-  if (_minuterieToast) { clearTimeout(_minuterieToast); }
-  _minuterieToast = setTimeout(masquerToast, duree || 6000);
+  montrerMessage('succes', message, actions, (actions || []).length ? null : duree);
 }
 
-function masquerToast() {
-  if (_minuterieToast) { clearTimeout(_minuterieToast); _minuterieToast = null; }
-  var t = document.getElementById('wToast');
-  if (t) { t.classList.remove('actif'); }
-}
+function masquerToast() { if (_typeMessage && _typeMessage !== 'erreur') { fermerMessage(); } }
 
 function signalerSaisie(message) {
   logSecurite('INFO', 'Saisie refusée : ' + message);
-  var bandeau = document.getElementById('wErreur');
-  var texte = document.getElementById('wErreurMsg');
-  if (texte) { texte.textContent = message; }
-  if (bandeau) { bandeau.classList.add('actif'); }
-  if (_minuterieErreur) { clearTimeout(_minuterieErreur); }
-  _minuterieErreur = setTimeout(masquerErreur, 10000);
+  montrerMessage('erreur', message, null, 0);
 }
 
 /* Annonce aux lecteurs d'ecran : videe puis reposee, pour qu'une annonce
@@ -3284,7 +3286,7 @@ function construireToile() {
   /* Bouton « + » : un element au centre de
      la vue, texte en saisie. */
   if (etat.peutModifier) {
-    outils.appendChild(bouton('Ajouter un élément (A)', 'discret', null, function (ev) { ouvrirAjout(ev.currentTarget); }, { svg: 'plus', id: 'bOutil_Ajouter', classe: 'w-outil w-outil--ajouter w-btn-ico--grand w-bulle--cote', attrs: { 'aria-haspopup': 'true' } }));
+    outils.appendChild(bouton('Ajouter un élément', 'discret', null, function (ev) { ouvrirAjout(ev.currentTarget); }, { svg: 'plus', bulle: 'Ajouter un élément (A)', id: 'bOutil_Ajouter', classe: 'w-outil w-outil--ajouter w-btn-ico--grand w-bulle--cote', attrs: { 'aria-haspopup': 'true' } }));
     outils.appendChild(creer('hr'));
   }
   /* Barre courte (1.3.3) : « + » pour ajouter, Sélectionner, Connecteur,
@@ -3297,7 +3299,7 @@ function construireToile() {
   });
   if (etat.peutModifier) {
     outils.appendChild(creer('hr'));
-    outils.appendChild(bouton('Annuler (Ctrl+Z)', 'discret', null, function () { return annulerDerniere(); }, { svg: 'annuler', id: 'bAnnuler', classe: 'w-btn-ico--grand w-bulle--cote' }));
+    outils.appendChild(bouton('Annuler', 'discret', null, function () { return annulerDerniere(); }, { svg: 'annuler', bulle: 'Annuler (Ctrl+Z)', id: 'bAnnuler', classe: 'w-btn-ico--grand w-bulle--cote' }));
   }
   /* Barre d'outils a un seul arret de tabulation : l'outil actif ; les
      fleches passent d'un outil a l'autre. */
@@ -3832,10 +3834,10 @@ function placerCtx() {
       if (sel.length > 1) { items.push(creer('span', { classe: 'w-ctx__sep' })); items.push(bouton('Aligner et répartir', 'discret', null, function (ev) { ouvrirPop('aligner', ev.currentTarget); }, { svg: 'aligner', id: 'cAligner', attrs: { 'aria-haspopup': 'true' } })); items.push(bouton('Ranger la sélection', 'discret', null, function (ev) { ouvrirRanger(ev.currentTarget, true); }, { svg: 'ranger', id: 'cRanger', attrs: { 'aria-haspopup': 'true' } })); }
       if (sel.some(function (e) { return e.type !== 'Section' && e.type !== 'Image'; })) { items.push(bouton('Copier dans une table', 'discret', null, function (ev) { ouvrirCopieTable(ev.currentTarget); }, { svg: 'table', id: 'cCopierTable', attrs: { 'aria-haspopup': 'true' } })); }
       items.push(creer('span', { classe: 'w-ctx__sep' }));
-      items.push(bouton('Dupliquer (Ctrl+D)', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', id: 'cDupliquer' }));
+      items.push(bouton('Dupliquer', 'discret', null, function () { return dupliquerSelection(); }, { svg: 'dupliquer', bulle: 'Dupliquer (Ctrl+D)', id: 'cDupliquer' }));
       items.push(bouton('Mettre au premier plan', 'discret', null, function () { return premierPlan(); }, { svg: 'premier', id: 'cPremier' }));
       items.push(bouton('Mettre à l\'arrière-plan', 'discret', null, function () { return arrierePlan(); }, { svg: 'arriere', id: 'cArriere' }));
-      items.push(bouton('Supprimer (Suppr)', 'discret', null, function () { return supprimerSelection(); }, { svg: 'corbeille', id: 'cSupprimer', classe: 'w-bulle--droite' }));
+      items.push(bouton('Supprimer', 'discret', null, function () { return supprimerSelection(); }, { svg: 'corbeille', bulle: 'Supprimer (Suppr)', id: 'cSupprimer', classe: 'w-bulle--droite' }));
       /* « Ajouter à la suite » en dernier, bleu comme le « + » de la barre
          d'outils. */
       if (un && un.type !== 'Section' && un.type !== 'Image') { items.push(bouton('Ajouter à la suite', 'discret', null, function (ev) { ouvrirPop('suite', ev.currentTarget); }, { svg: 'plus', id: 'cSuite', classe: 'w-outil--ajouter w-bulle--droite', attrs: { 'aria-haspopup': 'true' } })); }
@@ -3849,7 +3851,7 @@ function placerCtx() {
       items.push(bouton(l.style === 'Pointillés' ? 'Trait plein' : 'Trait en pointillés', 'discret', null, function () { return modifierLien(l, { STYLE: l.style === 'Pointillés' ? 'Plein' : 'Pointillés' }); }, { svg: 'pointilles', id: 'cLienStyle' }));
       if (infoColonne(etat.tables.li, 'TRACE')) { items.push(bouton(l.trace === 'Coudé' ? 'Tracé droit' : 'Tracé coudé', 'discret', null, function () { return modifierLien(l, { TRACE: l.trace === 'Coudé' ? 'Droit' : 'Coudé' }); }, { svg: 'coude', id: 'cLienTrace' })); }
       items.push(bouton('Sens : ' + l.fleche + ' (changer)', 'discret', null, function () { return modifierLien(l, { FLECHE: FLECHES[(FLECHES.indexOf(l.fleche) + 1) % FLECHES.length] }); }, { svg: 'sens', id: 'cLienSens' }));
-      items.push(bouton('Supprimer le connecteur (Suppr)', 'discret', null, function () { return supprimerLien(l); }, { svg: 'corbeille', id: 'cLienSupprimer', classe: 'w-bulle--droite' }));
+      items.push(bouton('Supprimer le connecteur', 'discret', null, function () { return supprimerLien(l); }, { svg: 'corbeille', bulle: 'Supprimer le connecteur (Suppr)', id: 'cLienSupprimer', classe: 'w-bulle--droite' }));
     }
   }
   if (!boite || !items.length) { return; }
@@ -4434,7 +4436,7 @@ function proposerAnnulation(message, inverse) {
   etat.annulations = etat.annulations || [];
   etat.annulations.push({ fn: inverse, tableau: etat.tableauId });
   if (etat.annulations.length > MAX_ANNULATIONS) { etat.annulations.shift(); }
-  var b = bouton('Annuler', 'secondaire', 'arrow-go-back-line', function () { return annulerDerniere(); }, { petit: true, id: 'tAnnuler' });
+  var b = bouton(/supprim/i.test(message || '') ? 'Annuler la suppression' : 'Annuler la modification', 'secondaire', 'arrow-go-back-line', function () { return annulerDerniere(); }, { petit: true, id: 'tAnnuler' });
   afficherToast(message, [b], DELAI_ANNULER_MS);
 }
 
@@ -4666,7 +4668,7 @@ async function supprimerSelection() {
   var liens = etat.liens.filter(function (l) { return ids.indexOf(l.de) !== -1 || ids.indexOf(l.vers) !== -1; });
   var nbParts = etat.participations.filter(function (p) { return p.element && ids.indexOf(p.element) !== -1 && p.type === 'Commentaire'; }).length;
   if (sel.length > 5 || nbParts) {
-    var ok = await confirmer('Supprimer ' + pluriel(sel.length, 'élément', 'éléments') + ' ?', (liens.length ? pluriel(liens.length, 'connecteur est aussi supprimé', 'connecteurs sont aussi supprimés') + '. ' : '') + (nbParts ? pluriel(nbParts, 'commentaire est supprimé', 'commentaires sont supprimés') + ' et ne pourra pas être rétabli. ' : '') + 'Vous pourrez annuler la suppression des éléments pendant quelques secondes.', 'Supprimer');
+    var ok = await confirmer('Supprimer ' + pluriel(sel.length, 'élément', 'éléments') + ' ?', (liens.length ? pluriel(liens.length, 'connecteur est aussi supprimé', 'connecteurs sont aussi supprimés') + '. ' : '') + (nbParts ? pluriel(nbParts, 'commentaire est supprimé', 'commentaires sont supprimés') + ' et ne pourra pas être rétabli. ' : '') + 'Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true });
     if (!ok) { return; }
   }
   var copies = sel.map(function (e) {
@@ -4964,7 +4966,7 @@ function rendreFiche() {
   if (e.majLe && e.majLe !== e.creeLe) { trace.push('modifié le ' + formaterDate(e.majLe)); }
   f.appendChild(creer('div', { classe: 'w-fiche__pied' }, [
     creer('p', { classe: 'w-mention', id: 'wFicheStatut', attrs: { role: 'status' }, texte: trace.join(' · ') }),
-    ro ? null : bouton('Supprimer', 'secondaire', 'delete-line', function () { etat.selection = [e.id]; return supprimerSelection(); }, { petit: true, id: 'fSupprimer' })]));
+    ro ? null : bouton('Supprimer l\'élément', 'discret', 'delete-line', function () { etat.selection = [e.id]; return supprimerSelection(); }, { petit: true, id: 'fSupprimer' })]));
   if (actif) { var n = document.getElementById(actif); if (n && typeof n.focus === 'function') { n.focus(); } }
 }
 
@@ -5389,21 +5391,24 @@ function fabriquerPiege(racine, fermer) {
   };
 }
 
-function confirmer(titre, message, libelleOui) {
+function confirmer(titre, message, libelleOui, opts) {
+  opts = opts || {};
   return new Promise(function (resolve) {
     var ov = document.getElementById('wConfirmOverlay');
     if (_confirm.resolution) { _confirm.resolution(false); }
     _confirm.resolution = resolve;
     document.getElementById('wConfirmTitre').textContent = titre;
     document.getElementById('wConfirmMsg').textContent = message || '';
-    document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+    var oui = document.getElementById('wConfirmOui');
+    oui.textContent = libelleOui || 'Confirmer';
+    oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
     _confirm.retour = document.activeElement;
     ov.classList.add('actif');
     void ov.offsetHeight;
     if (_confirm.pieger) { ov.removeEventListener('keydown', _confirm.pieger); }
     _confirm.pieger = fabriquerPiege(ov, function () { terminerConfirmation(false); });
     ov.addEventListener('keydown', _confirm.pieger);
-    document.getElementById('wConfirmNon').focus();
+    document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
   });
 }
 
@@ -5442,7 +5447,7 @@ function filAriane(noms, n, aller, idTitre, actions) {
       aller && i !== n ? [creer('button', { classe: 'w-etapes__bouton', id: (idTitre || 'titreVue') + '_etape' + i, clic: function () { aller(i); } }, contenuEtape)] : contenuEtape);
     ol.appendChild(li);
   });
-  /* « Annuler la création » et « Créer le tableau blanc » au bout de la
+  /* « Annuler la création » et « Créer mon tableau blanc » au bout de la
      ligne des etapes, toujours en vue (comme Diploorganigramme). */
   var acts = (actions || []).filter(Boolean);
   d.appendChild(acts.length ? creer('div', { classe: 'w-etapes-rangee' }, [ol, creer('div', { classe: 'w-etapes-rangee__actions' }, acts)]) : ol);
@@ -5823,7 +5828,7 @@ function rendreCreation() {
   var bloc = creer('div', { classe: 'w-param' });
   bloc.appendChild(filAriane(ETAPES_CREATION, c.etape, aller, null, [
     bouton('Annuler la création', 'tertiaire', 'close-line', function () { return annulerCreation(); }, { petit: true, id: 'cAnnuler' }),
-    c.etape > 0 ? bouton('Créer le tableau blanc', null, 'check-line', function () { return lancerCreation(); }, { petit: true, id: 'cCreer' }) : null]));
+    c.etape > 0 ? bouton('Créer mon tableau blanc', null, 'check-line', function () { return lancerCreation(); }, { petit: true, id: 'cCreer' }) : null]));
   var rien = function () {};
   if (c.etape === 0) {
     /* Premier choix : ce que l'on veut faire. Feuille blanche en tete, puis
@@ -5927,7 +5932,7 @@ function rendreCreation() {
 }
 
 async function annulerCreation() {
-  var ok = await confirmer('Abandonner la création ?', 'Les choix faits dans l\'assistant seront perdus.', 'Abandonner');
+  var ok = await confirmer('Abandonner la création ?', 'Les choix faits dans l\'assistant seront perdus.', 'Abandonner', { destructif: true });
   if (!ok) { return; }
   etat.creation = null;
   if (tableaux().length) { if (!tableauCourant()) { choisirTableau(tableaux()[0].id); } rendrePrincipal(); }
@@ -6134,9 +6139,9 @@ function etapeGeneral(t) {
     col1.push(creer('div', {}, [bouton('Ajouter les nouvelles lignes', 'secondaire', 'add-line', function () { return ajouterNouvellesLignes(t); }, { petit: true, id: 'pNouvelles' })]));
   }
   var col2 = [titreColonne('Réserver le paramétrage aux propriétaires', 'pTitreDroits', null), encartDroits(),
-    titreColonne('Supprimer', 'pTitreSuppr', null), creer('div', { classe: 'w-zone-retrait' }, [
+    titreColonne('Supprimer le tableau blanc', 'pTitreSuppr', null), creer('div', { classe: 'w-zone-retrait' }, [
       creer('p', { classe: 'w-texte', texte: 'Supprime le tableau blanc « ' + t.nom + ' », ' + pluriel(els.length, 'élément', 'éléments') + ' et ' + pluriel(nl, 'connecteur', 'connecteurs') + '. Les tables et les autres tableaux blancs restent dans le document.' }),
-      bouton('Supprimer ce tableau blanc', 'secondaire', 'delete-line', function () { return supprimerTableau(t); }, { petit: true, id: 'pSupprimer' })])];
+      bouton('Supprimer le tableau blanc', 'secondaire', 'delete-line', function () { return supprimerTableau(t); }, { petit: true, id: 'pSupprimer', classe: 'w-bouton-danger' })])];
   return creer('div', { classe: 'w-grille-param' }, [creer('div', { classe: 'w-colonne' }, col1), creer('div', { classe: 'w-colonne' }, col2)]);
 }
 
@@ -6179,7 +6184,7 @@ async function ajouterNouvellesLignes(t) {
 
 async function supprimerTableau(t) {
   var nbP = pagesDuTableau(t.id).length;
-  var ok = await confirmer('Supprimer le tableau blanc « ' + t.nom + ' » ?', 'Ses éléments et ses connecteurs sont supprimés du document. Cette suppression ne peut pas être annulée.' + (nbP ? ' ' + pluriel(nbP, 'page', 'pages') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : ''), 'Supprimer le tableau blanc');
+  var ok = await confirmer('Supprimer le tableau blanc « ' + t.nom + ' » ?', 'Ses éléments et ses connecteurs sont supprimés du document. Cette action est définitive.' + (nbP ? ' ' + pluriel(nbP, 'page', 'pages') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : ''), 'Supprimer le tableau blanc', { danger: true });
   if (!ok) { return; }
   afficherLoader('Suppression…');
   try {
@@ -6413,7 +6418,7 @@ async function voter(e, sens) {
 }
 
 async function reinitialiserVotes(t) {
-  var ok = await confirmer('Remettre les votes à zéro ?', 'Tous les votes du tableau blanc « ' + t.nom + ' » sont supprimés, pour toutes les personnes.', 'Remettre à zéro');
+  var ok = await confirmer('Remettre les votes à zéro ?', 'Tous les votes du tableau blanc « ' + t.nom + ' » sont supprimés, pour toutes les personnes. Cette action est définitive.', 'Remettre à zéro', { danger: true });
   if (!ok) { return; }
   try {
     var ids = etat.participations.filter(function (p) { return p.type === 'Vote' && p.tableau === t.id; }).map(function (p) { return p.id; });
@@ -6540,7 +6545,7 @@ async function ajouterCommentaire(e, texte) {
 }
 
 async function supprimerCommentaire(c) {
-  var ok = await confirmer('Supprimer ce commentaire ?', '« ' + (c.valeur.length > 80 ? c.valeur.slice(0, 77) + '…' : c.valeur) + ' »', 'Supprimer le commentaire');
+  var ok = await confirmer('Supprimer le commentaire ?', '« ' + (c.valeur.length > 80 ? c.valeur.slice(0, 77) + '…' : c.valeur) + ' »', 'Supprimer le commentaire', { danger: true });
   if (!ok) { return; }
   try {
     await agir([['RemoveRecord', etat.tables.pa, c.id]]);
@@ -7515,7 +7520,7 @@ var FICHES_AIDE = [
   { cle: 'creation1', titre: 'Création : Le tableau blanc', texte: 'Donnez un nom au tableau blanc : il nomme son onglet, et il est obligatoire pour continuer. Vous voyez aussi votre point de départ ; vous pouvez en changer.' },
   { cle: 'creation2', titre: 'Création : Formes et couleurs', texte: 'Donnez un sens à chaque couleur (Décision, Idée, Irritant...). La légende s\'affiche sur la toile avec la case « Légende » du volet, et à l\'impression.' },
   { cle: 'creation3', titre: 'Création : La fiche', texte: 'Choisissez si une forme peut ouvrir une ligne d\'une table du document, et les champs proposés dans la fiche (responsable, statut, pièces jointes).' },
-  { cle: 'creation4', titre: 'Création : Affichage et filtres', texte: 'Réglages de départ (grille, mini-carte, votes) et filtres proposés dans le volet. « Créer le tableau blanc », au bout de la ligne des étapes, est disponible à chaque étape.' },
+  { cle: 'creation4', titre: 'Création : Affichage et filtres', texte: 'Réglages de départ (grille, mini-carte, votes) et filtres proposés dans le volet. « Créer mon tableau blanc », au bout de la ligne des étapes, est disponible à chaque étape.' },
   { cle: 'principal', titre: 'Dessiner', texte: 'Le bouton « + » à gauche de la toile ajoute un post-it, une forme, un texte, une section, un couloir ou une image au centre de la vue ; le clic droit sur un élément ajoute la suite. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée ; le connecteur peut être droit ou coudé.' },
   { cle: 'atelier', titre: 'Animer un atelier', texte: 'Les initiales des personnes présentes s\'affichent au-dessus de la toile. « Minuteur » lance un compte à rebours visible par tous. Chacun vote avec les pastilles de la barre d\'actions, dans la limite fixée ; les commentaires se laissent dans la fiche de l\'élément.' },
   { cle: 'selection', titre: 'Modifier la sélection', texte: 'Un clic sélectionne, Maj+clic ajoute, un glisser sur le fond sélectionne au lasso. La barre d\'actions au-dessus de la sélection change la couleur, la forme, relie à une fiche, duplique ou supprime. « Annuler » reste disponible quelques secondes en bas à droite.' },
@@ -7654,6 +7659,7 @@ function rendreMessage(vue) {
 
 /* === SECTION : CHARGEMENT ET RAFRAICHISSEMENT === */
 async function chargerTout() {
+  if (etat.vue === 'echec' || etat.vue === 'acces') { masquerErreur(); }
   afficherLoader('Chargement des tableaux blancs…');
   etat.enCours = true;
   try {
@@ -7751,7 +7757,7 @@ function brancherSocle() {
   if (v) { v.textContent = 'v' + VERSION_WIDGET; }
   var h = document.getElementById('bandeauHomologue');
   if (h) { h.hidden = !HOMOLOGUE; }
-  document.getElementById('wErreurFermer').addEventListener('click', masquerErreur);
+  document.getElementById('wToastFermer').addEventListener('click', fermerMessage);
   document.getElementById('wConfirmOui').addEventListener('click', function () { terminerConfirmation(true); });
   document.getElementById('wConfirmNon').addEventListener('click', function () { terminerConfirmation(false); });
   document.getElementById('bAide').addEventListener('click', function () { ouvrirAide(!etat.aide.ouverte); });
