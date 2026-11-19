@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diplokanban</title>
+  <title>WuitKanban</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" integrity="sha256-bQqDH8GbS66FF5etM5MVfoYa+3hiRZwRImNZsn4sQzc=" crossorigin="anonymous"></script>
@@ -550,7 +550,9 @@
     .w-courriel-champs { display: flex; gap: .5rem; align-items: flex-end; flex-wrap: wrap; }
     .w-courriel-champs .fr-select { width: auto; flex: 1 1 12rem; }
     @media print { .w-nouv, .w-carte__neuf { display: none !important; } }
-  </style>
+  
+  .w-wuit { color: var(--blue-france-main-525); }
+</style>
 </head>
 <body>
   <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
@@ -594,7 +596,7 @@
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre" id="bandeauTitre">🗂️ Diplokanban</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">🗂️ WuitKanban</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
@@ -605,7 +607,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.1';
+var VERSION_WIDGET = '1.8.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -613,7 +615,7 @@ var LABEL_BIBLIO = '📋 BIBLIOTHÈQUE KANBAN ⚡';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var LABEL_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var CLE_CONFIG = 'CONFIG';
-var CLE_COPIE = 'COPIE', ID_OWNER = 'OWNER_ONLY', TITRE_OWNER = '❌ OWNER ONLY ⚡', TITRE_DEFAUT = '🗂️ Diplokanban';
+var CLE_COPIE = 'COPIE', ID_OWNER = 'OWNER_ONLY', TITRE_OWNER = '❌ OWNER ONLY ⚡', TITRE_DEFAUT = '🗂️ WuitKanban';
 var GENRES_CONDITION = ['choix', 'personne', 'etiquettes', 'reference', 'references', 'oui_non'];
 function badgeValide(v) { return typeof v === 'string' && /^[a-z0-9]{6,16}$/.test(v) ? v : null; }
 function nouveauBadge() {
@@ -4428,7 +4430,7 @@ function afficherVue(vue, garderFocus) {
     }
 }
 function majTitreBandeau() {
-    var nomW = etat.page && etat.page.titre ? etat.page.titre : 'Diplokanban';
+    var nomW = etat.page && etat.page.titre ? etat.page.titre : 'WuitKanban';
     document.title = etat.config && etat.config.nom && etat.vue === 'tableau' ? etat.config.nom + ' - ' + nomW : nomW;
     var h1 = document.getElementById('bandeauTitre');
     if (h1) {
@@ -6862,7 +6864,7 @@ var TEXTES_DROITS = {
     complement: 'Ces règles ne protègent que si la case « Autoriser les Éditeurs à modifier la structure » est décochée, dans « Règles spéciales ».'
 };
 var AIDE = {
-    resume: 'Diplokanban présente le travail en cours sous forme de cartes rangées en colonnes, une colonne par étape (à faire, en cours, fait...). Chaque carte est une ligne d\'une table du document : déplacer une carte change son étape.',
+    resume: 'WuitKanban présente le travail en cours sous forme de cartes rangées en colonnes, une colonne par étape (à faire, en cours, fait...). Chaque carte est une ligne d\'une table du document : déplacer une carte change son étape.',
     fonctions: [
         'Glisser une carte d\'une colonne à l\'autre pour changer son étape, ou utiliser son bouton « Déplacer » au clavier.',
         'Ajouter une carte avec « Ajouter une carte » en haut du panneau de gauche, ou le « + » d\'une colonne.',
@@ -10574,6 +10576,32 @@ setTimeout(function () {
 }, 1500);
 relayer(initialiser(), 'Initialisation');
 demarrerActualisationAuto();
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
