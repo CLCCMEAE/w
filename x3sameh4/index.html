@@ -34,6 +34,7 @@
         .w-bandeau__marque{display:flex;align-items:center;gap:.75rem;flex-shrink:0}
     .w-bandeau__sep{width:1px;align-self:stretch;margin:.25rem 0;background:var(--border-default-grey);flex-shrink:0; color: var(--text-default-grey); }
     .w-bandeau__titre{font-size:2rem;font-weight:600;color:var(--text-title-blue-france);white-space:nowrap;margin:0;line-height:1}
+    .w-bandeau__role { margin-left: .5rem; white-space: nowrap; }
     .w-bandeau__version{font-size:.75rem;color:var(--text-mention-grey);font-weight:400;margin-left:.5rem;white-space:nowrap}
     .w-bandeau__homologue{margin-left:.5rem;white-space:nowrap}
     .w-bandeau__homologue[hidden]{display:none}
@@ -971,7 +972,7 @@
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre" id="bandeauTitre">🚪 WuitSalles</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">🚪 WuitSalles</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
@@ -982,7 +983,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.18';
+var VERSION_WIDGET = '1.1.19';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -7167,7 +7168,20 @@ function contenu() { return document.getElementById('contenu'); }
 function titreVue(texte) {
     return creer('h2', { classe: 'fr-h4 w-titre-vue', texte: texte, attrs: { tabindex: '-1', id: 'titreVue' } });
 }
+function majBandeauRole() {
+    var b = document.getElementById('bandeauRole');
+    if (!b) {
+        return;
+    }
+    var admin = !etat.page && etat.peutParametrer && !!etat.config;
+    var role = admin ? 'Admin' : estPageGestion() ? 'Gestion' : '';
+    b.textContent = role;
+    b.hidden = !role;
+    b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
+    b.classList.toggle('fr-badge--blue-ecume', role === 'Gestion');
+}
 function afficherVue(vue, garderFocus) {
+    majBandeauRole();
     etat.vue = vue;
     fermerLoupe(true);
     var zone = contenu();
