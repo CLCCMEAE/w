@@ -156,7 +156,7 @@
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -194,12 +194,11 @@
     .w-ajout .fr-btn { width: 100%; justify-content: center; }
     .w-sorties { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: .5rem; }
     .w-filtres-compte { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
-    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
-      max-width: min(30rem, calc(100% - 2rem)); padding: .5rem .5rem .5rem .75rem; background: var(--background-default-grey); color: var(--text-default-grey);
-      border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-info); }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
-    .w-toast--succes { border-left-color: var(--border-plain-success); }
-    .w-toast--erreur { border-left-color: var(--border-plain-error); }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
     @media print { .w-toast { display: none; } }
@@ -583,14 +582,14 @@
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploboard';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOBOARD';
@@ -1266,7 +1265,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux de bord et vos tables ne sont pas touchés.', 'Supprimer la page');
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux de bord et vos tables ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -1568,7 +1567,7 @@ function masquerLoader() {
 }
 function afficherErreur(message, erreur) {
     logSecurite('ERREUR', message, erreur);
-    toast(message || 'Une erreur est survenue.', { type: 'erreur', duree: 10000 });
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
 function relayer(promesse, quoi) {
     if (promesse && typeof promesse.catch === 'function') {
@@ -1724,7 +1723,7 @@ async function chargerLogo() {
 }
 function afficherSucces(message, action) {
     logSecurite('INFO', message);
-    toast(message, action ? { type: 'succes', duree: 10000, action: { libelle: action.libelle, fn: action.action } } : { type: 'succes' });
+    toast(message, action ? { type: 'succes', action: { libelle: action.libelle, fn: action.action } } : { type: 'succes' });
 }
 function annoncer(message) {
     var zone = document.getElementById('annonce');
@@ -1871,7 +1870,8 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -1887,7 +1887,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' ? 10000 : 6000) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -2932,6 +2932,11 @@ function fermerModale() {
     }
 }
 function confirmerAction(titre, message, libelleOui, saisieInitiale) {
+    var opts = {};
+    if (saisieInitiale !== null && typeof saisieInitiale === 'object') {
+        opts = saisieInitiale;
+        saisieInitiale = undefined;
+    }
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -2951,7 +2956,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
         void ov.offsetHeight;
@@ -2966,7 +2973,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -3069,7 +3076,7 @@ function marquerInvalide(id, message, sansFocus) {
 }
 function signalerSaisie(message) {
     logSecurite('INFO', 'Saisie refusée : ' + message);
-    toast(message, { type: 'erreur', duree: 10000 });
+    toast(message, { type: 'erreur' });
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
 function enteteParametrage(nom, retourLibelle, retourFn, statut) {
@@ -7072,7 +7079,7 @@ async function sauverTableau() {
 }
 function barreEditionTableau() {
     var st = etat.statutEdition || { texte: 'Les changements sont enregistrés automatiquement.' };
-    var annul = bouton('Défaire', 'secondaire', 'arrow-go-back-line', annulerChangement, { petit: true, id: 'gAnnuler', desactive: !etat.annuler.length });
+    var annul = bouton('Annuler le dernier changement', 'secondaire', 'arrow-go-back-line', annulerChangement, { petit: true, id: 'gAnnuler', desactive: !etat.annuler.length });
     return creer('div', { classe: 'gb-edition', attrs: { role: 'region', 'aria-label': 'Mode modification' } }, [
         creer('h3', { classe: 'gb-edition__titre', id: 'gEditionTitre', texte: 'Modification du tableau de bord', attrs: { tabindex: '-1' } }),
         creer('p', { classe: 'w-statut' + (st.genre === 'ok' ? ' w-statut--ok' : (st.genre === 'erreur' ? ' w-statut--erreur' : '')), id: 'gStatut', attrs: { role: 'status' }, texte: st.texte }),
@@ -7087,11 +7094,11 @@ function annulerChangement() {
         return;
     }
     etat.config.tuiles = etat.annuler.pop();
-    planifierSauvegardeTableau('Changement défait');
+    planifierSauvegardeTableau('Changement annulé');
     nouveauCalcul();
     afficherVue('tableau', true);
     remettreFocus(etat.annuler.length ? '#gAnnuler' : '#gEditionTitre');
-    annoncer('Dernier changement défait.');
+    annoncer('Dernier changement annulé.');
 }
 function outilEdition(icone, libelle, clic, o) {
     o = o || {};
@@ -7133,9 +7140,12 @@ function barreEditionTuile(ctx, t, i) {
     var dupliquer = outilEdition('file-add-line', 'Dupliquer : ' + nom, function () {
         ctx.changer(function (c) { var x = cloner(c.tuiles[i]); x.id = idTuile(); x.titre = (x.titre || 'Tuile') + ' (copie)'; c.tuiles.splice(i + 1, 0, x); }, 'Tuile dupliquée', '#' + p + 'gEditer' + (i + 1));
     }, { bulle: 'Dupliquer' });
-    var supprimer = outilEdition('delete-bin-line', 'Supprimer : ' + nom, function () {
+    var supprimer = outilEdition('delete-line', 'Supprimer la tuile ' + nom, async function () {
+        if (!(await confirmerAction('Supprimer la tuile « ' + nom + ' » ?', 'Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true }))) {
+            return;
+        }
         ctx.changer(function (c) { c.tuiles.splice(i, 1); }, 'Tuile supprimée', n > 1 ? '#' + p + 'gEditer' + Math.min(i, n - 2) : '#' + p + 'gAjoutTuile');
-        afficherSucces('Tuile « ' + nom + ' » supprimée.', { libelle: 'Défaire', action: function () { if (ctx.annuler) {
+        afficherSucces('Tuile « ' + nom + ' » supprimée.', { libelle: 'Annuler la suppression', action: function () { if (ctx.annuler) {
                 ctx.annuler();
             }
             else {
@@ -8536,14 +8546,14 @@ async function quitterAssistant(versAutre) {
         return sortirParametrages(!versAutre);
     }
     if (b.cfg || b.tablesCreees.length) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return false;
         }
         if (b.tablesCreees.length) {
             var noms = b.tablesCreees.map(libelleTable).join(', ');
             var plu = b.tablesCreees.length > 1;
-            var sup = await confirmerAction('Supprimer aussi les tables du modèle ?', 'Le widget a créé ' + (plu ? 'les tables ' : 'la table ') + noms + ' pour ce modèle. ' + (plu ? 'Les supprimer' : 'La supprimer') + ' avec leurs lignes ? Choisissez Annuler pour ' + (plu ? 'les garder' : 'la garder') + '.', 'Supprimer les tables');
+            var sup = await confirmerAction('Supprimer aussi les tables du modèle ?', 'Le widget a créé ' + (plu ? 'les tables ' : 'la table ') + noms + ' pour ce modèle. ' + (plu ? 'Les supprimer' : 'La supprimer') + ' avec leurs lignes ? Choisissez Annuler pour ' + (plu ? 'les garder' : 'la garder') + '.', 'Supprimer les tables', { danger: true });
             if (sup) {
                 try {
                     await agir(b.tablesCreees.map(function (t) { return ['RemoveTable', t]; }));
@@ -8926,7 +8936,7 @@ function contexteBrouillon() {
         } if (b.annuler.length) {
             b.cfg.tuiles = b.annuler.pop();
             rendre('#wgAjoutTuile');
-            annoncer('Dernier changement défait.');
+            annoncer('Dernier changement annulé.');
         } } };
 }
 function etapeTuiles() {
@@ -8937,7 +8947,7 @@ function etapeTuiles() {
     box.appendChild(creer('div', { classe: 'gb-edition' }, [creer('div', { classe: 'w-titre-aide' }, [creer('p', { classe: 'fr-m-0 w-texte', texte: nombreSur(b.cfg.tuiles.length, 'tuile') }), a.bouton, a.panneau]),
         creer('span', { classe: 'w-pousse' }),
         bouton('Ajouter une tuile', 'secondaire', 'add-line', function () { ouvrirChoixType(ctx); }, { petit: true, id: 'wAjouter' }),
-        bouton('Défaire', 'secondaire', 'arrow-go-back-line', ctx.annuler, { petit: true, id: 'wAnnulerTuile', desactive: !b.annuler.length })]));
+        bouton('Annuler le dernier changement', 'secondaire', 'arrow-go-back-line', ctx.annuler, { petit: true, id: 'wAnnulerTuile', desactive: !b.annuler.length })]));
     var fond = creer('div', { classe: 'gb-apercu-fond' }, [grilleTuiles(b.cfg, ctx, 'w')]);
     box.appendChild(fond);
     return box;
@@ -9070,7 +9080,7 @@ var AIDE = {
                 '« Ajouter une tuile » : nombre, grille d\'indicateurs, barres, courbe, anneau, radar, tableau, progression, texte ou dernières lignes.',
                 'Chaque tuile se modifie, se duplique, change de taille ou de place (glisser la poignée, ou Placer avant / Placer après).',
                 'Les tuiles sont dessinées avec vos données : ce que vous voyez est ce que verront les lecteurs.',
-                '« Défaire » annule le dernier changement.'
+                '« Annuler le dernier changement » revient en arrière d\'un pas.'
             ] },
         'Affichage et filtres': { titre: 'les filtres du volet et leurs valeurs à l\'ouverture.', points: [
                 '« Filtre de période sur la colonne de date » : propose Cette semaine, Ce mois-ci, Cette année...',
@@ -9295,7 +9305,7 @@ async function sortirParametrages(afficher) {
         await sauvegarderBrouillon();
         if (aChange(b)) {
             var raison = raisonNonEnregistrable(b);
-            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter');
+            var quitter = await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (raison ? ' : ' + raison : '') + '. Elle sera perdue.', 'Quitter', { destructif: true });
             if (!quitter) {
                 return false;
             }
@@ -9318,7 +9328,7 @@ async function sortirParametrages(afficher) {
 async function supprimerTableau() {
     var nom = etat.config ? etat.config.nom : '';
     var nbP = pagesDuTableau(etat.cleConfig).length;
-    var ok = await confirmerAction('Supprimer le tableau de bord « ' + nom + ' » ?', 'Le tableau de bord disparaît des onglets et ses réglages sont effacés. Vos tables et leurs lignes restent dans le document.' + (nbP ? ' ' + nombreSur(nbP, 'page') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : ''), 'Supprimer le tableau de bord');
+    var ok = await confirmerAction('Supprimer le tableau de bord « ' + nom + ' » ?', 'Le tableau de bord disparaît des onglets et ses réglages sont effacés. Vos tables et leurs lignes restent dans le document.' + (nbP ? ' ' + nombreSur(nbP, 'page') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer le tableau de bord', { danger: true });
     if (!ok) {
         return;
     }
