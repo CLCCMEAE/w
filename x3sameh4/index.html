@@ -921,6 +921,14 @@
     .s-vignettes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
     .s-jr__salle-nom { display: inline-flex; align-items: center; gap: .25rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
     .s-jr__salle-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .s-droits { margin: .5rem 0 0; padding: 0; list-style: none; counter-reset: none; }
+    .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .s-droits__etape--suite { border-top: 0; padding-top: 0; }
+    .s-droits__titre { display: flex; align-items: center; gap: .5rem; margin: 0 0 .25rem; font-weight: 700; font-size: .875rem; }
+    .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
+    .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .5rem; }
     .s-titre-date { white-space: nowrap; }
     .s-titre-nav .c-aller { margin-left: .25rem; }
@@ -998,7 +1006,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.30';
+var VERSION_WIDGET = '1.1.31';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -4311,7 +4319,7 @@ var AIDE = {
     },
     questions: [
         { q: 'Quels droits donner aux agents et aux gestionnaires ?', r: 'Dans « Partager » (en haut à droite du document) : les agents en Éditeur, car réserver écrit une ligne dans le document ; Lecteur ne suffit pas. Les gestionnaires des salles aussi en Éditeur. La ou les personnes qui paramètrent en Propriétaire. Ensuite, dans « Permissions avancées », posez les règles conseillées de la question suivante. Vérifiez le résultat avec « Voir en tant que ».' },
-        { q: 'Quelles règles d\'accès poser ?', r: '1. Réglages du widget : seuls les propriétaires les modifient (« Général », « Réserver le paramétrage aux propriétaires », « Voir la marche à suivre »). 2. Table des salles : lue par tous, modifiée par les gestionnaires seulement. 3. Table des réservations : chacun peut créer ; chacun ne modifie que les siennes, en comparant la colonne CRÉÉ PAR au courriel de la personne connectée. 4. Colonne du statut : modifiable par les gestionnaires seulement. 5. Page des paramétrages : cachée aux agents (« Cacher cette page »), qui utilisent la page « Réserver une salle ».' },
+        { q: 'Quelles règles d\'accès poser ?', r: 'La marche à suivre complète, avec les conditions à copier, est dans Paramétrage, étape « Général », rubrique « Régler les droits du document ». En résumé : 1. décocher « Autoriser les Éditeurs à modifier la structure » ; 2. table ❌ ADMIN ONLY : tout refuser aux non-propriétaires (cache la page Admin) ; 3. réglages du widget : lecture du témoin et écriture refusées aux non-propriétaires ; 4. table des salles : lecture seule pour les agents ; 5. table des réservations : chacun crée, ne modifie que les siennes (CRÉÉ PAR = son courriel), ne supprime rien ; 6. colonne du statut : un agent peut seulement annuler ; 7. vérifier avec « Voir en tant que ».' },
         { q: 'Que veulent dire les icônes ?', r: 'Personnes : nombre de places. Repère : bâtiment et emplacement. Caméra : la salle a un lien de visio. Les autres icônes montrent les équipements (écran, vidéoprojecteur, tableau blanc, accès en fauteuil roulant, café…). Cadenas : réservation à faire valider. Survolez une icône pour lire son sens.' },
         { q: 'Où trouver le lien de visio ?', r: 'Juste après la réservation, avec « Copier le lien » pour le donner à vos invités ; puis dans la fiche de la réservation, avec « Rejoindre la visio ». Le lien se règle dans la fiche de la salle.' },
         { q: 'Pourquoi une salle n\'est-elle pas proposée ?', r: 'Elle est déjà prise sur ce créneau (ou sur une des dates d\'une réservation répétée), fermée ce jour-là, ses règles propres ne le permettent pas, ou elle est trop petite alors que les règles refusent les salles trop petites. La raison est écrite sous la salle.' },
@@ -10218,6 +10226,47 @@ function etapeFiltres() {
     bloc.appendChild(caseCochee('aOuvres', 'Sans samedi ni dimanche par défaut', c.workingDays, function (x) { c.workingDays = x; planifierApercu(); }, 'Chacun peut le changer au-dessus du planning.'));
     return bloc;
 }
+function reglesDroitsConseillees() {
+    var c = etat.config || (etat.brouillon && etat.brouillon.cfg) || {};
+    var nomRes = c.table ? libelleTable(c.table) : 'des réservations';
+    var ts = tableSalles(c);
+    var nomSalles = ts ? libelleTable(ts) : 'des salles';
+    var colStat = c.colStatus || 'STATUT';
+    var sv = statutsDe(c);
+    var biblio = etat.biblioCentrale || !etat.biblio ? LABEL_CENTRALE : libelleTable(etat.biblio);
+    var duW = etat.biblioCentrale || !etat.biblio ? ' and rec.WIDGET == "' + NOM_WIDGET + '"' : '';
+    return [
+        { titre: 'Les rôles', texte: 'Bouton « Partager » en haut à droite du document : les agents en Éditeur (réserver écrit une ligne : Lecteur ne suffit pas), les personnes qui paramètrent et valident en Propriétaire.' },
+        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». Dans « Règles spéciales », décochez « Autoriser les Éditeurs à modifier la structure » : sinon les agents contournent toutes les règles ci-dessous. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne ; ne recopiez pas les règles d\'une autre table qui citent des colonnes absentes de celle-ci.' },
+        { titre: 'Cacher cette page', texte: 'Ajoutez une règle sur la table « ' + titreOwner() + ' ». Condition ci-dessous, puis refusez tout : Lecture, Création, Modification, Suppression. La page Admin disparaît pour les agents. Cette table n\'a qu\'une colonne (INFO) : aucune autre condition n\'y a de sens.', code: 'user.Access != OWNER' },
+        { titre: 'Protéger les réglages', texte: 'Sur la table « ' + biblio + ' » : une règle avec cette condition, qui refuse la Lecture (le widget sait ainsi qui est propriétaire)…', code: 'user.Access != OWNER and rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW },
+        { titre: '', texte: '… et une seconde règle qui refuse Création, Modification et Suppression.', code: 'user.Access != OWNER' + (duW ? ' and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '")' : '') },
+        { titre: 'Les salles', texte: 'Sur la table « ' + nomSalles + ' » : refusez Création, Modification et Suppression. La lecture reste ouverte à tous.', code: 'user.Access != OWNER' },
+        { titre: 'Les réservations', texte: 'Sur la table « ' + nomRes + ' » : chacun crée, mais ne modifie que ses propres réservations. Règle qui refuse la Modification…', code: 'user.Access != OWNER and rec.CREE_PAR != user.Email' },
+        { titre: '', texte: '… et règle qui refuse la Suppression à tous les agents (ils annulent, ils ne suppriment pas).', code: 'user.Access != OWNER' },
+        { titre: 'Le statut', texte: 'Règle de colonne sur ' + colStat + ' (et MOTIF s\'il existe) : un agent peut seulement annuler, ou remettre « ' + (sv.attente || 'En attente') + ' » en modifiant sa réservation. Refusez la Modification.', code: 'user.Access != OWNER and newRec.' + colStat + ' not in ["' + (sv.annulee || 'Annulée') + '", "' + (sv.attente || 'En attente') + '"]' },
+        { titre: 'Vérifier', texte: 'Bouton « Voir en tant que » en haut des Permissions avancées, avec le courriel d\'un agent : il ne voit pas la page Admin, il réserve, il modifie et annule ses réservations, pas celles des autres.' }
+    ];
+}
+function blocDroits() {
+    var etapes = reglesDroitsConseillees();
+    var n = 0;
+    var ol = creer('ol', { classe: 's-droits' });
+    etapes.forEach(function (x, k) {
+        var li = creer('li', { classe: 's-droits__etape' + (x.titre ? '' : ' s-droits__etape--suite') });
+        if (x.titre) {
+            n++;
+            li.appendChild(creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(n) }), x.titre]));
+        }
+        li.appendChild(creer('p', { classe: 's-droits__texte', texte: x.texte }));
+        if (x.code) {
+            var code = creer('code', { classe: 's-droits__code', texte: x.code });
+            li.appendChild(creer('div', { classe: 's-droits__ligne' }, [code, bouton('Copier', 'tertiaire', 'file-copy-line', function () { return copierTexte(x.code, code, 'Condition copiée : collez-la dans la règle.'); }, { petit: true, id: 'aDroitCopier' + k })]));
+        }
+        ol.appendChild(li);
+    });
+    return ol;
+}
 function etapeGeneral() {
     var b = etat.brouillon;
     var c = b.cfg;
@@ -10243,7 +10292,8 @@ function etapeGeneral() {
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecAdmin', texte: 'Cette page de paramétrage' })]),
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Elle est cachée aux agents et aux gestionnaires : seuls les propriétaires la voient.' : 'Elle est visible par tous les membres du document.', ' ', r.bouton]), r.panneau,
         etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }),
-        etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection en haut de la page', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null
+        etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection en haut de la page', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null,
+        accordeon(b, 'droits', 'Régler les droits du document', 'Rôles et règles d\'accès, étape par étape', false, function (z) { z.appendChild(blocDroits()); })
     ]);
     var pages = pagesDuPlan(etat.cleConfig);
     var aAgents = pages.some(function (x) { return !etat.copies[x].gestion; });
@@ -14207,17 +14257,17 @@ function etapeConfirmation(res) {
     l.push(creer('p', { classe: 'w-mention', texte: 'Vous retrouvez votre réservation dans le planning. Pour l\'annuler : ouvrez-la, puis « Annuler la réservation ».' }));
     return l;
 }
-async function copierTexte(t, champ) {
+async function copierTexte(t, champ, message) {
     try {
         await navigator.clipboard.writeText(t);
-        afficherSucces('Lien copié.');
+        afficherSucces(message || 'Lien copié.');
     }
     catch (e) {
         if (champ) {
             champ.focus();
             champ.select();
         }
-        signalerSaisie('Le lien est sélectionné : copiez-le avec Ctrl+C (ou Cmd+C).');
+        signalerSaisie(champ ? 'Le texte est sélectionné : copiez-le avec Ctrl+C (ou Cmd+C).' : 'La copie a été refusée par le navigateur : sélectionnez le texte et copiez-le avec Ctrl+C (ou Cmd+C).');
     }
 }
 function creneauxLibres(s, w, dureeMin) {
