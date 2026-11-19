@@ -1800,6 +1800,10 @@ var MODELES = [
                     { id: 'DEMANDEUR', type: 'Text', declencheur: 'user.Name or user.Email' },
                     { id: 'COMMENTAIRE', type: 'Text', options: { wrap: true } },
                     { id: 'SERIE', type: 'Text', label: 'SÉRIE' },
+                    { id: 'RESTAURATION', type: 'Bool' },
+                    { id: 'RESTAURATION_CHOIX', type: 'ChoiceList', label: 'RESTAURATION : CHOIX', choix: ['Café d\'accueil', 'Déjeuner (plateaux repas)', 'Buffet du midi', 'Goûter', 'Cocktail du soir'] },
+                    { id: 'RESTAURATION_NOMBRE', type: 'Int', label: 'RESTAURATION : NOMBRE DE COUVERTS' },
+                    { id: 'RESTAURATION_DETAIL', type: 'Text', label: 'RESTAURATION : DÉTAIL', options: { wrap: true } },
                     { id: 'LIEN_VISIO', type: 'Text', label: 'LIEN VISIO', formule: '$SALLE.LIEN_VISIO if $SALLE else ""' },
                     { id: 'CONFLIT', type: 'Bool', formuleApres: 'conflit' },
                     { id: 'HISTORIQUE', type: 'Text', options: { wrap: true }, recalcWhen: 2,
@@ -1810,7 +1814,7 @@ var MODELES = [
         config: { colTitle: 'OBJET', dateMode: 'range', colStart: 'DEBUT', colEnd: 'FIN', colLane: 'SALLE', overlapCheck: false, colConflict: 'CONFLIT', colParticipants: 'PARTICIPANTS',
             colorMode: 'choice', colColor: 'STATUT', colStatus: 'STATUT', labels: ['DEMANDEUR', 'PARTICIPANTS'], defaultZoom: 'libres', statutGere: true,
             colDemandeur: 'DEMANDEUR', colSerie: 'SERIE', details: ['COMMENTAIRE'],
-            formulaire: { consignes: '', demandes: [], obligatoires: [], pourAutrui: true },
+            formulaire: { consignes: '', demandes: [{ libelle: 'Restauration', col: 'RESTAURATION', colDetail: 'RESTAURATION_DETAIL', colChoix: 'RESTAURATION_CHOIX', colNombre: 'RESTAURATION_NOMBRE', delai: 48, salles: [] }], obligatoires: [], pourAutrui: true },
             statuts: { attente: 'En attente', validee: 'Validée', refusee: 'Refusée', annulee: 'Annulée' },
             roomCols: { capacite: 'CAPACITE', equipements: 'EQUIPEMENTS', lieu: 'EMPLACEMENT', batiment: 'BATIMENT', active: 'ACTIVE', photo: 'PHOTO', visio: 'LIEN_VISIO', validation: 'VALIDATION' },
             regles: { prereglage: 'libre', validation: 'jamais' } } }
@@ -3738,9 +3742,9 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
+        retourLibelle ? bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' }) : null
     ]);
 }
 function enteteCreation(titre) {
@@ -4111,7 +4115,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: nomsEtapes(b), courante: b.etape,
-            repere: perso ? 'Les modifications sont enregistrées automatiquement.' : 'Rien n\'est enregistré avant « Créer mon planning », sauf les tables d\'un modèle, créées après confirmation.' };
+            repere: perso ? null : 'Rien n\'est enregistré avant « Créer mon planning », sauf les tables d\'un modèle, créées après confirmation.' };
     }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
@@ -4871,7 +4875,11 @@ function libelleCle(cle, col) {
     var t = col ? String(col.type) : '';
     if (t.indexOf('Ref') === 0) {
         var r = refDeColonne(col);
-        return r && r.libelles[cle] ? r.libelles[cle] : 'Ligne ' + cle;
+        if (r && r.libelles[cle]) {
+            return r.libelles[cle];
+        }
+        var sl = etat.config && tableSalles(etat.config) ? toutesLesSalles().filter(function (x) { return x.cle === String(cle); })[0] : null;
+        return sl ? sl.nom : 'Ligne ' + cle;
     }
     if (t === 'Bool') {
         return cle === 'true' ? 'Oui' : 'Non';
@@ -6441,6 +6449,9 @@ function barreNavigation() {
         v.mode = estAgent() ? 'semaine' : 'libres';
     }
     var seg = segmentIcones('pVue', permises, v.mode, choisirVue, 'Vue');
+    if (permises.length < 2) {
+        seg.hidden = true;
+    }
     var aller = saisie('pAller', dateVersSaisie(v.date), { type: 'date' });
     aller.classList.add('c-aller__champ');
     aller.setAttribute('tabindex', '-1');
@@ -7020,6 +7031,9 @@ function afficherVue(vue, garderFocus) {
     if (vue === 'plan' || vue === 'invalide' || enCreation() || enParametrage()) {
         envelopperOnglets(zone);
     }
+    if ((vue === 'plan' || vue === 'assistant') && estConsoleAdmin()) {
+        zone.insertBefore(ongletsAdmin(), zone.firstChild);
+    }
     zone.classList.toggle('w-contenu--plan', vue === 'plan');
     var nomW = etat.page && etat.page.titre ? etat.page.titre : 'WuitSalles';
     document.title = etat.config && etat.config.name && vue === 'plan' ? etat.config.name + ' - ' + nomW : nomW;
@@ -7210,14 +7224,14 @@ function rendrePlan(zone) {
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'pVoletContenu' });
     cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: 'Réserver et suivre' }),
         bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
-    if (peutAjouterEvenements()) {
+    if (peutAjouterEvenements() && !estConsoleAdmin()) {
         cont.appendChild(ajoutVolet('Réserver une salle', allerRecherche, 'pAjouter'));
         var dm = tuileDerniereMinute();
         if (dm) {
             cont.appendChild(dm);
         }
     }
-    var mes = blocMesReservations();
+    var mes = estConsoleAdmin() ? null : blocMesReservations();
     if (mes) {
         cont.appendChild(mes);
     }
@@ -7315,7 +7329,7 @@ function rendrePlan(zone) {
                 annoncer(x ? 'Samedis et dimanches masqués.' : 'Samedis et dimanches affichés.');
             })]));
     }
-    if (etat.peutParametrer && !etat.page) {
+    if (etat.peutParametrer && !etat.page && !estConsoleAdmin()) {
         cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce planning', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'pParametres' })]));
     }
     if (!estAgent()) cont.appendChild(sortiesVolet([
@@ -8399,6 +8413,9 @@ function editeurQuandCompact(it, editeurs) {
 function ouvrirItem(it, focusId) {
     var c = etat.config;
     fermerCarte(false);
+    if (estAgent()) {
+        return ouvrirFicheAgent(it);
+    }
     if (etat.tableLiee === c.table) {
         relayer(grist.setCursorPos({ rowId: it.id }), 'Placement du curseur');
     }
@@ -8553,7 +8570,7 @@ function ouvrirItem(it, focusId) {
                 base[i] = JSON.stringify(r.champs[x.col]);
             } });
             var d = new Date();
-            statut.textContent = 'Enregistré à ' + heureLocale(d.getHours(), d.getMinutes());
+            statut.textContent = '';
             annoncer('Enregistré.');
             construireItems();
             etat.couleurs = couleursPlan();
@@ -8585,7 +8602,7 @@ function ouvrirItem(it, focusId) {
         if (minuterie) {
             clearTimeout(minuterie);
         }
-        statut.textContent = 'Modification en cours…';
+        statut.textContent = '';
         minuterie = setTimeout(function () { relayer(sauver(), 'Enregistrement automatique'); }, 700);
     };
     fiche.addEventListener('input', function (e) { if (e.target.type !== 'search') {
@@ -8974,9 +8991,9 @@ function rendreAssistant(zone) {
         b.cfg.depuisDonnees = !!b.depuisDonnees;
     }
     var entete = perso
-        ? enteteParametrage(etat.config.name, 'Retour au planning', function () { return quitterParametrage(); }, b.statut)
+        ? enteteParametrage(etat.config.name, null, null, b.statut)
         : enteteCreation('Nouveau planning des salles');
-    var fin = perso ? [{ libelle: 'Terminer', action: function () { return quitterParametrage(); }, id: 'aTerminer', icone: 'check-line' }] : [b.cfg ? { libelle: 'Créer mon planning', action: creerPlan, id: 'aCreer', icone: 'check-line' } : null,
+    var fin = perso ? null : [b.cfg ? { libelle: 'Créer mon planning', action: creerPlan, id: 'aCreer', icone: 'check-line' } : null,
         b.etape === 0 && !b.cfg && !etat.plans.length ? null : { libelle: 'Annuler la création', action: annulerCreation, id: 'aAnnuler', icone: 'close-line', variante: 'tertiaire' }].filter(Boolean);
     var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(n, noms, function (r) {
             if (!perso && r - 1 > b.etapeMax + 1) {
@@ -10161,6 +10178,7 @@ function majAttente() {
     }
 }
 function statutSauvegarde(texte, erreur) {
+    texte = erreur ? texte : '';
     var b = etat.brouillon;
     if (b) {
         b.statut = texte;
@@ -10331,6 +10349,13 @@ async function chargerTout() {
     majIdsLies();
     await chargerDonnees();
     etat.empreinte = empreinteDonnees();
+    if (estConsoleAdmin() && !etat.consoleOuverte && !etat.ongletAdminVoulu) {
+        etat.consoleOuverte = true;
+        afficherVue('plan');
+        ouvrirParametrage(0);
+        return;
+    }
+    etat.consoleOuverte = true;
     afficherVue('plan');
 }
 function empreinteDonnees() {
@@ -13364,7 +13389,7 @@ function etapeInfosReservation(res) {
     var horaires = null;
     if (res.direct) {
         var rH = reglesHeuresLarges(c);
-        var dureesC = dureesProposees(reglesDe(c));
+        var dureesC = dureesProposees(reglesDe(c), res.debut);
         var dureeC = res.fin - res.debut;
         if (dureesC.indexOf(dureeC) === -1) {
             dureesC.push(dureeC);
@@ -13382,7 +13407,7 @@ function etapeInfosReservation(res) {
             rendreReservation(id);
         };
         hd.addEventListener('change', function () { var d0 = res.fin - res.debut; res.debut = parseInt(hd.value, 10); res.fin = res.debut + d0; changer('rDebutC'); });
-        var hdur = selectValeurs('rDureeC', dureesC, dureeC, texteMinutes, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
+        var hdur = selectValeurs('rDureeC', dureesC, dureeC, function (m) { return texteDuree(m, res.debut, reglesDe(c)); }, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
         ajout('Jour', majusculeInitiale(texteJourLong(res.jour)));
         horaires = creer('div', { classe: 's-grille2 s-horaires' }, [groupeChamp('À', hd), groupeChamp('Pendant', hdur)]);
     }
@@ -14133,9 +14158,31 @@ function heuresFutures(ops, jour) {
     var prochain = Math.ceil(limite / 60 / r.pas) * r.pas;
     return ops.filter(function (o) { return parseInt(o.valeur, 10) >= prochain; });
 }
-function dureesProposees(r) {
-    var l = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480].filter(function (m) { return m % r.pas === 0 && (!r.dureeMin || m >= r.dureeMin) && (!r.dureeMax || m <= r.dureeMax * 60); });
+function dureesProposees(r, de) {
+    var max = r.dureeMax ? r.dureeMax * 60 : Infinity;
+    var l = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480, 600, 720].filter(function (m) { return m % r.pas === 0 && (!r.dureeMin || m >= r.dureeMin) && m <= max && (typeof de !== 'number' || de + m <= r.fermeture * 60 || r.plusieursJours); });
+    if (typeof de === 'number') {
+        var jusqua = r.fermeture * 60 - de;
+        if (jusqua > 0 && jusqua <= max && l.indexOf(jusqua) === -1) {
+            l.push(jusqua);
+        }
+        if (r.plusieursJours) {
+            [2, 3, 4, 5].forEach(function (n) { var m = (n - 1) * 1440 + r.fermeture * 60 - de; if (m <= max) {
+                l.push(m);
+            } });
+        }
+    }
+    l.sort(function (a, b) { return a - b; });
     return l.length ? l : [r.pas];
+}
+function texteDuree(m, de, r) {
+    if (typeof de === 'number' && m === r.fermeture * 60 - de) {
+        return 'Jusqu\'à la fermeture (' + texteHeure(r.fermeture) + ')';
+    }
+    if (m >= 1440) {
+        return Math.round(m / 1440) + 1 + ' jours';
+    }
+    return texteMinutes(m);
 }
 function puceChoix(id, libelle, on, action) {
     var bt = creer('button', { classe: 's-puce' + (on ? ' s-puce--on' : ''), id: id, attrs: { type: 'button', 'aria-pressed': on ? 'true' : 'false' } }, [libelle]);
@@ -14165,7 +14212,8 @@ function rendreLibres() {
     } });
     quand.appendChild(autre);
     var lignes = [creer('div', { classe: 'fr-input-group s-question' }, [creer('p', { classe: 'fr-label', id: 'lQuandT', texte: 'Quand ?' }), quand])];
-    var durees = dureesProposees(r);
+    var deL = L.quand === 'maintenant' ? Math.ceil((maintenantMur(fuseauPlan(c)) - aujourdhuiMur(fuseauPlan(c))) / 60 / r.pas) * r.pas : (L.heure === 'precise' ? L.de : null);
+    var durees = dureesProposees(r, deL);
     if (durees.indexOf(L.duree) === -1) {
         L.duree = durees.indexOf(60) !== -1 ? 60 : durees[0];
     }
@@ -14188,7 +14236,7 @@ function rendreLibres() {
         });
         lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('À quelle heure ?', heure)]));
     }
-    var choixDuree = selectValeurs('lDuree', durees, L.duree, texteMinutes, function (v) { L.duree = v; rafr('lDuree'); });
+    var choixDuree = selectValeurs('lDuree', durees, L.duree, function (m) { return texteDuree(m, deL, r); }, function (v) { L.duree = v; rafr('lDuree'); });
     lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('Combien de temps ?', choixDuree)]));
     var nb = saisie('lNb', L.nb, { type: 'number', clavier: 'numeric' });
     nb.setAttribute('min', '1');
@@ -14517,6 +14565,10 @@ function vuesPermises() {
     if (estAgent()) {
         return ['semaine', 'libres'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
     }
+    if (estConsoleAdmin()) {
+        return etat.v && etat.v.mode === 'stats' ? VUES_CALENDRIER.filter(function (x) { return x.id === 'stats'; })
+            : VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' && x.id !== 'libres'; });
+    }
     return VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' || etat.peutParametrer; });
 }
 function ouvrirCreneau(debut) {
@@ -14545,7 +14597,7 @@ function rendreCreneau(focusId) {
     var c = etat.config;
     var r = reglesDe(c);
     var rH = reglesHeuresLarges(c);
-    var durees = dureesProposees(r);
+    var durees = dureesProposees(r, L.de);
     if (durees.indexOf(L.duree) === -1) {
         L.duree = durees.indexOf(60) !== -1 ? 60 : durees[0];
     }
@@ -14556,7 +14608,7 @@ function rendreCreneau(focusId) {
     }
     var hd = liste('cHeure', heures, String(L.de));
     hd.addEventListener('change', function () { L.de = parseInt(hd.value, 10); refaire('cHeure'); });
-    var du = selectValeurs('cDuree', durees, L.duree, texteMinutes, function (v) { L.duree = v; refaire('cDuree'); });
+    var du = selectValeurs('cDuree', durees, L.duree, function (m) { return texteDuree(m, L.de, r); }, function (v) { L.duree = v; refaire('cDuree'); });
     var nb = saisie('cNb', L.nb, { type: 'number', clavier: 'numeric' });
     nb.setAttribute('min', '1');
     nb.addEventListener('change', function () { L.nb = nb.value; refaire('cNb'); });
@@ -14587,6 +14639,113 @@ function rendreCreneau(focusId) {
         return;
     }
     ouvrirModale({ titre: 'Choisir une salle', laterale: true, corps: corps, pied: pied, focus: focusId || 'cHeure', surFermeture: function () { etat.creneau = null; } });
+}
+function estConsoleAdmin() { return !etat.page && etat.peutParametrer && !!etat.config && !enCreation(); }
+function ongletAdminCourant() {
+    if (enParametrage()) {
+        return 'parametrage';
+    }
+    return etat.v && etat.v.mode === 'stats' ? 'statistiques' : 'reservations';
+}
+function ongletsAdmin() {
+    var courant = ongletAdminCourant();
+    var nb = 0;
+    var c = etat.config;
+    var sv = statutsDe(c);
+    if (c.colStatus && sv.attente) {
+        var maint = maintenantMur(fuseauPlan(c));
+        nb = etat.items.filter(function (it) { return it.s !== null && it.e > maint && texteStatut(it) === sv.attente; }).length;
+    }
+    var defs = [['parametrage', 'Paramétrage', 'settings-5-line'], ['reservations', 'Réservations' + (nb ? ' (' + nb + ' à valider)' : ''), 'calendar-2-line'], ['statistiques', 'Statistiques', 'bar-chart-box-line']];
+    var ul = creer('ul', { classe: 'fr-tabs__list', attrs: { role: 'tablist', 'aria-label': 'Administration des salles' } });
+    defs.forEach(function (d) {
+        var actif = d[0] === courant;
+        var b = creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-' + d[2] + ' w-onglet', id: 'pAdmin_' + d[0], texte: d[1],
+            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', tabindex: actif ? '0' : '-1' } });
+        b.addEventListener('click', function () { relayer(allerOngletAdmin(d[0]), 'Onglet ' + d[1]); });
+        ul.appendChild(creer('li', { attrs: { role: 'presentation' } }, [b]));
+    });
+    return creer('nav', { classe: 'tab-nav w-onglets', attrs: { 'aria-label': 'Administration des salles' } }, [ul]);
+}
+async function allerOngletAdmin(cle) {
+    if (cle === ongletAdminCourant()) {
+        return;
+    }
+    if (cle === 'parametrage') {
+        ouvrirParametrage(0);
+        return;
+    }
+    etat.ongletAdminVoulu = cle;
+    if (enParametrage()) {
+        var ok = await quitterParametrage();
+        if (ok === false) {
+            etat.ongletAdminVoulu = null;
+            return;
+        }
+    }
+    appliquerOngletAdmin();
+}
+function appliquerOngletAdmin() {
+    var cle = etat.ongletAdminVoulu;
+    etat.ongletAdminVoulu = null;
+    if (!etat.v) {
+        chargerEtatVue();
+    }
+    var v = etat.v;
+    if (cle === 'statistiques') {
+        v.mode = 'stats';
+    }
+    else if (cle === 'reservations' && (v.mode === 'stats' || v.mode === 'libres')) {
+        v.mode = 'occupation';
+    }
+    memoriserEtatVue();
+    afficherVue('plan', true);
+    var f = document.getElementById('pAdmin_' + (cle || 'reservations'));
+    if (f) {
+        f.focus();
+    }
+}
+function ouvrirFicheAgent(it) {
+    var c = etat.config;
+    var s = salleParCle(it.couloirs[0]);
+    var moi = moiCourant();
+    var mienne = moi && infoColonne(c.table, 'CREE_PAR') && valeurCellule(valeurLigne(it.i, 'CREE_PAR')) === moi;
+    var st = texteStatut(it);
+    var sv = statutsDe(c);
+    var dl = creer('dl', { classe: 'w-recap__liste' });
+    var ajout = function (lib, val) { if (val) {
+        dl.appendChild(creer('dt', { texte: lib }));
+        dl.appendChild(creer('dd', { texte: val }));
+    } };
+    ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
+    ajout('Créneau', texteCreneau(it.s, it.e));
+    if (mienne) {
+        ajout('Statut', st);
+        formulaireDe(c).demandes.forEach(function (x) {
+            if (valeurCellule(valeurLigne(it.i, x.col)) !== true) {
+                return;
+            }
+            var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
+            var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
+            var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
+            ajout(x.libelle, [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).join(' · ') || 'Demandé');
+        });
+    }
+    var corps = [creer('div', { classe: 'w-recap s-recap' }, [dl])];
+    var visio = mienne ? blocVisioFiche(it) : null;
+    if (visio) {
+        corps.push(visio);
+    }
+    var pied = [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fFermer' })];
+    if (mienne && c.colStatus && sv.annulee && !statutInactif(it)) {
+        if (tropTardPourAnnuler(it)) {
+            corps.push(creer('p', { classe: 'w-mention', texte: 'Il est trop tard pour annuler ici : prévenez un gestionnaire.' }));
+        }
+        else {
+            pied.unshift(bouton('Annuler ma réservation', 'tertiaire', 'calendar-close-line', function () { fermerModale(); return changerStatut(it, sv.annulee, 'annulee'); }, { id: 'fAnnulerResa' }));
+        }
+    }
+    ouvrirModale({ titre: mienne ? it.titre || 'Ma réservation' : (s ? s.nom : 'Salle') + ' : réservée', laterale: true, corps: corps, pied: pied, fermerDehors: true });
 }
 async function initialiser() {
     if (etat.initEnCours) {
