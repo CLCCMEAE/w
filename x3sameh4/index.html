@@ -783,6 +783,7 @@
     .s-mes__quand { font-weight: 700; font-size: .8125rem; color: var(--text-action-high-blue-france); }
     .s-mes__quoi { font-size: .8125rem; }
     .s-mes__ligne .fr-badge { align-self: flex-start; }
+    .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
     .s-dm { width: 100%; display: flex; gap: .75rem; align-items: center; text-align: left; font: inherit; cursor: pointer; padding: .75rem; border: 1px solid var(--border-active-blue-france); border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .s-dm:hover { background: var(--background-alt-blue-france-hover); }
     .s-dm--calme { border-color: var(--border-default-grey); border-left-color: var(--border-default-grey); background: var(--background-alt-grey); }
@@ -4316,6 +4317,11 @@ function chargerEtatVue() {
             v.ouvres = m.ouvres;
         }
     }
+    if (estAgent()) {
+        var rA = reglesDe(etat.config);
+        v.mode = 'semaine';
+        v.ouvres = !rA.jours[5] && !rA.jours[6];
+    }
     etat.v = v;
 }
 function memoriserEtatVue() {
@@ -6275,7 +6281,7 @@ function finGlisser() {
     }
 }
 function brancherGlisser(el, ev, jourFixe, jourOrigine) {
-    if (!etat.peutModifier) {
+    if (!etat.peutModifier || estAgent()) {
         return;
     }
     var it = ev.it;
@@ -6430,11 +6436,11 @@ async function deposer(g, cible) {
 }
 function barreNavigation() {
     var v = etat.v;
-    var vuesPermises = VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' || (etat.peutParametrer && !etat.page); });
-    if (!vuesPermises.some(function (x) { return x.id === v.mode; })) {
-        v.mode = 'libres';
+    var permises = vuesPermises();
+    if (!permises.some(function (x) { return x.id === v.mode; })) {
+        v.mode = estAgent() ? 'semaine' : 'libres';
     }
-    var seg = segmentIcones('pVue', vuesPermises, v.mode, choisirVue, 'Vue');
+    var seg = segmentIcones('pVue', permises, v.mode, choisirVue, 'Vue');
     var aller = saisie('pAller', dateVersSaisie(v.date), { type: 'date' });
     aller.classList.add('c-aller__champ');
     aller.setAttribute('tabindex', '-1');
@@ -7215,7 +7221,7 @@ function rendrePlan(zone) {
     if (mes) {
         cont.appendChild(mes);
     }
-    var av = blocAValider();
+    var av = estAgent() ? null : blocAValider();
     if (av) {
         cont.appendChild(av);
     }
@@ -7241,7 +7247,7 @@ function rendrePlan(zone) {
     }
     var bloc = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'pVoletFil' } }, [titreVolet('filter-line', 'Filtres', 'pVoletFil', null)]);
     var colL = colCouloir();
-    if (colL && f.lane !== false) {
+    if (colL && f.lane !== false && !estAgent()) {
         var presL = Object.create(null);
         var opsL = toutesLesSalles().filter(function (s) { return s.active || s.cle === v.filtres.couloir; }).map(function (s) { presL[s.cle] = true; return { valeur: s.cle, libelle: s.nom + (s.batiment ? ' (' + s.batiment + ')' : '') }; });
         if (v.filtres.couloir && !presL[v.filtres.couloir]) {
@@ -7294,13 +7300,13 @@ function rendrePlan(zone) {
         cont.appendChild(bloc);
     }
     var colLeg = colCouleur();
-    if (v.mode !== 'libres' && v.mode !== 'stats') {
+    if (v.mode !== 'libres' && v.mode !== 'stats' && !estAgent()) {
         cont.appendChild(creer('section', { classe: 'w-volet__bloc', id: 'pLegendeZone', attrs: { 'aria-labelledby': 'pVoletLeg' } }, [
             titreVolet('palette-line', 'Couleurs', 'pVoletLeg', legendeFiltrable() ? 'Cliquez sur une valeur pour masquer ses réservations, cliquez de nouveau pour les afficher.' : null),
             creer('ul', { classe: 'gp-legende gp-legende--volet', id: 'pLegende', attrs: { 'aria-labelledby': 'pVoletLeg' } })
         ]));
     }
-    if (v.mode === 'semaine' || v.mode === 'mois') {
+    if ((v.mode === 'semaine' || v.mode === 'mois') && !estAgent()) {
         cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'pVoletAff' } }, [titreVolet('eye-line', 'Affichage', 'pVoletAff', null),
             caseAffichage('pOuvres', 'Sans samedi ni dimanche', v.ouvres, function (x) {
                 v.ouvres = x;
@@ -7309,10 +7315,10 @@ function rendrePlan(zone) {
                 annoncer(x ? 'Samedis et dimanches masqués.' : 'Samedis et dimanches affichés.');
             })]));
     }
-    if (etat.peutParametrer) {
+    if (etat.peutParametrer && !etat.page) {
         cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce planning', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'pParametres' })]));
     }
-    cont.appendChild(sortiesVolet([
+    if (!estAgent()) cont.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimerPlan, id: 'pImprimer' },
         { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'pPdf' },
         { libelle: 'Exporter en CSV', icone: 'download-line', action: exporterCSV, id: 'pCSV' },
@@ -7430,8 +7436,8 @@ function majPrincipal() {
         etat.tl = null;
         return;
     }
-    if (v.mode === 'stats' && !(etat.peutParametrer && !etat.page)) {
-        v.mode = 'libres';
+    if (!vuesPermises().some(function (x) { return x.id === v.mode; })) {
+        v.mode = estAgent() ? 'semaine' : 'libres';
     }
     if (v.mode === 'salles') {
         vider(zoneP);
@@ -10132,7 +10138,7 @@ async function creerPlan() {
         var pageOk = false;
         if (pageAgents) {
             await lirePlans();
-            pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'libres', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
+            pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'semaine', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
             afficherLoader('Création de votre planning…');
         }
         etat.brouillon = null;
@@ -12867,6 +12873,9 @@ function ouvrirReservation(pre) {
         if (pre.salle && typeof pre.debut === 'number') {
             return ouvrirConfirmation({ salle: pre.salle, debut: pre.debut, fin: typeof pre.fin === 'number' ? pre.fin : pre.debut + 3600 });
         }
+        if (typeof pre.debut === 'number' && etat.v && etat.v.mode !== 'libres') {
+            return ouvrirCreneau(pre.debut);
+        }
         var v0 = etat.v;
         if (v0) {
             etatRecherche();
@@ -14502,6 +14511,82 @@ function blocAValider() {
         bloc.appendChild(creer('p', { classe: 'w-mention fr-mb-0', texte: 'Et ' + pluriel(l.length - 5, 'autre') + ' : voir l\'affichage Liste.' }));
     }
     return bloc;
+}
+function estAgent() { return !!etat.page || !etat.peutParametrer; }
+function vuesPermises() {
+    if (estAgent()) {
+        return ['semaine', 'libres'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
+    }
+    return VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' || etat.peutParametrer; });
+}
+function ouvrirCreneau(debut) {
+    var c = etat.config;
+    var r = reglesDe(c);
+    var tz = fuseauPlan(c);
+    var maint = maintenantMur(tz);
+    var pas = r.pas * 60;
+    var jour = Math.floor(debut / JOUR) * JOUR;
+    var prochain = Math.ceil(maint / pas) * pas;
+    if (debut < prochain) {
+        if (jour !== Math.floor(maint / JOUR) * JOUR) {
+            annoncer('Ce créneau est passé.');
+            return;
+        }
+        debut = prochain;
+    }
+    etat.creneau = { quand: jour, heure: 'precise', de: Math.round((debut - jour) / 60), duree: 60, nb: '', equip: [], repeter: false };
+    rendreCreneau(null);
+}
+function rendreCreneau(focusId) {
+    var L = etat.creneau;
+    if (!L) {
+        return;
+    }
+    var c = etat.config;
+    var r = reglesDe(c);
+    var rH = reglesHeuresLarges(c);
+    var durees = dureesProposees(r);
+    if (durees.indexOf(L.duree) === -1) {
+        L.duree = durees.indexOf(60) !== -1 ? 60 : durees[0];
+    }
+    var refaire = function (id) { setTimeout(function () { rendreCreneau(id); }, 0); };
+    var heures = heuresFutures(heuresPossibles(rH, false), L.quand);
+    if (heures.length && !heures.some(function (o) { return o.valeur === String(L.de); })) {
+        L.de = parseInt(heures[0].valeur, 10);
+    }
+    var hd = liste('cHeure', heures, String(L.de));
+    hd.addEventListener('change', function () { L.de = parseInt(hd.value, 10); refaire('cHeure'); });
+    var du = selectValeurs('cDuree', durees, L.duree, texteMinutes, function (v) { L.duree = v; refaire('cDuree'); });
+    var nb = saisie('cNb', L.nb, { type: 'number', clavier: 'numeric' });
+    nb.setAttribute('min', '1');
+    nb.addEventListener('change', function () { L.nb = nb.value; refaire('cNb'); });
+    var res = creer('div', { classe: 's-resultats', attrs: { 'aria-live': 'polite' } });
+    remplirResultats(res, L);
+    var corps = [creer('div', { id: 'cCreneau', attrs: { tabindex: '-1' } }, [creer('p', { classe: 's-creneau-jour', texte: majusculeInitiale(texteJourLong(L.quand)) })]),
+        creer('div', { classe: 's-grille3' }, [groupeChamp('À', hd), groupeChamp('Pendant', du), groupeChamp('Personnes', nb)]), res];
+    var pied = [bouton('Annuler', 'secondaire', null, fermerModale, { id: 'cAnnuler' }), creer('span', { classe: 'w-pousse' }),
+        bouton('Plus de critères', 'tertiaire', 'search-line', function () {
+            var v = etat.v;
+            etatRecherche();
+            v.libres.quand = L.quand;
+            v.libres.heure = 'precise';
+            v.libres.de = L.de;
+            v.libres.duree = L.duree;
+            v.libres.nb = L.nb;
+            fermerModale();
+            allerRecherche(true);
+        }, { id: 'cRecherche' })];
+    if (etat.modaleOuverte && document.getElementById('cCreneau')) {
+        var zc = document.getElementById('wModaleCorps');
+        vider(zc);
+        corps.forEach(function (n) { zc.appendChild(n); });
+        var f = focusId ? document.getElementById(focusId) : null;
+        if (f) {
+            f.focus();
+        }
+        return;
+    }
+    ouvrirModale({ titre: 'Choisir une salle', laterale: true, corps: corps, pied: pied, focus: focusId || 'cHeure', surFermeture: function () { etat.creneau = null; } });
 }
 async function initialiser() {
     if (etat.initEnCours) {
