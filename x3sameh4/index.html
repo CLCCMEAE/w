@@ -881,7 +881,10 @@
     .s-historique ul { margin: .5rem 0 0; padding-left: 1rem; }
     .s-page-gestion { margin-bottom: 1rem; }
     @media (max-width: 48em) { .s-aval__ligne { grid-template-columns: 1fr; } }
-    .s-titre-nav { display: inline-flex; align-items: center; gap: .25rem; }
+    .s-titre-nav { display: inline-flex; align-items: center; gap: .5rem; }
+    .s-titre-date { white-space: nowrap; }
+    .s-titre-nav .c-aller { margin-left: .25rem; }
+    .s-titre-nav .c-aller__champ:not(.c-aller__champ--visible) { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: 0 !important; border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); }
     .s-cases-eq { margin: 0; }
     .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
     .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
@@ -955,7 +958,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.11';
+var VERSION_WIDGET = '1.1.12';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -5702,10 +5705,6 @@ function redessinerTimeline() {
     if (t) {
         t.textContent = titrePeriode();
     }
-    var pb = document.getElementById('cPeriodeBtn');
-    if (pb) {
-        pb.setAttribute('aria-label', 'Aller à une date. Période affichée : ' + titrePeriode());
-    }
     if (focus) {
         var n = tl.racine.querySelector('[data-jour="' + focus + '"]');
         if (n) {
@@ -6590,10 +6589,9 @@ function barreNavigation() {
     aller.addEventListener('change', function () { var w = saisieVersDate(aller.value); if (w !== null) {
         allerAuJour(w, true);
     } });
-    var periode = creer('button', { classe: 'c-periode-btn', id: 'cPeriodeBtn', attrs: { type: 'button', 'aria-label': 'Aller à une date. Période affichée : ' + titrePeriode() } }, [
-        creer('span', { id: 'cPeriode', texte: titrePeriode() }), creer('span', { classe: 'fr-icon-arrow-down-s-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } })
-    ]);
-    periode.addEventListener('click', function () {
+    var periode = creer('span', { id: 'cPeriode', classe: 's-titre-date', texte: titrePeriode() });
+    var choixDate = boutonIcone('Choisir une date dans le calendrier', 'calendar-line', null, { id: 'cPeriodeBtn', variante: 'secondaire' });
+    choixDate.addEventListener('click', function () {
         aller.value = dateVersSaisie(etat.v.date);
         try {
             if (typeof aller.showPicker === 'function') {
@@ -6616,8 +6614,8 @@ function barreNavigation() {
     nav.hidden = sansNav;
     var libellesPer = { jour: ['Jour précédent', 'Jour suivant'], avalider: ['Jour précédent', 'Jour suivant'], semaine: ['Semaine précédente', 'Semaine suivante'], mois: ['Mois précédent', 'Mois suivant'] }[v.mode] || ['Période précédente', 'Période suivante'];
     var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
-        : [creer('span', { classe: 's-titre-nav' }, [boutonIcone(libellesPer[0], 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }), creer('span', { classe: 'c-aller' }, [periode, aller]),
-            boutonIcone(libellesPer[1], 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' })])]));
+        : [creer('span', { classe: 's-titre-nav' }, [boutonIcone(libellesPer[0], 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }), periode,
+            boutonIcone(libellesPer[1], 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' }), creer('span', { classe: 'c-aller' }, [choixDate, aller])])]));
     return { vues: seg, nav: nav, titre: titre };
 }
 function choisirVue(m) {
