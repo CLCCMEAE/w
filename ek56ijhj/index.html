@@ -3,7 +3,7 @@
 <head>
 <meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Diploutilisateurs</title>
+<title>WuitUtilisateurs</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -245,6 +245,8 @@ h2.w-section__title{margin:0}
   @media (max-width: 48em) { .w-corps > .w-panneau-aide { position: fixed; inset: 0; height: auto; } }
   .w-section__aide { margin: 0 0 .5rem; }
   .w-marche[hidden] { display: none; }
+
+  .w-wuit { color: var(--blue-france-main-525); }
 </style>
 </head>
 <body>
@@ -268,7 +270,7 @@ h2.w-section__title{margin:0}
   <div class="w-bandeau__marque">
     <div id="bandeau-logo"></div>
     <div class="w-bandeau__sep"></div>
-    <h1 class="w-bandeau__titre">🔐 Diploutilisateurs</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+    <h1 class="w-bandeau__titre">🔐 WuitUtilisateurs</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
   </div>
   <div class="w-bandeau__spacer"></div>
   <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
@@ -652,7 +654,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Gestion des utilisateurs';
 var NOM_WIDGET_ANCIEN = 'utilisateurs';
@@ -4945,7 +4947,7 @@ function brancherAide() {
     panneauAide();
 }
 var AIDE = {
-    resume: 'Diploutilisateurs tient le registre des personnes qui utilisent ce document : qui est actif, avec quel rôle et quels champs propres (zone, domaine...). Il prépare aussi les règles d\'accès qui s\'appuient sur ce registre.',
+    resume: 'WuitUtilisateurs tient le registre des personnes qui utilisent ce document : qui est actif, avec quel rôle et quels champs propres (zone, domaine...). Il prépare aussi les règles d\'accès qui s\'appuient sur ce registre.',
     fonctions: ['Ajouter des personnes par leur adresse, une ou plusieurs à la fois', 'Activer ou désactiver une personne, choisir son rôle et son statut', 'Ajouter des champs propres au registre (zone géographique, domaine...)', 'Voir les règles d\'accès du document et préparer celles qui manquent', 'Copier les adresses actives pour les inviter'],
     avant: ['Le registre ne donne aucun accès à lui seul : chaque personne doit aussi être invitée dans « Gérer les utilisateurs » (icône de partage en haut à droite du document).', 'Les règles d\'accès se posent par un propriétaire, dans « Permissions avancées » (panneau de gauche du document, rubrique « Outils »).'],
     etapes: {
@@ -4998,7 +5000,7 @@ setTimeout(function () {
     if (badge)
         badge.hidden = !HOMOLOGUE;
 })();
-logSecurite('INFO', 'Widget Diploutilisateurs v' + VERSION_WIDGET + ' - initialisation terminée');
+logSecurite('INFO', 'Widget WuitUtilisateurs v' + VERSION_WIDGET + ' - initialisation terminée');
 function ajusterTabNav() {
     var bandeau = document.querySelector('.w-bandeau');
     var tabNav = document.querySelector('.tab-nav');
@@ -5012,6 +5014,32 @@ function ajusterTabNav() {
 }
 ajusterTabNav();
 window.addEventListener('resize', ajusterTabNav);
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
