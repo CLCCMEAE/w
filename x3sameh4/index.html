@@ -859,7 +859,11 @@
     .s-carte-salle .s-eq-liste { font-size: .875rem; }
     .s-aval { display: flex; flex-direction: column; gap: .75rem; }
     .s-aval__bande { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; }
+    .s-aval__bande--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .s-aval__bande--3 { grid-template-columns: minmax(0, 1fr); } }
     .s-aval__groupe { min-width: 0; }
+    .s-aval__bande--3 .s-aval__puces { flex-direction: column; flex-wrap: nowrap; max-height: 16rem; overflow-y: auto; }
+    .s-aval__bande--3 .s-aval__puce { width: 100%; }
     .s-aval__titre { display: flex; align-items: center; gap: .25rem; margin: 0 0 .5rem; font-size: 1rem; }
     .s-aval__puce--speciale { border-left-color: var(--border-plain-info); }
     .s-aval__services { display: flex; flex-wrap: wrap; gap: .5rem; color: var(--text-mention-grey); font-size: .8125rem; }
@@ -983,7 +987,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.20';
+var VERSION_WIDGET = '1.1.21';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -1723,16 +1727,24 @@ async function cacherPage() {
         }
         var o = trouverOwner() || await creerTableOwner();
         var ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
+        if (!ref) {
+            await chargerMeta();
+            o = trouverOwner();
+            ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
+        }
+        if (!ref) {
+            throw new Error('La table « ' + TITRE_OWNER + ' » n\'a pas été retrouvée après sa création');
+        }
         var vue = null, d = null;
-        for (var essai = 0; essai < 6 && !vue; essai++) {
+        for (var essai = 0; essai < 12 && !vue; essai++) {
             if (essai) {
                 await new Promise(function (ok) { setTimeout(ok, 500); });
             }
             d = await lireTable('_grist_Views_section');
             vue = vueDuBadge(d, etat.badge);
         }
-        if (!vue || !ref) {
-            throw new Error('Page du widget non retrouvée');
+        if (!vue) {
+            throw new Error('La page de ce widget n\'a pas été retrouvée dans le document');
         }
         ligne = null;
         var reduite = true;
@@ -1755,7 +1767,7 @@ async function cacherPage() {
         if (ligne) {
             await agir([['RemoveRecord', etat.biblio, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
         }
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée' + (e && e.message && /retrouv/.test(e.message) ? ' : ' + e.message.charAt(0).toLowerCase() + e.message.slice(1) + '.' : '. Réessayez.'), e);
     }
 }
 async function badgesDesVues() {
@@ -15215,25 +15227,49 @@ function detailsDemande(it, avecSalle) {
     });
     return creer('ul', { classe: 's-aval__details' }, l);
 }
-function demandesSpecialesAVenir() {
+function estRestauration(libelle) { return /cafe|restaur|repas|dejeun|buffet|cocktail|gouter|collation|petit dej|\bthe\b/.test(normalizer(libelle)); }
+function demandesDetaillees(it, filtre) {
     var c = etat.config;
-    var s = statutsDe(c);
+    var l = [];
+    formulaireDe(c).demandes.forEach(function (x) {
+        if (valeurCellule(valeurLigne(it.i, x.col)) !== true || (filtre && !filtre(x))) {
+            return;
+        }
+        var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
+        var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
+        var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
+        var parts = [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? pluriel(nb, 'personne') : '', det || ''].filter(Boolean);
+        l.push({ libelle: x.libelle, texte: x.libelle + (parts.length ? ' : ' + parts.join(' · ') : '') });
+    });
+    return l;
+}
+function reservationsAvecDemandes(filtre) {
+    var c = etat.config;
     var maint = maintenantCache();
     if (!c || !Array.isArray(etat.items) || !formulaireDe(c).demandes.length) {
         return [];
     }
-    return etat.items.filter(function (it) {
-        return it.s !== null && it.e > maint && !statutInactif(it) && !(s.attente && texteStatut(it) === s.attente) && demandesParticulieres(it).length;
-    }).sort(function (a, b) { return a.s - b.s; });
+    return etat.items.filter(function (it) { return it.s !== null && it.e > maint && !statutInactif(it) && demandesDetaillees(it, filtre).length; }).sort(function (a, b) { return a.s - b.s; });
 }
-function elementsATraiter() { return demandesAValider().concat(demandesSpecialesAVenir()); }
+function demandesSpecialesAVenir() { return reservationsAvecDemandes(null); }
+function elementsATraiter() {
+    var vus = {};
+    return demandesAValider().concat(demandesSpecialesAVenir()).filter(function (it) { if (vus[it.id]) {
+        return false;
+    } vus[it.id] = true; return true; });
+}
 function rendreAValider() {
     var v = etat.v;
+    var c = etat.config;
+    var sv = statutsDe(c);
+    var filtreResto = function (x) { return estRestauration(x.libelle); };
+    var filtreAutre = function (x) { return !estRestauration(x.libelle); };
     var aVal = demandesAValider();
-    var spec = demandesSpecialesAVenir();
-    var tous = aVal.concat(spec);
+    var resto = reservationsAvecDemandes(filtreResto);
+    var autres = reservationsAvecDemandes(filtreAutre);
+    var tous = aVal.concat(resto, autres);
     var zone = creer('div', { classe: 's-aval', id: 'sAValider' });
-    var bande = creer('div', { classe: 's-aval__bande' });
+    var bande = creer('div', { classe: 's-aval__bande s-aval__bande--3' });
     if (tous.length) {
         if (!v.avalVu || !tous.some(function (x) { return x.id === v.avalSel; })) {
             v.avalSel = tous[0].id;
@@ -15242,9 +15278,9 @@ function rendreAValider() {
         v.avalVu = true;
     }
     var k = 0;
-    var groupe = function (titre, icone, liste, vide, special) {
-        var g = creer('section', { classe: 's-aval__groupe', attrs: { 'aria-labelledby': 'sAvG' + (special ? 'D' : 'V') } }, [
-            creer('h3', { classe: 's-aval__titre', id: 'sAvG' + (special ? 'D' : 'V') }, [creer('span', { classe: 'fr-icon-' + iconeDispo(icone) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + titre + (liste.length ? ' (' + liste.length + ')' : '')])]);
+    var groupe = function (id, titre, icone, liste, vide, filtre) {
+        var g = creer('section', { classe: 's-aval__groupe', attrs: { 'aria-labelledby': 'sAvG' + id } }, [
+            creer('h3', { classe: 's-aval__titre', id: 'sAvG' + id }, [creer('span', { classe: 'fr-icon-' + iconeDispo(icone) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + titre + (liste.length ? ' (' + liste.length + ')' : '')])]);
         if (!liste.length) {
             g.appendChild(creer('p', { classe: 's-aval__vide', texte: vide }));
             return g;
@@ -15253,11 +15289,13 @@ function rendreAValider() {
         liste.slice(0, 30).forEach(function (it) {
             var sl = salleParCle(it.couloirs[0]);
             var choisie = it.id === v.avalSel;
-            var services = special ? demandesParticulieres(it) : [];
-            var b = creer('button', { classe: 's-aval__puce' + (special ? ' s-aval__puce--speciale' : '') + (choisie ? ' s-aval__puce--choisie' : ''), id: 'sAvPuce' + (k++), attrs: { type: 'button', 'aria-current': choisie ? 'true' : null } }, [
-                creer('strong', { texte: majusculeInitiale(texteJourCourt(Math.floor(it.s / JOUR) * JOUR)) + ', ' + texteHeureMur(it.s) }),
+            var services = filtre ? demandesDetaillees(it, filtre) : [];
+            var attente = filtre && sv.attente && texteStatut(it) === sv.attente;
+            var b = creer('button', { classe: 's-aval__puce' + (filtre ? ' s-aval__puce--speciale' : '') + (choisie ? ' s-aval__puce--choisie' : ''), id: 'sAvPuce' + (k++), attrs: { type: 'button', 'aria-current': choisie ? 'true' : null } }, [
+                creer('strong', { texte: majusculeInitiale(texteJourCourt(Math.floor(it.s / JOUR) * JOUR)) + ', ' + texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) }),
                 creer('span', { classe: 's-aval__salle-nom' }, [sl ? teinterSalle(creer('span', { classe: 's-pastille', attrs: { 'aria-hidden': 'true' } }), sl.cle) : null, (sl ? sl.nom + ' · ' : '') + it.titre]),
-                services.length ? creer('span', { classe: 's-aval__services' }, services.map(function (x) { return creer('span', { classe: 's-aval__service' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(iconesDemande(x)) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + x]); })) : null]);
+                services.length ? creer('span', { classe: 's-aval__services' }, services.map(function (x) { return creer('span', { classe: 's-aval__service' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(iconesDemande(x.libelle)) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + x.texte]); })) : null,
+                attente ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon', texte: 'Réservation en attente' }) : null]);
             b.addEventListener('click', function () {
                 v.avalSel = it.id;
                 v.date = Math.floor(it.s / JOUR) * JOUR;
@@ -15272,10 +15310,9 @@ function rendreAValider() {
         }
         return g;
     };
-    bande.appendChild(groupe('À valider', ['time-line'], aVal, 'Aucune demande à valider.', false));
-    if (formulaireDe(etat.config).demandes.length) {
-        bande.appendChild(groupe('Demandes spéciales à préparer', ['cup-line', 'tools-line'], spec, 'Aucune demande spéciale à venir.', true));
-    }
+    bande.appendChild(groupe('V', 'Salles à valider', ['time-line'], aVal, 'Aucune demande à valider.', null));
+    bande.appendChild(groupe('R', 'Restauration à prévoir', ['cup-line', 'restaurant-line'], resto, 'Aucune demande de restauration à venir.', filtreResto));
+    bande.appendChild(groupe('A', 'Autres demandes spéciales', ['tools-line', 'settings-5-line'], autres, 'Aucune autre demande spéciale à venir.', filtreAutre));
     zone.appendChild(bande);
     zone.appendChild(rendreJourAgent({ aval: true }));
     return zone;
