@@ -48,12 +48,24 @@
       border-top-color: var(--background-action-high-blue-france); border-radius: 50%; animation: wSpin .8s linear infinite; }
     @keyframes wSpin { to { transform: rotate(360deg); } }
     .w-loader__texte { font-size: .875rem; color: var(--text-inverted-grey); }
-    .w-erreur, .w-succes { display: none; flex-shrink: 0; }
-    .w-erreur.actif, .w-succes.actif { display: block; }
+    .w-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 9996; width: min(30rem, calc(100% - 2rem)); margin: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap;
+      padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
+    .w-toast[hidden] { display: none; }
+    .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
+    .w-toast__action:empty { display: none; }
+    @media print { .w-toast { display: none; } }
+    .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
+    .w-infobulle { position: relative; overflow: visible !important; }
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-default-grey); opacity: 0; visibility: hidden; }
+    .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
+      min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-overlay { display: none; position: fixed; inset: 0; z-index: 9990;
       background: rgba(0,0,0,.5); color: var(--text-inverted-grey); align-items: center; justify-content: center; padding: 1rem; }
     .w-overlay.actif { display: flex; }
-    .w-overlay--haut { z-index: 9995; }
+    .w-overlay--haut { z-index: 9997; }
     .w-dialogue { background: var(--background-default-grey); color: var(--text-default-grey); width: 100%; max-width: 42rem;
       max-height: 100%; display: flex; flex-direction: column; }
     .w-dialogue--etroit { max-width: 30rem; }
@@ -211,7 +223,6 @@
       .w-etapes__appel { align-self: flex-end; white-space: nowrap; font-size: .75rem; padding: .125rem .375rem; }
       .w-etapes__item:not(.w-etapes__item--en-cours) .w-etapes__nom { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     }
-    .w-erreur, .w-succes { position: relative; z-index: 9996; }
     .w-onglets { margin-bottom: 1rem; }
     .tab-nav.w-onglets .fr-tabs__list { display: flex; flex: 0 1 auto; min-width: 0; overflow-x: auto; flex-wrap: nowrap; list-style: none; margin: 0; padding: 0; }
     .tab-nav.w-onglets .fr-tabs__list li { flex-shrink: 0; }
@@ -549,15 +560,14 @@
     <div class="w-bandeau__outils" id="bandeauOutils"></div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
-  <div class="w-erreur fr-alert fr-alert--error fr-alert--sm" id="wErreur" role="alert"><p id="wErreurMsg"></p><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wErreurFermer">Fermer</button></div>
-  <div class="w-succes fr-alert fr-alert--success fr-alert--sm" id="wSucces" role="status"><p id="wSuccesMsg"></p><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-mt-1v" id="wSuccesFermer">Fermer</button></div>
+  <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
   <div class="w-corps">
     <main class="w-contenu" id="contenu" tabindex="-1"></main>
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.2.0';
+var VERSION_WIDGET = '3.3.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploverse';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOVERSE_';
@@ -723,7 +733,6 @@ var TAILLES_DESSIN = {
 function enParametrage() { return etat.vue === 'assistant' && !!etat.brouillon && !!etat.brouillon.param; }
 var _modale = { retour: null, pieger: null, surFermeture: null };
 var _confirm = { resolution: null, retour: null, pieger: null };
-var _minuterieSucces = null;
 var etat = {
     meta: { tables: {}, colonnes: {}, colParRef: {} }, metaLueA: 0,
     biblio: null, config: null, cleLigne: null, niveauAcces: null,
@@ -803,30 +812,66 @@ function masquerLoader() {
         voile.classList.remove('actif');
     }
 }
-var _minuterieErreur = null;
 function afficherErreur(message, erreur) {
     logSecurite(erreur ? 'ERREUR' : 'AVERTISSEMENT', message, erreur);
-    var bandeau = document.getElementById('wErreur');
-    var texte = document.getElementById('wErreurMsg');
-    if (texte) {
-        texte.textContent = message || 'Une erreur est survenue.';
-    }
-    if (bandeau) {
-        bandeau.classList.add('actif');
-    }
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-    }
-    _minuterieErreur = setTimeout(masquerErreur, 10000);
+    toast(message || 'Une erreur est survenue.', { type: 'erreur' });
 }
-function masquerErreur() {
-    if (_minuterieErreur) {
-        clearTimeout(_minuterieErreur);
-        _minuterieErreur = null;
+function masquerErreur() { if (_toast.type === 'erreur') {
+    fermerToast(true);
+} }
+var _toast = { minuterie: null, texte: null, type: null, surFermeture: null };
+function toast(message, opts) {
+    opts = opts || {};
+    var z = document.getElementById('wToast');
+    if (!z) {
+        return;
     }
-    var bandeau = document.getElementById('wErreur');
-    if (bandeau) {
-        bandeau.classList.remove('actif');
+    fermerToast(true);
+    _toast.type = opts.type || 'info';
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
+    z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
+    var msg = document.getElementById('wToastMsg');
+    msg.textContent = '';
+    var act = document.getElementById('wToastAction');
+    vider(act);
+    if (opts.action) {
+        var a = opts.action;
+        act.appendChild(bouton(a.libelle, 'secondaire', a.icone === undefined ? 'arrow-go-back-line' : a.icone, function () {
+            fermerToast(false);
+            return a.fn();
+        }, { petit: true, id: a.id || 'wToastBouton' }));
+    }
+    _toast.surFermeture = opts.surFermeture || null;
+    z.hidden = false;
+    _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
+    if (duree > 0) {
+        _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
+    }
+}
+function fermerToast(avecFin) {
+    clearTimeout(_toast.minuterie);
+    _toast.minuterie = null;
+    clearTimeout(_toast.texte);
+    _toast.texte = null;
+    var fin = _toast.surFermeture;
+    _toast.surFermeture = null;
+    _toast.type = null;
+    var z = document.getElementById('wToast');
+    if (z && !z.hidden) {
+        var focusDedans = z.contains(document.activeElement);
+        z.hidden = true;
+        vider(document.getElementById('wToastAction'));
+        if (focusDedans) {
+            var t = document.getElementById('titreVue');
+            if (t) {
+                t.focus();
+            }
+        }
+    }
+    if (fin && avecFin) {
+        fin();
     }
 }
 function relayer(promesse, quoi) {
@@ -988,35 +1033,13 @@ async function chargerLogo() {
         afficherLogoRepli();
     }
 }
-function afficherSucces(message) {
+function afficherSucces(message, action) {
     logSecurite('INFO', message);
-    if (document.getElementById('dvConfirmation') && typeof confirmer === 'function') {
-        confirmer(message);
-        return;
-    }
-    var bandeau = document.getElementById('wSucces');
-    var texte = document.getElementById('wSuccesMsg');
-    if (texte) {
-        texte.textContent = message;
-    }
-    if (bandeau) {
-        bandeau.classList.add('actif');
-    }
-    if (_minuterieSucces) {
-        clearTimeout(_minuterieSucces);
-    }
-    _minuterieSucces = setTimeout(masquerSucces, 6000);
+    toast(message, action ? { type: 'succes', action: action } : { type: 'succes' });
 }
-function masquerSucces() {
-    if (_minuterieSucces) {
-        clearTimeout(_minuterieSucces);
-        _minuterieSucces = null;
-    }
-    var bandeau = document.getElementById('wSucces');
-    if (bandeau) {
-        bandeau.classList.remove('actif');
-    }
-}
+function masquerSucces() { if (_toast.type === 'succes') {
+    fermerToast(true);
+} }
 function annoncer(message) {
     var zone = document.getElementById('annonce');
     if (!zone) {
@@ -1097,8 +1120,11 @@ function bouton(libelle, variante, icone, clic, o) {
     if (o.classe) {
         classes.push(o.classe);
     }
+    if (o.iconeSeule) {
+        classes.push('w-infobulle');
+    }
     var b = creer('button', { classe: classes.join(' '), texte: o.iconeSeule ? null : libelle, id: o.id,
-        attrs: { 'aria-label': o.aria || null, disabled: o.desactive || null } }, o.iconeSeule ? [creer('span', { classe: 'fr-sr-only', texte: libelle })] : null);
+        attrs: { 'aria-label': o.aria || null, disabled: o.desactive || null, 'data-infobulle': o.iconeSeule ? libelle : null } }, o.iconeSeule ? [creer('span', { classe: 'fr-sr-only', texte: libelle })] : null);
     if (o.attrs) {
         Object.keys(o.attrs).forEach(function (k) { b.setAttribute(k, o.attrs[k]); });
     }
@@ -2025,6 +2051,11 @@ function fermerModale() {
     }
 }
 function confirmerAction(titre, message, libelleOui, saisieInitiale) {
+    var opts = {};
+    if (saisieInitiale !== null && typeof saisieInitiale === 'object') {
+        opts = saisieInitiale;
+        saisieInitiale = undefined;
+    }
     return new Promise(function (resolve) {
         var ov = document.getElementById('wConfirmOverlay');
         if (!ov) {
@@ -2044,7 +2075,9 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             champ = saisie('wConfirmSaisie', saisieInitiale);
             zone.appendChild(groupeChamp('Nouveau nom', champ, null, true));
         }
-        document.getElementById('wConfirmOui').textContent = libelleOui || 'Confirmer';
+        var oui = document.getElementById('wConfirmOui');
+        oui.textContent = libelleOui || 'Confirmer';
+        oui.className = 'fr-btn' + (opts.danger ? ' w-btn-danger' : '');
         _confirm.retour = document.activeElement;
         ov.classList.add('actif');
         void ov.offsetHeight;
@@ -2059,7 +2092,7 @@ function confirmerAction(titre, message, libelleOui, saisieInitiale) {
             } });
         }
         else {
-            document.getElementById('wConfirmOui').focus();
+            document.getElementById(opts.danger || opts.destructif ? 'wConfirmNon' : 'wConfirmOui').focus();
         }
     });
 }
@@ -7146,7 +7179,7 @@ function envelopperOnglets(z) {
             if (etat.brouillon && etat.brouillon.param && !(await sortirParametrages(false))) {
                 return;
             }
-            if (etat.brouillon && !etat.brouillon.param && !(await confirmerAction('Abandonner la création ?', 'Les choix faits dans ces étapes ne sont pas gardés.', 'Abandonner'))) {
+            if (etat.brouillon && !etat.brouillon.param && !(await confirmerAction('Abandonner la création ?', 'Les choix faits dans ces étapes ne sont pas gardés.', 'Abandonner', { destructif: true }))) {
                 return;
             }
             ouvrirNouveauVerse();
@@ -7196,7 +7229,7 @@ async function allerAuVerse(cle) {
         }
     }
     else if (etat.brouillon) {
-        var ok = await confirmerAction('Abandonner la création ?', !etat.brouillon.ligneNouvelle ? 'Rien n\'a été créé. Les choix faits pour le nouveau verse ne sont pas gardés.' : 'L\'équipe et les tables déjà créées restent dans le document. Les autres choix ne sont pas gardés.', 'Abandonner');
+        var ok = await confirmerAction('Abandonner la création ?', !etat.brouillon.ligneNouvelle ? 'Rien n\'a été créé. Les choix faits pour le nouveau verse ne sont pas gardés.' : 'L\'équipe et les tables déjà créées restent dans le document. Les autres choix ne sont pas gardés.', 'Abandonner', { destructif: true });
         if (!ok) {
             return;
         }
@@ -7418,7 +7451,7 @@ function rendrePlan(z) {
             etiquettesNonDeclares(jour),
             bouton('Planning', 'secondaire', 'calendar-line', ouvrirAccueil, { petit: true, id: 'dvPlanning', aria: 'Planning de la semaine : qui est où' }),
             bouton(etat.listeAccessible ? 'Plan' : 'Liste', 'tertiaire', etat.listeAccessible ? 'map-pin-2-line' : 'list-unordered', function () { etat.listeAccessible = !etat.listeAccessible; afficherVue('plan'); }, { petit: true, id: 'dvListe', aria: etat.listeAccessible ? 'Voir le plan' : 'Vue en liste' }),
-            etat.peutParametrer ? bouton('Paramétrer', 'tertiaire', 'settings-5-line', function () { ouvrirAssistant(1); }, { petit: true, id: 'dvParam' }) : null
+            etat.peutParametrer ? bouton('Paramétrages de ce verse', 'secondaire', 'settings-5-line', function () { ouvrirAssistant(1); }, { petit: true, id: 'dvParam' }) : null
         ])
     ]);
     placerOutils(tete, z);
@@ -8024,7 +8057,7 @@ function remplirBureau(m) {
     vider(z);
     if (peutGererEquipe()) {
         z.appendChild(creer('div', { classe: 'dv-outils dv-outils--membre' }, [
-            bouton('Modifier la fiche', 'tertiaire', 'pencil-line', function () { return formulairePersonne(m, retourBureau(m.id, etat.ongletBureau)); }, { petit: true, id: 'dvMembreModif', aria: 'Modifier la fiche de ' + nomAccessible(m) }),
+            bouton('Modifier la fiche', 'tertiaire', 'edit-line', function () { return formulairePersonne(m, retourBureau(m.id, etat.ongletBureau)); }, { petit: true, id: 'dvMembreModif', aria: 'Modifier la fiche de ' + nomAccessible(m) }),
             bouton('Retirer de l\'équipe', 'tertiaire', 'delete-line', function () { return supprimerPersonne(m); }, { petit: true, id: 'dvMembreSuppr', aria: 'Retirer ' + nomAccessible(m) + ' de l\'équipe' })
         ]));
     }
@@ -8247,7 +8280,7 @@ function ongletActivites(z, m, modifiable) {
             creer('span', { classe: 'dv-activite__heures', texte: heuresTexte(a.heures || 0) }),
             creer('span', { classe: 'dv-activite__projet', texte: libelleActivite(a) + (a.precision ? ' · ' + a.precision : '') }),
             enDouble ? badge('en double', 'warning') : null,
-            modifiable ? bouton('Modifier', 'discret', 'pencil-line', function () { formulaireActivite(m, a); }, { petit: true, iconeSeule: true, id: 'dvActModif' + a.id, aria: 'Modifier : ' + libelleActivite(a) + ', ' + heuresTexte(a.heures || 0) + (enDouble ? ' (en double)' : '') }) : null,
+            modifiable ? bouton('Modifier', 'discret', 'edit-line', function () { formulaireActivite(m, a); }, { petit: true, iconeSeule: true, id: 'dvActModif' + a.id, aria: 'Modifier : ' + libelleActivite(a) + ', ' + heuresTexte(a.heures || 0) + (enDouble ? ' (en double)' : '') }) : null,
             modifiable ? bouton('Supprimer', 'discret', 'delete-line', function () { return supprimerActivite(m, a); }, { petit: true, iconeSeule: true, id: 'dvActSuppr' + i, aria: 'Supprimer : ' + libelleActivite(a) + ', ' + heuresTexte(a.heures || 0) + (enDouble ? ' (en double)' : '') }) : null
         ]));
     });
@@ -8397,7 +8430,7 @@ async function ajouterActivite(m, jour, choix, heures, precision) {
 }
 function supprimerActivite(m, a) {
     var tid = etat.config.activites;
-    return supprimerLignes({ titre: 'Supprimer cette activité ?', message: libelleJour(a.date, true) + ' : ' + libelleActivite(a) + ', ' + heuresTexte(a.heures || 0) + (a.precision ? ' (' + a.precision + ')' : '') + '. Sa ligne est supprimée de la table « ' + nomTable(tid) + ' ».',
+    return supprimerLignes({ titre: 'Supprimer l\'activité ?', message: libelleJour(a.date, true) + ' : ' + libelleActivite(a) + ', ' + heuresTexte(a.heures || 0) + (a.precision ? ' (' + a.precision + ')' : '') + '. Sa ligne est supprimée de la table « ' + nomTable(tid) + ' ».',
         table: tid, ids: a.id, quoi: 'supprimer cette activité', ok: '✓ Activité supprimée', focus: ['dvActProjet'], retour: retourBureau(m.id, 'activites') });
 }
 var HEURES_PAR_JOUR = 7;
@@ -8944,7 +8977,7 @@ function ouvrirFicheProjet(id, nomsLus) {
         return u ? bouton(lib, 'secondaire', 'external-link-line', function () { ouvrirAdresse(u); }, { petit: true, id: 'dvFicheLien' + k, aria: lib + ' (nouvelle fenêtre)' }) : null;
     });
     var gestion = creer('div', { classe: 'dv-outils' }, [bouton('Toute la bibliothèque', 'tertiaire', 'list-unordered', ouvrirBibliotheque, { petit: true, id: 'dvVersBib' }),
-        peutCreerProjet() ? creer('div', { classe: 'dv-actions' }, [bouton('Modifier', 'secondaire', 'pencil-line', function () { return formulaireProjet(p); }, { petit: true, id: 'dvFicheModif', aria: 'Modifier le projet ' + p.libelle }),
+        peutCreerProjet() ? creer('div', { classe: 'dv-actions' }, [bouton('Modifier', 'secondaire', 'edit-line', function () { return formulaireProjet(p); }, { petit: true, id: 'dvFicheModif', aria: 'Modifier le projet ' + p.libelle }),
             bouton('Supprimer', 'tertiaire', 'delete-line', function () { return supprimerProjet(p); }, { petit: true, id: 'dvFicheSuppr', aria: 'Supprimer le projet ' + p.libelle })]) : null]);
     ouvrirModale({ titre: (p.num ? p.num + ' · ' : '') + p.nom, sousTitre: '🗄️ ' + p.statut, laterale: true, fermerDehors: true, pied: [piedStatut()],
         corps: [gestion, dl, objet ? creer('h3', { classe: 'fr-h6 fr-mt-2w', texte: libelleProjet(C, C.colObjet) }) : null, objet ? creer('p', { classe: 'w-texte dv-fiche__objet', texte: objet }) : null,
@@ -9088,11 +9121,12 @@ async function enregistrer(actions, quoi, apresRefus) {
     }
 }
 async function supprimerLignes(o) {
-    var oui = await confirmerAction(o.titre, o.message, o.libelle || 'Supprimer');
+    var oui = await confirmerAction(o.titre, o.message + ' Vous pourrez annuler juste après.', o.libelle || 'Supprimer', { danger: true });
     if (!oui) {
         return false;
     }
     var ids = [].concat(o.ids);
+    var copie = await copieLignes(o.table, ids);
     var res = await enregistrer([ids.length > 1 ? ['BulkRemoveRecord', o.table, ids] : ['RemoveRecord', o.table, ids[0]]], o.quoi, function () { o.retour(o.focus); });
     if (!res.ok) {
         return false;
@@ -9104,7 +9138,54 @@ async function supprimerLignes(o) {
     o.retour(o.focus);
     statut(o.ok);
     annoncer(o.ok);
+    if (copie) {
+        toast(o.ok, { type: 'succes', action: { libelle: o.libelleAnnuler || 'Annuler la suppression', fn: function () { return retablirLignes(o, copie); } } });
+    }
     return true;
+}
+async function copieLignes(tid, ids) {
+    try {
+        var d = await gristAvecTimeout(grist.docApi.fetchTable(tid), 30000);
+        var cols = Object.keys(d).filter(function (col) {
+            if (col === 'id' || col.indexOf('gristHelper_') === 0) {
+                return false;
+            }
+            var info = infoColonne(tid, col);
+            return col === 'manualSort' || (info && !info.formule && !info.formuleVide);
+        });
+        var res = { ids: [], valeurs: {} };
+        cols.forEach(function (col) { res.valeurs[col] = []; });
+        ids.forEach(function (rid) {
+            var i = d.id.indexOf(rid);
+            if (i === -1) {
+                return;
+            }
+            res.ids.push(rid);
+            cols.forEach(function (col) { res.valeurs[col].push(d[col][i]); });
+        });
+        return res.ids.length ? res : null;
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Copie avant suppression', e);
+        return null;
+    }
+}
+async function retablirLignes(o, copie) {
+    try {
+        try {
+            await agir([['BulkAddRecord', o.table, copie.ids, copie.valeurs]]);
+        }
+        catch (e) {
+            await agir([['BulkAddRecord', o.table, copie.ids.map(function () { return null; }), copie.valeurs]]);
+        }
+    }
+    catch (e2) {
+        afficherErreur(estRefusDroits(e2) ? 'Vos droits ne permettent pas d\'annuler la suppression.' : 'La suppression n\'a pas pu être annulée.', e2);
+        return;
+    }
+    await chargerDonnees(o.lourdes ? { lourdes: true } : {});
+    o.retour(o.focus);
+    afficherSucces('Suppression annulée.');
 }
 function fabriquerEditeur(cle, colId, noeud, cible, lire) {
     var err = creer('p', { classe: 'dv-form__err', id: (cible && cible.id ? cible.id : 'dvF_' + cle) + '_err' });
@@ -9428,7 +9509,7 @@ function boutonsGestion(prefixe, id, nom, modifier, supprimer) {
         return null;
     }
     return creer('div', { classe: 'dv-gestion' }, [
-        modifier ? bouton('Modifier', 'discret', 'pencil-line', modifier, { petit: true, iconeSeule: true, id: prefixe + 'Modif' + id, aria: 'Modifier : ' + nom }) : null,
+        modifier ? bouton('Modifier', 'discret', 'edit-line', modifier, { petit: true, iconeSeule: true, id: prefixe + 'Modif' + id, aria: 'Modifier : ' + nom }) : null,
         supprimer ? bouton('Supprimer', 'discret', 'delete-line', supprimer, { petit: true, iconeSeule: true, id: prefixe + 'Suppr' + id, aria: 'Supprimer : ' + nom }) : null
     ]);
 }
@@ -9606,7 +9687,7 @@ async function formulaireReunion(r, retour, pre) {
 }
 function supprimerReunion(r, retour) {
     var rc = etat.donnees.reu;
-    return supprimerLignes({ titre: 'Supprimer cette réunion ?', message: '« ' + r.objet + ' », ' + quandReunion(r) + '. Sa ligne est supprimée de la table « ' + nomTable(rc.table) + ' ».',
+    return supprimerLignes({ titre: 'Supprimer la réunion « ' + r.objet + ' » ?', message: 'Réunion ' + quandReunion(r) + '. Sa ligne est supprimée de la table « ' + nomTable(rc.table) + ' ».',
         table: rc.table, ids: r.id, quoi: 'supprimer cette réunion', retour: retour, focus: ['dvReuNouvelle', 'dvReuPeriode'], ok: '✓ Réunion supprimée : « ' + r.objet + ' »' });
 }
 function peutGererEquipe() {
@@ -9925,7 +10006,7 @@ function formulairePeriode(m, p) {
         } });
 }
 function supprimerPeriode(m, p) {
-    return supprimerLignes({ titre: 'Supprimer cette période ?',
+    return supprimerLignes({ titre: 'Supprimer la période ?',
         message: (p.lieu ? emojiLieu(p.lieu) + ' ' + nomChoix(m, p.lieu) : 'Lieu non précisé') + ' du ' + formaterDate(p.du) + ' au ' + formaterDate(p.au) + ' (' + accord(joursOuvresEntre(p.du, p.au), 'jour ouvré', 'jours ouvrés') + '). Sa ligne est supprimée de la table « ' + nomTable(etat.config.presences) + ' ».',
         table: etat.config.presences, ids: p.id, quoi: 'supprimer cette période', ok: '✓ Période supprimée', focus: ['dvPeriodes'], retour: retourBureau(m.id, 'ou'),
         avant: function () { etat.rafraichirEnAttente = true; } });
@@ -9978,7 +10059,7 @@ async function formulaireTache(t, retour, surFermeture) {
 }
 function supprimerTache(t, retour) {
     var tc = etat.donnees.tac;
-    return supprimerLignes({ titre: 'Supprimer cette tâche ?', message: '« ' + t.description + ' ». Sa ligne est supprimée de la table « ' + nomTable(tc.table) + ' ».',
+    return supprimerLignes({ titre: 'Supprimer la tâche « ' + t.description + ' » ?', message: 'Sa ligne est supprimée de la table « ' + nomTable(tc.table) + ' ».',
         table: tc.table, ids: t.id, quoi: 'supprimer cette tâche', ok: '✓ Tâche supprimée : « ' + t.description.slice(0, 60) + ' »', focus: ['dvNouvelle', 'dvPbTexte'], retour: retour });
 }
 function peutCreerRessource() {
@@ -10031,7 +10112,7 @@ async function formulaireRessource(r) {
 }
 function supprimerRessource(r) {
     var rs = etat.donnees.res;
-    return supprimerLignes({ titre: 'Supprimer cette ressource ?', message: '« ' + r.nom + ' ». Sa ligne est supprimée de la table « ' + nomTable(rs.table) + ' »' + (idsPJ(r.fichiers).length ? ', avec le lien vers ses fichiers joints.' : '.'),
+    return supprimerLignes({ titre: 'Supprimer la ressource « ' + r.nom + ' » ?', message: 'Sa ligne est supprimée de la table « ' + nomTable(rs.table) + ' »' + (idsPJ(r.fichiers).length ? ', avec le lien vers ses fichiers joints.' : '.'),
         table: rs.table, ids: r.id, quoi: 'supprimer cette ressource', ok: '✓ Ressource supprimée : « ' + r.nom + ' »', focus: ['dvResNouvelle', 'dvRechIdees'], lourdes: true, retour: retourRessources });
 }
 function peutCreerProjet() {
@@ -10141,7 +10222,7 @@ async function formulaireProjet(p, statutInitial) {
 }
 function supprimerProjet(p) {
     var C = reglagesProjets();
-    return supprimerLignes({ titre: 'Supprimer ce projet ?', message: '« ' + p.libelle + ' ». Sa ligne est supprimée de la table « ' + nomTable(C.table) + ' ». Les activités déclarées sur ce projet restent dans votre document.',
+    return supprimerLignes({ titre: 'Supprimer le projet « ' + p.libelle + ' » ?', message: 'Sa ligne est supprimée de la table « ' + nomTable(C.table) + ' ». Les activités déclarées sur ce projet restent dans votre document.',
         table: C.table, ids: p.id, quoi: 'supprimer ce projet', ok: '✓ Projet supprimé : « ' + p.libelle + ' »', focus: ['dvProjNouveau', 'dvRechBib'], lourdes: true,
         avant: function () { etat.rafraichirEnAttente = true; }, retour: function (f) { ouvrirBibliotheque(); focaliser(f); } });
 }
@@ -10751,7 +10832,7 @@ async function supprimerVerse() {
     var nom = nomVerse({ config: etat.config }, 0);
     var ok = await confirmerAction('Supprimer le verse « ' + nom + ' » ?', etat.verses.length <= 1
         ? 'C\'est le seul verse : ses réglages sont effacés et Diploverse revient à son installation. Les tables et leurs lignes ne sont pas touchées.'
-        : 'Seuls ses réglages (et sa plante, son chien, ses trophées) sont effacés. Les tables et leurs lignes ne sont pas touchées.', 'Supprimer le verse');
+        : 'Seuls ses réglages (et sa plante, son chien, ses trophées) sont effacés. Les tables et leurs lignes ne sont pas touchées. Cette action est définitive.', 'Supprimer le verse', { danger: true });
     if (!ok) {
         return;
     }
@@ -10859,7 +10940,7 @@ function piedAssistant(b, noms) {
 async function quitterCreation() {
     var b = etat.brouillon;
     var deja = b && (b.ligneNouvelle || (!b.nouveauVerse && etat.config));
-    if (!(await confirmerAction('Abandonner la création ?', deja ? 'L\'équipe et les tables déjà créées restent dans le document. Les autres choix ne sont pas gardés.' : 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas gardés.', 'Abandonner'))) {
+    if (!(await confirmerAction('Abandonner la création ?', deja ? 'L\'équipe et les tables déjà créées restent dans le document. Les autres choix ne sont pas gardés.' : 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas gardés.', 'Abandonner', { destructif: true }))) {
         return;
     }
     etat.brouillon = null;
@@ -11895,7 +11976,7 @@ async function sortirParametrages(afficher) {
         await sauvegarderBrouillon();
         if (aChange(b)) {
             var pb = problemeVerse(b);
-            if (!(await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (pb ? ' : ' + pb.message.replace(/[.?]$/, '') : '') + '. Elle sera perdue.', 'Quitter'))) {
+            if (!(await confirmerAction('Quitter les paramétrages ?', 'Une modification n\'a pas pu être enregistrée' + (pb ? ' : ' + pb.message.replace(/[.?]$/, '') : '') + '. Elle sera perdue.', 'Quitter', { destructif: true }))) {
                 return false;
             }
         }
@@ -12011,6 +12092,9 @@ async function remplirExemples(c, ks, equipe) {
     }
 }
 async function chargerTout() {
+    if (etat.vue === 'echec' || etat.vue === 'acces') {
+        masquerErreur();
+    }
     if (etat.metaFraiche) {
         etat.metaFraiche = false;
     }
@@ -12252,7 +12336,7 @@ document.getElementById('bandeauVersion').textContent = 'v' + VERSION_WIDGET;
 (function () { var c = document.getElementById('bandeau-logo'); if (c && !injecterSvgSecurise(c, genererLogoMEAE())) {
     afficherLogoRepli();
 } })();
-document.getElementById('wErreurFermer').addEventListener('click', masquerErreur);
+document.getElementById('wToastFermer').addEventListener('click', function () { fermerToast(true); });
 document.getElementById('wVisionneuseFermer').addEventListener('click', fermerVisionneuse);
 document.getElementById('wVisionneusePlein').addEventListener('click', basculerPleinEcranVisionneuse);
 document.getElementById('wVisionneuseTelecharger').addEventListener('click', function () {
@@ -12260,7 +12344,6 @@ document.getElementById('wVisionneuseTelecharger').addEventListener('click', fun
         relayer(telechargerPJ(_visionneuse.id), 'Téléchargement depuis la visionneuse');
     }
 });
-document.getElementById('wSuccesFermer').addEventListener('click', masquerSucces);
 brancherAide();
 document.getElementById('wModaleFermer').addEventListener('click', fermerModale);
 document.getElementById('wConfirmOui').addEventListener('click', function () { terminerConfirmation(true); });
