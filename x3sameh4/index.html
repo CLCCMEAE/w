@@ -208,11 +208,12 @@
     .w-grille--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
     .w-grille--1-1 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-gen-bouton { display: flex; margin-top: .5rem; }
     .s-gen-table { margin-top: .5rem; }
     .w-grille__col, .w-grille__pied { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
     .w-grille__pied { grid-column: 1 / -1; }
-    @media (max-width: 62em) { .w-grille--2-1, .w-grille--1-1, .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 62em) { .w-grille--2-1, .w-grille--1-1, .w-grille--1-1-1, .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
     .w-bouton-danger { color: var(--text-default-error); box-shadow: none; border: 1px solid var(--border-plain-error); }
     .w-entete-param { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
     .w-entete-param__textes { display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
@@ -921,6 +922,26 @@
     .s-vignettes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
     .s-jr__salle-nom { display: inline-flex; align-items: center; gap: .25rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
     .s-jr__salle-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .s-acl { margin: .5rem 0 .25rem; }
+    .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
+    .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau tbody tr:first-child td { border-top: 0; }
+    .s-acl__cols { width: 22%; text-align: center; font-weight: 700; border-right: 1px solid var(--border-plain-grey); }
+    .s-acl__cond { display: inline-flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+    .s-acl__cond code { font-size: .75rem; color: var(--text-title-grey); background: none; padding: 0; }
+    .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
+    .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
+    .s-acl__droits { display: inline-flex; gap: .25rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
+    .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
+    .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
+    .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
@@ -1010,7 +1031,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.32';
+var VERSION_WIDGET = '1.1.33';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -10260,22 +10281,70 @@ function reglesDroitsConseillees() {
         { titre: 'Vérifier', texte: 'Bouton « Voir en tant que » en haut des Permissions avancées, avec le courriel d\'un agent : il ne voit pas la page Admin, il réserve, il modifie et annule ses réservations, pas celles des autres.' }
     ];
 }
+function modeleAcl(titre, blocs, prefixe) {
+    var lettres = [['R', 'Lecture'], ['U', 'Modification'], ['C', 'Création'], ['D', 'Suppression']];
+    var droits = function (d, colonne) {
+        var l = colonne ? lettres.slice(0, 2) : lettres;
+        return creer('span', { classe: 's-acl__droits' }, l.map(function (x) {
+            var v = d ? d[x[0]] : undefined;
+            var cls = v === true ? ' s-acl__droit--oui' : v === false ? ' s-acl__droit--non' : ' s-acl__droit--vide';
+            return creer('span', { classe: 's-acl__droit' + cls, texte: x[0], attrs: { title: x[1] + (v === true ? ' : autorisée (vert)' : v === false ? ' : refusée (rouge, barrée)' : ' : non réglée') } });
+        }));
+    };
+    var k = 0;
+    var tableau = creer('table', { classe: 's-acl__tableau' }, [
+        creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Colonnes' }), creer('th', { texte: 'Condition' }), creer('th', { texte: 'Droits' })])]),
+        creer('tbody', {}, blocs.map(function (b) {
+            return b.regles.map(function (r, i) {
+                var cond = r.condition ? creer('span', { classe: 's-acl__cond' }, [creer('code', { texte: r.condition }),
+                    boutonIcone('Copier la condition', 'file-copy-line', function () { return copierTexte(r.condition, null, 'Condition copiée : collez-la dans la ligne de la règle.'); }, { variante: 'discret', id: prefixe + 'C' + (k++) })])
+                    : creer('span', { classe: 's-acl__autres', texte: 'Tous les autres' });
+                return creer('tr', { classe: i === 0 ? 's-acl__debut' : '' }, [
+                    i === 0 ? creer('td', { classe: 's-acl__cols', attrs: { rowspan: String(b.regles.length) }, texte: b.colonnes }) : null,
+                    creer('td', {}, [cond, r.note ? creer('span', { classe: 's-acl__note', texte: r.note }) : null]),
+                    creer('td', {}, [droits(r.droits, b.colonnes !== 'Toutes')])
+                ]);
+            });
+        }).reduce(function (a, x) { return a.concat(x); }, []))
+    ]);
+    return creer('div', { classe: 's-acl' }, [creer('p', { classe: 's-acl__titre' }, ['Règles pour la table ', creer('strong', { texte: titre })]), tableau]);
+}
 function blocDroits() {
-    var etapes = reglesDroitsConseillees();
-    var n = 0;
+    var c = etat.config || (etat.brouillon && etat.brouillon.cfg) || {};
+    var nomRes = c.table ? libelleTable(c.table) : 'des réservations';
+    var ts = tableSalles(c);
+    var nomSalles = ts ? libelleTable(ts) : 'des salles';
+    var colStat = c.colStatus || 'STATUT';
+    var sv = statutsDe(c);
+    var centrale = etat.biblioCentrale || !etat.biblio;
+    var biblio = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
+    var duW = centrale ? ' and rec.WIDGET == "' + NOM_WIDGET + '"' : '';
+    var proprio = { condition: 'user.Access in [OWNER]', droits: { R: true, U: true, C: true, D: true } };
+    var tout = function (v) { return { R: v, U: v, C: v, D: v }; };
+    var colonnesStatut = colStat + (infoColonne(c.table, 'MOTIF') ? ', MOTIF' : '');
+    var etapes = [
+        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les agents contournent toutes les règles. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne de chaque table ci-dessous.' },
+        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.' },
+        { titre: 'Cacher la page Admin', texte: 'Cette table n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre table.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
+        { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
+            { condition: 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW, droits: tout(false) },
+            { condition: centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"' : 'user.Access != OWNER', droits: { R: true, U: false, C: false, D: false } },
+            { note: 'laisser sans réglage' }] }], 'aAclB') },
+        { titre: 'Les salles', texte: 'Tout le monde voit les salles ; seuls les propriétaires les modifient.', modele: modeleAcl(nomSalles, [{ colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclS') },
+        { titre: 'Les réservations', texte: 'Chacun crée et modifie ses propres réservations, voit celles des autres sans pouvoir les modifier, et personne ne supprime (on annule). Le second bloc est une règle de colonnes : menu « ⋯ » du bloc de la table, « Ajouter une règle de colonne », puis choisissez les colonnes.', modele: modeleAcl(nomRes, [
+            { colonnes: 'Toutes', regles: [proprio, { condition: 'rec.CREE_PAR == user.Email', droits: { R: true, U: true, C: true, D: false } }, { droits: { R: true, U: false, C: true, D: false } }] },
+            { colonnes: colonnesStatut, regles: [{ condition: 'user.Access in [OWNER]', droits: { R: true, U: true } }, { condition: 'newRec.' + colStat + ' in ["' + (sv.annulee || 'Annulée') + '", "' + (sv.attente || 'En attente') + '"]', droits: { R: true, U: true } }, { droits: { R: true, U: false } }] }
+        ], 'aAclR') },
+        { titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues, sans avertissement.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('span', { classe: 's-acl__btn', texte: 'Enregistrer' }), ' devient ', creer('span', { classe: 's-acl__btn s-acl__btn--fait', texte: 'Enregistré' })]) },
+        { titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un agent : il ne voit pas la page Admin, il réserve, modifie et annule ses réservations, pas celles des autres.' }
+    ];
     var ol = creer('ol', { classe: 's-droits' });
     etapes.forEach(function (x, k) {
-        var li = creer('li', { classe: 's-droits__etape' + (x.titre ? '' : ' s-droits__etape--suite') });
-        if (x.titre) {
-            n++;
-            li.appendChild(creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(n) }), x.titre]));
-        }
-        li.appendChild(creer('p', { classe: 's-droits__texte', texte: x.texte }));
-        if (x.code) {
-            var code = creer('code', { classe: 's-droits__code', texte: x.code });
-            li.appendChild(creer('div', { classe: 's-droits__ligne' }, [code, bouton('Copier', 'tertiaire', 'file-copy-line', function () { return copierTexte(x.code, code, 'Condition copiée : collez-la dans la règle.'); }, { petit: true, id: 'aDroitCopier' + k })]));
-        }
-        ol.appendChild(li);
+        ol.appendChild(creer('li', { classe: 's-droits__etape' }, [
+            creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(k + 1) }), x.titre]),
+            creer('p', { classe: 's-droits__texte', texte: x.texte }),
+            x.modele || null
+        ]));
     });
     return ol;
 }
@@ -10307,10 +10376,11 @@ function etapeDroits() {
         etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection en haut de la page', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null]);
     var col2 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecRegles' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecRegles', texte: 'Poser les règles d\'accès' })]),
+        alerte('warning', null, 'Dans les Permissions avancées, rien n\'est enregistré tant que vous n\'avez pas cliqué sur « Enregistrer », en haut à gauche. Quitter la page avant efface toutes les règles posées.'),
         etat2,
         blocDroits()
     ]);
-    return creer('div', { classe: 'w-general' }, [grilleParam([[col1], [col2]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[col1], [col2]], '1-2')]);
 }
 function etapeGeneral() {
     var b = etat.brouillon;
