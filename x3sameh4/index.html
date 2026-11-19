@@ -800,6 +800,9 @@
     .s-jr__tete { display: grid; gap: 2px; position: sticky; top: 0; z-index: 2; background: var(--background-default-grey); }
     .s-jr__salle { display: flex; flex-direction: column; gap: .125rem; padding: .375rem .5rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .s-jr__salle .s-code { background: transparent; color: inherit; border-color: rgba(255,255,255,.5); }
+    .s-jr__salle .s-code--voulu { background: var(--background-default-grey); color: var(--text-action-high-blue-france); border-color: var(--background-default-grey); }
+    .s-jr__salle .s-codes { gap: .25rem; }
+    .s-jr__salle .s-code__val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9rem; }
     .s-jr__corps { flex: 1; display: grid; gap: 2px; min-height: 30rem; position: relative; }
     .s-jr__regle { position: relative; }
     .s-jr__heure { position: absolute; right: .375rem; transform: translateY(-50%); font-size: .75rem; color: var(--text-mention-grey); }
@@ -842,6 +845,8 @@
     .s-jr__cible:hover { background: var(--background-action-low-success, var(--background-contrast-success-hover)); }
     .s-recherche-msg { margin-top: .75rem; }
     .s-recherche-msg .fr-btn { margin-top: .5rem; }
+    .s-eq-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .75rem; }
+    .s-eq-liste li { display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .25rem; }
     .s-cases-eq { margin: 0; }
     .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
@@ -916,7 +921,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.6';
+var VERSION_WIDGET = '1.1.7';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -13455,7 +13460,27 @@ function etapeInfosReservation(res) {
     var maintenant = maintenantMur(tz);
     var recap = creer('dl', { classe: 'w-recap__liste' });
     var ajout = function (lib, val) { recap.appendChild(creer('dt', { texte: lib })); recap.appendChild(creer('dd', { texte: val })); };
-    ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
+    if (res.direct && s) {
+        ajout('Salle', s.nom);
+        var ouS = [s.batiment, s.lieu].filter(Boolean).join(', ');
+        if (ouS) {
+            ajout('Où', ouS);
+        }
+        if (s.capacite !== null) {
+            ajout('Capacité', pluriel(s.capacite, 'place'));
+        }
+        var eqS = (s.visio && !s.equipements.some(function (x) { return normalizer(x).indexOf('visio') !== -1; }) ? ['Visioconférence'] : []).concat(s.equipements);
+        if (eqS.length) {
+            recap.appendChild(creer('dt', { texte: 'Équipements' }));
+            recap.appendChild(creer('dd', {}, [creer('ul', { classe: 's-eq-liste' }, eqS.map(function (x) {
+                var ic = iconeEquipement(x);
+                return creer('li', {}, [ic ? creer('span', { classe: 'fr-icon-' + ic + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }) : null, creer('span', { texte: x })]);
+            }))]));
+        }
+    }
+    else {
+        ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
+    }
     var horaires = null;
     if (res.direct) {
         var rH = reglesHeuresLarges(c);
@@ -15135,7 +15160,8 @@ function rendreJourAgent() {
     }
     corps.appendChild(regle);
     salles.forEach(function (s) {
-        tete.appendChild(creer('div', { classe: 's-jr__salle' }, [creer('strong', { texte: s.nom }), creer('span', { classe: 's-codes' }, infosSalle(s).slice(0, 1).concat(s.visio ? [code(ICONES_EQUIPEMENTS[0].icones, null, 'Visioconférence')] : []))]));
+        var eqT = badgesSalle(s, (v.filtres && v.filtres.agentEquip) || []);
+        tete.appendChild(creer('div', { classe: 's-jr__salle' }, [creer('strong', { texte: s.nom }), infosSalle(s).length ? creer('span', { classe: 's-codes' }, infosSalle(s)) : null, eqT]));
         var propres = reglesPropres(c, s.cle);
         var hj = horairesDuJour(r, rangJour(jour), propres);
         var fermeS = fermeJour || fermetureDuJour(jour, r, propres);
