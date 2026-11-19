@@ -863,7 +863,9 @@
     .s-aval__bande--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     @media (max-width: 62em) { .s-aval__bande--3 { grid-template-columns: minmax(0, 1fr); } }
     .s-aval__groupe { min-width: 0; }
-    .s-aval__bande--3 .s-aval__puces { flex-direction: column; flex-wrap: nowrap; max-height: 16rem; overflow-y: auto; }
+    .s-aval__bande--3 .s-aval__puces { flex-direction: column; flex-wrap: nowrap; }
+    .s-aval__badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+    .s-aval__badges:empty { display: none; }
     .s-aval__bande--3 .s-aval__puce { width: 100%; }
     .s-aval__titre { display: flex; align-items: center; gap: .25rem; margin: 0 0 .5rem; font-size: 1rem; }
     .s-aval__puce--speciale { border-left-color: var(--border-plain-info); }
@@ -989,7 +991,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.25';
+var VERSION_WIDGET = '1.1.26';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -6675,13 +6677,13 @@ function barreNavigation() {
         aller.classList.add('c-aller__champ--visible');
         aller.focus();
     });
-    var sansNav = ['list', 'salles', 'libres', 'stats'].indexOf(v.mode) !== -1;
+    var sansNav = ['list', 'salles', 'libres', 'stats', 'avalider'].indexOf(v.mode) !== -1;
     var nav = creer('div', { classe: 'gp-outils__groupe c-nav' }, [
         bouton('Aujourd\'hui', 'secondaire', null, function () { allerAuJour(aujourdhuiMur(fuseauPlan(etat.config)), true); }, { petit: true, id: 'pAujourdhui' })
     ]);
     nav.hidden = sansNav;
     var libellesPer = { jour: ['Jour précédent', 'Jour suivant'], avalider: ['Jour précédent', 'Jour suivant'], semaine: ['Semaine précédente', 'Semaine suivante'], mois: ['Mois précédent', 'Mois suivant'] }[v.mode] || ['Période précédente', 'Période suivante'];
-    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
+    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'avalider' ? ['À traiter'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
         : [creer('span', { classe: 's-titre-nav' }, [boutonIcone(libellesPer[0], 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }), periode,
             boutonIcone(libellesPer[1], 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' }), creer('span', { classe: 'c-aller' }, [choixDate, aller])])]));
     return { vues: seg, nav: nav, titre: titre };
@@ -7587,7 +7589,11 @@ function rendrePlan(zone) {
 }
 function barreOutils() {
     var nav = barreNavigation();
-    return barreVue(nav.titre, [], [nav.nav, nav.vues]);
+    var b = barreVue(nav.titre, [], [nav.nav, nav.vues]);
+    if (etat.v && etat.v.mode === 'avalider' && estConsoleAdmin()) {
+        b.hidden = true;
+    }
+    return b;
 }
 function ajouterEvenement() {
     var v = etat.v;
@@ -15315,11 +15321,13 @@ function rendreAValider() {
                 creer('strong', { texte: majusculeInitiale(texteJourCourt(Math.floor(it.s / JOUR) * JOUR)) + ', ' + texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) }),
                 creer('span', { classe: 's-aval__salle-nom' }, [sl ? teinterSalle(creer('span', { classe: 's-pastille', attrs: { 'aria-hidden': 'true' } }), sl.cle) : null, (sl ? sl.nom + ' · ' : '') + it.titre]),
                 services.length ? creer('span', { classe: 's-aval__services' }, services.map(function (x) { return creer('span', { classe: 's-aval__service' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(iconesDemande(x.libelle)) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + x.texte]); })) : null,
-                attente ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon', texte: 'Réservation en attente' }) : null]);
+                creer('span', { classe: 's-aval__badges' }, [estUrgent(it, filtre) ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--error', texte: 'Urgent' }) : null,
+                    attente ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon', texte: 'Réservation en attente' }) : null])]);
             b.addEventListener('click', function () {
                 v.avalSel = it.id;
-                v.date = Math.floor(it.s / JOUR) * JOUR;
-                redessinerTimeline();
+                Array.prototype.forEach.call(document.querySelectorAll('.s-aval__puce--choisie'), function (x) { x.classList.remove('s-aval__puce--choisie'); x.removeAttribute('aria-current'); });
+                b.classList.add('s-aval__puce--choisie');
+                b.setAttribute('aria-current', 'true');
                 ouvrirFicheAgent(it);
             });
             ul.appendChild(creer('li', {}, [b]));
@@ -15334,8 +15342,17 @@ function rendreAValider() {
     bande.appendChild(groupe('R', 'Restauration à prévoir', ['cup-line', 'restaurant-line'], resto, 'Aucune demande de restauration à venir.', filtreResto));
     bande.appendChild(groupe('A', 'Autres demandes spéciales', ['tools-line', 'settings-5-line'], autres, 'Aucune autre demande spéciale à venir.', filtreAutre));
     zone.appendChild(bande);
-    zone.appendChild(rendreJourAgent({ aval: true }));
     return zone;
+}
+function estUrgent(it, filtre) {
+    var heures = (it.s - maintenantCache()) / HEURE;
+    var seuil = 48;
+    if (filtre) {
+        formulaireDe(etat.config).demandes.forEach(function (x) { if (filtre(x) && valeurCellule(valeurLigne(it.i, x.col)) === true && x.delai) {
+            seuil = Math.max(seuil, x.delai + 24);
+        } });
+    }
+    return heures < seuil;
 }
 async function enregistrerModification(res, lus, s, p) {
     var c = etat.config;
