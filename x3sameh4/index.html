@@ -285,6 +285,8 @@
     .tab-nav { border-bottom: 1px solid var(--border-default-grey); margin-bottom: 1.25rem; }
     .tab-nav .fr-tabs__list { border-bottom: none; margin: 0; padding: 0; display: flex; list-style: none; gap: .25rem; flex-wrap: wrap; }
     .tab-nav .fr-tabs__list li { margin: 0; padding: 0; }
+    .tab-nav .fr-tabs__tab--icon-left { display: inline-flex; align-items: center; gap: .375rem; }
+    .tab-nav .fr-tabs__tab--icon-left::before { --icon-size: 1rem; flex: none; margin: 0; }
     .w-contenu--plan { display: flex; flex-direction: column; overflow: hidden; padding-bottom: .75rem; }
     .w-contenu--plan #pPanneau { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .w-contenu--plan .w-principal { gap: .5rem; }
@@ -645,6 +647,7 @@
     .w-etapes__item--action .fr-btn { white-space: nowrap; }
     .w-dialogue--pousse { flex: 0 0 34rem; width: 34rem; max-width: 50%; height: auto; min-height: 0; border-left: 1px solid var(--border-default-grey); box-shadow: -4px 0 12px rgba(0,0,18,.08); }
     .w-dialogue--pousse .w-dialogue__corps { overflow-y: auto; }
+    .w-dialogue--pousse.w-dialogue--etroit { flex-basis: 24rem; width: 24rem; max-width: 50%; }
     @container (max-width: 48rem) { .w-dialogue--pousse { position: fixed; inset: 0; width: 100%; max-width: none; z-index: 9990; } }
     @media (max-width: 48rem) { .w-dialogue--pousse { position: fixed; inset: 0; width: 100%; max-width: none; z-index: 9990; } }
     body.w-lateral-ouvert .w-panneau-aide:not([hidden]) { flex-basis: 18rem; width: 18rem; }
@@ -884,6 +887,14 @@
     .s-page-gestion { margin-bottom: 1rem; }
     @media (max-width: 48em) { .s-aval__ligne { grid-template-columns: 1fr; } }
     .s-services { margin-top: .25rem; }
+    .s-fiche-resa { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--s-couleur, var(--border-action-high-blue-france)); background: var(--background-alt-grey); }
+    .s-fiche-resa p { margin: 0 0 .375rem; }
+    .s-fiche-resa__quand { display: flex; flex-direction: column; font-size: 1rem; }
+    .s-fiche-resa__salle { display: flex; align-items: center; flex-wrap: wrap; font-size: .875rem; }
+    .s-fiche-resa__modifier { margin: .75rem 0; }
+    .s-fiche-resa__motif { padding: .5rem .75rem; margin: .75rem 0; border-left: 4px solid var(--border-plain-error); background: var(--background-contrast-error); font-size: .875rem; }
+    .w-dialogue .s-aval__details { margin: 0; }
+    .w-dialogue .s-aval__details li { padding: .25rem 0; border-bottom: 1px solid var(--border-default-grey); }
     .s-pastille { display: inline-block; flex: none; width: .75rem; height: .75rem; margin-right: .375rem; background: var(--s-couleur); vertical-align: middle; }
     .s-pastille--grande { width: 1rem; height: 1rem; }
     .s-carte-salle { border-left-color: var(--s-couleur, var(--border-action-high-blue-france)); }
@@ -971,7 +982,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.16';
+var VERSION_WIDGET = '1.1.18';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -6605,6 +6616,11 @@ function barreNavigation() {
     aller.addEventListener('change', function () { var w = saisieVersDate(aller.value); if (w !== null) {
         allerAuJour(w, true);
     } });
+    aller.addEventListener('blur', function () {
+        aller.classList.remove('c-aller__champ--visible');
+        aller.setAttribute('aria-hidden', 'true');
+        aller.setAttribute('tabindex', '-1');
+    });
     var periode = creer('span', { id: 'cPeriode', classe: 's-titre-date', texte: titrePeriode() });
     var choixDate = boutonIcone('Choisir une date dans le calendrier', 'calendar-line', null, { id: 'cPeriodeBtn', variante: 'secondaire' });
     choixDate.addEventListener('click', function () {
@@ -10899,6 +10915,9 @@ function equipementsPossibles() {
     return l;
 }
 function reservationsQuiGenent(cleSalle, s, e, excluId) {
+    if (!excluId && etat.reservation && etat.reservation.edition) {
+        excluId = etat.reservation.edition;
+    }
     return etat.items.filter(function (it) {
         return it.id !== excluId && it.s !== null && !it.jalon && !statutInactif(it) && it.couloirs.indexOf(String(cleSalle)) !== -1 && it.s < e && it.e > s;
     }).sort(function (a, b) { return a.s - b.s; });
@@ -13248,7 +13267,7 @@ function rendreReservation(focusId) {
         corps = corps.concat(etapeInfosReservation(res));
         var aValider = reservationAValider(res);
         pied = [res.direct ? bouton('Annuler', 'secondaire', null, fermerModale, { id: 'rAnnuler' }) : bouton('La salle', 'secondaire', 'arrow-left-line', function () { allerEtapeReservation(2); }, { id: 'rPrec' }), creer('span', { classe: 'w-pousse' }),
-            bouton(aValider ? 'Envoyer la demande' : 'Réserver la salle', null, 'check-line', enregistrerReservation, { id: 'rEnregistrer' })];
+            bouton(res.edition ? 'Enregistrer les modifications' : aValider ? 'Envoyer la demande' : 'Réserver la salle', null, 'check-line', enregistrerReservation, { id: 'rEnregistrer' })];
     }
     else {
         corps = etapeConfirmation(res);
@@ -13270,7 +13289,7 @@ function rendreReservation(focusId) {
         }
         return;
     }
-    ouvrirModale({ titre: 'Réserver une salle', laterale: true, corps: corps, focus: focusId || 'rCorps', pied: pied,
+    ouvrirModale({ titre: res.edition ? 'Modifier la réservation' : 'Réserver une salle', laterale: true, corps: corps, focus: focusId || 'rCorps', pied: pied,
         surFermeture: function () { etat.reservation = null; } });
 }
 function reservationAValider(res) {
@@ -13616,6 +13635,11 @@ function etapeInfosReservation(res) {
     var carte = null;
     if (res.direct && s) {
         carte = carteSalleReservation(s, res.jour);
+        if (res.edition) {
+            var selS = liste('rSalleC', sallesActives().map(function (x) { return { valeur: x.cle, libelle: x.nom + (x.capacite !== null ? ' (' + pluriel(x.capacite, 'place') + ')' : '') }; }), res.salle);
+            selS.addEventListener('change', function () { lireInfosReservation(res, true); res.salle = selS.value; rendreReservation('rSalleC'); });
+            carte = creer('div', {}, [carte, groupeChamp('Salle', selS, null, false)]);
+        }
     }
     else {
         ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
@@ -13940,6 +13964,9 @@ async function enregistrerReservation() {
     Object.keys(prePage).forEach(function (k) { if (commun[k] === undefined) {
         commun[k] = prePage[k];
     } });
+    if (res.edition) {
+        return enregistrerModification(res, lus, s, p);
+    }
     var occ = occurrencesReservation(res);
     var serie = occ.length > 1 && c.colSerie && infoColonne(c.table, c.colSerie) ? 'S' + Date.now().toString(36).toUpperCase() : null;
     var lignes = occ.map(function (o) {
@@ -15238,44 +15265,142 @@ function rendreAValider() {
     zone.appendChild(rendreJourAgent({ aval: true }));
     return zone;
 }
+async function enregistrerModification(res, lus, s, p) {
+    var c = etat.config;
+    var it = etat.parId ? etat.parId[res.edition] : null;
+    if (!it) {
+        masquerLoader();
+        erreurReservation(null, 'Cette réservation n\'existe plus.');
+        return;
+    }
+    var ch = {};
+    Object.keys(lus).forEach(function (k) { ch[k] = lus[k]; });
+    ch[c.colLane] = valeurPourCle(s.cle, colCouloir());
+    var colP = c.colParticipants ? infoColonne(c.table, c.colParticipants) : null;
+    if (colP && estModifiable(colP, genreDe(colP, null))) {
+        ch[c.colParticipants] = p !== null && !isNaN(p) ? p : null;
+    }
+    formulaireDe(c).demandes.forEach(function (x) {
+        if (!infoColonne(c.table, x.col)) {
+            return;
+        }
+        var oui = res.demandes[x.col] === true;
+        ch[x.col] = oui;
+        if (x.colDetail && infoColonne(c.table, x.colDetail)) {
+            ch[x.colDetail] = oui ? String(res.details[x.col] || '').trim() : '';
+        }
+        if (x.colChoix && infoColonne(c.table, x.colChoix)) {
+            var pris = oui && res.choix && res.choix[x.col] ? res.choix[x.col] : [];
+            ch[x.colChoix] = pris.length ? ['L'].concat(pris) : null;
+        }
+        if (x.colNombre && infoColonne(c.table, x.colNombre)) {
+            var nbD = oui && res.nombres && res.nombres[x.col] !== undefined ? String(res.nombres[x.col]).trim() : '';
+            ch[x.colNombre] = /^\d+$/.test(nbD) ? parseInt(nbD, 10) : null;
+        }
+    });
+    if (c.colDemandeur && infoColonne(c.table, c.colDemandeur) && res.pourAutrui) {
+        ch[c.colDemandeur] = String(res.nomAutrui).trim();
+    }
+    var occ = occurrencesReservation(res)[0];
+    ch[c.colStart] = valeurDeMur(occ.s, infoColonne(c.table, c.colStart));
+    ch[c.colEnd] = valeurDeMur(occ.e, infoColonne(c.table, c.colEnd));
+    var sv = statutsDe(c);
+    var st = statutDepartEcrit(c, s, occ, p !== null && !isNaN(p) ? p : 0, false);
+    if (c.colStatus && sv.attente && st === sv.attente && texteStatut(it) !== sv.attente) {
+        ch[c.colStatus] = sv.attente;
+    }
+    afficherLoader('Enregistrement des modifications…');
+    try {
+        await agir([['UpdateRecord', c.table, it.id, ch]]);
+        masquerLoader();
+        fermerModale();
+        await rafraichirMaintenant();
+        afficherVue('plan', true);
+        afficherSucces('Réservation « ' + (ch[c.colTitle] || it.titre) + ' » modifiée' + (ch[c.colStatus] ? ' : elle attend de nouveau la validation d\'un gestionnaire.' : '.'));
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier cette réservation.' : 'La réservation n\'a pas été modifiée. Réessayez.', e);
+    }
+}
+function peutModifierReservation(it) {
+    var c = etat.config;
+    if (!etat.peutModifier || statutInactif(it) || it.s === null || it.e <= maintenantCache()) {
+        return false;
+    }
+    return estGestion() || !tropTardPourAnnuler(it);
+}
+function ouvrirModification(it) {
+    var c = etat.config;
+    fermerModale();
+    var p = c.colParticipants ? valeurCellule(valeurLigne(it.i, c.colParticipants)) : null;
+    ouvrirConfirmation({ salle: it.couloirs[0], debut: it.s, fin: it.e, participants: typeof p === 'number' ? String(p) : '' });
+    var res = etat.reservation;
+    if (!res) {
+        return;
+    }
+    res.edition = it.id;
+    res.titre = it.titre;
+    res.valeurs = {};
+    colonnesInfosReservation(c).forEach(function (col) { res.valeurs[col] = valeurCellule(valeurLigne(it.i, col)); });
+    res.demandes = {};
+    res.details = {};
+    res.choix = {};
+    res.nombres = {};
+    formulaireDe(c).demandes.forEach(function (x) {
+        res.demandes[x.col] = valeurCellule(valeurLigne(it.i, x.col)) === true;
+        if (x.colDetail) {
+            res.details[x.col] = texteValeur(it, x.colDetail);
+        }
+        var ch = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
+        if (Array.isArray(ch)) {
+            res.choix[x.col] = ch.slice(1);
+        }
+        var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
+        if (typeof nb === 'number') {
+            res.nombres[x.col] = String(nb);
+        }
+    });
+    var q = quiAReserve(it);
+    if (q.par) {
+        res.pourAutrui = true;
+        res.nomAutrui = q.pour;
+    }
+    rendreReservation('rCorps');
+    var t = document.getElementById('wModaleTitre');
+    if (t) {
+        t.textContent = 'Modifier la réservation';
+    }
+}
+function badgeStatut(it) {
+    var c = etat.config;
+    var sv = statutsDe(c);
+    var st = texteStatut(it);
+    if (!c.colStatus || !st) {
+        return null;
+    }
+    var genre = demandeExpiree(it) ? 'info' : st === sv.attente ? 'warning' : st === sv.validee ? 'success' : st === sv.refusee ? 'error' : 'info';
+    return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + genre, texte: texteStatutAffiche(it) });
+}
 function ouvrirFicheAgent(it) {
     var c = etat.config;
     var s = salleParCle(it.couloirs[0]);
     var gestion = estGestion();
     var sv = statutsDe(c);
-    var dl = creer('dl', { classe: 'w-recap__liste' });
-    var ajout = function (lib, val) { if (val) {
-        dl.appendChild(creer('dt', { texte: lib }));
-        dl.appendChild(creer('dd', { texte: val }));
-    } };
-    ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
-    ajout('Créneau', texteCreneau(it.s, it.e));
-    var q = quiAReserve(it);
-    ajout(q.par ? 'Pour' : 'Réservé par', q.pour);
-    ajout('Demandé par', q.par);
-    ajout('Statut', c.colStatus ? texteStatutAffiche(it) : '');
-    if (sv.refusee && texteStatut(it) === sv.refusee) {
-        ajout('Motif du refus', texteValeur(it, 'MOTIF'));
+    var jour = Math.floor(it.s / JOUR) * JOUR;
+    var memeJour = Math.floor((it.e - 1) / JOUR) * JOUR === jour;
+    var ou = s ? [s.batiment, s.lieu].filter(Boolean).join(', ') : '';
+    var entete = teinterSalle(creer('div', { classe: 's-fiche-resa' }, [
+        creer('p', { classe: 's-fiche-resa__quand' }, [creer('strong', { texte: majusculeInitiale(texteJourLong(jour)) }), creer('span', { texte: memeJour ? texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) : 'jusqu\'au ' + texteMur(it.e, true) })]),
+        s ? creer('p', { classe: 's-fiche-resa__salle' }, [creer('span', { classe: 's-pastille', attrs: { 'aria-hidden': 'true' } }), creer('strong', { texte: s.nom }), ou ? creer('span', { classe: 'w-mention', texte: ' · ' + ou }) : null]) : null,
+        badgeStatut(it)
+    ]), it.couloirs[0]);
+    var corps = [entete, detailsDemande(it, false)];
+    if (sv.refusee && texteStatut(it) === sv.refusee && texteValeur(it, 'MOTIF')) {
+        corps.push(creer('div', { classe: 's-fiche-resa__motif' }, [creer('p', { classe: 'fr-text--bold fr-mb-0', texte: 'Motif du refus' }), creer('p', { classe: 'fr-mb-0', texte: texteValeur(it, 'MOTIF') })]));
     }
-    var p = c.colParticipants ? valeurCellule(valeurLigne(it.i, c.colParticipants)) : null;
-    ajout('Personnes', typeof p === 'number' && p > 0 ? String(p) : '');
-    formulaireDe(c).demandes.forEach(function (x) {
-        if (valeurCellule(valeurLigne(it.i, x.col)) !== true) {
-            return;
-        }
-        var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
-        var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
-        var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
-        ajout(x.libelle, [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).join(' · ') || 'Demandé');
-    });
-    colonnesSaisies(c).forEach(function (col) { ajout(libelleLisible((infoColonne(c.table, col) || {}).label || col), texteValeur(it, col)); });
-    var corps = [creer('div', { classe: 'w-recap s-recap' }, [dl])];
     var enAttente = c.colStatus && sv.attente && texteStatut(it) === sv.attente && !demandeExpiree(it);
     if (gestion && enAttente) {
-        var gene = reservationsQuiGenent(it.couloirs[0], it.s, it.e, it.id);
-        if (gene.length) {
-            corps.push(alerte('warning', null, 'Chevauche « ' + gene[0].titre + ' », ' + texteHeureMur(gene[0].s) + ' - ' + texteHeureMur(gene[0].e) + '.'));
-        }
         corps.push(zoneDecision(it, 'f', null));
     }
     var visio = blocVisioFiche(it);
@@ -15287,6 +15412,9 @@ function ouvrirFicheAgent(it) {
         corps.push(creer('details', { classe: 's-historique' }, [creer('summary', { texte: 'Historique' }), creer('ul', {}, hist.split('\n').filter(Boolean).map(function (x) { return creer('li', { texte: x }); }))]));
     }
     var pied = [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fFermer' })];
+    if (peutModifierReservation(it)) {
+        corps.splice(2, 0, creer('div', { classe: 's-fiche-resa__modifier' }, [bouton('Modifier la réservation', 'secondaire', 'edit-line', function () { ouvrirModification(it); }, { id: 'fModifier' })]));
+    }
     if (c.colStatus && sv.annulee && !statutInactif(it)) {
         if (!gestion && tropTardPourAnnuler(it)) {
             corps.push(creer('p', { classe: 'w-mention', texte: 'Il est trop tard pour annuler ici : prévenez un gestionnaire.' }));
@@ -15295,7 +15423,7 @@ function ouvrirFicheAgent(it) {
             pied.unshift(bouton('Annuler la réservation', 'tertiaire', 'calendar-close-line', function () { fermerModale(); return changerStatut(it, sv.annulee, 'annulee'); }, { id: 'fAnnulerResa' }));
         }
     }
-    ouvrirModale({ titre: it.titre || (s ? s.nom : 'Réservation'), laterale: true, corps: corps, pied: pied, fermerDehors: true });
+    ouvrirModale({ titre: it.titre || (s ? s.nom : 'Réservation'), laterale: true, etroite: true, corps: corps, pied: pied, fermerDehors: true });
 }
 function rendreSemaineAgent() {
     var c = etat.config;
