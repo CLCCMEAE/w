@@ -988,7 +988,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.22';
+var VERSION_WIDGET = '1.1.23';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -1587,10 +1587,7 @@ function sectionsPages() {
             boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
         ]));
     });
-    var aGestion = pagesDuPlan(etat.cleConfig).some(function (x) { return etat.copies[x].gestion; });
     var consult = sectionPage('aSecConsult', 'Où les lecteurs la voient', [
-        aGestion ? null : creer('div', { classe: 's-encadre s-page-gestion' }, [creer('p', { classe: 'w-texte', texte: 'Les gestionnaires valident les demandes sur une page à eux, « Gérer les réservations ».' }),
-            bouton('Créer la page « Gérer les réservations »', 'secondaire', 'add-line', function () { return creerPageConsultation('Gérer les réservations', valeurPageGestion(), etat.cleConfig); }, { petit: true, id: 'aPageGestion' })]),
         creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce planning sans paramétrages, avec leurs propres réglages. ', ic.bouton]), ic.panneau,
         lst.childNodes.length ? lst : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce planning n\'est montré sur aucune page du document.' })
     ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { return editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
@@ -1703,6 +1700,8 @@ async function reduireVue(vue, sec) {
 }
 async function cacherPage() {
     var ligne = null;
+    var badgeAvant;
+    var optionsPosees = false;
     afficherLoader('Préparation de la page…');
     try {
         if (!etat.badge || !etat.copies[etat.badge]) {
@@ -1717,9 +1716,11 @@ async function cacherPage() {
             var ret = await agir([['AddRecord', etat.biblio, null, champs]]);
             ligne = ret && ret.retValues ? ret.retValues[0] : null;
             var ancien = etat.badge;
+            badgeAvant = ancien;
             etat.badge = badge;
             try {
                 await gristAvecTimeout(Promise.resolve(grist.setOptions({ copie: badge })), DELAI_API_MS);
+                optionsPosees = true;
             }
             catch (eO) {
                 etat.badge = ancien;
@@ -1767,8 +1768,17 @@ async function cacherPage() {
         masquerLoader();
         if (ligne) {
             await agir([['RemoveRecord', etat.biblio, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
+            if (optionsPosees) {
+                etat.badge = badgeAvant || null;
+                try {
+                    await gristAvecTimeout(Promise.resolve(grist.setOptions({ copie: badgeAvant || null })), DELAI_API_MS);
+                }
+                catch (eR) {
+                    logSecurite('AVERTISSEMENT', 'Réglage du widget non rétabli après échec', eR);
+                }
+            }
         }
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée' + (e && e.message && /retrouv/.test(e.message) ? ' : ' + e.message.charAt(0).toLowerCase() + e.message.slice(1) + '.' : '. Réessayez.'), e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
 }
 async function badgesDesVues() {
@@ -4392,6 +4402,11 @@ async function lirePlans() {
     etat.plans = etat.page ? plansDeLaPage(l) : l;
     etat.temoinEdition = temE;
     etat.temoinParam = temP;
+    if (etat.page && etat.page.orpheline && etat.temoinParam) {
+        logSecurite('AVERTISSEMENT', 'Réglage de page introuvable sur une page de propriétaire : console rétablie');
+        etat.page = null;
+        etat.plans = l;
+    }
     return l;
 }
 function choisirPlan() {
@@ -10188,7 +10203,6 @@ function etapeGeneral() {
             creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecConsult', texte: 'Les pages' })]),
             lst.childNodes.length ? lst : null,
             aAgents ? null : bouton('Créer la page « Réserver une salle »', 'secondaire', 'add-line', function () { return creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'jour', ajouter: true, modifier: true, exporter: false })), etat.cleConfig); }, { petit: true, id: 'aPageAgents', classe: 's-gen-bouton' }),
-            aGestion ? null : bouton('Créer la page « Gérer les réservations »', 'secondaire', 'add-line', function () { return creerPageConsultation('Gérer les réservations', valeurPageGestion(), etat.cleConfig); }, { petit: true, id: 'aPageGestion', classe: 's-gen-bouton' }),
             creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Qui voit chaque page se règle dans les droits du document.' })
         ]);
     }
@@ -10233,8 +10247,8 @@ function etapeRecapitulatif() {
     var ecrit = [];
     var cbPage = creer('input', { attrs: { type: 'checkbox', id: 'aPageAgents' }, coche: b.pageAgents !== false });
     cbPage.addEventListener('change', function () { b.pageAgents = cbPage.checked; });
-    var blocPage = creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cbPage, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAgents' } }, ['Créer aussi les pages « Réserver une salle » et « Gérer les réservations »',
-            creer('span', { classe: 'fr-hint-text', texte: 'La première pour les agents, la seconde pour les gestionnaires qui valident les demandes. Réglez qui voit chaque page dans les droits du document.' })])]);
+    var blocPage = creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cbPage, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAgents' } }, ['Créer aussi la page des agents « Réserver une salle »',
+            creer('span', { classe: 'fr-hint-text', texte: 'Les agents y réservent ; les réservations se gèrent ici, dans l\'onglet « Validations et demandes spéciales ». Réglez qui voit chaque page dans les droits du document.' })])]);
     if (b.tablesCreees && b.tablesCreees.length) {
         ecrit.push('Déjà créées pour le modèle : ' + b.tablesCreees.map(libelleTable).join(', ') + '.');
     }
@@ -10249,7 +10263,7 @@ function etapeRecapitulatif() {
         ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est retypée ou supprimée' + (c.creerSerie ? ' ; la colonne SERIE est ajoutée pour les réservations répétées.' : '.'));
     }
     if (b.pageAgents !== false) {
-        ecrit.push('Les pages « Réserver une salle », pour les agents, et « Gérer les réservations », pour les gestionnaires.');
+        ecrit.push('La page « Réserver une salle », pour les agents.');
     }
     return grilleParam([], '1-1', [titreColonne('Le planning des salles', null, 'aSecNom'), groupeChamp('Nom', nom, null, true), groupeChamp('Description (facultatif)', desc, null),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
@@ -10397,8 +10411,7 @@ async function creerPlan() {
         if (pageAgents) {
             await lirePlans();
             pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'jour', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
-            await lirePlans();
-            await creerPageConsultation('Gérer les réservations', valeurPageGestion(), etat.cleConfig, true);
+
             afficherLoader('Création de votre planning…');
         }
         etat.brouillon = null;
@@ -10406,7 +10419,7 @@ async function creerPlan() {
         etat.temoinsTentes = false;
         await chargerTout();
         masquerLoader();
-        afficherSucces('Votre planning « ' + cfg.name + ' » est prêt.' + (pageAgents && pageOk ? ' Les pages « Réserver une salle » et « Gérer les réservations » sont créées.' : ''));
+        afficherSucces('Votre planning « ' + cfg.name + ' » est prêt.' + (pageAgents && pageOk ? ' La page des agents « Réserver une salle » est créée.' : ''));
     }
     catch (e) {
         masquerLoader();
