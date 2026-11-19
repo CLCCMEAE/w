@@ -473,7 +473,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.5.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplomatrice';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_MATRICES';
@@ -1836,6 +1836,9 @@ function toast(message, opts) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
 }
+function masquerErreur() { if (_toast.type === 'erreur') {
+    fermerToast(true);
+} }
 function fermerToast(avecFin) {
     clearTimeout(_toast.minuterie);
     _toast.minuterie = null;
@@ -6501,6 +6504,9 @@ async function determinerDroits() {
     etat.peutParametrer = etat.peutModifier && !!etat.temoinParam;
 }
 async function chargerTout() {
+    if (etat.vue === 'echec' || etat.vue === 'acces') {
+        masquerErreur();
+    }
     await attendreAcces();
     if (accesRefuse(etat.niveauAcces)) {
         etat.peutModifier = false;
