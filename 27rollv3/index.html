@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diploslides</title>
+  <title>WuitSlides</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -718,7 +718,9 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
 .sd-partenaire-param__img { display: block; max-height: 4rem; max-width: 12rem; margin: .5rem 0; }
 @media (max-width: 36em) { .sd-bm__grille { grid-template-columns: minmax(0, 1fr); } }
 
-  </style>
+  
+  .w-wuit { color: var(--blue-france-main-525); }
+</style>
 </head>
 <body>
   <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
@@ -751,7 +753,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre" id="bandeauTitre">🎞️ Diploslides</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">🎞️ WuitSlides</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
@@ -762,7 +764,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.4.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -3380,7 +3382,7 @@ function afficherVue(v) {
     if (['editeur', 'aucune', 'assistant'].indexOf(v) !== -1 && (etat.presentations.length || peutCreer())) {
         envelopperOnglets(z);
     }
-    document.title = etat.pres && v === 'editeur' ? nomPres(etat.pres) + ' - Diploslides' : 'Diploslides';
+    document.title = etat.pres && v === 'editeur' ? nomPres(etat.pres) + ' - WuitSlides' : 'WuitSlides';
     panneauAide();
 }
 function enCreation() { return etat.vue === 'assistant' && !!etat.brouillon && etat.brouillon.mode === 'creation'; }
@@ -5686,7 +5688,7 @@ function imprimerPresentation() {
     })(), 'Impression');
 }
 var AIDE = {
-    resume: 'Diploslides fait des présentations directement dans le document : chaque diapositive est une ligne d\'une table, que plusieurs personnes peuvent modifier en même temps.',
+    resume: 'WuitSlides fait des présentations directement dans le document : chaque diapositive est une ligne d\'une table, que plusieurs personnes peuvent modifier en même temps.',
     fonctions: [
         'Créer une présentation à partir d\'un modèle (comité de pilotage, point d\'étape, présentation d\'un produit, formation) ou de zéro, chacune dans son onglet.',
         'Choisir le gabarit officiel (pages blanches, bloc-marque, pied de page, police Arial) ou une présentation libre : couleurs, habillage, logo et pied de page au choix.',
@@ -7267,6 +7269,32 @@ setTimeout(function () {
 }, 1500);
 relayer(initialiser(), 'Initialisation');
 
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
