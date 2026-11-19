@@ -914,6 +914,13 @@
     .s-couleurs__radio:checked + .s-couleurs__choix { box-shadow: 0 0 0 3px var(--border-action-high-blue-france); }
     .s-couleurs__radio:focus-visible + .s-couleurs__choix { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 4px; }
     .s-aval__salle-nom { display: inline-flex; align-items: center; }
+    .s-photo { display: block; max-width: 100%; object-fit: cover; background: var(--background-alt-grey); }
+    .s-photo--carte { width: 100%; height: 9rem; margin-bottom: .75rem; }
+    .s-photo--fiche { width: 100%; max-height: 14rem; margin-bottom: .75rem; }
+    .s-photo--vignette { width: 6rem; height: 4.5rem; }
+    .s-vignettes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
+    .s-jr__salle-nom { display: inline-flex; align-items: center; gap: .25rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+    .s-jr__salle-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .5rem; }
     .s-titre-date { white-space: nowrap; }
     .s-titre-nav .c-aller { margin-left: .25rem; }
@@ -991,7 +998,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.27';
+var VERSION_WIDGET = '1.1.28';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -3889,6 +3896,26 @@ function iconePJ(nom) {
         return 'fr-icon-file-pdf-line';
     }
     return 'fr-icon-file-line';
+}
+function imagePJ(id, alt, classe) {
+    var img = creer('img', { classe: classe || 's-photo', attrs: { alt: alt || '', loading: 'lazy' } });
+    etat.urlsPJ = etat.urlsPJ || {};
+    if (etat.urlsPJ[id]) {
+        img.src = etat.urlsPJ[id];
+        return img;
+    }
+    relayer(recupererPJ(id).then(function (blob) {
+        etat.urlsPJ[id] = URL.createObjectURL(blob);
+        img.src = etat.urlsPJ[id];
+    }).catch(function (e) { img.remove(); throw e; }), 'Photo de la salle');
+    return img;
+}
+function ouvrirFicheSalle(s) {
+    var corps = [];
+    (s.photos || []).forEach(function (id, k) { corps.push(imagePJ(id, k ? '' : 'Photo de ' + s.nom, 's-photo s-photo--fiche')); });
+    var carte = carteSalleReservation(s, null);
+    corps.push(carte);
+    ouvrirModale({ titre: s.nom, laterale: true, etroite: true, corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fsFermer' })], fermerDehors: true });
 }
 async function recupererPJ(id) {
     var essai = async function (complet) {
@@ -10968,6 +10995,7 @@ function toutesLesSalles() {
                 batiment: rc.batiment ? texteSimple(valeurSalle(d, i, rc.batiment), colSalle('batiment', c)) : '',
                 visio: rc.visio ? lienSur(texteSimple(valeurSalle(d, i, rc.visio), colSalle('visio', c))) : '',
                 validation: rc.validation ? valeurCellule(valeurSalle(d, i, rc.validation)) === true : false,
+                photos: rc.photo ? idsPJ(valeurCellule(valeurSalle(d, i, rc.photo))) : [],
                 active: act !== false });
         }
     }
@@ -12593,7 +12621,7 @@ function blocPhotoSalle(s, colId, v) {
     var ids = idsPJ(v);
     var zone = creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label fr-mb-1v', texte: 'Photo' })]);
     if (ids.length) {
-        zone.appendChild(creer('p', { classe: 'w-mention', texte: pluriel(ids.length, 'fichier') + ' joint' + (ids.length > 1 ? 's' : '') }));
+        zone.appendChild(creer('div', { classe: 's-vignettes' }, ids.map(function (id) { return imagePJ(id, 'Photo de ' + s.nom, 's-photo s-photo--vignette'); })));
     }
     var fichier = creer('input', { classe: 'fr-sr-only', id: 'sPhotoFichier', attrs: { type: 'file', accept: 'image/png,image/jpeg,image/webp' } });
     fichier.addEventListener('change', function () {
@@ -13875,8 +13903,9 @@ function carteSalleReservation(s, jour) {
     var eqS = (s.visio && !s.equipements.some(function (x) { return normalizer(x).indexOf('visio') !== -1; }) ? ['Visioconférence'] : []).concat(s.equipements);
     var servS = servicesSalle(s);
     return teinterSalle(creer('div', { classe: 's-carte-salle' }, [
+        jour !== null && s.photos && s.photos.length ? imagePJ(s.photos[0], 'Photo de ' + s.nom, 's-photo s-photo--carte') : null,
         creer('h3', { classe: 's-carte-salle__nom', texte: s.nom }),
-        creer('p', { classe: 's-carte-salle__jour', texte: majusculeInitiale(texteJourLong(jour)) }),
+        jour !== null ? creer('p', { classe: 's-carte-salle__jour', texte: majusculeInitiale(texteJourLong(jour)) }) : null,
         infos.length ? creer('p', { classe: 's-carte-salle__infos' }, infos) : null,
         eqS.length ? creer('ul', { classe: 's-eq-liste', attrs: { 'aria-label': 'Équipements' } }, eqS.map(function (x) {
             var ic = iconeEquipement(x);
@@ -15915,7 +15944,9 @@ function rendreJourAgent(o) {
             eqT = eqT || creer('span', { classe: 's-codes' });
             servT.forEach(function (x) { eqT.appendChild(code(iconesDemande(x), null, x + ' : peut être demandé en réservant')); });
         }
-        tete.appendChild(teinterSalle(creer('div', { classe: 's-jr__salle' }, [creer('strong', { texte: s.nom }), infosSalle(s).length ? creer('span', { classe: 's-codes' }, infosSalle(s)) : null, eqT]), s.cle));
+        var nomS = creer('button', { classe: 's-jr__salle-nom', attrs: { type: 'button', title: 'Voir la salle' + (s.photos && s.photos.length ? ' et sa photo' : '') } }, [s.nom, s.photos && s.photos.length ? creer('span', { classe: 'fr-icon-' + iconeDispo(['image-line', 'camera-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }) : null]);
+        (function (sx) { nomS.addEventListener('click', function () { ouvrirFicheSalle(sx); }); })(s);
+        tete.appendChild(teinterSalle(creer('div', { classe: 's-jr__salle' }, [nomS, infosSalle(s).length ? creer('span', { classe: 's-codes' }, infosSalle(s)) : null, eqT]), s.cle));
         var propres = reglesPropres(c, s.cle);
         var hj = horairesDuJour(r, rangJour(jour), propres);
         var fermeS = fermeJour || fermetureDuJour(jour, r, propres);
