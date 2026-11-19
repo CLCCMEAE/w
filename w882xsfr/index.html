@@ -4,7 +4,7 @@
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diploexport</title>
+  <title>WuitExport</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -207,7 +207,9 @@
       .w-bandeau__aide, .w-panneau-aide, .w-toast, .w-acces { display: none !important; }
       body.w-aide-ouverte { padding-right: 0; }
     }
-  </style>
+  
+  .w-wuit { color: var(--blue-france-main-525); }
+</style>
 </head>
 <body>
   <a href="#contenu" class="fr-sr-only" id="skipLink">Aller au contenu</a>
@@ -267,7 +269,7 @@
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre">📤 Diploexport</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre">📤 WuitExport</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
   </div>
@@ -359,7 +361,7 @@ var SOCLE = {
     cle: "diploexport",
     relancer: null,
     aide: {
-        "resume": "Diploexport télécharge les données de vos tables dans un fichier Excel ou CSV : vous choisissez les tables, les colonnes et les lignes à garder, et vous voyez le résultat avant d'exporter.",
+        "resume": "WuitExport télécharge les données de vos tables dans un fichier Excel ou CSV : vous choisissez les tables, les colonnes et les lignes à garder, et vous voyez le résultat avant d'exporter.",
         "fonctions": [
             "Exporter une ou plusieurs tables, chacune dans sa feuille Excel",
             "Cocher les colonnes à garder et les remettre dans l'ordre voulu",
@@ -761,7 +763,7 @@ function brancherSocle() {
 }
 </script>
 <script>'use strict';
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.3.0';
 var HOMOLOGUE = false;
 function echapperHTML(texte) {
     if (!texte && texte !== 0)
@@ -3732,7 +3734,7 @@ async function initialiser() {
         if (!brouillonRestaure)
             afficherEtatVide();
         relayer(chargerLogoDepuisBiblio(), 'Chargement du logo impossible');
-        logSecurite('INFO', 'Widget Diploexport v' + VERSION_WIDGET + ' - initialisation terminée', { tables: etat.basesDisponibles.length });
+        logSecurite('INFO', 'Widget WuitExport v' + VERSION_WIDGET + ' - initialisation terminée', { tables: etat.basesDisponibles.length });
         setTimeout(function () {
             window.addEventListener('unhandledrejection', function (evt) {
                 logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined);
@@ -3778,6 +3780,32 @@ grist.onRecords(function () {
     });
 });
 relayer(initialiser(), 'Initialisation impossible');
+
+(function () {
+    var cible = document.querySelector('.w-bandeau__titre');
+    if (!cible || typeof MutationObserver === 'undefined') {
+        return;
+    }
+    var marquer = function () {
+        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
+        var n = marche.nextNode();
+        while (n) {
+            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
+            if (i !== -1) {
+                var reste = n.splitText(i);
+                reste.nodeValue = reste.nodeValue.slice(4);
+                var s = document.createElement('span');
+                s.className = 'w-wuit';
+                s.textContent = 'Wuit';
+                reste.parentNode.insertBefore(s, reste);
+                return;
+            }
+            n = marche.nextNode();
+        }
+    };
+    marquer();
+    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 </body>
 </html>
