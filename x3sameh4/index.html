@@ -944,7 +944,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.9';
+var VERSION_WIDGET = '1.1.10';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -7350,9 +7350,10 @@ function rendrePlan(zone) {
     var replie = voletReplie();
     var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'pVolet', attrs: { 'aria-label': 'Filtres' } });
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'pVoletContenu' });
-    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: vueSimple() ? 'Trouver une salle' : 'Réserver et suivre' }),
+    var statsSimple = vueSimple() && v.mode === 'stats';
+    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: statsSimple ? 'Filtres' : vueSimple() ? 'Trouver une salle' : 'Réserver et suivre' }),
         bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
-    if (vueSimple()) {
+    if (vueSimple() && !statsSimple) {
         if (v.mode === 'avalider') {
             volet.style.display = 'none';
         }
@@ -7365,11 +7366,11 @@ function rendrePlan(zone) {
     if (mes) {
         cont.appendChild(mes);
     }
-    var av = estAgent() ? null : blocAValider();
+    var av = vueSimple() ? null : blocAValider();
     if (av) {
         cont.appendChild(av);
     }
-    var bp = blocPageVolet();
+    var bp = vueSimple() ? null : blocPageVolet();
     if (bp) {
         cont.appendChild(bp);
     }
@@ -7389,7 +7390,7 @@ function rendrePlan(zone) {
             creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'pRecherche' }, texte: 'Rechercher dans les réservations' }), rech])
         ]));
     }
-    var bloc = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'pVoletFil' } }, [titreVolet('filter-line', 'Filtres', 'pVoletFil', null)]);
+    var bloc = creer('section', { classe: 'w-volet__bloc', attrs: statsSimple ? { 'aria-label': 'Filtres' } : { 'aria-labelledby': 'pVoletFil' } }, statsSimple ? [] : [titreVolet('filter-line', 'Filtres', 'pVoletFil', null)]);
     var colL = colCouloir();
     if (colL && f.lane !== false && !estAgent()) {
         var presL = Object.create(null);
@@ -7438,9 +7439,9 @@ function rendrePlan(zone) {
         bloc.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pPeriode' }, texte: 'Période' }), selP]));
         bloc.appendChild(perso);
     }
-    bloc.appendChild(creer('div', { classe: 'w-filtres__pied' }, [creer('p', { classe: 'w-mention', id: 'pFiltresCompte', attrs: { 'aria-live': 'polite' } }),
+    bloc.appendChild(creer('div', { classe: 'w-filtres__pied' }, [statsSimple ? null : creer('p', { classe: 'w-mention', id: 'pFiltresCompte', attrs: { 'aria-live': 'polite' } }),
         bouton('Effacer les filtres', 'discret', null, effacerFiltres, { petit: true, id: 'pEffacer' })]));
-    if (v.mode !== 'libres' && bloc.childNodes.length > 2) {
+    if (v.mode !== 'libres' && bloc.childNodes.length > (statsSimple ? 1 : 2)) {
         cont.appendChild(bloc);
     }
     var colLeg = colCouleur();
@@ -7462,7 +7463,7 @@ function rendrePlan(zone) {
     if (etat.peutParametrer && !etat.page && !estConsoleAdmin()) {
         cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce planning', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'pParametres' })]));
     }
-    if (!estAgent()) cont.appendChild(sortiesVolet([
+    if (!vueSimple()) cont.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimerPlan, id: 'pImprimer' },
         { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'pPdf' },
         { libelle: 'Exporter en CSV', icone: 'download-line', action: exporterCSV, id: 'pCSV' },
@@ -12928,7 +12929,7 @@ function rendreStatistiques(visibles) {
     var kpi = [[formaterNombre(actives.length), actives.length > 1 ? 'réservations' : 'réservation'], [formaterNombre(Math.round(totalH)) + ' h', 'réservées'],
         [(ouvTot ? Math.round(totalH / ouvTot * 100) : 0) + ' %', 'd\'occupation moyenne'], [(tous.length ? Math.round(annulees / tous.length * 100) : 0) + ' %', 'annulées ou refusées'],
         [actives.length ? texteDureeCourte(0, Math.round(totalH / actives.length * 60) * 60) : '0 min', 'durée moyenne']];
-    zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Du ' + texteMur(de, false) + ' au ' + texteMur(a - JOUR, false) + '. Les chiffres suivent les filtres du panneau de gauche ; le taux d\'occupation compte les heures d\'ouverture des règles.' }));
+    zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Du ' + texteMur(de, false) + ' au ' + texteMur(a - JOUR, false) + '.' }));
     zone.appendChild(creer('div', { classe: 's-kpi' }, kpi.map(function (k) { return creer('div', { classe: 's-kpi__tuile' }, [creer('strong', { classe: 's-kpi__valeur', texte: k[0] }), creer('span', { texte: k[1] })]); })));
     var carte = function (titre, sous, contenu) { return creer('section', { classe: 's-stat', attrs: { 'aria-label': titre } }, [creer('h3', { classe: 's-stat__titre', texte: titre }), creer('p', { classe: 'w-mention', texte: sous }), contenu]); };
     var barres = creer('div', { classe: 's-barres' });
