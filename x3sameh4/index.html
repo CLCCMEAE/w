@@ -991,7 +991,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.26';
+var VERSION_WIDGET = '1.1.27';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -1638,6 +1638,29 @@ function titreOwner() { var t = etat.meta && etat.meta.tables ? trouverOwner() :
 function trouverOwner() {
     return Object.keys(etat.meta.tables).filter(function (t) { return t.toUpperCase().indexOf(ID_OWNER) !== -1 || t.toUpperCase().indexOf(ID_OWNER_ANCIEN) !== -1; })[0] || null;
 }
+function vueDeCetteConsole(d) {
+    var chemin = location.pathname.replace(/index\.html?$/, '');
+    var badgesPages = Object.keys(etat.copies || {}).filter(function (b) { return etat.copies[b].consultation && !etat.copies[b].admin; });
+    var vues = [];
+    for (var i = 0; i < d.id.length; i++) {
+        var opt = String((d.options || [])[i] || '');
+        var vue = (d.parentId || [])[i];
+        if (!vue || (d.parentKey && d.parentKey[i] !== 'custom') || opt.indexOf(chemin) === -1) {
+            continue;
+        }
+        if (badgesPages.some(function (b) { return opt.indexOf(b) !== -1; })) {
+            continue;
+        }
+        if (vues.indexOf(vue) === -1) {
+            vues.push(vue);
+        }
+    }
+    if (vues.length !== 1) {
+        logSecurite('AVERTISSEMENT', 'Page de la console introuvable : ' + vues.length + ' page(s) candidate(s)');
+        return null;
+    }
+    return vues[0];
+}
 function vueDuBadge(d, badge) {
     for (var i = 0; i < d.id.length; i++) {
         if (String((d.options || [])[i] || '').indexOf(badge) !== -1 && (d.parentId || [])[i]) {
@@ -1747,6 +1770,9 @@ async function cacherPage() {
             }
             d = await lireTable('_grist_Views_section');
             vue = vueDuBadge(d, etat.badge);
+        }
+        if (!vue && d) {
+            vue = vueDeCetteConsole(d);
         }
         if (!vue) {
             throw new Error('La page de ce widget n\'a pas été retrouvée dans le document');
