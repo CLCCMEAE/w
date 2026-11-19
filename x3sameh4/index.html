@@ -853,6 +853,23 @@
     .s-carte-salle__infos { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 0 0 .375rem; font-size: .875rem; }
     .s-carte-salle__info { display: inline-flex; align-items: center; gap: .25rem; }
     .s-carte-salle .s-eq-liste { font-size: .875rem; }
+    .s-aval { max-width: 64rem; }
+    .s-aval__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
+    .s-aval__ligne { display: grid; grid-template-columns: 11rem minmax(0, 1fr) auto; gap: 1rem; align-items: start; padding: 1rem; border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-warning); background: var(--background-default-grey); }
+    .s-aval__quand { display: flex; flex-direction: column; gap: .125rem; }
+    .s-aval__salle { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
+    .s-aval__objet { padding: 0; border: 0; background: none; font-size: 1.125rem; font-weight: 700; text-align: left; color: var(--text-title-grey); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .s-aval__details { list-style: none; margin: .375rem 0 0; padding: 0; font-size: .875rem; }
+    .s-aval__details li { display: flex; gap: .375rem; align-items: flex-start; padding: .0625rem 0; }
+    .s-aval__alerte { color: var(--text-default-warning); font-weight: 700; }
+    .s-aval__actions { min-width: 12rem; }
+    .s-aval__actions .fr-input-group { margin-bottom: .5rem; }
+    .s-aval__vide { display: flex; align-items: center; gap: .5rem; padding: 2rem 1rem; color: var(--text-mention-grey); }
+    .s-aval__vide p { margin: 0; font-size: 1.125rem; }
+    .s-historique { margin-top: 1rem; font-size: .875rem; }
+    .s-historique ul { margin: .5rem 0 0; padding-left: 1rem; }
+    .s-page-gestion { margin-bottom: 1rem; }
+    @media (max-width: 48em) { .s-aval__ligne { grid-template-columns: 1fr; } }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .25rem; }
     .s-cases-eq { margin: 0; }
     .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
@@ -927,7 +944,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.8';
+var VERSION_WIDGET = '1.1.9';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -956,7 +973,7 @@ function pageValide(o) {
             lecteurs[k] = { filtresRetires: listeTextes(l.filtresRetires).filter(function (x) { return FILTRES_LECTEURS.some(function (f) { return f.cle === x; }); }) };
         });
     }
-    return { admin: o.admin === true, consultation: o.consultation === true,
+    return { admin: o.admin === true, consultation: o.consultation === true, gestion: o.gestion === true,
         plans: listeTextes(o.plans), titre: typeof o.titre === 'string' ? o.titre : '',
         vue: VUES_CALENDRIER.some(function (x) { return x.id === o.vue; }) ? o.vue : '',
         fenetre: FENETRES_PAGE.some(function (x) { return x.valeur === o.fenetre; }) ? o.fenetre : '',
@@ -1231,7 +1248,7 @@ async function editerPage(badge, dupliquer) {
         titre: p ? p.titre : nomPage, titreManuel: !!p && p.titre !== etat.nomsPages[badge],
         plans: p ? p.plans.filter(function (cle) { return !!trouverPlan(cle); }) : [etat.cleConfig],
         vue: p ? p.vue : '', fenetre: p ? p.fenetre : '', conditions: p ? copieJson(p.conditions) : [], aPlanifier: p ? p.aPlanifier : true,
-        lectureSeule: p ? p.lectureSeule : false, ajouter: p && !p.lectureSeule ? p.ajouter : true, modifier: p && !p.lectureSeule ? p.modifier : true, exporter: p ? p.exporter : true, lecteurs: p ? copieJson(p.lecteurs) : {} };
+        lectureSeule: p ? p.lectureSeule : false, ajouter: p && !p.lectureSeule ? p.ajouter : true, modifier: p && !p.lectureSeule ? p.modifier : true, exporter: p ? p.exporter : true, lecteurs: p ? copieJson(p.lecteurs) : {}, gestion: !!(p && p.gestion) };
     afficherLoader('Lecture des valeurs…');
     try {
         await chargerRefsConditions(etat.editionPage);
@@ -1377,7 +1394,7 @@ function valeurPage(ed) {
         lecteurs[cle] = ed.lecteurs[cle];
     } });
     return JSON.stringify(pageValide({ consultation: true, plans: ed.plans.slice(), titre: String(ed.titre || '').trim(), vue: ed.vue, fenetre: ed.fenetre,
-        conditions: ed.conditions, aPlanifier: ed.aPlanifier, lectureSeule: ed.lectureSeule, ajouter: ed.ajouter, modifier: ed.modifier, exporter: ed.exporter, lecteurs: lecteurs }));
+        conditions: ed.conditions, aPlanifier: ed.aPlanifier, lectureSeule: ed.lectureSeule, ajouter: ed.ajouter, modifier: ed.modifier, exporter: ed.exporter, lecteurs: lecteurs, gestion: !!ed.gestion }));
 }
 async function enregistrerPage() {
     var ed = etat.editionPage;
@@ -1526,7 +1543,10 @@ function sectionsPages() {
             boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
         ]));
     });
+    var aGestion = pagesDuPlan(etat.cleConfig).some(function (x) { return etat.copies[x].gestion; });
     var consult = sectionPage('aSecConsult', 'Où les lecteurs la voient', [
+        aGestion ? null : creer('div', { classe: 's-encadre s-page-gestion' }, [creer('p', { classe: 'w-texte', texte: 'Les gestionnaires valident les demandes sur une page à eux, « Gérer les réservations ».' }),
+            bouton('Créer la page « Gérer les réservations »', 'secondaire', 'add-line', function () { return creerPageConsultation('Gérer les réservations', valeurPageGestion(), etat.cleConfig); }, { petit: true, id: 'aPageGestion' })]),
         creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce planning sans paramétrages, avec leurs propres réglages. ', ic.bouton]), ic.panneau,
         lst.childNodes.length ? lst : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce planning n\'est montré sur aucune page du document.' })
     ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { return editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
@@ -1814,6 +1834,7 @@ var JOUR = 86400;
 var HEURE = 3600;
 var VUES_CALENDRIER = [
     { id: 'libres', libelle: 'Trouver une salle' },
+    { id: 'avalider', libelle: 'À valider' },
     { id: 'occupation', libelle: 'Occupation' },
     { id: 'jour', libelle: 'Jour' },
     { id: 'semaine', libelle: 'Semaine' },
@@ -1872,6 +1893,7 @@ var MODELES = [
                     { id: 'STATUT', type: 'Choice', choix: ['En attente', 'Validée', 'Refusée', 'Annulée'], couleurs: ['tournesol', 'menthe', 'tuile', 'gris'], declencheur: '"Validée"' },
                     { id: 'DEMANDEUR', type: 'Text', declencheur: 'user.Name or user.Email' },
                     { id: 'COMMENTAIRE', type: 'Text', options: { wrap: true } },
+                    { id: 'MOTIF', type: 'Text', label: 'MOTIF DU REFUS', options: { wrap: true } },
                     { id: 'SERIE', type: 'Text', label: 'SÉRIE' },
                     { id: 'LIEN_VISIO', type: 'Text', label: 'LIEN VISIO', formule: '$SALLE.LIEN_VISIO if $SALLE else ""' },
                     { id: 'CONFLIT', type: 'Bool', formuleApres: 'conflit' },
@@ -4390,9 +4412,9 @@ function chargerEtatVue() {
             v.ouvres = m.ouvres;
         }
     }
-    if (estAgent()) {
+    if (estAgent() || estGestion()) {
         var rA = reglesDe(etat.config);
-        v.mode = 'jour';
+        v.mode = estAgent() || !demandesAValider().length ? 'jour' : 'avalider';
         v.ouvres = !rA.jours[5] && !rA.jours[6];
     }
     etat.v = v;
@@ -5646,7 +5668,7 @@ function creerTimeline(o) {
     return { racine: racine, apercu: !!(o && o.apercu) };
 }
 function redessinerTimeline() {
-    if (etat.vue === 'plan' && estAgent() && etat.v && ['semaine', 'jour', 'mois'].indexOf(etat.v.mode) !== -1) {
+    if (etat.vue === 'plan' && vueSimple() && etat.v && ['semaine', 'jour', 'mois'].indexOf(etat.v.mode) !== -1) {
         var zs = document.getElementById('pZone');
         if (zs) {
             vider(zs);
@@ -6544,7 +6566,7 @@ function barreNavigation() {
     var v = etat.v;
     var permises = vuesPermises();
     if (!permises.some(function (x) { return x.id === v.mode; })) {
-        v.mode = estAgent() ? 'jour' : 'libres';
+        v.mode = vueSimple() ? 'jour' : 'libres';
     }
     var seg = segmentIcones('pVue', permises, v.mode, choisirVue, 'Vue');
     if (permises.length < 2) {
@@ -6576,13 +6598,13 @@ function barreNavigation() {
         aller.classList.add('c-aller__champ--visible');
         aller.focus();
     });
-    var sansNav = ['list', 'salles', 'libres', 'stats'].indexOf(v.mode) !== -1;
+    var sansNav = ['list', 'salles', 'libres', 'stats', 'avalider'].indexOf(v.mode) !== -1;
     var nav = creer('div', { classe: 'gp-outils__groupe c-nav' }, [
         bouton('Aujourd\'hui', 'secondaire', null, function () { allerAuJour(aujourdhuiMur(fuseauPlan(etat.config)), true); }, { petit: true, id: 'pAujourdhui' })
     ]);
     nav.hidden = sansNav;
     var libellesPer = { jour: ['Jour précédent', 'Jour suivant'], semaine: ['Semaine précédente', 'Semaine suivante'], mois: ['Mois précédent', 'Mois suivant'] }[v.mode] || ['Période précédente', 'Période suivante'];
-    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
+    var titre = creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', attrs: { tabindex: '-1' } }, v.mode === 'salles' ? ['Les salles'] : v.mode === 'libres' ? ['Trouver une salle'] : v.mode === 'avalider' ? ['Demandes à valider'] : v.mode === 'stats' ? ['Statistiques'] : (v.mode === 'list' ? [etat.config.name || 'Planning sans titre']
         : [creer('span', { classe: 's-titre-nav' }, [boutonIcone(libellesPer[0], 'arrow-left-s-line', function () { deplacerPeriode(-1); }, { id: 'pPrec' }), creer('span', { classe: 'c-aller' }, [periode, aller]),
             boutonIcone(libellesPer[1], 'arrow-right-s-line', function () { deplacerPeriode(1); }, { id: 'pSuiv' })])]));
     return { vues: seg, nav: nav, titre: titre };
@@ -7317,16 +7339,28 @@ function ouvrirVoletMobile(ouvrir) {
 function rendrePlan(zone) {
     var c = etat.config;
     var v = etat.v;
+    if (estGestion() && !etat.gestionVue && etat.items.length) {
+        etat.gestionVue = true;
+        if (demandesAValider().length) {
+            v.mode = 'avalider';
+        }
+    }
     var f = c.filters || {};
     etat.couleurs = couleursPlan();
     var replie = voletReplie();
     var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'pVolet', attrs: { 'aria-label': 'Filtres' } });
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'pVoletContenu' });
-    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: estAgent() ? 'Trouver une salle' : 'Réserver et suivre' }),
+    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: vueSimple() ? 'Trouver une salle' : 'Réserver et suivre' }),
         bouton('Fermer le panneau', 'discret', 'close-line', function () { ouvrirVoletMobile(false); }, { petit: true, iconeSeule: true, id: 'pVoletFermer' })]));
-    if (estAgent()) {
-        cont.appendChild(blocFiltresAgent());
+    if (vueSimple()) {
+        if (v.mode === 'avalider') {
+            volet.style.display = 'none';
+        }
+        else {
+            cont.appendChild(blocFiltresAgent());
+        }
     }
+    else {
     var mes = null;
     if (mes) {
         cont.appendChild(mes);
@@ -7434,6 +7468,7 @@ function rendrePlan(zone) {
         { libelle: 'Exporter en CSV', icone: 'download-line', action: exporterCSV, id: 'pCSV' },
         { libelle: 'Exporter la période en fichier .ics (Outlook, Google Agenda...)', court: '.ics', action: exporterIcs, id: 'pIcs' }
     ].filter(function (x) { return !etat.page || etat.page.exporter || (x.id !== 'pCSV' && x.id !== 'pIcs'); })));
+    }
     volet.appendChild(cont);
     var nbActifs = nombreFiltresActifs();
     volet.appendChild(creer('button', { classe: 'w-volet__poignee', id: 'pVoletPoignee', attrs: { type: 'button', 'aria-expanded': replie ? 'false' : 'true', 'aria-controls': 'pVoletContenu',
@@ -7539,7 +7574,13 @@ function majPrincipal() {
         return;
     }
     if (!vuesPermises().some(function (x) { return x.id === v.mode; })) {
-        v.mode = estAgent() ? 'jour' : 'libres';
+        v.mode = vueSimple() ? 'jour' : 'libres';
+    }
+    if (v.mode === 'avalider') {
+        vider(zoneP);
+        zoneP.appendChild(rendreAValider());
+        etat.tl = null;
+        return;
     }
     if (v.mode === 'salles') {
         vider(zoneP);
@@ -7553,7 +7594,7 @@ function majPrincipal() {
         etat.tl = null;
         return;
     }
-    if (['semaine', 'jour', 'mois'].indexOf(v.mode) !== -1 && estAgent()) {
+    if (['semaine', 'jour', 'mois'].indexOf(v.mode) !== -1 && vueSimple()) {
         vider(zoneP);
         zoneP.appendChild(v.mode === 'jour' ? rendreJourAgent() : (v.mode === 'mois' ? rendreMoisAgent() : rendreSemaineAgent()));
         etat.tl = null;
@@ -8500,7 +8541,7 @@ function editeurQuandCompact(it, editeurs) {
 function ouvrirItem(it, focusId) {
     var c = etat.config;
     fermerCarte(false);
-    if (estAgent()) {
+    if (vueSimple()) {
         return ouvrirFicheAgent(it);
     }
     if (etat.tableLiee === c.table) {
@@ -10019,7 +10060,7 @@ function etapeFiltres() {
     var bloc = creer('div', { classe: 'w-c3__col' });
     var vueDef = VUES_CALENDRIER.some(function (z) { return z.id === c.defaultZoom; }) ? c.defaultZoom : 'libres';
     var aides = { libres: 'On décrit son besoin, le widget propose les salles qui conviennent et, sinon, les créneaux les plus proches : idéal pour les agents.', stats: 'Les chiffres d\'occupation : pour les gestionnaires.', occupation: 'Toutes les salles sur une journée : on voit d\'un coup d\'œil ce qui est libre.', mois: 'Tout le mois d\'un coup d\'œil.', semaine: 'Les heures de la semaine.', jour: 'Une seule journée, heure par heure.', list: 'Toutes les réservations, dans un tableau.', salles: 'Les salles, leur capacité et leurs équipements.' };
-    bloc.appendChild(radios('aVueDef', 'Affichage par défaut, à l\'ouverture du planning', VUES_CALENDRIER.map(function (z) { return { v: z.id, l: z.libelle, a: aides[z.id] || null }; }), vueDef, function (v) { c.defaultZoom = v; }, 'Chacun peut ensuite changer d\'affichage. Si vous changez ce réglage, il s\'applique de nouveau à tous à leur prochaine ouverture.'));
+    bloc.appendChild(radios('aVueDef', 'Affichage par défaut, à l\'ouverture du planning', VUES_CALENDRIER.filter(function (z) { return z.id !== 'avalider'; }).map(function (z) { return { v: z.id, l: z.libelle, a: aides[z.id] || null }; }), vueDef, function (v) { c.defaultZoom = v; }, 'Chacun peut ensuite changer d\'affichage. Si vous changez ce réglage, il s\'applique de nouveau à tous à leur prochaine ouverture.'));
     bloc.appendChild(caseCochee('aOuvres', 'Sans samedi ni dimanche par défaut', c.workingDays, function (x) { c.workingDays = x; planifierApercu(); }, 'Chacun peut le changer au-dessus du planning.'));
     return bloc;
 }
@@ -10079,8 +10120,8 @@ function etapeRecapitulatif() {
     var ecrit = [];
     var cbPage = creer('input', { attrs: { type: 'checkbox', id: 'aPageAgents' }, coche: b.pageAgents !== false });
     cbPage.addEventListener('change', function () { b.pageAgents = cbPage.checked; });
-    var blocPage = creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cbPage, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAgents' } }, ['Créer aussi la page des agents « Réserver une salle »',
-            creer('span', { classe: 'fr-hint-text', texte: 'Une page à part, sans les paramétrages : elle s\'ouvre sur « Trouver une salle » et permet de réserver. Réglez qui la voit dans les droits du document.' })])]);
+    var blocPage = creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cbPage, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAgents' } }, ['Créer aussi les pages « Réserver une salle » et « Gérer les réservations »',
+            creer('span', { classe: 'fr-hint-text', texte: 'La première pour les agents, la seconde pour les gestionnaires qui valident les demandes. Réglez qui voit chaque page dans les droits du document.' })])]);
     if (b.tablesCreees && b.tablesCreees.length) {
         ecrit.push('Déjà créées pour le modèle : ' + b.tablesCreees.map(libelleTable).join(', ') + '.');
     }
@@ -10095,7 +10136,7 @@ function etapeRecapitulatif() {
         ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est retypée ou supprimée' + (c.creerSerie ? ' ; la colonne SERIE est ajoutée pour les réservations répétées.' : '.'));
     }
     if (b.pageAgents !== false) {
-        ecrit.push('La page « Réserver une salle », pour les agents.');
+        ecrit.push('Les pages « Réserver une salle », pour les agents, et « Gérer les réservations », pour les gestionnaires.');
     }
     return grilleParam([], '1-1', [titreColonne('Le planning', null, 'aSecNom'), groupeChamp('Nom du planning', nom, 'Affiché sur son onglet.', true), groupeChamp('Description (facultatif)', desc, null),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
@@ -10243,6 +10284,8 @@ async function creerPlan() {
         if (pageAgents) {
             await lirePlans();
             pageOk = await creerPageConsultation('Réserver une salle', JSON.stringify(pageValide({ consultation: true, plans: [etat.cleConfig], titre: 'Réserver une salle', vue: 'jour', ajouter: true, modifier: true, exporter: false })), etat.cleConfig, true);
+            await lirePlans();
+            await creerPageConsultation('Gérer les réservations', valeurPageGestion(), etat.cleConfig, true);
             afficherLoader('Création de votre planning…');
         }
         etat.brouillon = null;
@@ -10250,7 +10293,7 @@ async function creerPlan() {
         etat.temoinsTentes = false;
         await chargerTout();
         masquerLoader();
-        afficherSucces('Votre planning « ' + cfg.name + ' » est prêt.' + (pageAgents && pageOk ? ' La page des agents « Réserver une salle » est créée.' : ''));
+        afficherSucces('Votre planning « ' + cfg.name + ' » est prêt.' + (pageAgents && pageOk ? ' Les pages « Réserver une salle » et « Gérer les réservations » sont créées.' : ''));
     }
     catch (e) {
         masquerLoader();
@@ -10680,7 +10723,20 @@ function statutInactifValeur(v, c) {
     v = String(v === null || v === undefined ? '' : v);
     return !!v && (v === s.refusee || v === s.annulee);
 }
-function statutInactif(it) { return !!it && statutInactifValeur(texteStatut(it), etat.config); }
+function statutInactif(it) { return !!it && (statutInactifValeur(texteStatut(it), etat.config) || demandeExpiree(it)); }
+function maintenantCache() {
+    var t = Date.now();
+    if (!etat.maintCache || t - etat.maintCache.t > 20000) {
+        etat.maintCache = { t: t, v: maintenantMur(fuseauPlan(etat.config)) };
+    }
+    return etat.maintCache.v;
+}
+function demandeExpiree(it) {
+    var c = etat.config;
+    var s = statutsDe(c);
+    return !!(c.colStatus && s.attente && it.s !== null && texteStatut(it) === s.attente && it.s <= maintenantCache());
+}
+function texteStatutAffiche(it) { return demandeExpiree(it) ? 'Expirée (jamais traitée)' : texteStatut(it); }
 function roomColsDe(c) { return c && c.roomCols && typeof c.roomCols === 'object' ? c.roomCols : {}; }
 function tableSalles(c) {
     c = c || etat.config;
@@ -14666,14 +14722,21 @@ function blocAValider() {
     }
     return bloc;
 }
-function estAgent() { return !!etat.page || !etat.peutParametrer; }
+function estPageGestion() { return !!(etat.page && etat.page.gestion); }
+function estAgent() { return !estPageGestion() && (!!etat.page || !etat.peutParametrer); }
+function estGestion() { return estPageGestion() || estConsoleAdmin(); }
+function vueSimple() { return estAgent() || estGestion(); }
 function vuesPermises() {
+    var vue = function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; };
     if (estAgent()) {
-        return ['jour', 'semaine', 'mois'].map(function (id) { return VUES_CALENDRIER.filter(function (x) { return x.id === id; })[0]; });
+        return ['jour', 'semaine', 'mois'].map(vue);
     }
-    if (estConsoleAdmin()) {
-        return etat.v && etat.v.mode === 'stats' ? VUES_CALENDRIER.filter(function (x) { return x.id === 'stats'; })
-            : VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' && x.id !== 'libres'; });
+    if (estConsoleAdmin() && etat.v && etat.v.mode === 'stats') {
+        return [vue('stats')];
+    }
+    if (estGestion()) {
+        var n = demandesAValider().length;
+        return [{ id: 'avalider', libelle: 'À valider' + (n ? ' (' + n + ')' : '') }, vue('jour'), vue('semaine'), vue('mois')];
     }
     return VUES_CALENDRIER.filter(function (x) { return x.id !== 'stats' || etat.peutParametrer; });
 }
@@ -14763,7 +14826,7 @@ function ongletsAdmin() {
     var sv = statutsDe(c);
     if (c.colStatus && sv.attente) {
         var maint = maintenantMur(fuseauPlan(c));
-        nb = etat.items.filter(function (it) { return it.s !== null && it.e > maint && texteStatut(it) === sv.attente; }).length;
+        nb = demandesAValider().length;
     }
     var defs = [['parametrage', 'Paramétrage', 'settings-5-line'], ['reservations', 'Réservations' + (nb ? ' (' + nb + ' à valider)' : ''), 'calendar-2-line'], ['statistiques', 'Statistiques', 'bar-chart-box-line']];
     var ul = creer('ul', { classe: 'fr-tabs__list', attrs: { role: 'tablist', 'aria-label': 'Administration des salles' } });
@@ -14804,8 +14867,9 @@ function appliquerOngletAdmin() {
     if (cle === 'statistiques') {
         v.mode = 'stats';
     }
-    else if (cle === 'reservations' && (v.mode === 'stats' || v.mode === 'libres')) {
-        v.mode = 'occupation';
+    else if (cle === 'reservations') {
+        v.mode = demandesAValider().length ? 'avalider' : (['jour', 'semaine', 'mois'].indexOf(v.mode) === -1 ? 'jour' : v.mode);
+        etat.gestionVue = true;
     }
     memoriserEtatVue();
     afficherVue('plan', true);
@@ -14814,11 +14878,185 @@ function appliquerOngletAdmin() {
         f.focus();
     }
 }
+function valeurPageGestion() {
+    return JSON.stringify(pageValide({ consultation: true, gestion: true, plans: [etat.cleConfig], titre: 'Gérer les réservations', vue: 'avalider', ajouter: true, modifier: true, exporter: true }));
+}
+function demandesAValider() {
+    var c = etat.config;
+    var s = statutsDe(c);
+    if (!c || !c.colStatus || !s.attente || !Array.isArray(etat.items)) {
+        return [];
+    }
+    return etat.items.filter(function (it) { return it.s !== null && texteStatut(it) === s.attente && !demandeExpiree(it); }).sort(function (a, b) { return a.s - b.s; });
+}
+function texteValeur(it, col) {
+    var x = col && infoColonne(etat.config.table, col) ? valeurCellule(valeurLigne(it.i, col)) : null;
+    return x === null || x === undefined ? '' : String(x).trim();
+}
+function quiAReserve(it) {
+    var c = etat.config;
+    var pour = texteValeur(it, c.colDemandeur);
+    var par = texteValeur(it, 'CREE_PAR');
+    var proche = function (a, b) { return normalizer(a).replace(/[^a-z]/g, '') === normalizer(b.split('@')[0]).replace(/[^a-z]/g, ''); };
+    if (pour && par && !proche(pour, par) && par !== pour) {
+        return { pour: pour, par: par };
+    }
+    return { pour: pour || par, par: '' };
+}
+function demandesParticulieres(it) {
+    var c = etat.config;
+    var l = [];
+    formulaireDe(c).demandes.forEach(function (x) {
+        if (valeurCellule(valeurLigne(it.i, x.col)) !== true) {
+            return;
+        }
+        var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
+        var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
+        var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
+        l.push(x.libelle + ([Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).length ? ' : ' + [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).join(' · ') : ''));
+    });
+    return l;
+}
+function demandesDeLaSerie(it) {
+    var c = etat.config;
+    var serie = texteValeur(it, c.colSerie);
+    if (!serie) {
+        return [it];
+    }
+    return demandesAValider().filter(function (x) { return texteValeur(x, c.colSerie) === serie; });
+}
+async function deciderDemandes(items, cle, motif) {
+    var c = etat.config;
+    var s = statutsDe(c);
+    var valeur = s[cle];
+    if (!valeur || !items.length) {
+        return;
+    }
+    var actions = [];
+    var champs = {};
+    champs[c.colStatus] = items.map(function () { return valeur; });
+    if (cle === 'refusee' && String(motif || '').trim()) {
+        if (!infoColonne(c.table, 'MOTIF')) {
+            actions.push(['AddColumn', c.table, 'MOTIF', { type: 'Text', label: 'MOTIF DU REFUS', widgetOptions: JSON.stringify({ wrap: true }) }]);
+        }
+        champs.MOTIF = items.map(function () { return String(motif).trim(); });
+    }
+    actions.push(['BulkUpdateRecord', c.table, items.map(function (x) { return x.id; }), champs]);
+    afficherLoader('Enregistrement…');
+    try {
+        await agir(actions);
+        masquerLoader();
+        if (etat.modaleOuverte) {
+            fermerModale();
+        }
+        await rafraichirMaintenant();
+        afficherVue('plan', true);
+        afficherSucces((items.length > 1 ? pluriel(items.length, 'réservation') + ' : ' : 'Réservation « ' + items[0].titre + ' » : ') + valeur.toLowerCase() + (items.length > 1 ? 's.' : '.'));
+        var suite = document.querySelector('#sAValider .s-aval__actions button') || document.getElementById('titreVue');
+        if (suite) {
+            suite.focus();
+        }
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de changer le statut de cette réservation.' : 'Le statut n\'a pas été enregistré. Réessayez.', e);
+    }
+}
+function zoneDecision(it, prefixe, apresRetour) {
+    var z = creer('div', { classe: 's-aval__actions' });
+    var c = etat.config;
+    var s = statutsDe(c);
+    var serie = demandesDeLaSerie(it);
+    var gene = reservationsQuiGenent(it.couloirs[0], it.s, it.e, it.id);
+    var boutons = function () {
+        vider(z);
+        var g = creer('ul', { classe: 'fr-btns-group fr-btns-group--inline-sm fr-btns-group--sm' });
+        if (s.validee) {
+            g.appendChild(creer('li', {}, [bouton(gene.length ? 'Valider quand même' : 'Valider', null, 'check-line', function () { return deciderDemandes([it], 'validee'); }, { petit: true, id: prefixe + 'Val' })]));
+            if (serie.length > 1) {
+                g.appendChild(creer('li', {}, [bouton('Valider les ' + serie.length + ' de la série', 'secondaire', 'check-double-line', function () { return deciderDemandes(serie, 'validee'); }, { petit: true, id: prefixe + 'ValSerie' })]));
+            }
+        }
+        if (s.refusee) {
+            g.appendChild(creer('li', {}, [bouton('Refuser', 'secondaire', 'close-line', motif, { petit: true, id: prefixe + 'Ref' })]));
+        }
+        z.appendChild(g);
+    };
+    var motif = function () {
+        vider(z);
+        var t = saisie(prefixe + 'Motif', '', { multiligne: true, lignes: 2, indice: 'Par exemple : salle réservée pour une visite officielle' });
+        z.appendChild(groupeChamp('Motif du refus (facultatif)', t, 'La personne le verra sur sa réservation.', false));
+        var g = creer('ul', { classe: 'fr-btns-group fr-btns-group--inline-sm fr-btns-group--sm' }, [
+            creer('li', {}, [bouton('Confirmer le refus', null, 'close-line', function () { return deciderDemandes([it], 'refusee', t.value); }, { petit: true, id: prefixe + 'RefOk' })]),
+            serie.length > 1 ? creer('li', {}, [bouton('Refuser les ' + serie.length + ' de la série', 'secondaire', null, function () { return deciderDemandes(serie, 'refusee', t.value); }, { petit: true, id: prefixe + 'RefSerie' })]) : null,
+            creer('li', {}, [bouton('Retour', 'tertiaire', null, function () { boutons(); var b = document.getElementById(prefixe + 'Ref'); if (b) {
+                    b.focus();
+                } if (apresRetour) {
+                    apresRetour();
+                } }, { petit: true, id: prefixe + 'RefRetour' })])
+        ]);
+        z.appendChild(g);
+        t.focus();
+    };
+    boutons();
+    return z;
+}
+function detailsDemande(it, avecSalle) {
+    var c = etat.config;
+    var sl = salleParCle(it.couloirs[0]);
+    var q = quiAReserve(it);
+    var p = c.colParticipants ? valeurCellule(valeurLigne(it.i, c.colParticipants)) : null;
+    var l = [];
+    var ligne = function (icone, contenu, classe) { l.push(creer('li', { classe: classe || '' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(icone) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } })].concat(contenu))); };
+    if (avecSalle && sl) {
+        ligne(['door-open-line', 'home-4-line', 'building-line'], [sl.nom + (sl.capacite !== null ? ' (' + pluriel(sl.capacite, 'place') + ')' : '')]);
+    }
+    if (q.pour) {
+        ligne(['user-line'], [q.par ? 'Pour ' + q.pour + ', demandé par ' + q.par : q.pour]);
+    }
+    if (typeof p === 'number' && p > 0) {
+        var trop = sl && sl.capacite !== null && p > sl.capacite;
+        ligne(['team-line', 'group-line'], [pluriel(p, 'personne') + (trop ? ' : plus que la capacité de la salle' : '')], trop ? 's-aval__alerte' : '');
+    }
+    demandesParticulieres(it).forEach(function (x) { ligne(['service-line', 'cup-line', 'information-line'], [x]); });
+    (Array.isArray(c.details) ? c.details : []).forEach(function (col) {
+        var v = texteValeur(it, col);
+        if (v) {
+            ligne(['chat-3-line', 'message-2-line'], [v]);
+        }
+    });
+    reservationsQuiGenent(it.couloirs[0], it.s, it.e, it.id).slice(0, 2).forEach(function (g) {
+        ligne(['error-warning-line', 'alert-line'], ['Chevauche « ' + g.titre + ' », ' + texteHeureMur(g.s) + ' - ' + texteHeureMur(g.e) + ' (' + String(texteStatut(g) || 'réservée').toLowerCase() + ')'], 's-aval__alerte');
+    });
+    return creer('ul', { classe: 's-aval__details' }, l);
+}
+function rendreAValider() {
+    var zone = creer('div', { classe: 's-aval', id: 'sAValider' });
+    var l = demandesAValider();
+    if (!l.length) {
+        zone.appendChild(creer('div', { classe: 's-aval__vide' }, [creer('span', { classe: 'fr-icon-checkbox-circle-line', attrs: { 'aria-hidden': 'true' } }), creer('p', { texte: 'Aucune demande à valider.' })]));
+        return zone;
+    }
+    var ul = creer('ul', { classe: 's-aval__liste' });
+    l.forEach(function (it, k) {
+        var sl = salleParCle(it.couloirs[0]);
+        var jour = Math.floor(it.s / JOUR) * JOUR;
+        var memeJour = Math.floor((it.e - 1) / JOUR) * JOUR === jour;
+        var titre = creer('button', { classe: 's-aval__objet', attrs: { type: 'button' }, texte: it.titre, clic: function () { ouvrirFicheAgent(it); } });
+        ul.appendChild(creer('li', { classe: 's-aval__ligne' }, [
+            creer('div', { classe: 's-aval__quand' }, [creer('strong', { texte: majusculeInitiale(texteJourLong(jour)) }),
+                creer('span', { texte: memeJour ? texteHeureMur(it.s) + ' - ' + texteHeureMur(it.e) : 'jusqu\'au ' + texteMur(it.e, true) })]),
+            creer('div', { classe: 's-aval__quoi' }, [creer('p', { classe: 's-aval__salle', texte: sl ? sl.nom : '' }), titre, detailsDemande(it, false)]),
+            zoneDecision(it, 'sAv' + k, null)
+        ]));
+    });
+    zone.appendChild(ul);
+    return zone;
+}
 function ouvrirFicheAgent(it) {
     var c = etat.config;
     var s = salleParCle(it.couloirs[0]);
-    var mienne = true;
-    var st = texteStatut(it);
+    var gestion = estGestion();
     var sv = statutsDe(c);
     var dl = creer('dl', { classe: 'w-recap__liste' });
     var ajout = function (lib, val) { if (val) {
@@ -14827,31 +15065,45 @@ function ouvrirFicheAgent(it) {
     } };
     ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
     ajout('Créneau', texteCreneau(it.s, it.e));
-    var colQ = c.colDemandeur && infoColonne(c.table, c.colDemandeur) ? c.colDemandeur : (infoColonne(c.table, 'CREE_PAR') ? 'CREE_PAR' : null);
-    if (colQ) {
-        var q = valeurCellule(valeurLigne(it.i, colQ));
-        ajout('Réservé par', q === null || q === undefined ? '' : String(q));
+    var q = quiAReserve(it);
+    ajout(q.par ? 'Pour' : 'Réservé par', q.pour);
+    ajout('Demandé par', q.par);
+    ajout('Statut', c.colStatus ? texteStatutAffiche(it) : '');
+    if (sv.refusee && texteStatut(it) === sv.refusee) {
+        ajout('Motif du refus', texteValeur(it, 'MOTIF'));
     }
-    if (mienne) {
-        ajout('Statut', st);
-        formulaireDe(c).demandes.forEach(function (x) {
-            if (valeurCellule(valeurLigne(it.i, x.col)) !== true) {
-                return;
-            }
-            var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
-            var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
-            var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
-            ajout(x.libelle, [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).join(' · ') || 'Demandé');
-        });
-    }
+    var p = c.colParticipants ? valeurCellule(valeurLigne(it.i, c.colParticipants)) : null;
+    ajout('Personnes', typeof p === 'number' && p > 0 ? String(p) : '');
+    formulaireDe(c).demandes.forEach(function (x) {
+        if (valeurCellule(valeurLigne(it.i, x.col)) !== true) {
+            return;
+        }
+        var choix = x.colChoix ? valeurCellule(valeurLigne(it.i, x.colChoix)) : null;
+        var nb = x.colNombre ? valeurCellule(valeurLigne(it.i, x.colNombre)) : null;
+        var det = x.colDetail ? valeurCellule(valeurLigne(it.i, x.colDetail)) : null;
+        ajout(x.libelle, [Array.isArray(choix) ? choix.slice(1).join(', ') : '', typeof nb === 'number' ? String(nb) : '', det || ''].filter(Boolean).join(' · ') || 'Demandé');
+    });
+    (Array.isArray(c.details) ? c.details : []).forEach(function (col) { ajout(libelleLisible((infoColonne(c.table, col) || {}).label || col), texteValeur(it, col)); });
     var corps = [creer('div', { classe: 'w-recap s-recap' }, [dl])];
-    var visio = mienne ? blocVisioFiche(it) : null;
+    var enAttente = c.colStatus && sv.attente && texteStatut(it) === sv.attente && !demandeExpiree(it);
+    if (gestion && enAttente) {
+        var gene = reservationsQuiGenent(it.couloirs[0], it.s, it.e, it.id);
+        if (gene.length) {
+            corps.push(alerte('warning', null, 'Chevauche « ' + gene[0].titre + ' », ' + texteHeureMur(gene[0].s) + ' - ' + texteHeureMur(gene[0].e) + '.'));
+        }
+        corps.push(zoneDecision(it, 'f', null));
+    }
+    var visio = blocVisioFiche(it);
     if (visio) {
         corps.push(visio);
     }
+    var hist = gestion ? texteValeur(it, 'HISTORIQUE') : '';
+    if (hist) {
+        corps.push(creer('details', { classe: 's-historique' }, [creer('summary', { texte: 'Historique' }), creer('ul', {}, hist.split('\n').filter(Boolean).map(function (x) { return creer('li', { texte: x }); }))]));
+    }
     var pied = [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fFermer' })];
-    if (mienne && c.colStatus && sv.annulee && !statutInactif(it)) {
-        if (tropTardPourAnnuler(it)) {
+    if (c.colStatus && sv.annulee && !statutInactif(it)) {
+        if (!gestion && tropTardPourAnnuler(it)) {
             corps.push(creer('p', { classe: 'w-mention', texte: 'Il est trop tard pour annuler ici : prévenez un gestionnaire.' }));
         }
         else {
