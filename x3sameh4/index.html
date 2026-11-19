@@ -847,6 +847,12 @@
     .s-recherche-msg .fr-btn { margin-top: .5rem; }
     .s-eq-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .75rem; }
     .s-eq-liste li { display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
+    .s-carte-salle { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--border-action-high-blue-france); background: var(--background-alt-blue-france); }
+    .s-carte-salle__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .s-carte-salle__jour { margin: .125rem 0 .5rem; font-size: 1rem; font-weight: 700; }
+    .s-carte-salle__infos { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 0 0 .375rem; font-size: .875rem; }
+    .s-carte-salle__info { display: inline-flex; align-items: center; gap: .25rem; }
+    .s-carte-salle .s-eq-liste { font-size: .875rem; }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .25rem; }
     .s-cases-eq { margin: 0; }
     .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
@@ -921,7 +927,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.7';
+var VERSION_WIDGET = '1.1.8';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -4501,6 +4507,12 @@ function verifierConfig(c) {
         c[k] = null;
     } };
     ['colEnd', 'colDuration', 'colLane', 'colColor', 'colStatus', 'colAttach', 'colParticipants', 'colConflict', 'colDemandeur', 'colSerie'].forEach(garder);
+    if (!c.colDemandeur) {
+        var dem = colonnesUtiles(t).filter(function (x) { return /demandeur/i.test(x.colId) && /^(Text|Any)$/.test(x.type); })[0];
+        if (dem) {
+            c.colDemandeur = dem.colId;
+        }
+    }
     var tsV = tableSalles(c);
     c.roomCols = roomColsDe(c);
     Object.keys(c.roomCols).forEach(function (k) { if (typeof c.roomCols[k] === 'string' && c.roomCols[k] && (!tsV || !infoColonne(tsV, c.roomCols[k]))) {
@@ -13079,7 +13091,7 @@ function rendreReservation(focusId) {
     if (!res) {
         return;
     }
-    var corps = res.etape === 4 ? [] : (res.direct ? [creer('h3', { classe: 's-confirmer__titre', texte: 'Confirmer la réservation' })] : [stepperReservation(res.etape)]);
+    var corps = res.etape === 4 || res.direct ? [] : [stepperReservation(res.etape)];
     var pied = [];
     if (res.etape === 1) {
         corps = corps.concat(etapeCreneau(res));
@@ -13460,23 +13472,9 @@ function etapeInfosReservation(res) {
     var maintenant = maintenantMur(tz);
     var recap = creer('dl', { classe: 'w-recap__liste' });
     var ajout = function (lib, val) { recap.appendChild(creer('dt', { texte: lib })); recap.appendChild(creer('dd', { texte: val })); };
+    var carte = null;
     if (res.direct && s) {
-        ajout('Salle', s.nom);
-        var ouS = [s.batiment, s.lieu].filter(Boolean).join(', ');
-        if (ouS) {
-            ajout('Où', ouS);
-        }
-        if (s.capacite !== null) {
-            ajout('Capacité', pluriel(s.capacite, 'place'));
-        }
-        var eqS = (s.visio && !s.equipements.some(function (x) { return normalizer(x).indexOf('visio') !== -1; }) ? ['Visioconférence'] : []).concat(s.equipements);
-        if (eqS.length) {
-            recap.appendChild(creer('dt', { texte: 'Équipements' }));
-            recap.appendChild(creer('dd', {}, [creer('ul', { classe: 's-eq-liste' }, eqS.map(function (x) {
-                var ic = iconeEquipement(x);
-                return creer('li', {}, [ic ? creer('span', { classe: 'fr-icon-' + ic + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }) : null, creer('span', { texte: x })]);
-            }))]));
-        }
+        carte = carteSalleReservation(s, res.jour);
     }
     else {
         ajout('Salle', s ? s.nom + ([s.batiment, s.lieu].filter(Boolean).length ? ' (' + [s.batiment, s.lieu].filter(Boolean).join(', ') + ')' : '') : '');
@@ -13502,8 +13500,11 @@ function etapeInfosReservation(res) {
             rendreReservation(id);
         };
         hd.addEventListener('change', function () { var d0 = res.fin - res.debut; res.debut = parseInt(hd.value, 10); res.fin = res.debut + d0; changer('rDebutC'); });
-        var hdur = selectValeurs('rDureeC', dureesC, dureeC, function (m) { return texteDuree(m, res.debut, reglesDe(c)); }, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
-        ajout('Jour', majusculeInitiale(texteJourLong(res.jour)));
+        var hdur = selectValeurs('rDureeC', dureesC, dureeC, function (m) {
+            var t = texteDuree(m, res.debut, reglesDe(c));
+            var fin = res.debut + m;
+            return m < 1440 && t.indexOf('fermeture') === -1 ? t + ', jusqu\'à ' + deux(Math.floor(fin / 60) % 24) + ':' + deux(fin % 60) : t;
+        }, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
         horaires = creer('div', { classe: 's-grille2 s-horaires' }, [groupeChamp('À', hd), groupeChamp('Pendant', hdur)]);
     }
     else {
@@ -13516,7 +13517,10 @@ function etapeInfosReservation(res) {
     if (p !== null && !isNaN(p)) {
         ajout('Personnes', String(p));
     }
-    var l = [creer('div', { id: 'rCorps', attrs: { tabindex: '-1' } }, [creer('div', { classe: 'w-recap s-recap' }, [recap]), horaires])];
+    var l = [creer('div', { id: 'rCorps', attrs: { tabindex: '-1' } }, [carte, recap.childNodes.length ? creer('div', { classe: 'w-recap s-recap' }, [recap]) : null, horaires])];
+    if (c.colDemandeur && infoColonne(c.table, c.colDemandeur) && f.pourAutrui) {
+        l.push(blocPourQui(res));
+    }
     if (res.direct && s) {
         var an = analyseSalle(s, res);
         if (an.bloquee) {
@@ -13608,33 +13612,67 @@ function etapeInfosReservation(res) {
         });
         l.push(fs);
     }
-    if (c.colDemandeur && infoColonne(c.table, c.colDemandeur)) {
-        var zDem = creer('div', { classe: 's-demandeur' });
-        var rendreDem = function () {
-            vider(zDem);
-            if (!res.pourAutrui) {
-                zDem.appendChild(creer('p', { classe: 'w-mention' }, ['Demandeur : vous, rempli à l\'enregistrement.', f.pourAutrui ? ' ' : null,
-                    f.pourAutrui ? bouton('Réserver pour quelqu\'un d\'autre', 'discret', null, function () { res.pourAutrui = true; rendreDem(); var n = document.getElementById('rAutrui'); if (n) {
-                            n.focus();
-                        } }, { petit: true, id: 'rAutruiOn' }) : null]));
-                return;
-            }
-            var inp = saisie('rAutrui', res.nomAutrui, { indice: 'Prénom Nom' });
-            inp.addEventListener('input', function () { res.nomAutrui = inp.value; });
-            zDem.appendChild(groupeChamp('Réservé pour', inp, 'Le nom de la personne pour qui vous réservez.', true));
-            zDem.appendChild(bouton('Réserver pour moi', 'discret', null, function () { res.pourAutrui = false; res.nomAutrui = ''; rendreDem(); var n = document.getElementById('rAutruiOn'); if (n) {
-                    n.focus();
-                } }, { petit: true }));
-        };
-        rendreDem();
-        l.push(zDem);
-    }
     if (reservationAValider(res)) {
         l.push(alerte('info', null, 'Votre demande sera enregistrée « En attente » jusqu\'à ce qu\'un gestionnaire des salles la valide ou la refuse.'));
     }
     l.push(creer('p', { classe: 'fr-error-text', id: 'rErreur', attrs: { 'aria-live': 'polite' } }));
     l[l.length - 1].hidden = true;
     return l;
+}
+function carteSalleReservation(s, jour) {
+    var infos = [];
+    if (s.capacite !== null) {
+        infos.push(creer('span', { classe: 's-carte-salle__info' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(['team-line', 'group-line', 'user-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), pluriel(s.capacite, 'place')]));
+    }
+    var ou = [s.batiment, s.lieu].filter(Boolean).join(', ');
+    if (ou) {
+        infos.push(creer('span', { classe: 's-carte-salle__info' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(['map-pin-2-line', 'building-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ou]));
+    }
+    var eqS = (s.visio && !s.equipements.some(function (x) { return normalizer(x).indexOf('visio') !== -1; }) ? ['Visioconférence'] : []).concat(s.equipements);
+    return creer('div', { classe: 's-carte-salle' }, [
+        creer('h3', { classe: 's-carte-salle__nom', texte: s.nom }),
+        creer('p', { classe: 's-carte-salle__jour', texte: majusculeInitiale(texteJourLong(jour)) }),
+        infos.length ? creer('p', { classe: 's-carte-salle__infos' }, infos) : null,
+        eqS.length ? creer('ul', { classe: 's-eq-liste', attrs: { 'aria-label': 'Équipements' } }, eqS.map(function (x) {
+            var ic = iconeEquipement(x);
+            return creer('li', {}, [ic ? creer('span', { classe: 'fr-icon-' + ic + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }) : null, creer('span', { texte: x })]);
+        })) : null
+    ]);
+}
+function blocPourQui(res) {
+    var z = creer('div', { classe: 's-demandeur' });
+    var rendre = function (focusId) {
+        vider(z);
+        var fs = creer('fieldset', { classe: 'fr-fieldset', attrs: { 'aria-labelledby': 'rPourQuiLeg' } }, [creer('legend', { classe: 'fr-fieldset__legend fr-text--regular', id: 'rPourQuiLeg', texte: 'Pour qui ?' })]);
+        [['moi', 'Pour moi'], ['autre', 'Pour quelqu\'un d\'autre']].forEach(function (o) {
+            var rb = creer('input', { attrs: { type: 'radio', name: 'rPourQui', id: 'rPourQui_' + o[0], value: o[0] }, coche: (o[0] === 'autre') === !!res.pourAutrui });
+            rb.addEventListener('change', function () {
+                res.pourAutrui = o[0] === 'autre';
+                if (!res.pourAutrui) {
+                    res.nomAutrui = '';
+                }
+                rendre(res.pourAutrui ? 'rAutrui' : 'rPourQui_moi');
+            });
+            fs.appendChild(creer('div', { classe: 'fr-fieldset__element fr-fieldset__element--inline' }, [creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [rb, creer('label', { classe: 'fr-label', attrs: { 'for': 'rPourQui_' + o[0] }, texte: o[1] })])]));
+        });
+        z.appendChild(fs);
+        if (res.pourAutrui) {
+            var inp = saisie('rAutrui', res.nomAutrui || '', { indice: 'Prénom Nom' });
+            inp.addEventListener('input', function () { res.nomAutrui = inp.value; });
+            var g = groupeChamp('Nom de la personne', inp, null, false);
+            var lab = g.querySelector('label');
+            if (lab) {
+                lab.appendChild(creer('span', { classe: 'w-mention s-obligatoire', texte: ' (obligatoire)' }));
+            }
+            z.appendChild(g);
+        }
+        var n = focusId ? document.getElementById(focusId) : null;
+        if (n) {
+            n.focus();
+        }
+    };
+    rendre(null);
+    return z;
 }
 function lireInfosReservation(res, sansControle) {
     var champs = {};
