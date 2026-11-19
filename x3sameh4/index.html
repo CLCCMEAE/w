@@ -898,6 +898,7 @@
     .s-fiche-resa__quand { display: flex; flex-direction: column; font-size: 1rem; }
     .s-fiche-resa__salle { display: flex; align-items: center; flex-wrap: wrap; font-size: .875rem; }
     .s-fiche-resa__modifier { margin: .75rem 0; }
+    .s-fiche-resa__dates { color: var(--text-mention-grey); font-size: .8125rem; }
     .s-fiche-resa__motif { padding: .5rem .75rem; margin: .75rem 0; border-left: 4px solid var(--border-plain-error); background: var(--background-contrast-error); font-size: .875rem; }
     .w-dialogue .s-aval__details { margin: 0; }
     .w-dialogue .s-aval__details li { padding: .25rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -988,7 +989,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.24';
+var VERSION_WIDGET = '1.1.25';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -15443,6 +15444,32 @@ function ouvrirModification(it) {
         t.textContent = 'Modifier la réservation';
     }
 }
+function texteHorodatage(it, colId) {
+    var c = etat.config;
+    var col = infoColonne(c.table, colId);
+    if (!col) {
+        return '';
+    }
+    var w = murDe(valeurCellule(valeurLigne(it.i, colId)), col);
+    if (w === null || w === undefined) {
+        return '';
+    }
+    var p = partiesJour(w);
+    return deux(p.j) + '/' + deux(p.m + 1) + '/' + p.a + ' à ' + texteHeureMur(w);
+}
+function datesSuivi(it) {
+    var cree = texteHorodatage(it, 'CREE_LE');
+    var modif = texteHorodatage(it, 'MODIFIE_LE');
+    var parM = texteValeur(it, 'MODIFIE_PAR');
+    var l = [];
+    if (cree) {
+        l.push(creer('li', {}, [creer('span', { classe: 'fr-icon-' + iconeDispo(['calendar-event-line', 'calendar-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Demandée le ' + cree]));
+    }
+    if (modif && modif !== cree) {
+        l.push(creer('li', {}, [creer('span', { classe: 'fr-icon-' + iconeDispo(['edit-line', 'pencil-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Modifiée le ' + modif + (parM ? ' par ' + parM : '')]));
+    }
+    return l.length ? creer('ul', { classe: 's-aval__details s-fiche-resa__dates' }, l) : null;
+}
 function badgeStatut(it) {
     var c = etat.config;
     var sv = statutsDe(c);
@@ -15467,6 +15494,10 @@ function ouvrirFicheAgent(it) {
         badgeStatut(it)
     ]), it.couloirs[0]);
     var corps = [entete, detailsDemande(it, false)];
+    var dates = datesSuivi(it);
+    if (dates) {
+        corps.push(dates);
+    }
     if (sv.refusee && texteStatut(it) === sv.refusee && texteValeur(it, 'MOTIF')) {
         corps.push(creer('div', { classe: 's-fiche-resa__motif' }, [creer('p', { classe: 'fr-text--bold fr-mb-0', texte: 'Motif du refus' }), creer('p', { classe: 'fr-mb-0', texte: texteValeur(it, 'MOTIF') })]));
     }
@@ -15484,7 +15515,7 @@ function ouvrirFicheAgent(it) {
     }
     var pied = [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'fFermer' })];
     if (peutModifierReservation(it)) {
-        corps.splice(2, 0, creer('div', { classe: 's-fiche-resa__modifier' }, [bouton('Modifier la réservation', 'secondaire', 'edit-line', function () { ouvrirModification(it); }, { id: 'fModifier' })]));
+        corps.splice(dates ? 3 : 2, 0, creer('div', { classe: 's-fiche-resa__modifier' }, [bouton('Modifier la réservation', 'secondaire', 'edit-line', function () { ouvrirModification(it); }, { id: 'fModifier' })]));
     }
     if (c.colStatus && sv.annulee && !statutInactif(it)) {
         if (!gestion && tropTardPourAnnuler(it)) {
