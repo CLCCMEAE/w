@@ -12834,7 +12834,6 @@ function ouvrirReservation(pre) {
             if (typeof pre.debut === 'number') {
                 v0.libres.heure = 'precise';
                 v0.libres.de = Math.round((pre.debut - Math.floor(pre.debut / JOUR) * JOUR) / 60);
-                v0.libres.a = v0.libres.de + 60;
             }
             return allerRecherche(true);
         }
@@ -13008,7 +13007,6 @@ function etapeCreneau(res) {
     if (f.consignes.trim()) {
         tete.push(creer('div', { classe: 's-consignes' }, [creer('span', { classe: 'fr-icon-information-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + f.consignes.trim()]));
     }
-    tete.push(creer('p', { classe: 'w-mention', texte: texteEnClair(c, toutesLesSalles()).replace(/ Une validation est demandée.*$| Toutes les salles sont en libre service\.$| Chaque demande est validée.*$/, '') }));
     l.push(creer('div', { id: 'rCorps', attrs: { tabindex: '-1' } }, tete));
     var majResume = function () {
         var z = document.getElementById('rResume');
@@ -13313,18 +13311,21 @@ function etapeInfosReservation(res) {
     var horaires = null;
     if (res.direct && !reglesDe(c).plusieursJours) {
         var rH = reglesHeuresLarges(c);
+        var dureesC = dureesProposees(reglesDe(c));
+        var dureeC = res.fin - res.debut;
+        if (dureesC.indexOf(dureeC) === -1) {
+            dureesC.push(dureeC);
+            dureesC.sort(function (x, y) { return x - y; });
+        }
         var hd = liste('rDebutC', heuresPossibles(rH, false), String(res.debut));
-        var hf = liste('rFinC', heuresPossibles(rH, true), String(res.fin));
         var changer = function (id) {
             lireInfosReservation(res, true);
             rendreReservation(id);
         };
-        hd.addEventListener('change', function () { var d0 = res.fin - res.debut; res.debut = parseInt(hd.value, 10); res.fin = Math.min(res.debut + Math.max(d0, reglesDe(c).pas), rH.fermeture * 60); changer('rDebutC'); });
-        hf.addEventListener('change', function () { res.fin = parseInt(hf.value, 10); if (res.fin <= res.debut) {
-            res.fin = res.debut + reglesDe(c).pas;
-        } changer('rFinC'); });
+        hd.addEventListener('change', function () { var d0 = res.fin - res.debut; res.debut = parseInt(hd.value, 10); res.fin = res.debut + d0; changer('rDebutC'); });
+        var hdur = selectValeurs('rDureeC', dureesC, dureeC, texteMinutes, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
         ajout('Jour', majusculeInitiale(texteJourLong(res.jour)));
-        horaires = creer('div', { classe: 's-ligne s-ligne--centre s-horaires' }, [creer('label', { attrs: { 'for': 'rDebutC' }, texte: 'De' }), hd, creer('label', { attrs: { 'for': 'rFinC' }, texte: 'à' }), hf]);
+        horaires = creer('div', { classe: 's-grille2 s-horaires' }, [groupeChamp('À', hd), groupeChamp('Pendant', hdur)]);
     }
     else {
         ajout('Créneau', texteCreneau(b.s, b.e));
@@ -14066,6 +14067,10 @@ function texteJourCourt(w) {
     }
     return nomJour(w) + ' ' + texteMur(w, false);
 }
+function dureesProposees(r) {
+    var l = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480].filter(function (m) { return m % r.pas === 0 && (!r.dureeMin || m >= r.dureeMin) && (!r.dureeMax || m <= r.dureeMax * 60); });
+    return l.length ? l : [r.pas];
+}
 function puceChoix(id, libelle, on, action) {
     var bt = creer('button', { classe: 's-puce' + (on ? ' s-puce--on' : ''), id: id, attrs: { type: 'button', 'aria-pressed': on ? 'true' : 'false' } }, [libelle]);
     bt.addEventListener('click', action);
@@ -14094,29 +14099,27 @@ function rendreLibres() {
     } });
     quand.appendChild(autre);
     var lignes = [creer('div', { classe: 'fr-input-group s-question' }, [creer('p', { classe: 'fr-label', id: 'lQuandT', texte: 'Quand ?' }), quand])];
-    var choixDuree = selectValeurs('lDuree', [15, 30, 45, 60, 90, 120, 180, 240, 480].filter(function (m) { return m % r.pas === 0; }), L.duree, texteMinutes, function (v) { L.duree = v; rafr('lDuree'); });
-    if (L.quand === 'maintenant') {
-        lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('Pendant', choixDuree)]));
+    var durees = dureesProposees(r);
+    if (durees.indexOf(L.duree) === -1) {
+        L.duree = durees.indexOf(60) !== -1 ? 60 : durees[0];
     }
-    else {
-        var modeH = creer('div', { classe: 's-puces', attrs: { role: 'group', 'aria-label': 'Heure' } }, [
-            puceChoix('lHeure_precise', 'À une heure précise', L.heure === 'precise', function () { L.heure = 'precise'; rafr('lHeure_precise'); }),
-            puceChoix('lHeure_souple', 'Peu importe l\'heure', L.heure === 'souple', function () { L.heure = 'souple'; rafr('lHeure_souple'); })]);
-        var blocH = [creer('p', { classe: 'fr-label', texte: 'À quelle heure ?' }), modeH];
-        if (L.heure === 'precise') {
-            var de = liste('lDe', heuresPossibles(rHeures, false), String(L.de));
-            var a = liste('lA', heuresPossibles(rHeures, true), String(L.a));
-            de.addEventListener('change', function () { var d0 = L.a - L.de; L.de = parseInt(de.value, 10); L.a = Math.min(L.de + Math.max(d0, r.pas), rHeures.fermeture * 60); rafr('lDe'); });
-            a.addEventListener('change', function () { L.a = parseInt(a.value, 10); if (L.a <= L.de) {
-                L.a = L.de + r.pas;
-            } rafr('lA'); });
-            blocH.push(creer('div', { classe: 's-ligne s-ligne--centre' }, [creer('label', { attrs: { 'for': 'lDe' }, texte: 'De' }), de, creer('label', { attrs: { 'for': 'lA' }, texte: 'à' }), a]));
-        }
-        else {
-            blocH.push(groupeChamp('Pendant', choixDuree));
-        }
-        lignes.push(creer('div', { classe: 'fr-input-group s-question' }, blocH));
+    if (L.quand !== 'maintenant') {
+        var ops = [{ valeur: '', libelle: 'Peu importe' }].concat(heuresPossibles(rHeures, false));
+        var heure = liste('lHeure', ops, L.heure === 'souple' ? '' : String(L.de));
+        heure.addEventListener('change', function () {
+            if (heure.value === '') {
+                L.heure = 'souple';
+            }
+            else {
+                L.heure = 'precise';
+                L.de = parseInt(heure.value, 10);
+            }
+            rafr('lHeure');
+        });
+        lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('À quelle heure ?', heure)]));
     }
+    var choixDuree = selectValeurs('lDuree', durees, L.duree, texteMinutes, function (v) { L.duree = v; rafr('lDuree'); });
+    lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('Combien de temps ?', choixDuree)]));
     var nb = saisie('lNb', L.nb, { type: 'number', clavier: 'numeric' });
     nb.setAttribute('min', '1');
     nb.classList.add('s-champ-court');
@@ -14257,7 +14260,7 @@ function remplirResultats(z, L) {
     }
     else {
         s0 = w + L.de * 60;
-        e0 = w + L.a * 60;
+        e0 = s0 + L.duree * 60;
     }
     var occs = occurrencesRecherche(L, s0, e0);
     var base = controlerSalleCreneau(s0, e0, r, null, '');
