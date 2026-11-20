@@ -155,6 +155,18 @@
     .w-section--danger { border-left: 4px solid var(--border-plain-error); }
     .w-grille { display: grid; gap: 1.25rem; align-items: start; padding: 1.25rem; background: var(--background-alt-grey); color: var(--text-default-grey); }
     .w-grille--2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .w-grille--1 { grid-template-columns: minmax(0, 1fr); }
+    .w-grille--1-1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+    @media (max-width: 62em) { .w-grille--1-1, .w-grille--1-1-1, .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-retouche { display: flex; flex-direction: column; gap: 1rem; }
+    .w-retouche__tete { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }
+    .w-retouche__titre { margin: 0; font-size: 1.125rem; line-height: 1.5; }
+    .w-retouche__actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+    .w-texte-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem .5rem; }
+    .w-champs-dispo { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; }
+    .w-en-clair { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .25rem; }
     .w-grille__col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
     @media (max-width: 62em) { .w-grille--2-1 { grid-template-columns: minmax(0, 1fr); } }
     .w-bouton-danger { color: var(--text-default-error); box-shadow: none; border: 1px solid var(--border-plain-error); }
@@ -897,7 +909,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.7.1';
+var VERSION_WIDGET = '2.8.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -1008,7 +1020,7 @@ var ZOOMS = [0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5];
 var TYPES_BLOCS = [
     { type: 'heading', nom: 'Titre', icone: 'h-1', dedans: true },
     { type: 'paragraph', nom: 'Paragraphe', icone: 'align-justify', dedans: true },
-    { type: 'fields', nom: 'Liste de champs', icone: 'list-check', dedans: true },
+    { type: 'fields', nom: 'Liste d\'informations', icone: 'list-check', dedans: true },
     { type: 'image', nom: 'Image', icone: 'image-line', dedans: true },
     { type: 'logo', nom: 'Logo', icone: 'government-line', dedans: true, palette: true },
     { type: 'box', nom: 'Encadré', icone: 'checkbox-blank-line', dedans: true },
@@ -1023,10 +1035,10 @@ var TYPES_BLOCS = [
 ];
 var CONDITIONS = [
     { op: '', nom: 'Toujours' },
-    { op: 'filled', nom: 'Seulement si un champ est rempli' },
-    { op: 'empty', nom: 'Seulement si un champ est vide' },
-    { op: 'equals', nom: 'Seulement si un champ vaut' },
-    { op: 'differs', nom: 'Seulement si un champ est différent de' },
+    { op: 'filled', nom: 'Seulement si une colonne est remplie' },
+    { op: 'empty', nom: 'Seulement si une colonne est vide' },
+    { op: 'equals', nom: 'Seulement si une colonne vaut' },
+    { op: 'differs', nom: 'Seulement si une colonne est différente de' },
     { op: 'checked', nom: 'Seulement si une case est cochée' },
     { op: 'unchecked', nom: 'Seulement si une case n\'est pas cochée' }
 ];
@@ -3158,7 +3170,8 @@ var AIDE = {
         'Chercher une ligne, et cocher ou décocher toutes les lignes affichées, depuis le panneau de gauche.',
         'Imprimer, enregistrer en PDF ou copier le texte, en bas du panneau de gauche. Un document fait d\'un modèle Word conservé se télécharge en Word.',
         'Zoomer, ajuster à la largeur ou passer en plein écran, au-dessus de l\'aperçu.',
-        'Marquer les lignes imprimées dans une colonne de la table, si le modèle le prévoit.',
+        'Marquer les lignes imprimées dans une colonne de la liste, si le modèle le prévoit.',
+        'Retoucher le document d\'une ligne avant de l\'imprimer, si le modèle le permet : la retouche est gardée pour cette ligne.',
         'Tenir plusieurs modèles de documents dans le même document, chacun dans son onglet.'
     ],
     avant: [
@@ -3175,22 +3188,28 @@ var AIDE = {
                 '« Partir de zéro » : une page blanche à écrire vous-même, une fiche qui reprend tous les champs, votre document Word repris comme page, ou votre modèle Word gardé tel quel.',
                 'Rien n\'est enregistré avant « Créer mon document ».'
             ] },
-        'La table': { titre: 'la table qui donne une ligne par document.', points: [
-                'Les tables qui conviennent au type choisi viennent en premier.',
-                'La correspondance des champs relie chaque élément du document à une colonne : vérifiez-la, elle se change ici.',
-                '« Créer une table d\'exemple » crée la table dans votre document, après confirmation ; elle peut être supprimée si vous abandonnez.',
-                'L\'aperçu montre le document avec une ligne de la table choisie.'
+        'Vos données': { titre: 'la liste dont chaque ligne donne un document.', points: [
+                'Les listes qui conviennent au type de document viennent en premier ; celles des autres widgets sont rangées à part.',
+                '« Quelle colonne pour chaque information » : vérifiez la colonne de chaque information, elle se change ici.',
+                'L\'aperçu montre le document avec une ligne de la liste.'
             ] },
-        'Rédiger': { titre: 'écrivez et mettez en page.', points: [
-                'Tous les types de document s\'écrivent dans la page, comme dans un traitement de texte, colonnes et encadrés compris.',
-                'Un clic sur un élément de la page le choisit : ses réglages s\'ouvrent en haut du panneau de gauche, et une barre au-dessus de lui le monte, le descend, le duplique ou le supprime.',
-                'Le bandeau règle le style, la taille et la couleur du texte, la police du document, et « Insérer » ajoute un élément à l\'endroit du curseur.',
-                'Les champs sont des pastilles, remplacées par les valeurs de chaque ligne : tapez « { », utilisez « Insérer un champ » ou la liste « Champs disponibles ».',
-                'Ctrl+B, Ctrl+I, Ctrl+U pour la mise en forme ; Ctrl+Z et Ctrl+Y pour annuler et rétablir ; Alt+F10 pour la barre d\'outils.',
-                '« Voir avec les données » montre le document tel qu\'il sera imprimé ; revenez à « Voir les champs » pour écrire.',
-                '« Mise en page avancée », puis « Afficher les blocs » : la liste des blocs dans le panneau, avec l\'aperçu à droite.',
-                'Logos, mise en page, nom des fichiers et type de document se règlent dans les rubriques de gauche.',
-                'Les points à vérifier (champs vides, document de plus d\'une page) s\'affichent au-dessus du document.'
+        'La mise en page': { titre: 'le papier, l\'allure et les logos.', points: [
+                'Format, orientation et marges ; police, couleur et cadre ; logos du document.',
+                'L\'aperçu suit chaque changement.'
+            ] },
+        'Le texte du document': { titre: 'écrivez sur la page, comme dans un traitement de texte.', points: [
+                'Les colonnes de la liste sont des pastilles, remplacées par les valeurs de chaque ligne : tapez « { », « Insérer une colonne de la liste » dans le bandeau, ou cliquez une colonne à gauche.',
+                'Un clic sur un élément de la page le choisit : ses réglages s\'ouvrent à gauche, et une barre au-dessus de lui le monte, le descend, le duplique ou le supprime.',
+                '« Insérer » ajoute un tableau, une image, un encadré, des colonnes… à l\'endroit du curseur.',
+                'Ctrl+B, Ctrl+I, Ctrl+U pour la mise en forme ; Ctrl+Z et Ctrl+Y pour annuler et rétablir ; Alt+F10 pour le bandeau.',
+                '« Voir avec les données » montre le document tel qu\'il sera imprimé.',
+                '« Liste des éléments » montre le document élément par élément, avec l\'aperçu à droite.'
+            ] },
+        'Pour les utilisateurs': { titre: 'ce que les utilisateurs peuvent faire de leurs documents.', points: [
+                'Les lignes qui donnent un document, le nom des fichiers, la numérotation automatique et le marquage « imprimé ».'
+            ] },
+        'Récapitulatif': { titre: 'le nom du document et le résumé de vos choix.', points: [
+                'Rien n\'est enregistré avant « Créer mon document ».'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -3213,14 +3232,15 @@ var AIDE = {
         { q: 'Comment numéroter mes courriers ?', r: 'Rien n\'est numéroté par défaut. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, rubrique « Numérotation automatique (chrono) » : écrivez votre format, par exemple CD/{N:2}-{AAAA}, le prochain numéro et quand le compteur repart à 1, puis « Créer la numérotation ». Grist attribue alors la référence à la création de chaque ligne, sans doublon, et elle reste modifiable à la main. « Créer la page 📒 Chrono » ajoute une page avec vos courriers triés par référence.' },
         { q: 'D\'où viennent les formules de la note verbale ?', r: 'Le champ « Émetteur » suit le bloc-marque : « Le ministère de l\'Europe et des Affaires étrangères », ou « L\'Ambassade de France aux États-Unis » pour un poste. Le reste des formules s\'écrit dans la page, comme le corps de la note.' },
         { q: 'Comment ajouter un tableau, une image, un encadré ou des colonnes ?', r: 'Cliquez dans la page à l\'endroit voulu, puis « Insérer » dans le bandeau. L\'élément se place au curseur : au milieu d\'un texte, le texte est coupé en deux autour de lui.' },
-        { q: 'Comment déplacer, dupliquer ou supprimer un élément ?', r: 'Cliquez sur l\'élément dans la page : une barre apparaît au-dessus de lui, avec « Tout en haut », « Monter », « Descendre », « Tout en bas », « Dupliquer » et « Supprimer ». Au clavier : Alt et flèches pour le déplacer, Suppr pour le supprimer. Dans la liste des blocs, chaque bloc se glisse aussi par sa poignée.' },
+        { q: 'Comment déplacer, dupliquer ou supprimer un élément ?', r: 'Cliquez sur l\'élément dans la page : une barre apparaît au-dessus de lui, avec « Tout en haut », « Monter », « Descendre », « Tout en bas », « Dupliquer » et « Supprimer ». Au clavier : Alt et flèches pour le déplacer, Suppr pour le supprimer. Dans « Liste des éléments », chaque élément se glisse aussi par sa poignée.' },
         { q: 'Comment écrire un montant ou une date en toutes lettres ?', r: 'Cliquez sur la pastille du champ dans la page, ou placez le curseur juste après elle et tapez Alt+flèche bas : la liste des formats s\'ouvre, avec un exemple pour chacun. Un montant en euros s\'écrit « mille deux cent trente-quatre euros et cinquante centimes », une date « vingt novembre deux mille vingt-six ».' },
-        { q: 'Comment n\'imprimer un passage que dans certains cas ?', r: 'Choisissez l\'élément, puis, dans ses réglages, « Afficher ce bloc » : « Seulement si… ». Une condition porte sur un champ : rempli, vide, vaut, contient, supérieur ou inférieur à une valeur, coché. « Ajouter une condition » en pose plusieurs, toutes à remplir ou une seule. « Sinon, imprimer à la place » donne le texte de remplacement.' },
+        { q: 'Comment n\'imprimer un passage que dans certains cas ?', r: 'Choisissez l\'élément, puis, dans ses réglages, « Imprimer cet élément » : « Seulement si… ». Une condition porte sur un champ : rempli, vide, vaut, contient, supérieur ou inférieur à une valeur, coché. « Ajouter une condition » en pose plusieurs, toutes à remplir ou une seule. « Sinon, imprimer à la place » donne le texte de remplacement.' },
         { q: 'Comment encadrer un texte ou placer le logo dans une colonne ?', r: 'Bloc « Encadré » : un cadre, au trait fin, au trait de couleur ou sur fond, dans lequel vous ajoutez les blocs voulus. Bloc « Logo » : le logo du document, à poser où vous voulez, y compris dans une colonne ou un encadré.' },
         { q: 'Puis-je changer le type d\'un bloc ?', r: 'Oui : dans les réglages de l\'élément choisi, « Type du bloc », ou le style dans le bandeau pour passer d\'un paragraphe à un titre. Un paragraphe devient un titre et inversement, une liste de champs ou une signature devient un paragraphe, et tout bloc peut être mis dans un encadré. Le texte est gardé.' },
         { q: 'Comment faire un retrait ou aligner des informations ?', r: 'Tapez des espaces en début de ligne : ils sont gardés dans le document. Pour des colonnes bien alignées, préférez le bloc « Deux colonnes » ou une « Liste de champs ».' },
         { q: 'Comment choisir la ligne affichée dans l\'aperçu ?', r: 'Au-dessus de l\'aperçu : « Repérer les lignes par » choisit la colonne qui nomme chaque ligne, par exemple un nom ou un numéro de dossier. Avec beaucoup de lignes, « Chercher une ligne » la trouve en quelques lettres.' },
         { q: 'Comment les nombres sont-ils écrits ?', r: 'Comme dans Grist : une colonne au format « Monnaie » s\'écrit avec son symbole, une colonne au format « Décimal » avec ses séparateurs de milliers. Sans format choisi, le nombre s\'écrit tel quel : une année reste 2026.' },
+        { q: 'Un utilisateur peut-il modifier son document avant de l\'imprimer ?', r: 'Oui, si la personne qui gère le modèle l\'a permis, à l\'étape « Pour les utilisateurs » de ses paramétrages. Le bouton « Retoucher ce document » ouvre alors le document de la ligne affichée, avec ses valeurs écrites en toutes lettres : on le modifie comme dans un traitement de texte, puis « Enregistrer la retouche ». La retouche est gardée pour cette ligne, dans la table « Retouches des documents » ; « Revenir au modèle » l\'efface. Les éditeurs doivent pouvoir écrire dans cette table.' },
         { q: 'Comment obtenir un PDF ?', r: 'Avec l\'icône « Enregistrer en PDF », en bas du panneau de gauche. Le nom proposé pour les fichiers se règle à l\'étape « Rédiger », rubrique « Nom des fichiers ».' },
         { q: 'Supprimer un modèle supprime-t-il mes données ?', r: 'Non. Le modèle disparaît des onglets et ses réglages sont effacés ; vos tables et leurs lignes restent dans le document.' }
     ]
@@ -3240,7 +3260,7 @@ function contexteAide() {
 var LARGEUR_APERCU_PAGE = 300;
 function apercuContenu(nom) {
     var b = etat.brouillon;
-    if (!b || nom !== 'La table' || b.choixExemple || !b.layout || !b.table || !etat.meta.tables[b.table] || !etat.donnees[b.table]) {
+    if (!b || ['Vos données', 'La mise en page', 'Récapitulatif'].indexOf(nom) === -1 || b.choixExemple || !b.layout || !b.table || !etat.meta.tables[b.table] || !etat.donnees[b.table]) {
         return null;
     }
     var i = indexDe(b.table, b.sampleId);
@@ -4632,6 +4652,11 @@ function rendreDocuments(zone, cfg, lignes, base, opts) {
     opts = opts || {};
     var n = 0;
     lignes.forEach(function (i, k) {
+        var rt = !base.editeur && !base.sansRetouche && etat.config && cfg.table === etat.config.table ? retoucheDe(base.tid, i) : null;
+        var cfgM = cfg;
+        if (rt) {
+            cfg = rt.cfg;
+        }
         var rc = { cfg: cfg, tid: base.tid, i: i, apercu: base.apercu, editeur: base.editeur, logos: base.logos || null };
         var cible = zone;
         if (opts.groupes) {
@@ -4639,6 +4664,7 @@ function rendreDocuments(zone, cfg, lignes, base, opts) {
             zone.appendChild(cible);
         }
         n += paginerDocument(cfg, rc, cible, { envelopper: opts.envelopper, nomDoc: opts.groupes ? libelleLigne(cfg, i) : null }).length;
+        cfg = cfgM;
     });
     return n;
 }
@@ -5140,7 +5166,10 @@ function afficherVue(vue, garderFocus) {
     else if (vue === 'aucun') {
         rendreAucun(zone);
     }
-    if (vue === 'document' || vue === 'invalide' || vue === 'echec' || (vue === 'assistant' && !(etat.brouillon && etat.brouillon.etape === 3))) {
+    else if (vue === 'retouche') {
+        rendreRetouche(zone);
+    }
+    if (vue === 'document' || vue === 'invalide' || vue === 'echec' || (vue === 'assistant' && !(etat.brouillon && etat.brouillon.etape === ETAPE_TEXTE))) {
         envelopperOnglets(zone);
     }
     zone.classList.toggle('w-contenu--doc', vue === 'document');
@@ -5857,6 +5886,9 @@ function remplirVolet(volet) {
         setTimeout(majListe, 0);
         return;
     }
+    if (cfg.retouches && etat.mode !== 'plusieurs') {
+        volet.appendChild(creer('div', { classe: 'w-volet__bloc' }, [bouton('Retoucher ce document', 'secondaire', 'edit-line', ouvrirRetouche, { petit: true, id: 'pRetoucher' })]));
+    }
     volet.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimer, id: 'pImprimer' },
         { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: pdfDisponible(cfg) ? ouvrirPdf : imprimerPdf, id: 'pPdf' },
@@ -6041,6 +6073,12 @@ function rendreApercuPrincipal() {
         return;
     }
     vider(zone);
+    if (cfg.retouches && (!etat.retouches || etat.retouches.cle !== String(etat.cleConfig))) {
+        etat.retouches = { cle: String(etat.cleConfig), map: {} };
+        relayer(chargerRetouches().then(function () { if (etat.vue === 'document') {
+            rendreApercuPrincipal();
+        } }), 'Lecture des retouches');
+    }
     var lignes = lignesAImprimer();
     libelleBoutonIcone(document.getElementById('pCopier'), etat.mode === 'plusieurs' ? 'Copier le texte de l\'aperçu' : 'Copier le texte');
     etat.apercuCompte = { montres: 0, total: lignes.length };
@@ -6426,9 +6464,9 @@ function rendreEchec(zone) {
         creer('p', { classe: 'w-texte', texte: 'Les documents n\'ont pas pu être affichés.' }),
         bouton('Réessayer', null, 'refresh-line', initialiser)]));
 }
-var ETAPES = ['Point de départ', 'La table', 'Rédiger'];
-var ETAPES_PARAM = ['Général', 'La table', 'Rédiger', 'Les droits'];
-var ETAPE_FINALE = 3;
+var ETAPES = ['Point de départ', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Récapitulatif'];
+var ETAPES_PARAM = ['Général', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Les droits'];
+var ETAPE_FINALE = 6;
 var SEUIL_RECHERCHE_TABLES = 8;
 function demarrerCreation() {
     if (!etat.peutParametrer) {
@@ -6444,6 +6482,9 @@ var BROUILLON_JOURS = 30;
 var _minutBrouillon = null;
 function cleBrouillonGarde(b) { return 'brouillon:' + (b && b.mode === 'edition' ? b.cle : 'nouveau'); }
 function planifierSauvegardeBrouillon() {
+    if (etat.brouillon && etat.brouillon.mode === 'retouche') {
+        return;
+    }
     if (_minutBrouillon) {
         clearTimeout(_minutBrouillon);
     }
@@ -6572,6 +6613,9 @@ function cfgBrouillon(b) {
     if (b.nomFichier && String(b.nomFichier).trim()) {
         c.nomFichier = String(b.nomFichier).slice(0, NOM_FICHIER_MAX);
     }
+    if (b.retouches) {
+        c.retouches = true;
+    }
     if (b.modeleWord) {
         c.modeleWord = { id: b.modeleWord.id || null, nom: b.modeleWord.nom, taille: b.modeleWord.taille };
     }
@@ -6634,6 +6678,304 @@ async function assurerDonneesBrouillon(relire) {
     }
 }
 function nomsEtapes(b) { return b.mode === 'creation' ? ETAPES : ETAPES_PARAM; }
+/* Étapes en colonnes numérotées */
+var ETAPE_DONNEES = 2;
+var ETAPE_MEP = 3;
+var ETAPE_TEXTE = 4;
+var ETAPE_UTILISATEURS = 5;
+var ETAPE_DROITS = 6;
+function titreColonne(texte, id) {
+    return creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: id || null, texte: texte })]);
+}
+function etapeMiseEnPage() {
+    var b = etat.brouillon;
+    var p = b.page;
+    var change = function (cle) { return function (v) { p[cle] = v; marquerTouche(); majApercuBrouillon(); }; };
+    var col1 = [titreColonne('1. Le papier'),
+        groupeRadios('pPapier', 'Format', Object.keys(PAPIERS).map(function (k) { return { valeur: k, libelle: PAPIERS[k].nom, sous: PAPIERS[k].taille }; }), p.size, change('size')),
+        groupeRadios('pOrient', 'Orientation', [{ valeur: 'portrait', libelle: 'Portrait' }, { valeur: 'landscape', libelle: 'Paysage' }], p.orientation, change('orientation')),
+        groupeRadios('pMarges', 'Marges', Object.keys(MARGES).map(function (k) { return { valeur: k, libelle: MARGES[k].nom, sous: MARGES[k].taille }; }), p.margins, change('margins'))];
+    var sp = liste('pPolice', POLICES, p.font || 'sans');
+    sp.addEventListener('change', function () { change('font')(sp.value); });
+    var col2 = [titreColonne('2. L\'allure'), groupeChamp('Police', sp)];
+    if (!ecritDansPage(b.layout)) {
+        var t = creer('div', { classe: 'w-teintes' });
+        var perso = creer('input', { id: 'pCouleurPerso', attrs: { type: 'color', 'aria-label': 'Couleur sur mesure' }, valeur: p.color });
+        TEINTES.forEach(function (x, k) {
+            var id = 'pTeinte' + k;
+            var hex = couleurTeinte(x);
+            var r = creer('input', { id: id, attrs: { type: 'radio', name: 'pTeinte', value: hex, 'aria-label': x.nom }, coche: p.color === hex, change: function () { p.color = hex; perso.value = hex; marquerTouche(); majApercuBrouillon(); annoncer('Couleur du document : ' + x.nom + '.'); } });
+            var pastille = creer('span', { attrs: { 'aria-hidden': 'true' } });
+            pastille.style.background = 'var(' + x.jeton + ', ' + x.repli + ')';
+            t.appendChild(creer('label', { classe: 'w-teinte w-infobulle', attrs: { 'for': id, 'data-infobulle': x.nom } }, [r, pastille]));
+        });
+        perso.addEventListener('input', function () {
+            p.color = couleurValide(perso.value);
+            Array.prototype.forEach.call(document.querySelectorAll('input[name="pTeinte"]'), function (r) { r.checked = r.value === p.color; });
+            marquerTouche();
+            majApercuBrouillon();
+        });
+        t.appendChild(creer('label', { classe: 'w-teinte--perso', attrs: { 'for': 'pCouleurPerso' } }, [perso, 'Sur mesure']));
+        col2.push(creer('fieldset', { classe: 'fr-fieldset w-fs' }, [creer('legend', { classe: 'fr-fieldset__legend w-fs__legende', texte: 'Couleur des titres, traits et cadres' }), t]));
+    }
+    col2.push(groupeRadios('pCadre', 'Cadre de page', [{ valeur: 'none', libelle: 'Aucun' }, { valeur: 'thin', libelle: 'Filet fin' }, { valeur: 'double', libelle: 'Double cadre' }], p.border, change('border')));
+    col2.push(caseACocher('pVcentre', 'Centrer le contenu verticalement sur la page', !!p.vcenter, function (e) { p.vcenter = e.target.checked; marquerTouche(); majApercuBrouillon(); }));
+    var col3 = [titreColonne('3. Les logos'), blocLogo()];
+    if (b.layout === 'letter') {
+        col3.push(titreColonne('4. L\'en-tête et la signature'));
+        col3.push(panneauEnteteCourrier());
+    }
+    return grilleParam([col1, col2, col3], '1-1-1', null, apercuEtape('La mise en page'));
+}
+function etapeUtilisateurs() {
+    var col1 = colonneRetouches().concat([titreColonne('2. Les lignes qui donnent un document'), blocLignesConcernees()]);
+    var col2 = [titreColonne('3. Le nom des fichiers'), champNomFichier()];
+    var col3 = [titreColonne('4. La numérotation automatique'), panneauReference(), titreColonne('5. Le marquage « imprimé »'), blocMarquage()];
+    return grilleParam([col1, col2, col3], '1-1-1');
+}
+function phrasesEnClair(b) {
+    var cfg = cfgBrouillon(b);
+    var l = [];
+    var n = etat.donnees[b.table] ? etat.donnees[b.table].d.id.length : null;
+    l.push(nomMiseEnPage(b.layout) + ', un document par ligne de la liste « ' + libelleSansEmoji(libelleTable(b.table)) + ' »' + (n !== null ? ' (' + pluriel(n, 'ligne') + ')' : '') + '.');
+    var p = b.page || {};
+    l.push('Papier ' + ((PAPIERS[p.size] || PAPIERS.a4).nom) + ', ' + (p.orientation === 'landscape' ? 'paysage' : 'portrait') + ', police ' + ((POLICES.filter(function (x) { return x.valeur === (p.font || 'sans'); })[0] || POLICES[0]).libelle.replace(/ \(.*\)$/, '')) + '.');
+    var nb = 0;
+    parcourirBlocs(b.blocks || [], function () { nb++; });
+    l.push(pluriel(nb, 'élément') + ' dans le document.');
+    if (b.filtre && b.filtre.op && b.filtre.path) {
+        l.push('Seulement les lignes choisies dans « Pour les utilisateurs ».');
+    }
+    if (cfg.nomFichier) {
+        l.push('Fichiers nommés « ' + cfg.nomFichier + ' ».');
+    }
+    if (b.retouches) {
+        l.push('Les utilisateurs peuvent retoucher leur document.');
+    }
+    return l;
+}
+function etapeRecapitulatif() {
+    var b = etat.brouillon;
+    var col1 = [titreColonne('1. Le nom du document'), blocNomDocument(), titreColonne('2. En clair'),
+        creer('ul', { classe: 'w-en-clair' }, phrasesEnClair(b).map(function (t) { return creer('li', { texte: t }); }))];
+    return grilleParam([col1], '1', null, apercuEtape('Récapitulatif'));
+}
+/* Retouches des utilisateurs : un document retouché est gardé pour sa ligne */
+var TABLE_RETOUCHES = 'RETOUCHES_DES_DOCUMENTS_';
+function idTableRetouches() {
+    var t = etat.meta && etat.meta.tables ? etat.meta.tables : {};
+    if (t[TABLE_RETOUCHES]) {
+        return TABLE_RETOUCHES;
+    }
+    var ids = Object.keys(t).filter(function (id) { return /^RETOUCHES_DES_DOCUMENTS_*$/.test(id); });
+    return ids[0] || null;
+}
+function tableRetouchesExiste() { return !!idTableRetouches(); }
+async function assurerTableRetouches() {
+    if (tableRetouchesExiste()) {
+        return true;
+    }
+    var tids = await creerTables([{ id: TABLE_RETOUCHES, colonnes: [{ id: 'MODELE', type: 'Text', label: 'Modèle' }, { id: 'LISTE', type: 'Text', label: 'Liste' },
+                { id: 'LIGNE', type: 'Int', label: 'Ligne' }, { id: 'CONTENU', type: 'Text', label: 'Contenu retouché' }, { id: 'MODIFIE_LE', type: 'DateTime', label: 'Modifié le' }] }]);
+    try {
+        await renommerTables([[tids[0], 'Retouches des documents']]);
+    }
+    catch (e) {
+        logSecurite('INFO', 'Nom de la table des retouches non posé', e);
+    }
+    await chargerMeta();
+    return tableRetouchesExiste();
+}
+async function chargerRetouches() {
+    var cle = String(etat.cleConfig);
+    var res = { cle: cle, map: {} };
+    if (tableRetouchesExiste()) {
+        var t = await grist.docApi.fetchTable(idTableRetouches());
+        (t.id || []).forEach(function (id, k) {
+            if (String(t.MODELE[k]) !== cle) {
+                return;
+            }
+            try {
+                var c = JSON.parse(t.CONTENU[k] || 'null');
+                if (c && Array.isArray(c.blocks)) {
+                    res.map[t.LISTE[k] + ':' + t.LIGNE[k]] = { id: id, blocks: c.blocks, page: c.page && typeof c.page === 'object' ? c.page : null, cfg: null };
+                }
+            }
+            catch (e) {
+                logSecurite('AVERTISSEMENT', 'Retouche illisible, ligne ' + id, e);
+            }
+        });
+    }
+    etat.retouches = res;
+}
+function retoucheDe(tid, i) {
+    var c = etat.config;
+    if (!c || !c.retouches || !etat.retouches || etat.retouches.cle !== String(etat.cleConfig) || typeof i !== 'number' || i < 0) {
+        return null;
+    }
+    var r = etat.retouches.map[tid + ':' + idDe(tid, i)];
+    if (!r) {
+        return null;
+    }
+    if (!r.cfg) {
+        r.cfg = normaliserConfig(Object.assign({}, JSON.parse(JSON.stringify(c)), { blocks: JSON.parse(JSON.stringify(r.blocks)), page: r.page ? JSON.parse(JSON.stringify(r.page)) : JSON.parse(JSON.stringify(c.page || {})) }));
+    }
+    return r;
+}
+function figerValeurs(texte, rc) {
+    var out = '';
+    var st = { b: false, i: false, u: false };
+    analyserTexte(texte).forEach(function (t) {
+        if (t.t === 'txt') {
+            out += echapperMarques(t.v);
+        }
+        else if (t.t === 'b') {
+            out += '**';
+        }
+        else if (t.t === 'i') {
+            out += '*';
+        }
+        else if (t.t === 'u') {
+            out += '__';
+        }
+        else if (t.t === 'br') {
+            out += '\n';
+        }
+        else if (t.t === 'f') {
+            var sp = champSpecial(rc.tid, t.chemin);
+            if (sp === 'page' || sp === 'pages' || sp === 'aujourdhui') {
+                out += '{' + [t.chemin].concat(t.mods).join('|') + '}';
+            }
+            else {
+                out += echapperMarques(valeurJeton(t, rc).texte || '');
+            }
+        }
+    });
+    return out;
+}
+function figerBlocs(blocs, rc) {
+    parcourirBlocs(blocs, function (bl) {
+        if (bl.type === 'paragraph' || bl.type === 'heading') {
+            bl.text = figerValeurs(bl.text || '', rc);
+        }
+    });
+    return blocs;
+}
+function ouvrirRetouche() {
+    var cfg = etat.config;
+    if (!cfg || !cfg.retouches) {
+        return;
+    }
+    var tid = cfg.table;
+    var i = ligneCourante();
+    if (i < 0) {
+        signalerSaisie('Choisissez d\'abord une ligne dans le panneau de gauche.');
+        return;
+    }
+    var r = retoucheDe(tid, i);
+    var blocs = JSON.parse(JSON.stringify(r ? r.blocks : cfg.blocks));
+    if (!r) {
+        figerBlocs(blocs, { cfg: cfg, tid: tid, i: i });
+    }
+    etat.brouillon = { mode: 'retouche', table: tid, sampleId: idDe(tid, i), layout: cfg.layout, page: JSON.parse(JSON.stringify(r && r.page ? r.page : (cfg.page || {}))), blocks: blocs,
+        logos: (Array.isArray(cfg.logos) ? cfg.logos : (cfg.logo ? [cfg.logo] : [])).map(function (id) { return { id: id }; }), name: cfg.name, labelCol: cfg.labelCol,
+        writeBack: cfg.writeBack || { enabled: false, col: null }, opts: cfg.opts || {}, ouverts: {}, vueDonnees: false, retoucheId: r ? r.id : null, choisi: null };
+    etat.brouillon.initialRetouche = JSON.stringify({ b: etat.brouillon.blocks, p: etat.brouillon.page });
+    afficherVue('retouche');
+}
+function retoucheModifiee() {
+    var b = etat.brouillon;
+    return !!b && b.mode === 'retouche' && JSON.stringify({ b: b.blocks, p: b.page }) !== b.initialRetouche;
+}
+function rendreRetouche(zone) {
+    var b = etat.brouillon;
+    var cfg = etat.config;
+    var i = indexDe(b.table, b.sampleId);
+    var titre = creer('h2', { classe: 'w-retouche__titre', id: 'titreVue', attrs: { tabindex: '-1' }, texte: 'Retouche du document : ' + libelleLigne(cfg, i) });
+    var actions = creer('div', { classe: 'w-retouche__actions' }, [
+        b.retoucheId ? bouton('Revenir au modèle', 'tertiaire', 'arrow-go-back-line', revenirAuModele, { petit: true, id: 'pRetModele' }) : null,
+        bouton('Annuler', 'secondaire', 'close-line', function () { return quitterRetouche(false); }, { petit: true, id: 'pRetAnnuler' }),
+        bouton('Enregistrer la retouche', null, 'check-line', enregistrerRetouche, { petit: true, id: 'pRetEnregistrer' })
+    ]);
+    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages de l\'élément choisi' } }, [
+        creer('div', { classe: 'w-elem-zone', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()),
+        creer('section', { classe: 'w-champs-dispo', attrs: { 'aria-labelledby': 'pChampsDispoTitre' } }, [creer('h3', { classe: 'w-c3__titre', id: 'pChampsDispoTitre', texte: 'Colonnes de la liste' })]
+            .concat(listeChampsDisponibles().filter(function (x) { return !(x && x.classList && x.classList.contains('w-indice')); })))
+    ]);
+    var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': 'Le document, modifiable' } }, [editeurCourrier()]);
+    zone.appendChild(creer('div', { classe: 'w-retouche' }, [creer('div', { classe: 'w-retouche__tete' }, [titre, actions]), creer('div', { classe: 'w-rediger' }, [aside, main])]));
+    setTimeout(function () { if (document.getElementById('pCourrier')) {
+        rendreCourrier();
+    } }, 0);
+}
+async function enregistrerRetouche() {
+    var b = etat.brouillon;
+    if (!b || b.mode !== 'retouche') {
+        return;
+    }
+    if (!tableRetouchesExiste()) {
+        afficherErreur('La retouche n\'a pas pu être enregistrée : la table des retouches manque. Demandez à la personne qui gère ce document de rouvrir l\'étape « Pour les utilisateurs » de ses paramétrages.');
+        return;
+    }
+    var contenu = JSON.stringify({ v: 1, blocks: b.blocks, page: b.page });
+    var maintenant = Math.floor(Date.now() / 1000);
+    try {
+        if (b.retoucheId) {
+            await agir([['UpdateRecord', idTableRetouches(), b.retoucheId, { CONTENU: contenu, MODIFIE_LE: maintenant }]]);
+        }
+        else {
+            var ret = await agir([['AddRecord', idTableRetouches(), null, { MODELE: String(etat.cleConfig), LISTE: b.table, LIGNE: b.sampleId, CONTENU: contenu, MODIFIE_LE: maintenant }]]);
+            b.retoucheId = ret && ret.retValues ? ret.retValues[0] : null;
+        }
+    }
+    catch (e) {
+        afficherErreur('La retouche n\'a pas pu être enregistrée. Vérifiez vos droits sur le document ou réessayez.', e);
+        return;
+    }
+    await chargerRetouches();
+    await quitterRetouche(true);
+    afficherSucces('Retouche enregistrée : ce document s\'imprime désormais avec vos changements.');
+}
+async function revenirAuModele() {
+    var b = etat.brouillon;
+    if (!b || !b.retoucheId) {
+        return;
+    }
+    if (!(await confirmerAction('Revenir au modèle ?', 'La retouche de ce document est supprimée : il reprend le texte du modèle.', 'Revenir au modèle', { danger: true }))) {
+        return;
+    }
+    try {
+        await agir([['RemoveRecord', idTableRetouches(), b.retoucheId]]);
+    }
+    catch (e) {
+        afficherErreur('La retouche n\'a pas pu être supprimée. Vérifiez vos droits sur le document ou réessayez.', e);
+        return;
+    }
+    await chargerRetouches();
+    await quitterRetouche(true);
+    afficherSucces('Le document reprend le texte du modèle.');
+}
+async function quitterRetouche(sansQuestion) {
+    if (!sansQuestion && retoucheModifiee() && !(await confirmerAction('Quitter sans enregistrer la retouche ?', 'Les changements faits dans ce document sont perdus.', 'Quitter', { destructif: true }))) {
+        return;
+    }
+    etat.brouillon = null;
+    afficherVue('document');
+}
+function colonneRetouches() {
+    var b = etat.brouillon;
+    var g = groupeRadios('pRetouches', 'Les utilisateurs peuvent retoucher leur document', [{ valeur: 'non', libelle: 'Non, ils l\'impriment tel quel' }, { valeur: 'oui', libelle: 'Oui, et chaque retouche est gardée pour sa ligne' }],
+        b.retouches ? 'oui' : 'non', function (v) {
+            b.retouches = v === 'oui';
+            marquerTouche();
+            if (b.retouches && !tableRetouchesExiste()) {
+                relayer(assurerTableRetouches().then(function (ok) { if (ok) {
+                    afficherSucces('La table « Retouches des documents » est créée : elle garde les retouches des utilisateurs.');
+                } }), 'Création de la table des retouches');
+            }
+        });
+    return [titreColonne('1. Les retouches'), g];
+}
 function rendreAssistant(zone) {
     var b = etat.brouillon;
     var finEtapes = b.mode === 'edition' ? ETAPES_PARAM.length : ETAPE_FINALE;
@@ -6658,11 +7000,17 @@ function rendreAssistant(zone) {
         var ap = apercuEtape(noms[1]);
         bloc.appendChild(ap ? creer('div', { classe: 'w-param-apercu' }, [etapeDonnees(), ap]) : etapeDonnees());
     }
-    if (b.etape === 3) {
+    if (b.etape === ETAPE_MEP) {
+        bloc.appendChild(etapeMiseEnPage());
+    }
+    if (b.etape === ETAPE_TEXTE) {
         bloc.appendChild(etapeRediger());
     }
-    if (b.etape === 4 && edition) {
-        bloc.appendChild(contenuDroitsLu());
+    if (b.etape === ETAPE_UTILISATEURS) {
+        bloc.appendChild(etapeUtilisateurs());
+    }
+    if (b.etape === 6) {
+        bloc.appendChild(edition ? contenuDroitsLu() : etapeRecapitulatif());
     }
     bloc.appendChild(piedAssistant(b, noms));
     zone.appendChild(bloc);
@@ -6680,8 +7028,11 @@ function rendreAssistant(zone) {
         if (b.etape === 2) {
             relayer(chargerComptesTables(), 'Nombre de lignes des tables');
         }
-        if (b.etape === ETAPE_FINALE) {
+        if (b.etape === ETAPE_TEXTE) {
             calculerAlertesVerif();
+        }
+        if (document.getElementById('aApercuCorps')) {
+            majApercu();
         }
     }, 0);
 }
@@ -6775,12 +7126,12 @@ function validerEtape(n) {
     }
     if (n === 2) {
         if (!b.table || !etat.meta.tables[b.table]) {
-            marquerGroupeInvalide('pDonnees', 'Choisissez une table, ou créez une table d\'exemple.');
+            marquerGroupeInvalide('pDonnees', 'Choisissez la liste qui donne les documents.');
             return false;
         }
     }
-    if (n === 3 && !(b.blocks || []).length) {
-        signalerSaisie('Ajoutez au moins un bloc au document.');
+    if (n === ETAPE_TEXTE && !(b.blocks || []).length) {
+        signalerSaisie('Ajoutez au moins un élément au document.');
         return false;
     }
     return true;
@@ -6978,9 +7329,20 @@ async function choisirType(id) {
 }
 function idRadioTable(tid) { return tid ? 'pDonnee_' + tid : 'pDonneeExemple'; }
 function texteCompte(tid) { var d = etat.donnees[tid]; return d ? pluriel(d.d.id.length, 'ligne') : 'lecture…'; }
+function estTableAutreWidget(tid) {
+    var lib = libelleTable(tid);
+    if (String(lib).indexOf('\u26a1') === -1) {
+        return false;
+    }
+    var propres = [];
+    MODELES.forEach(function (m) { (m.tables || []).forEach(function (t) { propres.push(normalizer(libelleSansEmoji(titreTableWidget(t.titre)))); }); });
+    return propres.indexOf(normalizer(libelleSansEmoji(lib))) === -1;
+}
 function etapeDonnees() {
     var b = etat.brouillon;
     var tables = tablesConnectables();
+    var techniques = tables.filter(function (t) { return estTableAutreWidget(t) && t !== b.table; });
+    tables = tables.filter(function (t) { return techniques.indexOf(t) === -1; });
     var conv = tables.map(function (t) { return { tid: t, c: convenance(t, b.layout) }; });
     var bonnes = conv.filter(function (x) { return x.c.ok; });
     var autres = conv.filter(function (x) { return !x.c.ok; });
@@ -6999,31 +7361,41 @@ function etapeDonnees() {
     };
     var sous = function (x) { return { raison: x.c.raison, texte: texteCompte(x.tid) + (x.c.raison ? ' · ' + x.c.raison : '') }; };
     var fs = creer('fieldset', { classe: 'w-fs w-choix-tables', id: 'pDonnees', attrs: { 'aria-describedby': 'pDonneesAide' } }, [
-        creer('legend', { classe: 'w-col-titre', texte: 'Table de données' }),
-        creer('p', { classe: 'w-indice', id: 'pDonneesAide', texte: 'Une ligne de la table donne un document. ' + (libreDepart ? (tables.length ? 'Toutes vos tables conviennent.' : 'Ce document n\'a pas encore de table.') : bonnes.length ? 'En haut, les tables qui conviennent à : ' + mep.nom + '.' : (tables.length ? 'Aucune table ne ressemble à : ' + mep.nom + '. Vous pouvez en choisir une quand même, ou créer une table d\'exemple.' : 'Ce document n\'a pas encore de table : créez une table d\'exemple.')) })
+        creer('legend', { classe: 'w-col-titre', texte: '1. La liste' }),
+        creer('p', { classe: 'w-indice', id: 'pDonneesAide', texte: tables.length ? 'Chaque ligne de cette liste donnera un document.' : 'Ce document Grist n\'a pas encore de liste.' })
     ]);
     var recherche = null;
     if (tables.length > SEUIL_RECHERCHE_TABLES) {
         recherche = creer('input', { classe: 'fr-input', id: 'pRechTable', valeur: b.rechTable || '', attrs: { type: 'search', autocomplete: 'off', 'aria-controls': 'pDonnees', 'aria-describedby': 'pRechTableNb' } });
-        fs.appendChild(creer('div', { classe: 'fr-input-group w-rech-tables' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pRechTable' } }, ['Rechercher une table']), recherche,
+        fs.appendChild(creer('div', { classe: 'fr-input-group w-rech-tables' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pRechTable' } }, ['Chercher une liste']), recherche,
             creer('p', { classe: 'fr-sr-only', id: 'pRechTableNb', attrs: { 'aria-live': 'polite' } })]));
     }
     if (libreDepart && tables.length) {
-        fs.appendChild(creer('p', { classe: 'w-choix-tables__inter', id: 'pVosTables', texte: 'Vos tables' }));
+        fs.appendChild(creer('p', { classe: 'w-choix-tables__inter', id: 'pVosTables', texte: 'Vos listes' }));
     }
     bonnes.forEach(function (x) { fs.appendChild(option(x.tid, libelleTable(x.tid), sous(x), !b.choixExemple && b.table === x.tid)); });
     if (autres.length) {
-        fs.appendChild(creer('p', { classe: 'w-choix-tables__inter', id: 'pAutresTables', texte: bonnes.length ? 'Autres tables' : 'Vos tables' }));
+        fs.appendChild(creer('p', { classe: 'w-choix-tables__inter', id: 'pAutresTables', texte: bonnes.length ? 'Autres listes' : 'Vos listes' }));
         autres.forEach(function (x) { fs.appendChild(option(x.tid, libelleTable(x.tid), sous(x), !b.choixExemple && b.table === x.tid)); });
     }
     if (exemple) {
-        fs.appendChild(option(null, 'Je n\'ai pas encore de table : créer une table d\'exemple', { texte: 'Crée ' + exemple.tables.map(function (t) { return '« ' + titreTableWidget(t.titre) + ' »'; }).join(', ') + ' avec des lignes d\'exemple, d\'après le modèle « ' + exemple.nom + ' ».' }, !!b.choixExemple || (!tables.length && !b.table), 'w-choix-tables__exemple'));
+        fs.appendChild(option(null, 'Je n\'ai pas encore de liste : en créer une', { texte: 'Crée ' + exemple.tables.map(function (t) { return '« ' + titreTableWidget(t.titre) + ' »'; }).join(', ') + ' avec des lignes d\'exemple, d\'après le modèle « ' + exemple.nom + ' ».' }, !!b.choixExemple || (!tables.length && !b.table), 'w-choix-tables__exemple'));
         if (!tables.length && !b.table) {
             b.choixExemple = true;
         }
     }
+    if (techniques.length) {
+        var tech = creer('div', { classe: 'w-choix-tables__tech', id: 'pListesTech', attrs: { hidden: b.voirTechniques ? null : '' } }, [creer('p', { classe: 'w-choix-tables__inter', texte: 'Listes des autres widgets' })]
+            .concat(techniques.map(function (t) { return option(t, libelleTable(t), { texte: texteCompte(t) }, !b.choixExemple && b.table === t); })));
+        var btnTech = bouton(b.voirTechniques ? 'Masquer les listes des autres widgets' : 'Listes des autres widgets (' + techniques.length + ')', 'tertiaire', b.voirTechniques ? 'eye-off-line' : 'eye-line', function () {
+            b.voirTechniques = !b.voirTechniques;
+            redessinerEtape('pVoirTech');
+        }, { petit: true, id: 'pVoirTech', attrs: { 'aria-expanded': b.voirTechniques ? 'true' : 'false', 'aria-controls': 'pListesTech' } });
+        fs.appendChild(tech);
+        fs.appendChild(creer('div', { classe: 'w-liens' }, [btnTech]));
+    }
     if (recherche) {
-        fs.appendChild(creer('p', { classe: 'w-indice', id: 'pRechVide', texte: 'Aucune table ne correspond.', attrs: { hidden: '' } }));
+        fs.appendChild(creer('p', { classe: 'w-indice', id: 'pRechVide', texte: 'Aucune liste ne correspond.', attrs: { hidden: '' } }));
         var filtrer = function () {
             b.rechTable = recherche.value;
             var q = normalizer(recherche.value).trim();
@@ -7037,7 +7409,7 @@ function etapeDonnees() {
             });
             Array.prototype.forEach.call(fs.querySelectorAll('.w-choix-tables__inter'), function (t) { t.hidden = !!q; });
             fs.querySelector('#pRechVide').hidden = n > 0;
-            fs.querySelector('#pRechTableNb').textContent = q ? (n ? pluriel(n, 'table trouvée', 'tables trouvées') : 'Aucune table ne correspond.') : '';
+            fs.querySelector('#pRechTableNb').textContent = q ? (n ? pluriel(n, 'liste trouvée', 'listes trouvées') : 'Aucune liste ne correspond.') : '';
         };
         recherche.addEventListener('input', filtrer);
         if (b.rechTable) {
@@ -7062,11 +7434,11 @@ function etapeDonnees() {
     }
     else {
         droite.push(creer('div', { classe: 'w-indice-vide', id: 'pCorrespVide' }, [creer('span', { classe: 'fr-icon-table-line', attrs: { 'aria-hidden': 'true' } }),
-            creer('p', { classe: 'w-texte', texte: b.choixExemple && exemple ? 'La correspondance des champs s\'affiche ici une fois la table d\'exemple créée.' : 'Choisissez une table pour voir la correspondance des champs.' })]));
+            creer('p', { classe: 'w-texte', texte: b.choixExemple && exemple ? 'Les colonnes s\'affichent ici une fois la liste créée.' : 'Choisissez la liste : ses colonnes s\'affichent ici.' })]));
     }
     return creer('div', { classe: 'w-donnees-2c', id: 'pEtapeDonnees' }, [
         creer('div', { classe: 'w-donnees-2c__gauche', id: 'pChoixTable' }, gauche),
-        creer('section', { classe: 'w-donnees-2c__droite', id: 'pCorrespondance', attrs: { 'aria-label': 'Correspondance des champs' } }, droite)
+        creer('section', { classe: 'w-donnees-2c__droite', id: 'pCorrespondance', attrs: { 'aria-label': 'Les colonnes de la liste' } }, droite)
     ]);
 }
 function sectionChampsTable() {
@@ -7084,10 +7456,9 @@ function sectionChampsTable() {
         tb.appendChild(creer('tr', {}, [creer('th', { attrs: { scope: 'row' }, texte: c.label }), creer('td', { classe: 'w-correspondance__val', texte: ex || 'Vide sur la ligne affichée' })]));
     });
     return creer('div', { classe: 'w-section', id: 'pChampsTable' }, [
-        creer('h3', { classe: 'w-col-titre', id: 'pChampsTitre', texte: 'Champs de la table' }),
-        creer('p', { classe: 'w-indice', texte: 'À l\'étape suivante, chacun s\'insère dans la page à l\'endroit du curseur, par « Insérer un champ » ou en tapant « { ».' }),
+        creer('h3', { classe: 'w-col-titre', id: 'pChampsTitre', texte: '2. Les colonnes de la liste' }),
         creer('div', { classe: 'w-defile-x' }, [creer('table', { classe: 'w-correspondance', attrs: { 'aria-labelledby': 'pChampsTitre' } }, [
-                creer('thead', {}, [creer('tr', {}, [creer('th', { attrs: { scope: 'col' }, texte: 'Champ' }), creer('th', { attrs: { scope: 'col' }, texte: 'Valeur sur la ligne affichée' })])]), tb
+                creer('thead', {}, [creer('tr', {}, [creer('th', { attrs: { scope: 'col' }, texte: 'Colonne' }), creer('th', { attrs: { scope: 'col' }, texte: 'Valeur sur la ligne affichée' })])]), tb
             ])])
     ]);
 }
@@ -7209,11 +7580,10 @@ function sectionCorrespondance() {
         tb.appendChild(creer('tr', {}, [creer('th', { attrs: { scope: 'row' } }, [creer('label', { attrs: { 'for': id }, texte: nomRole(b.layout, r) })]),
             creer('td', {}, [s, creer('span', { classe: 'w-correspondance__val', texte: v ? (ex ? 'Exemple : ' + ex : 'Vide sur la ligne affichée') : 'Pas utilisé dans le document' })])]));
     });
-    var l = [creer('h3', { classe: 'w-col-titre', id: 'pCorrTitre', texte: 'Correspondance des champs' }),
-        creer('p', { classe: 'w-indice', texte: 'WuitFusion a reconnu ces colonnes. Corrigez si besoin : le document est construit d\'après cette correspondance. « Aucune » retire l\'information du document.' })];
+    var l = [creer('h3', { classe: 'w-col-titre', id: 'pCorrTitre', texte: '2. Quelle colonne pour chaque information' })];
     if (roles.length) {
         l.push(creer('div', { classe: 'w-defile-x' }, [creer('table', { classe: 'w-correspondance', attrs: { 'aria-labelledby': 'pCorrTitre' } }, [
-                creer('thead', {}, [creer('tr', {}, [creer('th', { attrs: { scope: 'col' }, texte: 'Rôle dans le document' }), creer('th', { attrs: { scope: 'col' }, texte: 'Colonne de la table' })])]), tb
+                creer('thead', {}, [creer('tr', {}, [creer('th', { attrs: { scope: 'col' }, texte: 'Information' }), creer('th', { attrs: { scope: 'col' }, texte: 'Colonne de la liste' })])]), tb
             ])]));
     }
     if (miseEnPage(b.layout).lignes) {
@@ -7318,11 +7688,11 @@ function sectionRepliable(cle, titre, enfants, ouvertDefaut) {
 }
 function listeChampsDisponibles() {
     var b = etat.brouillon;
-    var l = [creer('p', { classe: 'w-indice', texte: !b.avance ? 'Cliquez dans la page, puis sur un champ : il s\'insère à la position du curseur.' : 'Cliquez dans un texte de l\'éditeur, puis sur un champ : il s\'insère à la position du curseur.' })];
+    var l = [creer('p', { classe: 'w-indice', texte: !b.avance ? 'Cliquez dans la page, puis sur une colonne : elle s\'insère à la position du curseur.' : 'Cliquez dans un texte de l\'éditeur, puis sur un champ : il s\'insère à la position du curseur.' })];
     optionsChamps(b.table, true).forEach(function (g, kg) {
         l.push(creer('p', { classe: 'w-champs__groupe', texte: g.nom }));
         l.push(creer('ul', { classe: 'w-champs', attrs: { 'aria-label': g.nom } }, g.options.map(function (o, k) {
-            var bt = bouton(o.libelle, 'discret', null, function () { insererChampDepuisPanneau(o.valeur); }, { petit: true, id: 'pChampDispo' + kg + '_' + k, aria: 'Insérer le champ ' + o.libelle });
+            var bt = bouton(o.libelle, 'discret', null, function () { insererChampDepuisPanneau(o.valeur); }, { petit: true, id: 'pChampDispo' + kg + '_' + k, aria: 'Insérer la colonne ' + o.libelle });
             bt.setAttribute('data-valeur', o.valeur);
             bt.addEventListener('mousedown', function (e) { e.preventDefault(); });
             return creer('li', {}, [bt]);
@@ -7375,52 +7745,36 @@ function etapeRediger() {
     if (b.vueType) {
         return etapeChangerType();
     }
-    var courrier = true;
-    b.ouverts = b.ouverts || {};
     var lettre = b.layout === 'letter';
-    var dansPage = courrier && !b.avance;
-    if (b.sections === undefined) {
-        b.sections = lettre && b.mode === 'creation' ? { entete: true } : (b.layout === 'libre' ? { champs: true } : {});
+    b.ouverts = b.ouverts || {};
+    var dansPage = !b.avance;
+    var actions = creer('div', { classe: 'w-texte-actions' }, [
+        bouton(b.avance ? 'Écrire sur la page' : 'Liste des éléments', 'tertiaire', b.avance ? 'edit-line' : 'list-unordered', function () {
+            b.avance = !b.avance;
+            b.vueDonnees = false;
+            redessinerEtape('pAvance');
+            annoncer(b.avance ? 'La liste des éléments, dans le panneau de gauche ; l\'aperçu est à droite.' : 'Écriture sur la page.');
+        }, { petit: true, id: 'pAvance' }),
+        bouton('Changer de type de document', 'tertiaire', 'file-text-line', function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })
+    ]);
+    var contenuGauche;
+    if (dansPage) {
+        contenuGauche = [creer('div', { classe: 'w-elem-zone', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()),
+            creer('section', { classe: 'w-champs-dispo', attrs: { 'aria-labelledby': 'pChampsDispoTitre' } }, [creer('h3', { classe: 'w-c3__titre', id: 'pChampsDispoTitre', texte: 'Colonnes de la liste' })]
+                .concat(listeChampsDisponibles().filter(function (x) { return !(x && x.classList && x.classList.contains('w-indice')); })))];
     }
-    var sections = [];
-    var listeBlocs = function () {
-        return [creer('p', { classe: 'w-indice', texte: 'Les blocs s\'impriment de haut en bas. Ouvrez un bloc pour le modifier ; les flèches changent leur ordre.' }), colonneBlocs()];
-    };
-    if (!courrier) {
-        sections.push(sectionRepliable('blocs', 'Contenu : les blocs', listeBlocs(), true));
+    else {
+        contenuGauche = [creer('div', { classe: 'w-rp-case' }, [caseRepererF()]), creer('div', { id: 'pBlocsAvance' }, [colonneBlocs()])];
     }
-    var logos = [blocLogo()];
-    if (!(b.page && b.page.logoMinistere) && !(b.logos || []).length) {
-        logos.unshift(creer('p', { classe: 'w-indice', id: 'pLogosInvite', texte: 'Aucun logo pour l\'instant : cochez le logo du ministère ou ajoutez le vôtre.' }));
-    }
-    sections.push(sectionRepliable('logos', 'Logos', logos));
-    if (lettre) {
-        sections.push(sectionRepliable('entete', 'En-tête et signature', [panneauEnteteCourrier()]));
-    }
-    sections.push(sectionRepliable('mep', 'Mise en page', [contenuMiseEnPage()]));
-    sections.push(sectionRepliable('fichier', 'Nom des fichiers', [champNomFichier()]));
-    sections.push(sectionRepliable('champs', 'Champs disponibles', listeChampsDisponibles()));
-    sections.push(sectionRepliable('reference', 'Numérotation automatique (chrono)', [panneauReference()]));
-    if (courrier) {
-        sections.push(sectionRepliable('avance', 'Mise en page avancée', [creer('p', { classe: 'w-indice', texte: b.avance ? 'La liste des blocs, ci-dessous ; l\'aperçu est à droite.' : 'La liste des blocs, dans ce panneau, à la place de l\'écriture sur la page.' }),
-            creer('div', { classe: 'w-liens' }, [bouton(b.avance ? 'Revenir à l\'écriture dans la page' : 'Afficher les blocs', 'tertiaire', b.avance ? 'mail-line' : 'list-unordered', function () {
-                    b.avance = !b.avance;
-                    b.vueDonnees = false;
-                    redessinerEtape('pAvance');
-                    annoncer(b.avance ? 'Mise en page avancée : la liste des blocs, dans le panneau.' : 'Écriture dans la page.');
-                }, { petit: true, id: 'pAvance' })])].concat(b.avance ? [creer('div', { id: 'pBlocsAvance' }, listeBlocs())] : []), b.avance));
-    }
-    sections.push(sectionRepliable('type', 'Type de document', [creer('p', { classe: 'w-texte w-mention', texte: nomMiseEnPage(b.layout) + '.' }),
-        creer('div', { classe: 'w-liens' }, [bouton('Changer de type de document', 'tertiaire', 'file-text-line', function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })])]));
     var evitement = creer('a', { classe: 'w-evitement', attrs: { href: '#pDocument' }, texte: 'Aller au document' });
     evitement.addEventListener('click', function (e) { e.preventDefault(); var d = document.getElementById('pDocument'); if (d) {
         d.focus();
     } });
     rpBrancher();
-    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages du document' } }, [evitement, b.mode === 'creation' ? blocNomDocument() : null, creer('div', { classe: 'w-rp-case' }, [caseRepererF()]), dansPage ? creer('div', { classe: 'w-elem-zone', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()) : null].concat(sections));
+    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': dansPage ? 'Réglages de l\'élément choisi' : 'Liste des éléments' } }, [evitement].concat(contenuGauche));
     var droite = dansPage ? editeurCourrier() : apercuRedaction();
-    var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': dansPage ? (lettre ? 'Le courrier, modifiable dans la page' : 'La page, modifiable') : 'Aperçu en direct du document' } }, [alerteImportWord(b), barreAfficher(courrier && !b.avance),
-        creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }, [creer('p', { classe: 'w-indice', texte: 'Vérification des lignes…' })]), droite]);
+    var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': dansPage ? (lettre ? 'Le courrier, modifiable dans la page' : 'La page, modifiable') : 'Aperçu en direct du document' } }, [alerteImportWord(b), actions, barreAfficher(dansPage),
+        creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }), droite]);
     return creer('div', { classe: 'w-rediger' }, [aside, main]);
 }
 function apercuRedaction() {
@@ -7489,6 +7843,9 @@ function majApercuBrouillon() {
 function rendreApercuBrouillon() {
     if (document.getElementById('pCourrier')) {
         rendreCourrier();
+    }
+    if (document.getElementById('aApercuCorps')) {
+        majApercu();
     }
     var zone = document.getElementById('pApercuB');
     var b = etat.brouillon;
@@ -7812,7 +8169,7 @@ function blocLignesConcernees() {
     } marquerTouche(); redessinerEtape('pFiltreDoc'); });
     var l = [creer('legend', { classe: 'fr-fieldset__legend w-fs__legende', texte: 'Lignes concernées' }), groupeChamp('Documents imprimés', s, 'Les listes « Une ligne » et « Plusieurs lignes » ne montrent que les lignes concernées.')];
     if (f.op) {
-        var ch = selectChamps('pFiltreDocCol', b.table, f.path || '', false, 'Choisir un champ…');
+        var ch = selectChamps('pFiltreDocCol', b.table, f.path || '', false, 'Choisir une colonne…');
         ch.addEventListener('change', function () { b.filtre.path = ch.value; marquerTouche(); majApercuBrouillon(); });
         var ligne = [groupeChamp('Champ', ch)];
         if (f.op === 'equals' || f.op === 'differs') {
@@ -8859,7 +9216,7 @@ function calculerAlertesVerif() {
         ligne('alerte', 'warning-line', [creer('p', { classe: 'w-verif__titre', texte: 'Plus d\'une page' }), creer('p', { id: 'pAlerteLongues', texte: 'Le document dépasse une page pour ' + pluriel(r.longues.length, 'ligne') + ' : ' + listeNoms(r.longues) + '.' })]);
     }
     if (!r.vides.length && !r.longues.length) {
-        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Aucun champ vide, et chaque document tient sur une page.' })]);
+        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Aucune colonne vide, et chaque document tient sur une page.' })]);
     }
     if (r.nb > Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) {
         zone.appendChild(creer('p', { classe: 'w-indice', texte: 'Vérification faite sur les ' + formaterNombre(Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) + ' premières lignes pour les pages, ' + formaterNombre(VERIF_MAX_LIGNES) + ' pour les champs.' }));
@@ -8870,7 +9227,7 @@ function planifierVerif() {
     clearTimeout(_minutVerif);
     _minutVerif = setTimeout(function () {
         var b = etat.brouillon;
-        if (!b || b.etape !== ETAPE_FINALE) {
+        if (!b || (b.etape !== ETAPE_FINALE && b.etape !== ETAPE_TEXTE)) {
             return;
         }
         var champ = document.getElementById('pNomDoc');
@@ -8973,7 +9330,7 @@ function validerEtapeSilencieuse(n) {
     if (n === 2) {
         return !!b.table && !!etat.meta.tables[b.table];
     }
-    if (n === 3) {
+    if (n === ETAPE_TEXTE) {
         return (b.blocks || []).length > 0;
     }
     return true;
@@ -9025,7 +9382,7 @@ async function ouvrirEdition() {
         return;
     }
     var c = JSON.parse(JSON.stringify(etat.config));
-    var b = { mode: 'edition', etape: 1, etapeMax: 3, ligne: etat.biblioLigne, cle: etat.cleConfig, touche: true, creees: [], opts: optionsVariante(c.opts),
+    var b = { mode: 'edition', etape: 1, etapeMax: ETAPES_PARAM.length, retouches: !!c.retouches, ligne: etat.biblioLigne, cle: etat.cleConfig, touche: true, creees: [], opts: optionsVariante(c.opts),
         name: c.name, table: c.table, labelCol: c.labelCol, layout: c.layout || 'record', blocks: c.blocks, page: c.page, writeBack: c.writeBack || { enabled: false, col: null },
         logos: (Array.isArray(c.logos) ? c.logos : (c.logo ? [c.logo] : [])).map(function (id) { return { id: id }; }), sampleId: c.sampleId || etat.idCourant || null, filtre: c.filtre || null, nomFichier: c.nomFichier || '' };
     if (c.modeleWord && typeof c.modeleWord.id === 'number') {
@@ -9050,7 +9407,7 @@ function etapeGeneral() {
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'pSecDoc', texte: 'Le document' })]),
         champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); }),
         creer('p', { classe: 'w-mention', texte: 'Table utilisée : « ' + libelleTable(b.table) + ' ».' }),
-        creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { return allerEtape(4); }, { petit: true, id: 'aVersDroits' })])
+        creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { return allerEtape(ETAPE_DROITS); }, { petit: true, id: 'aVersDroits' })])
     ]);
     var danger = blocSupprimer('Supprimer le modèle de document', 'Le modèle disparaît des onglets et ses réglages sont effacés. Vos tables et leurs lignes restent dans le document.', supprimerDocument);
     return grilleParam([[section], [danger]], '2-1');
@@ -9445,7 +9802,7 @@ function changeurType(lst, k, dedans) {
         rafraichirBlocs('pType' + nb.id);
         annoncer('Bloc transformé : ' + typeBloc(nb.type).nom + '.');
     });
-    return groupeChamp('Type du bloc', s);
+    return groupeChamp('Type de l\'élément', s);
 }
 function ouvrirSeul(id) {
     var b = etat.brouillon;
@@ -9492,8 +9849,8 @@ function paletteBlocs(lst, dedans, id, exclus) {
         sp.addEventListener('change', function () { b.positionInsertion = sp.value; });
         position = groupeChamp('Où le placer', sp);
     }
-    return creer('section', { classe: 'w-section', id: id, attrs: { 'aria-label': dedans ? 'Ajouter un bloc à cette colonne' : 'Ajouter un bloc' } }, [
-        creer('h3', { classe: dedans ? 'w-sous-blocs__h' : 'fr-h6 fr-m-0', texte: dedans ? 'Ajouter à cette colonne' : 'Ajouter un bloc' }), position, grille,
+    return creer('section', { classe: 'w-section', id: id, attrs: { 'aria-label': dedans ? 'Ajouter un élément à cette colonne' : 'Ajouter un élément' } }, [
+        creer('h3', { classe: dedans ? 'w-sous-blocs__h' : 'fr-h6 fr-m-0', texte: dedans ? 'Ajouter à cette colonne' : 'Ajouter un élément' }), position, grille,
         !dedans && aPied ? creer('p', { classe: 'w-indice', texte: 'Le document a déjà un pied de page : il se répète en bas de chaque page.' }) : null
     ]);
 }
@@ -9607,7 +9964,7 @@ function segmentAlign(bl, cle, avecPage, avecJustifie) {
 function optionsChamps(tid, speciaux) {
     var groupes = [];
     var cols = colonnesUtiles(tid);
-    groupes.push({ nom: 'Champs de ' + libelleTable(tid), options: cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }) });
+    groupes.push({ nom: 'Colonnes de la liste', options: cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }) });
     cols.forEach(function (c) {
         if (String(c.type).indexOf('Ref:') !== 0 && String(c.type).indexOf('RefList:') !== 0) {
             return;
@@ -9675,7 +10032,7 @@ function fermerSuggestions() { if (_suggestOuverte) {
 function listeSuggestions(o) {
     fermerSuggestions();
     var boite = creer('div', { classe: 'w-suggest', id: o.id });
-    var tx = o.textes || { liste: 'Champs à insérer', filtre: 'Filtrer les champs', vide: 'Aucun champ ne correspond.', un: 'champ proposé', plusieurs: 'champs proposés' };
+    var tx = o.textes || { liste: 'Colonnes à insérer', filtre: 'Chercher une colonne', vide: 'Aucune colonne ne correspond.', un: 'colonne proposée', plusieurs: 'colonnes proposées' };
     var liste = creer('ul', { classe: 'w-suggest__liste', id: o.id + 'Liste', attrs: { role: 'listbox', 'aria-label': tx.liste } });
     var etatL = creer('p', { classe: 'fr-sr-only', id: o.id + 'Etat', attrs: { role: 'status', 'aria-live': 'polite' } });
     var filtre = null;
@@ -9857,7 +10214,7 @@ function champTexteRiche(bl, cle, libelle, o) {
         memo.d = pos;
         memo.f = pos;
         champ.dispatchEvent(new Event('input'));
-        annoncer('Champ ' + libelleChemin(tid, valeur) + ' inséré.');
+        annoncer('Colonne ' + libelleChemin(tid, valeur) + ' insérée.');
     };
     champ.addEventListener('input', function (e) {
         bl[cle] = champ.value;
@@ -9903,7 +10260,7 @@ function champTexteRiche(bl, cle, libelle, o) {
             fermerSuggestions();
         } }, 0);
     });
-    btnChamp = bouton('Insérer un champ', 'secondaire', 'add-line', function () {
+    btnChamp = bouton('Insérer une colonne de la liste', 'secondaire', 'add-line', function () {
         if (_suggestOuverte && document.getElementById(id + 'Sugg')) {
             fermerSuggestions();
             return;
@@ -9950,7 +10307,7 @@ function champTexteRiche(bl, cle, libelle, o) {
     }
     return creer('div', { classe: 'fr-input-group w-champ-texte' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, o.aide ? creer('span', { classe: 'fr-hint-text', texte: o.aide }) : null]),
         creer('div', { classe: 'fr-mt-1v' }, [outils]), champ,
-        creer('p', { classe: 'fr-sr-only', id: id + 'Aide', texte: 'Tapez une accolade ouvrante pour insérer un champ.' }), alerteChamps]);
+        creer('p', { classe: 'fr-sr-only', id: id + 'Aide', texte: 'Tapez une accolade ouvrante pour insérer une colonne de la liste.' }), alerteChamps]);
 }
 var TAILLES = [{ valeur: 'S', libelle: 'Petite' }, { valeur: 'M', libelle: 'Moyenne' }, { valeur: 'L', libelle: 'Grande' }, { valeur: 'XL', libelle: 'Très grande' }];
 var POLICES = [{ valeur: 'sans', libelle: 'Marianne (police de l\'État)' }, { valeur: 'serif', libelle: 'Spectral (avec empattements)' }, { valeur: 'arial', libelle: 'Arial' },
@@ -9975,7 +10332,7 @@ function editeurBloc(bl, dedans, o) {
             l.push(creer('div', { classe: 'w-ligne2' }, [segmentAlign(bl, 'align'), caseBloc(bl, 'spaced', 'Lettres espacées')]));
             break;
         case 'paragraph':
-            l.push(surPage ? null : champTexteRiche(bl, 'text', 'Texte', { lignes: 5, aide: 'Tapez « { » pour insérer un champ. Une ligne vide commence un nouveau paragraphe. Une ligne qui commence par « • » et une espace est une puce. Une ligne faite seulement de champs vides est sautée. {Colonne date|longue} donne une date en toutes lettres.' }));
+            l.push(surPage ? null : champTexteRiche(bl, 'text', 'Texte', { lignes: 5, aide: 'Tapez « { » pour insérer une colonne de la liste. Une ligne vide commence un nouveau paragraphe. Une ligne qui commence par « • » et une espace est une puce. Une ligne faite seulement de champs vides est sautée. {Colonne date|longue} donne une date en toutes lettres.' }));
             l.push(creer('div', { classe: 'w-ligne2' }, [choixListe(bl, 'size', 'Taille', TAILLES_TEXTE), choixListe(bl, 'color', 'Couleur', COULEURS_TEXTE), segmentAlign(bl, 'align', false, true)]));
             break;
         case 'fields':
@@ -10081,7 +10438,7 @@ function editeurChamps(bl) {
     });
     return [ul,
         creer('div', { classe: 'w-liens' }, [
-            bouton('Ajouter un champ', 'secondaire', 'add-line', function () {
+            bouton('Ajouter une colonne', 'secondaire', 'add-line', function () {
                 var pris = bl.items.map(function (x) { return x.path; });
                 var c = colonnesUtiles(b.table).filter(function (x) { return pris.indexOf(x.colId) === -1 && x.type !== 'Attachments'; })[0] || colonnesUtiles(b.table)[0];
                 if (c) {
@@ -10353,7 +10710,7 @@ function editeurLignes(bl) {
 }
 function filtreLignesBloc(bl) {
     var f = bl.filtre || { op: '' };
-    var s = liste(idEd(bl, 'filtre'), CONDITIONS.map(function (x) { return { valeur: x.op, libelle: x.op ? x.nom.replace('Seulement si un champ', 'Seulement les lignes où un champ').replace('Seulement si une case', 'Seulement les lignes où une case') : 'Toutes les lignes' }; }), f.op || '');
+    var s = liste(idEd(bl, 'filtre'), CONDITIONS.map(function (x) { return { valeur: x.op, libelle: x.op ? x.nom.replace('Seulement si une colonne', 'Seulement les lignes où un champ').replace('Seulement si une case', 'Seulement les lignes où une case') : 'Toutes les lignes' }; }), f.op || '');
     s.addEventListener('change', function () { if (!s.value) {
         delete bl.filtre;
     }
@@ -10362,7 +10719,7 @@ function filtreLignesBloc(bl) {
     } changeBloc(); rafraichirBlocs(idEd(bl, 'filtre')); });
     var l = [groupeChamp('Lignes imprimées', s)];
     if (f.op) {
-        var ch = selectChamps(idEd(bl, 'filtreCol'), bl.table, f.path || '', false, 'Choisir un champ…');
+        var ch = selectChamps(idEd(bl, 'filtreCol'), bl.table, f.path || '', false, 'Choisir une colonne…');
         ch.addEventListener('change', function () { bl.filtre.path = ch.value; changeBloc(); relayer(assurerDonneesBrouillon(), 'Filtre des lignes'); });
         var ligne = [groupeChamp('Champ', ch)];
         if (f.op === 'equals' || f.op === 'differs') {
@@ -10555,7 +10912,7 @@ function ouvrirFormatPastille(z, p) {
     var tid = etat.brouillon.table;
     var formats = formatsChamp(tid, chemin);
     if (!formats.length) {
-        annoncer('Ce champ n\'a pas d\'autre format.');
+        annoncer('Cette colonne n\'a pas d\'autre format.');
         return;
     }
     var pills = Array.prototype.slice.call(z.el.querySelectorAll('.w-pastille'));
@@ -10689,7 +11046,7 @@ function editeurCondition(bl) {
         }
         refaire(idEd(bl, 'cond'));
     });
-    var l = [groupeChamp('Afficher ce bloc', s)];
+    var l = [groupeChamp('Imprimer cet élément', s)];
     if (!actif) {
         return creer('div', { classe: 'w-condition' }, l);
     }
@@ -10702,12 +11059,12 @@ function editeurCondition(bl) {
     }
     regles.forEach(function (r, k) {
         var suf = k ? String(k) : '';
-        var champs = selectChamps(idEd(bl, 'condCol' + suf), b.table, r.path || '', false, 'Choisir un champ…');
+        var champs = selectChamps(idEd(bl, 'condCol' + suf), b.table, r.path || '', false, 'Choisir une colonne…');
         champs.addEventListener('change', function () { r.path = champs.value; changeBloc(); });
         var ops = liste(idEd(bl, 'condOp' + suf), OPERATEURS_COND.map(function (o) { return { valeur: o.op, libelle: o.nom }; }), r.op || 'filled');
         ops.addEventListener('change', function () { r.op = ops.value; refaire(idEd(bl, 'condOp' + suf)); });
         var def = OPERATEURS_COND.filter(function (o) { return o.op === r.op; })[0] || OPERATEURS_COND[0];
-        var ligne = [groupeChamp(k ? 'Champ (condition ' + (k + 1) + ')' : 'Champ', champs), groupeChamp('Condition', ops)];
+        var ligne = [groupeChamp(k ? 'Colonne (condition ' + (k + 1) + ')' : 'Colonne', champs), groupeChamp('Condition', ops)];
         if (def.valeur) {
             var v = saisie(idEd(bl, 'condVal' + suf), r.value || '', { indice: r.op === 'gt' || r.op === 'lt' ? '1000' : 'Payée' });
             v.addEventListener('input', function () { r.value = v.value; changeBloc(); });
@@ -10740,10 +11097,10 @@ function editeurCondition(bl) {
     if (bl.type !== 'footer') {
         var sinon = saisie(idEd(bl, 'condSinon'), c.sinon || '', { indice: 'Non concerné' });
         sinon.addEventListener('input', function () { c.sinon = sinon.value; changeBloc(); });
-        l.push(groupeChamp('Sinon, imprimer à la place', sinon, 'Les champs s\'écrivent entre accolades : {Nom}.'));
+        l.push(groupeChamp('Sinon, imprimer à la place', sinon, 'Les colonnes s\'écrivent entre accolades : {Nom}.'));
     }
     if (!reglesCondition(c).length) {
-        l.push(creer('p', { classe: 'w-indice', texte: 'Tant qu\'aucun champ n\'est choisi, le bloc est toujours affiché.' }));
+        l.push(creer('p', { classe: 'w-indice', texte: 'Tant qu\'aucune colonne n\'est choisie, l\'élément est toujours imprimé.' }));
     }
     return creer('div', { classe: 'w-condition' }, l);
 }
@@ -10983,7 +11340,7 @@ function libellePastille(tid, v) {
 }
 function pastilleChamp(v, tid) {
     var l = libellePastille(tid, v);
-    return creer('span', { classe: 'w-pastille' + (l.inconnu ? ' w-pastille--inconnue' : ''), attrs: { contenteditable: 'false', 'data-champ': v } }, [creer('span', { classe: 'fr-sr-only', texte: l.inconnu ? 'champ inconnu ' : 'champ ' }), l.texte]);
+    return creer('span', { classe: 'w-pastille' + (l.inconnu ? ' w-pastille--inconnue' : ''), attrs: { contenteditable: 'false', 'data-champ': v } }, [creer('span', { classe: 'fr-sr-only', texte: l.inconnu ? 'colonne inconnue ' : 'colonne ' }), l.texte]);
 }
 function remplirZone(zone, pars, tid, titre) {
     vider(zone);
@@ -11429,7 +11786,7 @@ function texteLisibleAtomes(premier, a) {
     return s;
 }
 function estZoneCourrier(bl) { return !!bl && (bl.type === 'paragraph' || bl.type === 'heading'); }
-var INDICE_PAGE_BLANCHE = 'Écrivez ici. Tapez { pour insérer un champ.';
+var INDICE_PAGE_BLANCHE = 'Écrivez ici. Tapez { pour insérer une colonne de la liste.';
 function nomsZonesCourrier(blocs, layout) {
     var noms = {};
     var zones = (blocs || []).filter(estZoneCourrier);
@@ -11718,7 +12075,7 @@ function insererChampCourrier(z, valeur, sel) {
         return [s.debut + 1, s.debut + 1];
     }, sel);
     if (ok) {
-        annoncer('Champ ' + libellePastille(etat.brouillon.table, valeur).texte + ' inséré.');
+        annoncer('Colonne ' + libellePastille(etat.brouillon.table, valeur).texte + ' insérée.');
     }
     return ok;
 }
@@ -12244,7 +12601,7 @@ function barreOutilsCourrier(info) {
         annoncer('Police du document : ' + POLICES.filter(function (p) { return p.valeur === v; })[0].libelle + '.');
     }));
     elems.push(sep());
-    champ = outil('pOutilChamp', 'Insérer un champ', 'add-line', function () {
+    champ = outil('pOutilChamp', 'Insérer une colonne de la liste', 'add-line', function () {
         if (_suggestOuverte && document.getElementById('pCourrierChamps')) {
             fermerSuggestions();
             return;
@@ -13180,7 +13537,7 @@ function editeurCourrier() {
     var donnees = !!b.vueDonnees;
     var aide = creer('p', { classe: 'fr-sr-only', id: 'pCourrierAide', texte: donnees
             ? (!estTypeLettre(b.layout) ? 'La page' : 'Le courrier') + ' tel' + (!estTypeLettre(b.layout) ? 'le' : '') + ' qu\'il' + (!estTypeLettre(b.layout) ? 'le' : '') + ' sera imprimé' + (!estTypeLettre(b.layout) ? 'e' : '') + ' pour la ligne affichée. Pour écrire, revenez à « Voir les champs ».'
-            : 'Écrivez dans la page. Tapez « { » pour insérer un champ ; Alt+F10 pour la barre d\'outils.' });
+            : 'Écrivez dans la page. Tapez « { » pour insérer une colonne de la liste ; Alt+F10 pour le bandeau.' });
     var info = creer('span', { classe: 'w-mention w-ec-info', id: 'pApercuBInfo', attrs: { 'aria-live': 'polite' } });
     var cadre = creer('div', { classe: 'w-feuilles w-ec-cadre', id: 'pCourrierCadre' }, [creer('div', { classe: 'w-ec-ancre', id: 'pCourrierAncre', attrs: { 'aria-hidden': 'true' } }),
         donnees ? creer('div', { classe: 'w-pages', id: 'pApercuB', attrs: { role: 'region', 'aria-label': (!estTypeLettre(b.layout) ? 'Page' : 'Courrier') + ' avec les données de la ligne affichée' } }) : creer('div', { classe: 'w-ec-page-zone', id: 'pCourrier' })]);
@@ -13392,7 +13749,7 @@ function champNomFichier() {
     var options = [];
     optionsChamps(b.table, false).forEach(function (g) { g.options.forEach(function (o) { options.push({ valeur: o.valeur, libelle: o.libelle }); }); });
     options.push({ valeur: 'aujourdhui', libelle: 'Date du jour' });
-    var sel = liste('pNomFichierChamp', options, '', { vide: 'Insérer un champ…' });
+    var sel = liste('pNomFichierChamp', options, '', { vide: 'Insérer une colonne…' });
     sel.addEventListener('change', function () {
         if (!sel.value) {
             return;
