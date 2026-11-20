@@ -658,7 +658,7 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 </div>
 <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.2';
+var VERSION_WIDGET = '1.7.0';
 var HOMOLOGUE = false;
 var TAILLE_MAX_SVG = 200000;
 function purifierHTML(contenu, usage) {
@@ -1937,6 +1937,7 @@ function modeDepart() {
     if (_cfgPage)
         return;
     basculerModeAdmin(!!_docTableRowMap['ACCES_ADMIN']);
+    setTimeout(function () { cacherAuto().catch(function (e) { logSecurite('INFO', 'Masquage automatique non fait', e); }); }, 300);
     ['btn-mode-admin', 'btn-composer-accueil'].forEach(function (id) {
         var e = document.getElementById(id);
         if (e)
@@ -2172,7 +2173,8 @@ async function ajouterLignePage(badge, valeur, descriptif) {
                 VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]]);
     return ret && ret.retValues ? ret.retValues[0] : null;
 }
-async function reserverPage() {
+async function reserverPage(auto) {
+    auto = auto === true;
     if (_actionPage)
         return;
     _actionPage = true;
@@ -2213,11 +2215,36 @@ async function reserverPage() {
         masquerLoader();
         if (ligne)
             await ecrireDocument([['RemoveRecord', _docTableId, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
+        if (auto) {
+            logSecurite('INFO', 'Masquage automatique de la page non fait', e);
+            return;
+        }
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
     finally {
         _actionPage = false;
     }
+}
+async function cacherAuto() {
+    if (_cfgPage || !_docTableRowMap['ACCES_ADMIN']) {
+        return;
+    }
+    await majPages();
+    if (_cfgPage || _pageProtegee) {
+        return;
+    }
+    var cle = 'wuitdoc-cachee-' + location.pathname + '-' + (_badgePage || '');
+    try {
+        cle += '-' + (await grist.docApi.getDocName());
+        if (localStorage.getItem(cle)) {
+            return;
+        }
+        localStorage.setItem(cle, '1');
+    }
+    catch (eM) {
+        logSecurite('INFO', 'Mémoire du masquage automatique indisponible', eM);
+    }
+    await reserverPage(true);
 }
 function nomParDefaut(page) {
     return page === NOM_PAGE_ACCUEIL ? NOM_PAGE_ACCUEIL : '📄 ' + page;
@@ -2471,7 +2498,7 @@ function rendreCacher() {
     if (!z)
         return;
     vider(z);
-    var r = aideI('dpAideCacher', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'onglet « Les droits ». Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aideI('dpAideCacher', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il le fait tout seul à la première ouverture par un administrateur. La règle d\'accès à poser sur cette table est dans l\'onglet « Les droits ». Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     z.appendChild(creer('span', { classe: (_pageProtegee ? 'fr-icon-eye-off-line' : 'fr-icon-eye-line') + ' dp-cacher__icone', attrs: { 'aria-hidden': 'true' } }));
     z.appendChild(creer('p', { classe: 'w-texte dp-cacher__texte' }, [_pageProtegee ? 'Cette page de documentation est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page de documentation est visible par tous.', ' ', r.bouton]));
     if (!_pageProtegee)
