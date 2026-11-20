@@ -664,7 +664,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.1';
+var VERSION_WIDGET = '1.10.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5499,6 +5499,10 @@ function rendreTuile(t, o) {
         }
         var bCsv = creer('button', { classe: 'gb-outil fr-icon-download-line w-infobulle w-infobulle--dessous', attrs: { 'aria-label': 'Exporter en CSV : ' + (t.titre || ''), 'data-infobulle': 'Exporter en CSV' } });
         bCsv.addEventListener('click', function () { exporterTuile(t); });
+        var icoImg = iconeDispo(['image-line', 'file-image-line', 'file-copy-line']);
+        var bImg = creer('button', { classe: 'gb-outil fr-icon-' + icoImg + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Copier l\'image : ' + (t.titre || ''), 'data-infobulle': 'Copier l\'image' } });
+        bImg.addEventListener('click', function () { relayer(copierImageTuile(t, art), 'Copie de l\'image'); });
+        outils.appendChild(bImg);
         outils.appendChild(bCsv);
         tete.appendChild(outils);
     }
@@ -6683,6 +6687,107 @@ function iconeDispo(candidats) {
     }
     _iconesVues[cle] = choisi;
     return choisi;
+}
+/* Copier une tuile en image, pour la coller dans une messagerie ou un document */
+function copierStyles(source, cible) {
+    var cs = getComputedStyle(source);
+    var t = '';
+    for (var i = 0; i < cs.length; i++) {
+        var p = cs[i];
+        if (p.indexOf('--') === 0 || p === 'cursor' || p.indexOf('transition') === 0 || p.indexOf('animation') === 0) {
+            continue;
+        }
+        t += p + ':' + cs.getPropertyValue(p) + ';';
+    }
+    cible.setAttribute('style', t);
+    var ks = source.children, kc = cible.children;
+    for (var k = 0; k < ks.length && k < kc.length; k++) {
+        copierStyles(ks[k], kc[k]);
+    }
+}
+function imageDeNoeud(el, echelle) {
+    return new Promise(function (resolve, reject) {
+        var r = el.getBoundingClientRect();
+        var l = Math.ceil(r.width), h = Math.ceil(r.height);
+        if (!l || !h) {
+            reject(new Error('Élément sans taille'));
+            return;
+        }
+        var clone = el.cloneNode(true);
+        copierStyles(el, clone);
+        Array.prototype.forEach.call(clone.querySelectorAll('.gb-tuile__outils, .gb-barre-edition, button'), function (x) { if (x.parentNode) {
+            x.parentNode.removeChild(x);
+        } });
+        clone.style.margin = '0';
+        clone.style.width = l + 'px';
+        clone.style.height = h + 'px';
+        clone.style.boxShadow = 'none';
+        var conteneur = document.createElement('div');
+        conteneur.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+        conteneur.appendChild(clone);
+        var html = new XMLSerializer().serializeToString(conteneur);
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + l + '" height="' + h + '"><foreignObject x="0" y="0" width="100%" height="100%">' + html + '</foreignObject></svg>';
+        var img = new Image();
+        img.onload = function () {
+            try {
+                var e = echelle || 2;
+                var c = document.createElement('canvas');
+                c.width = l * e;
+                c.height = h * e;
+                var ctx = c.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, c.width, c.height);
+                ctx.scale(e, e);
+                ctx.drawImage(img, 0, 0);
+                c.toBlob(function (bl) { if (bl) {
+                    resolve(bl);
+                }
+                else {
+                    reject(new Error('Image non produite'));
+                } }, 'image/png');
+            }
+            catch (x) {
+                reject(x);
+            }
+        };
+        img.onerror = function () { reject(new Error('Image illisible')); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+}
+function nomFichierImage(t) {
+    var n = String((t && t.titre) || 'tuile').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    return (n || 'tuile') + '.png';
+}
+function telechargerImage(blob, nom) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = nom;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+function copierImageTuile(t, art) {
+    var promesse = imageDeNoeud(art, 2);
+    var copie = null;
+    try {
+        if (navigator.clipboard && typeof navigator.clipboard.write === 'function' && typeof ClipboardItem === 'function') {
+            copie = navigator.clipboard.write([new ClipboardItem({ 'image/png': promesse })]);
+        }
+    }
+    catch (e) {
+        copie = null;
+    }
+    var repli = function (raison) {
+        logSecurite('INFO', 'Copie de l\'image refusée, téléchargement à la place', raison);
+        return promesse.then(function (bl) {
+            telechargerImage(bl, nomFichierImage(t));
+            afficherSucces('Image téléchargée : glissez-la dans votre message.');
+        });
+    };
+    var suite = copie ? copie.then(function () { afficherSucces('Image copiée : collez-la dans votre message avec Ctrl+V.'); }, repli) : repli(null);
+    return suite.catch(function (e) { afficherErreur('L\'image n\'a pas pu être produite.', e); });
 }
 async function copierTexte(t, champ, message) {
     try {
@@ -9598,6 +9703,7 @@ var AIDE = {
         { q: 'Comment montrer un tableau de bord sans les paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Où les lecteurs la voient », puis « Publier sur une nouvelle page ». La nouvelle page montre le tableau de bord sans aide ni paramétrages, avec son propre titre de bandeau, ses conditions fixes et les filtres que vous laissez aux lecteurs.' },
         { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les tableaux de bord : la page disparaît de leur liste des pages.' },
         { q: 'Les conditions d\'une page de consultation protègent-elles les données ?', r: 'Non : elles règlent ce que la page montre. Une personne qui a accès aux tables par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les tables.' },
+        { q: 'Comment coller un graphique dans Tchap, un courriel ou un document ?', r: 'Icône « Copier l\'image » en haut à droite de la tuile, puis Ctrl+V (ou Cmd+V) dans le message. Si le navigateur refuse la copie, l\'image est téléchargée : glissez-la dans le message.' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du volet de gauche, en A4 à l\'italienne, avec le rappel des filtres appliqués. L\'icône voisine enregistre en PDF.' }
     ]
 };
