@@ -889,6 +889,15 @@
     .w-grille--trois > .w-grille__col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
     @media (max-width: 62em) { .w-grille--trois { grid-template-columns: minmax(0, 1fr); } }
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .w-grille--1 { grid-template-columns: minmax(0, 1fr); }
+    .w-grille--1-1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .w-grille__col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    .w-blocs > .w-grille + .w-grille { padding-top: 0; }
+    @media (max-width: 62em) { .w-grille--1-1, .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
+    :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
+    :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
 </style>
 </head>
 <body>
@@ -936,7 +945,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.11.1';
+var VERSION_WIDGET = '1.12.0';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -5605,18 +5614,21 @@ function piedEtape(noms, n, aller) {
    precede d'un numero. Les colonnes des editeurs sont decoupees a chaque
    titre. */
 function enBlocs(noeuds, deux) {
-  var grille = creer('div', { classe: 'w-grille' + (deux ? ' w-grille--2' : '') });
+  /* Mise en page commune de la serie : des colonnes explicites qui partent
+     toutes du haut. Un tableau dans la liste = plusieurs blocs empiles dans
+     la meme colonne. Un seul groupe : ses rubriques sont rangees dans
+     l ordre, colonne par colonne ; un bloc large prend toute la largeur. */
   var n = 0;
-  var colonnes = [];
+  var groupes = [];
   noeuds.forEach(function (x) {
     if (!x) { return; }
-    if (x.classList.contains('w-grille-param')) { Array.prototype.slice.call(x.children).forEach(function (c) { colonnes.push(c); }); }
-    else { colonnes.push(x); }
+    if (Array.isArray(x)) { groupes.push(x.filter(Boolean)); return; }
+    if (x.classList.contains('w-grille-param')) { Array.prototype.slice.call(x.children).forEach(function (c) { groupes.push([c]); }); }
+    else { groupes.push([x]); }
   });
   var estTitre = function (ch) { return !!(ch.firstChild && ch.firstChild.classList && ch.firstChild.classList.contains('w-titre-colonne-ligne')); };
   var nouvelle = function (titreDiv) {
     var sec = creer('section', { classe: 'w-section' });
-    grille.appendChild(sec);
     var h = titreDiv ? titreDiv.querySelector('.w-titre-colonne') : null;
     if (h) {
       n++;
@@ -5628,21 +5640,45 @@ function enBlocs(noeuds, deux) {
     }
     return sec;
   };
-  var marquer = function (sec) { if (sec.querySelector('.w-jeux, .w-tableau-simple')) { sec.classList.add('w-section--large'); } };
-  colonnes.forEach(function (col) {
+  var large = function (sec) { return !!sec.querySelector('.w-jeux, .w-tableau-simple, .w-conditions'); };
+  var sectionsDe = function (col) {
+    var out = [];
     var enfants = Array.prototype.slice.call(col.children);
     var titres = enfants.filter(estTitre);
-    /* Une seule rubrique : la colonne entiere entre dans sa section (elle
-       peut se redessiner elle-meme, comme la legende). */
-    if (titres.length <= 1) { var s1 = nouvelle(titres[0]); s1.appendChild(col); marquer(s1); return; }
+    if (titres.length <= 1) { var s1 = nouvelle(titres[0]); s1.appendChild(col); out.push(s1); return out; }
     var sec = null;
     enfants.forEach(function (ch) {
-      if (estTitre(ch) || !sec) { if (sec) { marquer(sec); } sec = nouvelle(estTitre(ch) ? ch : null); }
+      if (estTitre(ch) || !sec) { sec = nouvelle(estTitre(ch) ? ch : null); out.push(sec); }
       sec.appendChild(ch);
     });
-    if (sec) { marquer(sec); }
+    return out;
+  };
+  var grille = function (cols, gab) {
+    return creer('div', { classe: 'w-grille w-grille--' + gab }, cols.map(function (c) { return creer('div', { classe: 'w-grille__col' }, c); }));
+  };
+  if (groupes.length > 1) {
+    var cols = groupes.map(function (g) { var l = []; g.forEach(function (c) { l = l.concat(sectionsDe(c)); }); return l; });
+    return grille(cols, cols.length >= 3 ? '1-1-1' : (deux ? '2' : '1-1'));
+  }
+  var secs = [];
+  (groupes[0] || []).forEach(function (c) { secs = secs.concat(sectionsDe(c)); });
+  var bloc = creer('div', { classe: 'w-blocs' });
+  var lot = [];
+  var rangerLot = function () {
+    if (!lot.length) { return; }
+    var k = Math.min(lot.length, 3);
+    var par = Math.ceil(lot.length / k);
+    var cs = [];
+    for (var i = 0; i < lot.length; i += par) { cs.push(lot.slice(i, i + par)); }
+    bloc.appendChild(grille(cs, cs.length === 3 ? '1-1-1' : (cs.length === 2 ? '1-1' : '1')));
+    lot = [];
+  };
+  secs.forEach(function (s) {
+    if (large(s)) { rangerLot(); bloc.appendChild(grille([[s]], '1')); }
+    else { lot.push(s); }
   });
-  return grille;
+  rangerLot();
+  return bloc.children.length === 1 ? bloc.firstChild : bloc;
 }
 
 /* === SECTION : EDITEURS PARTAGES (creation et parametrage) ===
@@ -6058,8 +6094,8 @@ function rendreCreation() {
     bloc.appendChild(enBlocs([colNom, colDepart]));
   }
   if (c.etape === 2) {
-    bloc.appendChild(enBlocs([editeurJeux(c, function (cle) { appliquerJeuCreation(c, cle); rendreCreation(); var f = document.getElementById('cJeu_' + cle); if (f) { f.focus(); } annoncer('Jeu de couleurs « ' + JEUX_COULEURS.filter(function (j) { return j.cle === cle; })[0].nom + ' » appliqué.'); }, 'cJeu'),
-      editeurLegende(c, function () {}, 'cLeg'), blocApercu(c)], true));
+    bloc.appendChild(enBlocs([[editeurJeux(c, function (cle) { appliquerJeuCreation(c, cle); rendreCreation(); var f = document.getElementById('cJeu_' + cle); if (f) { f.focus(); } annoncer('Jeu de couleurs « ' + JEUX_COULEURS.filter(function (j) { return j.cle === cle; })[0].nom + ' » appliqué.'); }, 'cJeu'),
+      editeurLegende(c, function () {}, 'cLeg')], blocApercu(c)], true));
   }
   if (c.etape === 3) { bloc.appendChild(enBlocs([editeurFiche(c, rien, 'cFiche')])); }
   if (c.etape === 4) { bloc.appendChild(enBlocs([editeurAffichage(c, rien, 'cAff')])); }
@@ -6485,20 +6521,10 @@ function rendreParametrage() {
     bouton('Retour à ' + t.nom, 'secondaire', 'arrow-go-back-line', quitterParametrage, { petit: true, id: 'pRetour' })]));
   bloc.appendChild(filAriane(ETAPES_PARAM, p.etape, aller));
   if (p.etape === 0) {
-    var gen = etapeGeneral(t).children, pgs = colonnesPages();
-    var groupes = [[gen[0]], pgs, [gen[1]]];
-    groupes.forEach(function (g, k) { g.forEach(function (c) { Array.prototype.forEach.call(c.children, function (x) { x.setAttribute('data-groupe', String(k)); }); }); });
-    var grilleG = enBlocs([gen[0]].concat(pgs, [gen[1]]));
-    var cols = [[], [], []];
-    Array.prototype.slice.call(grilleG.children).forEach(function (x) {
-      x.classList.remove('w-section--large');
-      var m = x.querySelector('[data-groupe]');
-      cols[m ? Number(m.getAttribute('data-groupe')) : 0].push(x);
-    });
-    var trois = creer('div', { classe: 'w-grille w-grille--trois' }, cols.map(function (c) { return creer('div', { classe: 'w-grille__col' }, c); }));
-    bloc.appendChild(trois);
+    var gen = etapeGeneral(t).children;
+    bloc.appendChild(enBlocs([gen[0], colonnesPages(), gen[1]]));
   }
-  if (p.etape === 1) { bloc.appendChild(enBlocs([editeurJeux(t, function (cle) { return appliquerJeuTableau(t, cle); }, 'pJeu'), editeurLegende(t, enregistrerReglages, 'pLeg'), blocApercu(t)], true)); }
+  if (p.etape === 1) { bloc.appendChild(enBlocs([[editeurJeux(t, function (cle) { return appliquerJeuTableau(t, cle); }, 'pJeu'), editeurLegende(t, enregistrerReglages, 'pLeg')], blocApercu(t)], true)); }
   if (p.etape === 2) { bloc.appendChild(enBlocs([editeurFiche(t, enregistrerReglages, 'pFiche')])); }
   if (p.etape === 3) { bloc.appendChild(enBlocs([editeurAffichage(t, enregistrerReglages, 'pAff')])); }
   if (p.etape === 4) { bloc.appendChild(contenuDroits()); }
