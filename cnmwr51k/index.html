@@ -669,6 +669,7 @@
     .w-fil__item .w-fil__titre { flex: 0 1 auto; }
     .w-fil__item .w-fil__meta { margin-left: auto; white-space: nowrap; }
     .w-fil__item .w-fil__actions { flex-basis: 100%; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
 </style>
 </head>
 <body>
@@ -724,7 +725,59 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.4';
+var VERSION_WIDGET = '1.4.5';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplohistorique';
 var TITRE_DEFAUT = '📜 WuitHistorique';
@@ -998,7 +1051,7 @@ async function chargerMeta() {
         var info = { ref: c.id[j], tableRef: c.parentId[j], tableId: tidC, colId: c.colId[j], type: c.type[j] || 'Any', label: c.label ? (c.label[j] || c.colId[j]) : c.colId[j],
             formule: Boolean(c.isFormula[j]) && Boolean(c.formula[j]), formula: c.formula[j] || '', formuleVide: Boolean(c.isFormula[j]) && !c.formula[j],
             declencheur: !c.isFormula[j] && Boolean(c.formula[j]), recalcWhen: c.recalcWhen ? c.recalcWhen[j] : 0,
-            visibleCol: c.visibleCol ? c.visibleCol[j] : 0, pos: c.parentPos ? c.parentPos[j] : j };
+            visibleCol: c.visibleCol ? c.visibleCol[j] : 0, pos: c.parentPos ? c.parentPos[j] : j, description: c.description ? String(c.description[j] || '') : '' };
         colParRef[c.id[j]] = info;
         (colonnes[tidC] = colonnes[tidC] || []).push(info);
     }
@@ -1731,12 +1784,38 @@ function texteValeur(tid, colId, v) {
         return n ? nbre(n, 'fichier', 'fichiers') : '';
     }
     if (g === 'nombre') {
+        var h = horodatageNombre(c, v);
+        if (h) {
+            return h;
+        }
         return typeof v === 'number' ? v.toLocaleString('fr-FR') : String(v);
     }
     if (Array.isArray(v)) {
         return v.join(', ');
     }
     return String(v);
+}
+/* Colonne Nombre qui contient en fait un moment (millisecondes ou secondes depuis 1970) : on montre la date, jamais le nombre */
+function horodatageNombre(c, v) {
+    if (typeof v !== 'number' || !isFinite(v) || Math.floor(v) !== v || !c) {
+        return '';
+    }
+    var nom = normaliserTexte((c.label || '') + ' ' + (c.colId || ''));
+    var desc = normaliserTexte(c.description || '');
+    var indice = /\b(date|dates|heure|horodatage|horaire|moment|instant|timestamp|time|when|quand|echeance|debut|fin|cree le|modifie le|le)\b|_le\b|millisecond/.test(nom + ' ' + desc);
+    if (!indice) {
+        return '';
+    }
+    if (v >= 946684800000 && v <= 4102444800000) {
+        return dateHeure(v);
+    }
+    if (v >= 946684800 && v <= 4102444800 && /\b(date|heure|horodatage|timestamp|moment|instant)\b|seconde/.test(nom + ' ' + desc)) {
+        return dateHeure(v * 1000);
+    }
+    return '';
+}
+function normaliserTexte(t) {
+    return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_]+/g, ' ');
 }
 function formaterDateSec(sec) {
     var d = new Date(sec * 1000);

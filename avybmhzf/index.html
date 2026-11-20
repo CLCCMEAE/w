@@ -484,6 +484,7 @@
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
 </style>
   <style id="pvPage">@page { size: A4 landscape; margin: 10mm; }</style>
 </head>
@@ -529,7 +530,59 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.5';
+var VERSION_WIDGET = '1.7.6';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplopivot';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_TABLEAUX_CROISES_';
@@ -864,7 +917,7 @@ function editeurConditionsPage(ed) {
         } });
         var cases = creer('div', { classe: 'w-page-filtre__valeurs', id: 'aPcVal' + k, attrs: { role: 'group', 'aria-label': 'Valeurs de la condition ' + (k + 1) } });
         vals.forEach(function (v, j) {
-            cases.appendChild(casePage('aPcVal' + k + '_' + j, libelleCle(v), x.valeurs.indexOf(v) !== -1, function (coche) {
+            cases.appendChild(casePage('aPcVal' + k + '_' + j, libelleCle(v, infoColonne(ed.table, x.col)), x.valeurs.indexOf(v) !== -1, function (coche) {
                 x.valeurs = coche ? x.valeurs.concat([v]) : x.valeurs.filter(function (y) { return y !== v; });
             }));
         });
@@ -947,9 +1000,9 @@ function lignesLecteurs(ed) {
                 lp.filtres.push(r);
             }
             var vals = valeursColonne(tid, f.col);
-            var opts = [{ valeur: '', libelle: 'Tous' }].concat(vals.map(function (v) { return { valeur: v === '' ? '\u0000vide' : v, libelle: libelleCle(v) }; }));
+            var opts = [{ valeur: '', libelle: 'Tous' }].concat(vals.map(function (v) { return { valeur: v === '' ? '\u0000vide' : v, libelle: libelleCle(v, infoColonne(tid, f.col)) }; }));
             if (r.defaut && !opts.some(function (o) { return o.valeur === r.defaut; })) {
-                opts.push({ valeur: r.defaut, libelle: libelleCle(r.defaut === '\u0000vide' ? '' : r.defaut) });
+                opts.push({ valeur: r.defaut, libelle: libelleCle(r.defaut === '\u0000vide' ? '' : r.defaut, infoColonne(tid, f.col)) });
             }
             var sf = liste('aPlFDef' + ti + '_' + k, opts, r.defaut || '');
             sf.addEventListener('change', function () { r.defaut = sf.value; });
@@ -3390,7 +3443,20 @@ function comparateurNaturel(tid, colId) {
         return String(a).localeCompare(String(b), loc, { numeric: true, sensitivity: 'base' });
     };
 }
-function libelleCle(k) { return k === '' ? NOM_VIDE : k; }
+function libelleCle(k, col) {
+    if (k === '' || k === null || k === undefined) {
+        return NOM_VIDE;
+    }
+    var g = col ? genreCol(col) : '';
+    var n = typeof k === 'number' ? k : (/^-?\d+(\.\d+)?$/.test(String(k)) ? Number(k) : NaN);
+    if ((g === 'date' || g === 'datetime') && isFinite(n)) {
+        return formaterDateCol(n, col);
+    }
+    if (g === 'num' && isFinite(n)) {
+        return formaterNombreCol(n, col);
+    }
+    return String(k);
+}
 var _decalages = Object.create(null), _decalagesJour = Object.create(null);
 function decalageExact(sec, fuseau) {
     var base = sec - (((sec % 60) + 60) % 60);
@@ -3693,7 +3759,7 @@ function dimension(tid, def) {
     else {
         var lk = lecteurCles(tid, def.col);
         d.cles = function (i) { var ks = lk(i); return ks.length > 1 ? ks.filter(function (k, j) { return ks.indexOf(k) === j; }) : ks; };
-        d.lib = libelleCle;
+        d.lib = function (k) { return libelleCle(k); };
     }
     var nat = d.numerique ? function (a, b) { if (a === b) {
         return 0;
@@ -4722,7 +4788,7 @@ function construireVolet(cfg, p) {
         var id = 'pfChoix' + k;
         var s2 = creer('select', { classe: 'fr-select', id: id });
         s2.appendChild(creer('option', { texte: 'Tous', attrs: { value: '' } }));
-        valeursColonne(cfg.table, f.col).forEach(function (v) { s2.appendChild(creer('option', { texte: libelleCle(v), attrs: { value: v === '' ? '\u0000vide' : v } })); });
+        valeursColonne(cfg.table, f.col).forEach(function (v) { s2.appendChild(creer('option', { texte: libelleCle(v, infoColonne(cfg.table, f.col)), attrs: { value: v === '' ? '\u0000vide' : v } })); });
         s2.value = etat.filtres.choix[k] || '';
         if (s2.value !== (etat.filtres.choix[k] || '')) {
             s2.value = '';
@@ -5106,7 +5172,7 @@ function texteFiltres(cfg) {
     (cfg.filtres || []).forEach(function (f, k) {
         var v = etat.filtres.choix[k];
         if (v && infoColonne(cfg.table, f.col)) {
-            l.push((f.libelle || libCol(cfg.table, f.col)) + ' : ' + libelleCle(v === '\u0000vide' ? '' : v));
+            l.push((f.libelle || libCol(cfg.table, f.col)) + ' : ' + libelleCle(v === '\u0000vide' ? '' : v, infoColonne(cfg.table, f.col)));
         }
     });
     return l.join(' ; ');
@@ -6155,7 +6221,7 @@ function etapeAffichage() {
         var lib = saisie('wFiltreLib' + k, f.libelle || libCol(tid, f.col));
         lib.addEventListener('input', function () { f.libelle = lib.value; majAttente(); });
         var vals = valeursColonne(tid, f.col);
-        var defC = liste('wFiltreDef' + k, [{ valeur: '', libelle: 'Tous' }].concat(vals.map(function (v) { return { valeur: v === '' ? '\u0000vide' : v, libelle: libelleCle(v) }; })), f.defaut || '');
+        var defC = liste('wFiltreDef' + k, [{ valeur: '', libelle: 'Tous' }].concat(vals.map(function (v) { return { valeur: v === '' ? '\u0000vide' : v, libelle: libelleCle(v, infoColonne(tid, f.col)) }; })), f.defaut || '');
         defC.addEventListener('change', function () { f.defaut = defC.value || null; redessiner('#wFiltreDef' + k); });
         filt.push(creer('div', { classe: 'pv-filtre-def', attrs: { role: 'group', 'aria-label': 'Filtre ' + (k + 1) } }, [
             creer('div', {}, [creer('label', { classe: 'fr-label', texte: 'Filtre ' + (k + 1) + ' : colonne', attrs: { 'for': 'wFiltre' + k } }), s]),
@@ -6195,7 +6261,7 @@ function etapeRecapitulatif() {
     ajouter('Affichage et filtres', [['Valeurs', (AFFICHAGES.filter(function (x) { return x.code === cfg.affichage; })[0] || AFFICHAGES[0]).nom],
         ['Mise en couleur', (CHALEURS.filter(function (x) { return x.code === cfg.chaleur; })[0] || CHALEURS[0]).nom],
         ['Période', cfg.periode ? libCol(tid, cfg.periode.col) + ', à l\'ouverture : ' + minuscule((PERIODES.filter(function (x) { return x.code === (cfg.periode.defaut || 'all'); })[0] || PERIODES[0]).nom) : 'Pas de filtre de période'],
-        ['Filtres de choix', (cfg.filtres || []).map(function (f) { return (f.libelle || libCol(tid, f.col)) + (f.defaut ? ' (à l\'ouverture : ' + libelleCle(f.defaut === '\u0000vide' ? '' : f.defaut) + ')' : ''); }).join(', ')]]);
+        ['Filtres de choix', (cfg.filtres || []).map(function (f) { return (f.libelle || libCol(tid, f.col)) + (f.defaut ? ' (à l\'ouverture : ' + libelleCle(f.defaut === '\u0000vide' ? '' : f.defaut, infoColonne(tid, f.col)) + ')' : ''); }).join(', ')]]);
     var ecrit = creer('p', { classe: 'w-mention', texte: (etat.biblio ? 'Une ligne de réglages dans la table ' + libelleTable(etat.biblio) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée maintenant car le document n\'en a pas encore, avec une ligne de réglages pour ce tableau croisé.') + ' Vos tables sont seulement lues : un tableau croisé n\'y écrit jamais.' });
     return grilleParam([], '1-1', [titreColonne('Le tableau croisé', null, 'aSecNom'), groupeChamp('Nom du tableau croisé', nom, 'Affiché sur son onglet.', true),
         groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),

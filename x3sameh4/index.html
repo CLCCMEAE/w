@@ -1010,6 +1010,7 @@
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
     .s-depart__carte > .fr-btn { align-self: flex-end; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
 </style>
 </head>
 <body>
@@ -1064,7 +1065,59 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.41';
+var VERSION_WIDGET = '1.1.42';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -15397,8 +15450,28 @@ function demandesAValider() {
     return etat.items.filter(function (it) { return it.s !== null && texteStatut(it) === s.attente && !demandeExpiree(it); }).sort(function (a, b) { return a.s - b.s; });
 }
 function texteValeur(it, col) {
-    var x = col && infoColonne(etat.config.table, col) ? valeurCellule(valeurLigne(it.i, col)) : null;
-    return x === null || x === undefined ? '' : String(x).trim();
+    var info = col ? infoColonne(etat.config.table, col) : null;
+    var x = info ? valeurCellule(valeurLigne(it.i, col)) : null;
+    if (x === null || x === undefined || x === '') {
+        return '';
+    }
+    var t = String(info.type || '');
+    if (typeof x === 'number' && t === 'Date') {
+        return formaterDate(x);
+    }
+    if (typeof x === 'number' && t.indexOf('DateTime') === 0) {
+        return formaterDateHeure(x, fuseauDe(info));
+    }
+    if (typeof x === 'number' && (t === 'Numeric' || t === 'Int')) {
+        return formaterNombreCol(x, info);
+    }
+    if (typeof x === 'boolean') {
+        return x ? 'oui' : 'non';
+    }
+    if (Array.isArray(x)) {
+        return (x[0] === 'L' ? x.slice(1) : x).map(String).join(', ');
+    }
+    return String(x).trim();
 }
 function quiAReserve(it) {
     var c = etat.config;
