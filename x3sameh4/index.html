@@ -1064,7 +1064,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.40';
+var VERSION_WIDGET = '1.1.41';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -10104,7 +10104,7 @@ async function creerDepuisModele(m) {
             : 'La création des tables n\'a pas abouti' + (creees.length ? ' : certaines tables ont été créées et restent dans le document.' : '.'), e);
     }
 }
-function choixColonne(id, libelle, aideTexte, cols, valeur, surChange, texteVide) {
+function choixColonne(id, libelle, aideTexte, cols, valeur, facultatif, surChange, texteVide) {
     var ops = cols.map(function (col) { return { valeur: col.colId, libelle: col.label + ' · ' + libelleType(col) }; });
     var sel = liste(id, ops, valeur || '', { vide: facultatif ? (texteVide || '(Aucune)') : 'Choisissez une colonne' });
     sel.addEventListener('change', function () { surChange(sel.value || null); });
@@ -14020,7 +14020,7 @@ function etapeInfosReservation(res) {
         };
         hd.addEventListener('change', function () { var d0 = res.fin - res.debut; res.debut = parseInt(hd.value, 10); res.fin = res.debut + d0; changer('rDebutC'); });
         var hdur = selectValeurs('rDureeC', dureesC, dureeC, function (m) {
-            var t = texteDuree(m, res.debut, reglesDe(c));
+            var t = texteDureeSalle(m, res.debut, reglesDe(c));
             var fin = res.debut + m;
             return m < 1440 && t.indexOf('fermeture') === -1 ? t + ', jusqu\'à ' + deux(Math.floor(fin / 60) % 24) + ':' + deux(fin % 60) : t;
         }, function (v) { res.fin = res.debut + v; changer('rDureeC'); });
@@ -14858,7 +14858,7 @@ function dureesProposees(r, de) {
     l.sort(function (a, b) { return a - b; });
     return l.length ? l : [r.pas];
 }
-function texteDuree(m, de, r) {
+function texteDureeSalle(m, de, r) {
     if (typeof de === 'number' && m === r.fermeture * 60 - de) {
         return 'Jusqu\'à la fermeture (' + texteHeure(r.fermeture) + ')';
     }
@@ -14922,7 +14922,7 @@ function rendreLibres() {
         });
         lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('À quelle heure ?', heure)]));
     }
-    var choixDuree = selectValeurs('lDuree', durees, L.duree, function (m) { return texteDuree(m, deL, r); }, function (v) { L.duree = v; rafr('lDuree'); });
+    var choixDuree = selectValeurs('lDuree', durees, L.duree, function (m) { return texteDureeSalle(m, deL, r); }, function (v) { L.duree = v; rafr('lDuree'); });
     lignes.push(creer('div', { classe: 's-question' }, [groupeChamp('Combien de temps ?', choixDuree)]));
     var nb = saisie('lNb', L.nb, { type: 'number', clavier: 'numeric' });
     nb.setAttribute('min', '1');
@@ -15290,7 +15290,7 @@ function rendreCreneau(focusId) {
     }
     var hd = liste('cHeure', heures, String(L.de));
     hd.addEventListener('change', function () { L.de = parseInt(hd.value, 10); refaire('cHeure'); });
-    var du = selectValeurs('cDuree', durees, L.duree, function (m) { return texteDuree(m, L.de, r); }, function (v) { L.duree = v; refaire('cDuree'); });
+    var du = selectValeurs('cDuree', durees, L.duree, function (m) { return texteDureeSalle(m, L.de, r); }, function (v) { L.duree = v; refaire('cDuree'); });
     var aujC = aujourdhuiMur(fuseauPlan(c));
     var jourC = saisie('cJour', dateVersSaisie(L.quand), { type: 'date' });
     jourC.setAttribute('min', dateVersSaisie(aujC));
@@ -16104,7 +16104,7 @@ function blocFiltresAgent() {
     nb.addEventListener('change', function () { f.agentNb = nb.value; appliquerRechercheAgent('pAgNb'); });
     champ('pAgNb', 'Personnes', nb);
     var durees = dureesProposees(r, null).filter(function (m) { return m <= 480; });
-    var du = selectValeurs('pAgDuree', durees, durees.indexOf(dureeAgent()) !== -1 ? dureeAgent() : durees[0], function (m) { return texteDuree(m, null, r); }, function (m) { f.agentDuree = m; appliquerRechercheAgent('pAgDuree'); });
+    var du = selectValeurs('pAgDuree', durees, durees.indexOf(dureeAgent()) !== -1 ? dureeAgent() : durees[0], function (m) { return texteDureeSalle(m, null, r); }, function (m) { f.agentDuree = m; appliquerRechercheAgent('pAgDuree'); });
     champ('pAgDuree', 'Durée', du);
     var eqs = equipementsPossibles().slice();
     if (eqs.indexOf('Visioconférence') === -1 && toutesLesSalles().some(function (s) { return s.visio; })) {

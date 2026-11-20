@@ -717,7 +717,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.16.1';
+var VERSION_WIDGET = '3.16.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -2358,6 +2358,28 @@ function trouverOwner() {
 }
 function tablesProtection() {
     return Object.keys(etat.meta.tables).filter(function (t) { var u = t.toUpperCase(); return u.indexOf(ID_OWNER) !== -1 || u.indexOf(ID_OWNER_ANCIEN) !== -1; });
+}
+async function creerTableOwner() {
+    var tids = await creerTables([{ id: ID_OWNER, colonnes: [{ id: 'INFO', type: 'Text', label: 'INFO' }] }]);
+    try {
+        await agir([['ModifyColumn', tids[0], 'INFO', { description: 'Colonne sans usage : la table sert seulement à masquer des pages.' }]]);
+    }
+    catch (eC) {
+        logSecurite('INFO', 'Description de la colonne INFO non posée', eC);
+    }
+    await chargerMeta();
+    var m = etat.meta.tables[tids[0]];
+    if (m && m.rawViewSectionRef) {
+        try {
+            await agir([['UpdateRecord', '_grist_Views_section', m.rawViewSectionRef, { title: TITRE_OWNER,
+                        description: 'Protection de pages : une vue de cette table posée sur une page masque la page aux personnes qui ne peuvent pas lire la table. Les règles d\'accès de cette table décident qui voit ces pages. Ne pas supprimer.' }]]);
+        }
+        catch (eT) {
+            logSecurite('INFO', 'Nom affiché non posé sur ' + tids[0], eT);
+        }
+    }
+    await chargerMeta();
+    return trouverOwner();
 }
 function titreOwner() { var t = etat.meta && etat.meta.tables ? trouverOwner() : null; return t ? libelleTable(t) : TITRE_OWNER; }
 function vueDeCetteConsole(d) {

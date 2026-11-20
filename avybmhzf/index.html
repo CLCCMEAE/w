@@ -529,7 +529,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.4';
+var VERSION_WIDGET = '1.7.5';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplopivot';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_TABLEAUX_CROISES_';
@@ -2744,45 +2744,6 @@ function piedEtape(precedente, suivante, actionFinale) {
         boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
     }
     return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et un lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
 }
 function blocSupprimer(libelle, mention, fn) {
     return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
