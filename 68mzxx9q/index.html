@@ -536,7 +536,12 @@
     .w-fiche__valeur { flex: 1; min-width: 0; white-space: pre-line; }
     .w-fiche__titre-ligne { display: flex; align-items: center; gap: .25rem; }
     .w-fiche__titre-ligne .w-fiche__titre { flex: 1; min-width: 0; }
-    .w-crayon { flex: none; margin-top: -.25rem; }
+    .w-fiche__form { display: flex; flex-direction: column; gap: .75rem; font-size: .875rem; }
+    .w-fiche__form .fr-input-group, .w-fiche__form .fr-select-group, .w-fiche__form .fr-fieldset, .w-fiche__form .fr-checkbox-group { margin-bottom: 0; }
+    .w-fiche__form-champ--valeur { background: var(--background-contrast-grey); border-left: 3px solid var(--border-action-high-blue-france); padding: .5rem .75rem; }
+    .w-fiche__info { display: flex; flex-direction: column; gap: .125rem; }
+    .w-fiche__info-lib { margin: 0; font-size: .875rem; color: var(--text-default-grey); }
+    .w-fiche__info .w-fiche__valeur { color: var(--text-title-grey); }
     .w-edition-champ { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .5rem; padding: .5rem; background: var(--background-alt-blue-france); color: var(--text-default-grey); white-space: normal; }
     .w-edition-champ .fr-input-group, .w-edition-champ .fr-select-group { margin-bottom: 0; }
     .w-edition-champ__actions { display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
@@ -725,7 +730,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.17.0';
+var VERSION_WIDGET = '3.18.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -6676,11 +6681,14 @@ function rendreFicheLecture(z) {
         }
         corps.appendChild(img);
     }
-    if (c.colCategorie) {
+    var formulaire = etat.peutModifier && !c.ficheLecture;
+    var ouvert = function (k) { return formulaire && k && estModifiable(colLieux(k)) && !champFige(k); };
+    var edits = {};
+    if (c.colCategorie && !ouvert(c.colCategorie)) {
         var p = creer('span', { classe: 'w-pastille-couleur', attrs: { 'aria-hidden': 'true' } });
         p.style.setProperty('--pin', couleurLieu(l));
         var ligneCat = creer('p', { classe: 'w-fiche__cat' }, [p, creer('span', { classe: 'w-mention', texte: libelleCol(c.colCategorie) + ' :' }),
-            creer('span', { texte: l.cats.join(', ') || 'Sans catégorie' }), crayonChamp(l, c.colCategorie)]);
+            creer('span', { texte: l.cats.join(', ') || 'Sans catégorie' })]);
         corps.appendChild(ligneCat);
     }
     if (etat.fiche.retourGroupe) {
@@ -6692,26 +6700,54 @@ function rendreFicheLecture(z) {
                 rendreFiche(true);
             }, { petit: true, id: 'vRetourGroupe' })]));
     }
-    corps.appendChild(creer('div', { classe: 'w-fiche__titre-ligne' }, [creer('h2', { classe: 'fr-h5 w-fiche__titre', id: 'vFicheTitre', texte: l.nom, attrs: { tabindex: '-1' } }), crayonChamp(l, c.colNom)]));
+    corps.appendChild(creer('div', { classe: 'w-fiche__titre-ligne' }, [creer('h2', { classe: 'fr-h5 w-fiche__titre', id: 'vFicheTitre', texte: l.nom, attrs: { tabindex: '-1' } })]));
     if (l.masque) {
         corps.appendChild(alerte('info', null, 'Ce lieu est masqué de la carte (case « ' + libelleCol(c.colAfficher) + ' » décochée).'));
     }
     else if (indexVisible(l.id) === -1) {
         corps.appendChild(alerte('info', null, 'Ce lieu est masqué par les filtres en cours.'));
     }
-    var dl = creer('dl', { classe: 'w-fiche__champs' });
     var mc = colsMeta();
     var idsMeta = [mc.creeLe, mc.creePar, mc.modifieLe, mc.modifiePar].filter(Boolean);
     var cols = champsFicheOrdonnes(c).filter(function (k) { return idsMeta.indexOf(k) === -1; });
-    cols.forEach(function (k) {
+    if (ouvert(c.colCategorie)) {
+        cols.unshift(c.colCategorie);
+    }
+    var auMoinsUnChamp = cols.some(ouvert);
+    var dl = creer(auMoinsUnChamp ? 'div' : 'dl', { classe: auMoinsUnChamp ? 'w-fiche__form' : 'w-fiche__champs' });
+    var enValeur = function (k) { return (c.champsEnValeur || []).indexOf(k) !== -1; };
+    var sale = function () {
+        etat.fiche.champEnCours = 'formulaire';
+        var b = document.getElementById('vEnregistrer');
+        var a = document.getElementById('vAnnulerModifs');
+        if (b) {
+            b.disabled = false;
+        }
+        if (a) {
+            a.hidden = false;
+        }
+    };
+    cols.forEach(function (k, i) {
+        if (ouvert(k)) {
+            var ed = editeurChamp(k, l.valeurs[k], 'L' + i);
+            edits[k] = ed;
+            ed.noeud.addEventListener('input', sale);
+            ed.noeud.addEventListener('change', sale);
+            dl.appendChild(creer('div', { classe: 'w-fiche__form-champ' + (enValeur(k) ? ' w-fiche__form-champ--valeur' : '') }, [ed.noeud]));
+            return;
+        }
         if (c.masquerVides && !texteValeur(k, l.valeurs[k])) {
             return;
         }
         var val = creer('span', { classe: 'w-fiche__valeur' });
         valeurAffichee(val, k, l.valeurs[k]);
+        if (auMoinsUnChamp) {
+            dl.appendChild(creer('div', { classe: 'w-fiche__info' + (enValeur(k) ? ' w-fiche__form-champ--valeur' : '') }, [creer('p', { classe: 'w-fiche__info-lib', texte: libelleCol(k) }), val]));
+            return;
+        }
         var dt = creer('dt', { texte: libelleCol(k) });
-        var dd = creer('dd', { classe: 'w-fiche__dd' }, [val, crayonChamp(l, k)]);
-        if ((c.champsEnValeur || []).indexOf(k) !== -1) {
+        var dd = creer('dd', { classe: 'w-fiche__dd' }, [val]);
+        if (enValeur(k)) {
             dl.appendChild(creer('div', { classe: 'w-fiche__ligne--valeur' }, [dt, dd]));
         }
         else {
@@ -6719,12 +6755,19 @@ function rendreFicheLecture(z) {
             dl.appendChild(dd);
         }
     });
-    if (l.place) {
+    var erreurForm = creer('p', { classe: 'fr-error-text', id: 'vFicheErreur', attrs: { hidden: true } });
+    if (auMoinsUnChamp) {
+        dl.appendChild(erreurForm);
+    }
+    if (l.place && !auMoinsUnChamp) {
         dl.appendChild(creer('dt', { texte: 'Latitude, longitude' }));
         dl.appendChild(creer('dd', { id: 'vFichePosition', texte: coordonneesAffichees(l) }));
     }
     if (dl.childNodes.length) {
         corps.appendChild(dl);
+    }
+    if (l.place && auMoinsUnChamp) {
+        dl.appendChild(creer('div', { classe: 'w-fiche__info' }, [creer('p', { classe: 'w-fiche__info-lib', texte: 'Latitude, longitude' }), creer('span', { id: 'vFichePosition', texte: coordonneesAffichees(l) })]));
     }
     if (!l.place) {
         var peutPlacer = etat.peutModifier && !c.ficheLecture && peutPositionner();
@@ -6745,8 +6788,23 @@ function rendreFicheLecture(z) {
     if (l.place) {
         pied.appendChild(bouton('Centrer', 'secondaire', 'compass-3-line', function () { montrerLieu(l, true); }, { petit: true, id: 'vCentrer', aria: 'Centrer la carte sur ' + l.nom }));
     }
-    if (etat.peutModifier && ficheModifiable()) {
-        pied.appendChild(bouton('Modifier', null, 'edit-line', function () { ouvrirEdition(l.id); }, { petit: true, id: 'vModifier' }));
+    if (etat.peutModifier && ficheModifiable() && (!auMoinsUnChamp || ouvert(c.colNom) || peutPositionner())) {
+        pied.appendChild(bouton(auMoinsUnChamp ? 'Nom et position' : 'Modifier', auMoinsUnChamp ? 'secondaire' : null, 'edit-line', function () { ouvrirEdition(l.id); }, { petit: true, id: 'vModifier' }));
+    }
+    if (auMoinsUnChamp) {
+        var annulerModifs = bouton('Annuler', 'secondaire', null, function () {
+            etat.fiche.champEnCours = null;
+            rendreFiche(false);
+            if (etat.rafraichirEnAttente) {
+                planifierRafraichissement();
+            }
+        }, { petit: true, id: 'vAnnulerModifs' });
+        annulerModifs.hidden = true;
+        var enreg = bouton('Enregistrer', null, 'check-line', function () { return enregistrerFicheLecture(l, edits, erreurForm); }, { petit: true, id: 'vEnregistrer' });
+        enreg.disabled = true;
+        pied.appendChild(annulerModifs);
+        pied.appendChild(enreg);
+        pied.classList.remove('w-fiche__pied--ligne');
     }
     z.appendChild(barreFiche(null, l));
     z.appendChild(corps);
@@ -6850,97 +6908,51 @@ async function urlPieceJointe(id) {
         return null;
     }
 }
-function crayonChamp(l, k) {
-    if (!k || !etat.peutModifier || !estModifiable(colLieux(k)) || champFige(k)) {
-        return null;
-    }
-    var lib = libelleCol(k);
-    return bouton('Modifier « ' + lib + ' »', 'discret', 'edit-line', function (ev) {
-        var cible = ev.currentTarget.parentNode;
-        editerChamp(l, k, cible);
-    }, { petit: true, iconeSeule: true, id: 'vCrayon_' + k, classe: 'w-crayon' });
-}
-function editerChamp(l, k, cible) {
-    if (!cible || (etat.fiche && etat.fiche.champEnCours)) {
-        return;
-    }
+async function enregistrerFicheLecture(l, edits, erreur) {
     var c = etat.config;
-    etat.fiche.champEnCours = k;
-    var ed = editeurChamp(k, l.valeurs[k], 'F');
-    var erreur = creer('p', { classe: 'fr-error-text', id: 'eChampF_msg', attrs: { hidden: true } });
-    var fin = function (focusCrayon) {
-        if (etat.fiche) {
-            etat.fiche.champEnCours = null;
+    var champs = {};
+    var probleme = null;
+    Object.keys(edits).forEach(function (k) {
+        var ed = edits[k];
+        if (probleme) {
+            return;
         }
-        rendreFiche(false);
-        var b = document.getElementById(focusCrayon ? 'vCrayon_' + k : 'vFicheTitre');
-        if (b) {
-            b.focus();
-        }
-        if (etat.rafraichirEnAttente) {
-            planifierRafraichissement();
-        }
-    };
-    var valider = async function () {
         if (ed.verifier && !ed.verifier()) {
-            erreur.hidden = false;
-            erreur.textContent = ed.message ? String(ed.message) : 'Valeur non valide.';
+            probleme = '« ' + libelleCol(k) + ' » : ' + (ed.message ? String(ed.message) : 'valeur non valide.');
             return;
         }
         var v = ed.lire();
-        if (k === c.colNom && !String(v || '').trim()) {
-            erreur.hidden = false;
-            erreur.textContent = 'Donnez un nom au lieu.';
-            return;
-        }
-        if (memeValeur(v, l.valeurs[k], k)) {
-            fin(true);
-            return;
-        }
-        var champs = {};
-        champs[k] = v;
-        try {
-            await agir([['UpdateRecord', c.tableLieux, l.id, champs]]);
-            if (etat.fiche) {
-                etat.fiche.champEnCours = null;
-            }
-            await rafraichir(true);
-            if (etat.fiche && etat.fiche.mode === 'lecture') {
-                rendreFiche(false);
-            }
-            var b = document.getElementById('vCrayon_' + k);
-            if (b) {
-                b.focus();
-            }
-            annoncer('« ' + libelleCol(k) + ' » modifié.');
-        }
-        catch (err) {
-            logSecurite('AVERTISSEMENT', 'Modification de ' + k + ' refusée', err);
-            erreur.hidden = false;
-            erreur.textContent = estRefusDroits(err) ? 'Modification non enregistrée : vos droits ne le permettent pas.' : 'Modification non enregistrée. Réessayez.';
-            annoncer(erreur.textContent);
-        }
-    };
-    var zone = creer('div', { classe: 'w-edition-champ' }, [ed.noeud, erreur, creer('div', { classe: 'w-edition-champ__actions' }, [
-            bouton('Annuler', 'secondaire', null, function () { fin(true); }, { petit: true, id: 'vChampAnnuler' }),
-            bouton('Valider', null, 'check-line', valider, { petit: true, id: 'vChampValider' })
-        ])]);
-    zone.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Escape') {
-            ev.preventDefault();
-            ev.stopPropagation();
-            fin(true);
-        }
-        if (ev.key === 'Enter' && ev.target.tagName === 'INPUT' && ev.target.type !== 'checkbox') {
-            ev.preventDefault();
-            valider();
+        if (!memeValeur(v, l.valeurs[k], k)) {
+            champs[k] = v;
         }
     });
-    vider(cible);
-    cible.appendChild(zone);
-    var f = zone.querySelector('input, select, textarea');
-    if (f) {
-        f.focus();
+    if (probleme) {
+        erreur.hidden = false;
+        erreur.textContent = probleme;
+        annoncer(probleme);
+        return;
+    }
+    if (!Object.keys(champs).length) {
+        etat.fiche.champEnCours = null;
+        rendreFiche(false);
+        return;
+    }
+    try {
+        await agir([['UpdateRecord', c.tableLieux, l.id, champs]]);
+        if (etat.fiche) {
+            etat.fiche.champEnCours = null;
+        }
+        await rafraichir(true);
+        if (etat.fiche && etat.fiche.mode === 'lecture') {
+            rendreFiche(false);
+        }
+        annoncer(Object.keys(champs).length > 1 ? 'Modifications enregistrées.' : '« ' + libelleCol(Object.keys(champs)[0]) + ' » modifié.');
+    }
+    catch (err) {
+        logSecurite('AVERTISSEMENT', 'Modification du lieu refusée', err);
+        erreur.hidden = false;
+        erreur.textContent = estRefusDroits(err) ? 'Modification non enregistrée : vos droits ne le permettent pas.' : 'Modification non enregistrée. Réessayez.';
+        annoncer(erreur.textContent);
     }
 }
 function liensHtml(t) {
