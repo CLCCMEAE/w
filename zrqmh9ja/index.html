@@ -1724,7 +1724,7 @@ body.w-agrandi .w-volet {
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.3.0";
+var VERSION_WIDGET = "1.3.1";
 var HOMOLOGUE = false;
 var NOM_WIDGET = "Diploarchive";
 var DELAI_API_MS = 6e4;
@@ -3517,7 +3517,11 @@ function rendreOnglets() {
   vider(nav);
   var l = regles();
   var creation = etat.vue === "creation";
-  var visible = (etat.vue === "principal" || etat.vue === "parametrage" || creation) && (l.length || etat.peutParametrer);
+  var droits = etat.vue === "droits";
+  if (!droits) {
+    etat.panneauDroitsOuvert = false;
+  }
+  var visible = (etat.vue === "principal" || etat.vue === "parametrage" || creation || droits) && (l.length || etat.peutParametrer);
   nav.hidden = !visible;
   if (!visible) {
     return;
@@ -3526,7 +3530,7 @@ function rendreOnglets() {
   ul.setAttribute("role", "tablist");
   var onglets = [], activer = [];
   l.forEach(function(r, i) {
-    var actif = !creation && r.id === etat.regleId;
+    var actif = !creation && !droits && r.id === etat.regleId;
     onglets.push(creer("button", {
       classe: "fr-tabs__tab w-onglet",
       id: "wOnglet" + i,
@@ -3568,6 +3572,15 @@ function rendreOnglets() {
         ouvrirCreation();
       }
     });
+    onglets.push(creer("button", {
+      classe: "fr-tabs__tab fr-tabs__tab--icon-left fr-icon-lock-line w-onglet",
+      id: "wOngletDroits",
+      texte: "Les droits",
+      attrs: { role: "tab", "aria-selected": droits ? "true" : "false", "aria-controls": "contenu", tabindex: droits ? "0" : "-1" }
+    }));
+    activer.push(function() {
+      ouvrirPanneauDroits();
+    });
   }
   if (!onglets.some(function(b) {
     return b.getAttribute("tabindex") === "0";
@@ -3596,6 +3609,15 @@ function rendreOnglets() {
     ul.appendChild(creer("li", { attrs: { role: "presentation" } }, [b]));
   });
   nav.appendChild(ul);
+}
+function ouvrirPanneauDroits() {
+  etat.vue = "droits";
+  etat.panneauDroitsOuvert = true;
+  rendreOnglets();
+  var zone = contenu();
+  vider(zone);
+  zone.className = "w-contenu";
+  zone.appendChild(contenuDroitsLu());
 }
 function choisirRegle(id) {
   if (etat.regleId !== id) {
