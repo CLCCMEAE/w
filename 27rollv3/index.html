@@ -839,7 +839,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.4';
+var VERSION_WIDGET = '1.6.5';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -3769,6 +3769,29 @@ function iconeDispo(candidats) {
     _iconesVues[cle] = choisi;
     return choisi;
 }
+async function lienPage(vue) {
+    var j = await obtenirJeton(false);
+    var b = String(j.baseUrl || '');
+    var doc = b.replace(/\/api\/docs\/([^/?#]+).*$/, '/$1');
+    if (doc === b || !/^https?:\/\//.test(doc)) {
+        throw new Error('Adresse du document non reconnue : ' + b);
+    }
+    return doc + '/p/' + vue;
+}
+async function copierLienTelecommande(vue) {
+    var champ = document.getElementById('aLienTele');
+    try {
+        var u = await lienPage(vue);
+        if (champ) {
+            champ.value = u;
+            champ.closest('.fr-input-group').hidden = false;
+        }
+        await copierTexte(u, champ, 'Lien de la Télécommande copié : envoyez-le-vous, puis ouvrez-le sur le téléphone.');
+    }
+    catch (e) {
+        afficherErreur('Le lien n\'a pas pu être préparé. Ouvrez la page « Télécommande » et copiez l\'adresse de la barre du navigateur.', e);
+    }
+}
 async function copierTexte(t, champ, message) {
     try {
         await navigator.clipboard.writeText(t);
@@ -6311,13 +6334,13 @@ var AIDE = {
         'Présentation': { titre: 'ce qui se passe quand vous présentez.', points: ['Diapositive de départ et ouverture automatique de la vue présentateur.'] },
         'Récapitulatif': { titre: 'vérifier, puis créer.', points: ['Rien n\'est enregistré avant « Créer la présentation ».'] },
         'Composer': { titre: 'écrire les diapositives.', points: ['Cliquez dans une zone en pointillés (« Titre », « Texte »…) et tapez.', '« Ajouter », dans la barre d\'outils : cadre de texte, image, rectangle, cercle, trait, flèche.', 'Tout se déplace : titre, blocs de texte, cadres, images, formes et logo. Survolez l\'élément, faites glisser la pastille ronde en haut à gauche pour le placer, le carré en bas à droite pour sa taille ; au clavier : flèches, plus et moins.', '« Remettre le bloc à sa place », dans la barre d\'outils, le ramène à la place prévue par la mise en page. Changer de mise en page remet aussi tous les blocs à leur place.', '« Nouvelle diapositive » ajoute une diapositive après celle qui est ouverte ; la liste « Mise en page » la change.', '« Annuler » et « Rétablir » reviennent sur les dernières modifications.'] },
-        'Présenter': { titre: 'en plein écran, au téléphone, imprimer, enregistrer en PDF.', points: ['Flèches, Espace ou clic pour avancer, Échap pour quitter.', 'Vue présentateur : bouton en bas de l\'écran de présentation.', 'Pages à partager : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ».', 'Sur l\'ordinateur relié au grand écran : page « Projection ». Sur le téléphone : page « Télécommande », ouverte dans le navigateur avec votre compte ; le plus simple est de vous envoyer son adresse, puis de l\'ajouter à l\'écran d\'accueil.'] }
+        'Présenter': { titre: 'en plein écran, au téléphone, imprimer, enregistrer en PDF.', points: ['Flèches, Espace ou clic pour avancer, Échap pour quitter.', 'Vue présentateur : bouton en bas de l\'écran de présentation.', 'Pages à partager : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ».', 'Sur l\'ordinateur : page « Projection », en plein écran ; en visioconférence, partagez cet écran ou cette fenêtre, c\'est ce que voit le public.', 'Sur le téléphone : page « Télécommande », ouverte dans le navigateur avec votre compte ; « Copier le lien de la Télécommande » vous donne son adresse à vous envoyer, puis ajoutez-la à l\'écran d\'accueil.'] }
     },
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
         { q: 'Comment ajouter du texte ?', r: 'Cliquez dans une zone en pointillés de la diapositive (« Titre », « Texte »…) et tapez. Pour un texte ailleurs, « Ajouter », puis « Cadre de texte » : il se place où vous voulez.' },
-        { q: 'Comment me servir de mon téléphone comme télécommande ?', r: '1. Une fois pour toutes : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ». Deux pages apparaissent dans le document : « Projection » et « Télécommande ». 2. Le jour J, sur l\'ordinateur relié au grand écran, ouvrez la page « Projection » et cliquez sur « Projeter en plein écran ». C\'est cette page, et elle seule, que vous partagez aux invités. 3. Sur votre téléphone, ouvrez le navigateur (Safari, Chrome…), allez à l\'adresse de votre Grist, connectez-vous avec votre compte, ouvrez le document puis la page « Télécommande » dans la liste des pages. Plus rapide : sur l\'ordinateur, ouvrez la page « Télécommande », copiez l\'adresse de la barre du navigateur et envoyez-la-vous par courriel ou messagerie ; sur le téléphone, touchez le lien. Pour la retrouver d\'un geste, ajoutez-la à l\'écran d\'accueil : sur iPhone, Safari, bouton Partager, « Sur l\'écran d\'accueil » ; sur Android, Chrome, menu ⋮, « Ajouter à l\'écran d\'accueil ». 4. Le point vert « Grand écran relié » confirme la liaison. Avancez avec « Suivante » et « Précédente », ou en faisant glisser le doigt : le grand écran suit en une seconde environ, et vos notes restent sur le téléphone. L\'écran du téléphone reste allumé tant que la page est ouverte. La page « Télécommande » est réservée aux administrateurs du document : c\'est avec ce compte qu\'il faut se connecter sur le téléphone. Sans les pages, le bouton « Télécommande » de l\'éditeur fait la même chose avec « Présenter ».' },
+        { q: 'Comment me servir de mon téléphone comme télécommande ?', r: '1. Une fois pour toutes : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ». Deux pages apparaissent dans le document : « Projection » et « Télécommande ». 2. Le jour J, sur l\'ordinateur relié au grand écran, ouvrez la page « Projection » et cliquez sur « Projeter en plein écran ». C\'est cette page, et elle seule, que le public doit voir : en salle, l\'ordinateur est relié au vidéoprojecteur ; en visioconférence (Teams, Webex, Tixeo…), partagez l\'écran de l\'ordinateur, ou la fenêtre du navigateur qui montre la page « Projection ». 3. Sur votre téléphone, ouvrez le navigateur (Safari, Chrome…), allez à l\'adresse de votre Grist, connectez-vous avec votre compte, ouvrez le document puis la page « Télécommande » dans la liste des pages. Plus rapide : « Copier le lien de la Télécommande », dans « Pages à partager », puis envoyez-vous ce lien par courriel ou messagerie ; sur le téléphone, touchez le lien. Pour la retrouver d\'un geste, ajoutez-la à l\'écran d\'accueil : sur iPhone, Safari, bouton Partager, « Sur l\'écran d\'accueil » ; sur Android, Chrome, menu ⋮, « Ajouter à l\'écran d\'accueil ». 4. Le point vert « Grand écran relié » confirme la liaison. Avancez avec « Suivante » et « Précédente », ou en faisant glisser le doigt : le grand écran suit en une seconde environ, et vos notes restent sur le téléphone. L\'écran du téléphone reste allumé tant que la page est ouverte. La page « Télécommande » est réservée aux administrateurs du document : c\'est avec ce compte qu\'il faut se connecter sur le téléphone. Sans les pages, le bouton « Télécommande » de l\'éditeur fait la même chose avec « Présenter ».' },
         { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: '« Paramétrages de cette présentation », étape « Apparence », rubrique « Bloc-marque et logo partenaire » : choisissez « Poste à l\'étranger », puis le poste (ambassade, consulat général, consulat), la liaison (en, au, aux, à, auprès de) et le pays ou la ville. Le widget propose le découpage en lignes, en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Le bloc garde la Marianne et la devise, comme le veut la charte de l\'État. L\'intitulé ne se traduit pas : écrivez-le exactement comme l\'intitulé officiel du poste.' },
         { q: 'Puis-je ajouter le logo d\'un partenaire ?', r: 'Oui, dans la même rubrique : « Ajouter un logo partenaire » (PNG, JPEG, GIF ou WebP). Il se place à droite du bloc-marque sur toutes les diapositives, jamais à sa place. Indiquez le nom du partenaire : il est lu par les lecteurs d\'écran.' },
         { q: 'Pourquoi une page « Projection » à part ?', r: 'Elle n\'affiche que les diapositives : ni outils, ni notes, ni paramétrages. En la partageant, vous ne risquez pas de montrer autre chose que la présentation. Elle ne modifie jamais les diapositives. Si vous renommez la présentation, les pages sont renommées en quittant les paramétrages.' },
@@ -7487,7 +7510,7 @@ async function renommerPagesSpeciales(p) {
     }
 }
 function sectionPagesSpeciales() {
-    var aidePg = aide('aAidePages', 'Pages à partager', 'Deux pages ajoutées au document, rien que pour cette présentation. La page « Projection » n\'affiche que les diapositives, sans outils ni notes : c\'est elle que vous partagez aux invités, sur le grand écran ou dans la visioconférence. La page « Télécommande » s\'ouvre sur votre téléphone : notes, diapositive suivante et grands boutons. Quand vous avancez sur le téléphone, la page Projection suit. La page Télécommande est réservée aux administrateurs : elle est cachée comme cette page, par la table ' + TITRE_OWNER + ' et la règle décrite dans « Les droits ».');
+    var aidePg = aide('aAidePages', 'Pages à partager', 'Deux pages ajoutées au document, rien que pour cette présentation. La page « Projection » n\'affiche que les diapositives, sans outils ni notes : c\'est elle que vous montrez au public : sur le grand écran, ou en partageant l\'écran de l\'ordinateur dans la visioconférence. La page « Télécommande » s\'ouvre sur votre téléphone : notes, diapositive suivante et grands boutons. Quand vous avancez sur le téléphone, la page Projection suit. La page Télécommande est réservée aux administrateurs : elle est cachée comme cette page, par la table ' + TITRE_OWNER + ' et la règle décrite dans « Les droits ».');
     var zone = creer('div', { id: 'aPagesZone', attrs: { 'aria-live': 'polite' } }, [creer('p', { classe: 'w-mention', texte: 'Recherche des pages…' })]);
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPages' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPages', texte: 'Pages à partager' }), aidePg.bouton]), aidePg.panneau, zone
@@ -7533,9 +7556,16 @@ async function remplirPagesSpeciales(z) {
         ul.appendChild(li);
     });
     zone.appendChild(ul);
-    zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Sur l\'ordinateur relié au grand écran, ouvrez la page Projection. Sur votre téléphone, ouvrez la page Télécommande.' }));
+    zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Sur l\'ordinateur, ouvrez la page Projection en plein écran et partagez cet écran avec le public (vidéoprojecteur ou partage d\'écran de la visioconférence). Sur votre téléphone, ouvrez la page Télécommande.' }));
     if (peutEcrire()) {
         var actions = [];
+        var laTele = l.filter(function (x) { return x.type === 'telecommande'; })[0];
+        if (laTele) {
+            zone.appendChild(creer('div', { classe: 'fr-input-group', attrs: { hidden: true } }, [
+                creer('label', { classe: 'fr-label', attrs: { 'for': 'aLienTele' }, texte: 'Lien de la Télécommande' }),
+                creer('input', { classe: 'fr-input', id: 'aLienTele', attrs: { type: 'text', readonly: 'readonly', autocomplete: 'off' } })]));
+            actions.push(bouton('Copier le lien de la Télécommande', 'secondaire', iconeDispo(['links-line', 'link', 'file-copy-line']), function () { relayer(copierLienTelecommande(laTele.vue), 'Lien de la télécommande'); }, { id: 'aLienTeleBtn' }));
+        }
         var tele = l.filter(function (x) { return x.type === 'telecommande' && !x.cachee; })[0];
         if (tele) {
             actions.push(bouton('Cacher la page Télécommande', 'secondaire', 'eye-off-line', function () { relayer(cacherTelecommande(tele.vue, refaire), 'Page Télécommande cachée'); }, { id: 'aCacherTele' }));
