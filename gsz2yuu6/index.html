@@ -886,7 +886,7 @@ var NOM_WIDGET_ANCIEN = 'import_excel';
 function estLigneDuWidget(valeurWidget) {
     return valeurWidget === NOM_WIDGET || valeurWidget === NOM_WIDGET_ANCIEN;
 }
-var VERSION_WIDGET = '1.4.4';
+var VERSION_WIDGET = '1.5.0';
 var HOMOLOGUE = false;
 function descriptifParametrage(nom, nomFichier) {
     var txt = 'Paramétrage d\'import';
@@ -1189,6 +1189,27 @@ function trouverTableCentrale(ids) {
             return liste[i];
     }
     return null;
+}
+/* Une table créée par le widget porte toujours ses quatre colonnes calculées par Grist */
+var COLONNES_TRACE = [
+    { id: 'CREE_LE', type: 'DateTime:Europe/Paris', label: 'CRÉÉ LE', formula: 'NOW()', recalcWhen: 0 },
+    { id: 'CREE_PAR', type: 'Text', label: 'CRÉÉ PAR', formula: 'user.Email', recalcWhen: 0 },
+    { id: 'MODIFIE_LE', type: 'DateTime:Europe/Paris', label: 'MODIFIÉ LE', formula: 'NOW()', recalcWhen: 2 },
+    { id: 'MODIFIE_PAR', type: 'Text', label: 'MODIFIÉ PAR', formula: 'user.Email', recalcWhen: 2 }
+];
+async function poserColonnesTrace(tid, cols) {
+    var pris = (cols || []).map(function (c) { return String(c.id).toUpperCase(); });
+    var aPoser = COLONNES_TRACE.filter(function (c) { return pris.indexOf(c.id) === -1; });
+    for (var k = 0; k < aPoser.length; k++) {
+        var c = aPoser[k];
+        try {
+            await ecrireDocument([['AddColumn', tid, c.id, { type: c.type, label: c.label }]]);
+            await ecrireDocument([['ModifyColumn', tid, c.id, { isFormula: false, formula: c.formula, recalcWhen: c.recalcWhen, recalcDeps: null }]]);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Colonne calculée non posée : ' + c.id, e);
+        }
+    }
 }
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
@@ -4582,6 +4603,7 @@ async function allerEtape4() {
                 catch (eRel) {
                     logSecurite('AVERTISSEMENT', 'Relevé des identifiants de colonnes impossible', eRel);
                 }
+                await poserColonnesTrace(tableIdReel, cols);
             }
             catch (err) {
                 masquerLoader();

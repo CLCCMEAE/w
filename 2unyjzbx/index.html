@@ -676,7 +676,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.4';
+var VERSION_WIDGET = '1.9.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11292,7 +11292,7 @@ var MODELES_VILLE = [
 function tablesDuModele(m, idPrincipale, idPersonnes) {
     var defs = [];
     if (m.personnes) {
-        defs.push({ id: idPersonnes, colonnes: [{ id: 'NOM', type: 'Text', label: 'Nom' }, { id: 'EMOJI', type: 'Text', label: 'Emoji' }] });
+        defs.push({ id: idPersonnes, colonnes: [{ id: 'NOM', type: 'Text', label: 'Nom' }, { id: 'EMOJI', type: 'Text', label: 'Emoji' }].concat(COLONNES_META) });
     }
     var cols = [{ id: m.titre.id, type: 'Text', label: m.titre.label },
         { id: m.etape.id, type: 'Choice', label: m.etape.label, widgetOptions: { choices: m.etape.valeurs.map(function (v) { return v[0]; }) } }];
@@ -11311,7 +11311,7 @@ function tablesDuModele(m, idPrincipale, idPersonnes) {
         cols.push({ id: m.echeance.id, type: 'Date', label: m.echeance.label });
     }
     (m.autres || []).forEach(function (a) { cols.push({ id: a.id, type: a.type, label: a.label, widgetOptions: a.widgetOptions }); });
-    defs.push({ id: idPrincipale, colonnes: cols });
+    defs.push({ id: idPrincipale, colonnes: cols.concat(COLONNES_META) });
     return defs;
 }
 function colonnesRefModele(m) {
@@ -12220,6 +12220,30 @@ async function chargerTout() {
     }
     await chargerDonneesVille();
     afficherVue('ville');
+    relayer(assurerColonnesMeta(etat.config.table), 'Colonnes calculées de la table');
+}
+/* Une table créée par le widget (nom terminé par l'éclair) porte toujours ses quatre colonnes calculées */
+async function assurerColonnesMeta(tid) {
+    if (!tid || !etat.peutParametrer || etat.niveauAcces !== 'full' || !etat.meta.tables[tid] || etat.metaAssurees === tid) {
+        return;
+    }
+    etat.metaAssurees = tid;
+    if (!/\u26A1\uFE0F?$/.test(String(libelleTable(tid)).trim())) {
+        return;
+    }
+    var manquantes = COLONNES_META.filter(function (c) { return !infoColonne(tid, c.id); });
+    if (!manquantes.length) {
+        return;
+    }
+    try {
+        await agir(manquantes.map(function (c) { return ['AddColumn', tid, c.id, { type: c.type, label: c.label }]; }));
+        await poserFormules(tid, manquantes);
+        await chargerMeta();
+        logSecurite('INFO', 'Colonnes calculées ajoutées à ' + tid + ' : ' + manquantes.map(function (c) { return c.id; }).join(', '));
+    }
+    catch (e) {
+        logSecurite('INFO', 'Colonnes calculées non ajoutées à ' + tid, e);
+    }
 }
 function empreinteDonnees() {
     var cfg = etat.config || {};

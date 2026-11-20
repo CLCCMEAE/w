@@ -909,7 +909,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.8.4';
+var VERSION_WIDGET = '2.9.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -6773,7 +6773,7 @@ async function assurerTableRetouches() {
         return true;
     }
     var tids = await creerTables([{ id: TABLE_RETOUCHES, colonnes: [{ id: 'MODELE', type: 'Text', label: 'Modèle' }, { id: 'LISTE', type: 'Text', label: 'Liste' },
-                { id: 'LIGNE', type: 'Int', label: 'Ligne' }, { id: 'CONTENU', type: 'Text', label: 'Contenu retouché' }, { id: 'MODIFIE_LE', type: 'DateTime', label: 'Modifié le' }] }]);
+                { id: 'LIGNE', type: 'Int', label: 'Ligne' }, { id: 'CONTENU', type: 'Text', label: 'Contenu retouché' }].concat(COLONNES_META) }]);
     try {
         await renommerTables([[tids[0], '✏️ Retouches des documents']]);
     }
@@ -6782,6 +6782,28 @@ async function assurerTableRetouches() {
     }
     await chargerMeta();
     return tableRetouchesExiste();
+}
+async function assurerTraceRetouches() {
+    var tid = idTableRetouches();
+    if (!tid || etat.traceRetouchesFaite === tid) {
+        return;
+    }
+    etat.traceRetouchesFaite = tid;
+    var manquantes = COLONNES_META.filter(function (c) { return !infoColonne(tid, c.id); });
+    var aConvertir = COLONNES_META.filter(function (c) { var i = infoColonne(tid, c.id); return i && !i.isFormula && !i.formula; });
+    if (!manquantes.length && !aConvertir.length) {
+        return;
+    }
+    try {
+        if (manquantes.length) {
+            await agir(manquantes.map(function (c) { return ['AddColumn', tid, c.id, { type: typeAvecFuseau(c.type), label: c.label }]; }));
+        }
+        await poserFormules(tid, manquantes.concat(aConvertir));
+        await chargerMeta();
+    }
+    catch (e) {
+        logSecurite('INFO', 'Colonnes calculées non posées sur la table des retouches', e);
+    }
 }
 async function chargerRetouches() {
     var cle = String(etat.cleConfig);
@@ -6915,13 +6937,12 @@ async function enregistrerRetouche() {
         return;
     }
     var contenu = JSON.stringify({ v: 1, blocks: b.blocks, page: b.page });
-    var maintenant = Math.floor(Date.now() / 1000);
     try {
         if (b.retoucheId) {
-            await agir([['UpdateRecord', idTableRetouches(), b.retoucheId, { CONTENU: contenu, MODIFIE_LE: maintenant }]]);
+            await agir([['UpdateRecord', idTableRetouches(), b.retoucheId, { CONTENU: contenu }]]);
         }
         else {
-            var ret = await agir([['AddRecord', idTableRetouches(), null, { MODELE: String(etat.cleConfig), LISTE: b.table, LIGNE: b.sampleId, CONTENU: contenu, MODIFIE_LE: maintenant }]]);
+            var ret = await agir([['AddRecord', idTableRetouches(), null, { MODELE: String(etat.cleConfig), LISTE: b.table, LIGNE: b.sampleId, CONTENU: contenu }]]);
             b.retoucheId = ret && ret.retValues ? ret.retValues[0] : null;
         }
     }
@@ -6962,6 +6983,9 @@ async function quitterRetouche(sansQuestion) {
 function colonneRetouches() {
     var b = etat.brouillon;
     var idR = idTableRetouches();
+    if (idR) {
+        relayer(assurerTraceRetouches(), 'Colonnes calculées des retouches');
+    }
     if (idR && libelleTable(idR).indexOf('\u270f') === -1) {
         relayer(renommerTables([[idR, '\u270f\ufe0f Retouches des documents']]).then(chargerMeta), 'Nom de la table des retouches');
     }
