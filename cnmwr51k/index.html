@@ -726,7 +726,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.1';
+var VERSION_WIDGET = '1.5.2';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -924,6 +924,7 @@ var AIDE = {
         { q: 'Puis-je ne suivre que certaines colonnes ?', r: 'Oui : sous chaque table, « Choisir les colonnes ». Une colonne décochée n\'est plus notée à partir de ce moment ; ce qui a déjà été noté reste dans le journal. Une colonne ajoutée plus tard à la table est suivie d\'office.' },
         { q: 'Qui peut lire le journal ?', r: 'Les propriétaires du document, et les personnes ajoutées dans « Qui peut lire le journal » des paramétrages. Pour les autres, la colonne de journal et la table de l\'historique sont masquées par des règles d\'accès posées par le widget.' },
         { q: 'Pourquoi la personne n\'est-elle pas indiquée pour une suppression ?', r: 'Le document ne dit pas qui a supprimé une ligne ou changé une colonne. Le widget le constate en comparant deux relevés : il indique la période pendant laquelle c\'est arrivé.' },
+        { q: 'Une suppression de ligne peut-elle manquer ?', r: 'Oui, si le widget est resté fermé longtemps pendant une forte activité : les suppressions se retrouvent dans l\'historique interne de Grist, et cet historique ne garde que les dernières modifications. Les ajouts et les modifications, eux, sont toujours dans le journal de chaque ligne. Laisser la page de l\'historique ouverte par un propriétaire suffit à ne rien perdre.' },
         { q: 'Le journal peut-il être modifié ?', r: 'Les propriétaires gardent la main sur le document : ils pourraient modifier une cellule de journal. Le journal sert à suivre l\'activité, ce n\'est pas une preuve infalsifiable.' },
         { q: 'Rétablir une valeur efface-t-il le journal ?', r: 'Non. Rétablir une ancienne valeur est une modification comme une autre : elle est notée dans le journal, avec votre nom. Vous pouvez l\'annuler juste après.' },
         { q: 'Que devient une ligne restaurée ?', r: 'Elle est recréée avec ses dernières valeurs connues et son historique, sous un nouveau numéro. Les colonnes calculées se recalculent d\'elles-mêmes.' },
@@ -1576,8 +1577,19 @@ function ecrireEvenements(type, evts, depuis, quand, champsSup) {
         return ['AddRecord', etat.histo, null, o];
     });
 }
+/* Un relevé n'est réécrit que s'il a changé : réécrire toutes les minutes alourdissait le document et vidait l'historique de Grist */
+var _controles = {};
+function depuisReleve(objet) {
+    var r = etat.releves[objet];
+    var t = Math.max(r && r.quand ? r.quand : 0, _controles[objet] || 0);
+    return t || null;
+}
 function actionReleve(objet, donnees, quand) {
     var r = etat.releves[objet];
+    _controles[objet] = quand;
+    if (r && JSON.stringify(r.donnees === undefined ? null : r.donnees) === JSON.stringify(donnees === undefined ? null : donnees)) {
+        return null;
+    }
     var champs = { DETAIL: JSON.stringify(donnees), QUAND: quand };
     if (r) {
         return ['UpdateRecord', etat.histo, r.id, champs];
@@ -1604,9 +1616,10 @@ async function releverSuppressions(quand) {
     if (!avant || !avant.h || avant.h === tete) {
         return { actions: [], releve: nouveau };
     }
-    var depuis = etat.releves.etat.quand || null;
+    var depuis = depuisReleve('etat');
     if (!etats.some(function (s) { return s.h === avant.h; })) {
-        return { actions: ecrireEvenements('SUPPRESSION', [{ objet: 'Suppressions non récupérables', avant: '', apres: 'L\'historique du document ne remonte plus jusqu\'au relevé précédent : les suppressions de cette période ne sont pas connues.' }], depuis, quand), releve: nouveau };
+        logSecurite('INFO', 'Historique de Grist plus court que l\'intervalle depuis le relevé précédent : suppressions de cette période non relevées', depuis);
+        return { actions: [], releve: nouveau };
     }
     var cmp;
     try {
@@ -1653,7 +1666,7 @@ async function releverLignes(quand) {
        on compare les lignes de chaque table suivie avec le relevé précédent. */
     var precedent = etat.releves.lignes;
     var avant = precedent ? precedent.donnees : null;
-    var depuis = precedent ? precedent.quand : null;
+    var depuis = precedent ? depuisReleve('lignes') : null;
     var nouveau = {};
     var evts = [];
     var suivies = ((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; });
@@ -1702,7 +1715,7 @@ async function releverTout() {
         if (rs && rs.donnees) {
             var es = compareStructure(rs.donnees, s);
             nb += es.length;
-            actions = actions.concat(ecrireEvenements('STRUCTURE', es, rs.quand, quand));
+            actions = actions.concat(ecrireEvenements('STRUCTURE', es, depuisReleve('structure'), quand));
         }
         actions.push(actionReleve('structure', s, quand));
         try {
@@ -1713,7 +1726,7 @@ async function releverTout() {
                 if (rd && rd.donnees) {
                     var ed = compareDroits(rd.donnees, d);
                     nb += ed.length;
-                    actions = actions.concat(ecrireEvenements('DROITS', ed, rd.quand, quand));
+                    actions = actions.concat(ecrireEvenements('DROITS', ed, depuisReleve('droits'), quand));
                 }
                 actions.push(actionReleve('droits', d, quand));
             }
@@ -1727,7 +1740,7 @@ async function releverTout() {
             if (rp && rp.donnees) {
                 var ep = comparePartages(rp.donnees, p);
                 nb += ep.length;
-                actions = actions.concat(ecrireEvenements('PARTAGE', ep, rp.quand, quand));
+                actions = actions.concat(ecrireEvenements('PARTAGE', ep, depuisReleve('partages'), quand));
             }
             actions.push(actionReleve('partages', p, quand));
             etat.partagesIndisponibles = false;
@@ -1748,8 +1761,10 @@ async function releverTout() {
             actions = actions.concat(sl.actions);
             actions.push(actionReleve('lignes', sl.releve, quand));
         }
-        actions = actions.concat(actionsPurge(quand));
-        await agirParLots(actions);
+        actions = actions.concat(actionsPurge(quand)).filter(Boolean);
+        if (actions.length) {
+            await agirParLots(actions);
+        }
         await lireHisto();
         etat.erreurReleve = null;
     }
@@ -1918,7 +1933,7 @@ async function construireEvenements() {
     }
     (etat.lignesHisto || []).forEach(function (l) {
         var type = { SUPPRESSION: 'suppression', STRUCTURE: 'structure', DROITS: 'droits', PARTAGE: 'partage', SUIVI: 'suivi' }[l.type];
-        if (!type) {
+        if (!type || (type === 'suppression' && l.objet === 'Suppressions non récupérables')) {
             return;
         }
         var ms = (l.quand || 0) * 1000;
@@ -2857,7 +2872,10 @@ async function releverSilencieux() {
     catch (e) {
         logSecurite('INFO', 'Règles d\'accès illisibles', e);
     }
-    await agir(actions);
+    actions = actions.filter(Boolean);
+    if (actions.length) {
+        await agir(actions);
+    }
     await lireHisto();
 }
 function filtrees() { return etat.evenements.filter(correspond); }
