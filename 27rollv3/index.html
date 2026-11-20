@@ -468,6 +468,8 @@ body.w-agrandi .w-panneau-aide { display: none; }
 .sd-vignette > .sd-cadre { flex: 1; min-width: 0; }
 .sd-vignette__bouton { position: absolute; inset: 0; width: 100%; margin: 0; padding: 0; background: transparent; border: 0; cursor: pointer; }
 .sd-vignette__bouton:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+.sd-vignette__bouton, .sd-vignette__bouton:hover, .sd-vignette__bouton:active, .sd-vignette__bouton:not(:disabled):hover, .sd-vignette__bouton:not(:disabled):active { --hover: transparent; --active: transparent; --hover-tint: transparent; --active-tint: transparent; background: transparent !important; background-color: transparent !important; }
+.sd-vignettes__item:hover:not(.sd-vignettes__item--courante) .sd-cadre { box-shadow: 0 0 0 2px var(--border-plain-blue-france); }
 .sd-vignettes__item--courante .sd-cadre { box-shadow: 0 0 0 3px var(--border-action-high-blue-france); }
 .sd-vignettes__item--courante .sd-vignette__num { color: var(--text-action-high-blue-france); font-weight: 700; }
 .sd-vignettes__item--masquee .sd-cadre { opacity: .45; }
@@ -837,7 +839,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.0';
+var VERSION_WIDGET = '1.6.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -3597,30 +3599,7 @@ async function cacherPage() {
         if (!vue) {
             throw new Error('La page de ce widget n\'a pas été retrouvée dans le document');
         }
-        var o = trouverOwner() || await creerTableOwner();
-        var ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
-        if (!ref) {
-            await chargerMeta();
-            o = trouverOwner();
-            ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
-        }
-        if (!ref) {
-            throw new Error('La table « ' + titreOwner() + ' » n\'a pas été retrouvée après sa création');
-        }
-        d = await lireTable('_grist_Views_section');
-        var reduite = true;
-        var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })[0];
-        if (existante) {
-            reduite = await reduireVue(vue, existante);
-        }
-        else {
-            var r = await agir([['CreateViewSection', ref, vue, 'record', null, null]]);
-            var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
-            if (sec) {
-                await agir([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + titreOwner() + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
-                reduite = await reduireVue(vue, sec);
-            }
-        }
+        var reduite = await protegerVue(vue);
         await lirePlans();
         await majPages();
         masquerLoader();
@@ -3633,6 +3612,49 @@ async function cacherPage() {
     }
 }
 
+async function protegerVue(vue) {
+    var o = trouverOwner() || await creerTableOwner();
+    var ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
+    if (!ref) {
+        await chargerMeta();
+        o = trouverOwner();
+        ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
+    }
+    if (!ref) {
+        throw new Error('La table « ' + titreOwner() + ' » n\'a pas été retrouvée après sa création');
+    }
+    var d = await lireTable('_grist_Views_section');
+    var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === ref; })[0];
+    if (existante) {
+        return reduireVue(vue, existante);
+    }
+    var r = await agir([['CreateViewSection', ref, vue, 'record', null, null]]);
+    var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
+    if (!sec) {
+        return false;
+    }
+    await agir([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + titreOwner() + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
+    return reduireVue(vue, sec);
+}
+function vueProtegee(d, vue) {
+    var refs = tablesProtection().map(function (t) { return etat.meta.tables[t].ref; });
+    return d.id.some(function (x, i) { return d.parentId[i] === vue && refs.indexOf(d.tableRef[i]) !== -1; });
+}
+async function cacherTelecommande(vue, surFin) {
+    afficherLoader('Préparation de la page Télécommande…');
+    try {
+        await protegerVue(vue);
+        masquerLoader();
+        afficherSucces('La page Télécommande est réservée aux administrateurs, avec la même règle d\'accès que les autres pages cachées (« Les droits »).');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page Télécommande n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
+    }
+    if (surFin) {
+        surFin();
+    }
+}
 async function replierProtection() {
     var p = etat.protection;
     if (!p) {
@@ -7337,7 +7359,7 @@ async function lirePagesSpeciales(idPres) {
         var o = optionsSection(d, i).widgetOptions || {};
         var vue = (d.parentId || [])[i];
         PAGES_SPECIALES.forEach(function (p) { if (vue && o[p.type] === idPres) {
-            l.push({ type: p.type, vue: vue, nom: noms[vue] || '' });
+            l.push({ type: p.type, vue: vue, nom: noms[vue] || '', cachee: vueProtegee(d, vue) });
         } });
     }
     return l;
@@ -7394,6 +7416,14 @@ async function creerPagesSpeciales(surFin) {
             vues.push(res.viewRef);
             await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: ps.nom(nomPres(p)) }],
                 ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: nomPres(p), options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
+            if (ps.type === 'telecommande') {
+                try {
+                    await protegerVue(res.viewRef);
+                }
+                catch (eP) {
+                    logSecurite('AVERTISSEMENT', 'Page Télécommande créée mais pas cachée', eP);
+                }
+            }
         }
         masquerLoader();
         afficherSucces('Les pages sont créées : elles apparaissent dans la liste des pages du document.');
@@ -7457,7 +7487,7 @@ async function renommerPagesSpeciales(p) {
     }
 }
 function sectionPagesSpeciales() {
-    var aidePg = aide('aAidePages', 'Pages à partager', 'Deux pages ajoutées au document, rien que pour cette présentation. La page « Projection » n\'affiche que les diapositives, sans outils ni notes : c\'est elle que vous partagez aux invités, sur le grand écran ou dans la visioconférence. La page « Télécommande » s\'ouvre sur votre téléphone : notes, diapositive suivante et grands boutons. Quand vous avancez sur le téléphone, la page Projection suit.');
+    var aidePg = aide('aAidePages', 'Pages à partager', 'Deux pages ajoutées au document, rien que pour cette présentation. La page « Projection » n\'affiche que les diapositives, sans outils ni notes : c\'est elle que vous partagez aux invités, sur le grand écran ou dans la visioconférence. La page « Télécommande » s\'ouvre sur votre téléphone : notes, diapositive suivante et grands boutons. Quand vous avancez sur le téléphone, la page Projection suit. La page Télécommande est réservée aux administrateurs : elle est cachée comme cette page, par la table ' + TITRE_OWNER + ' et la règle décrite dans « Les droits ».');
     var zone = creer('div', { id: 'aPagesZone', attrs: { 'aria-live': 'polite' } }, [creer('p', { classe: 'w-mention', texte: 'Recherche des pages…' })]);
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPages' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPages', texte: 'Pages à partager' }), aidePg.bouton]), aidePg.panneau, zone
@@ -7493,11 +7523,23 @@ async function remplirPagesSpeciales(z) {
         return;
     }
     var ul = creer('ul', { classe: 'sd-pages' });
-    l.forEach(function (x) { ul.appendChild(creer('li', { texte: x.nom })); });
+    l.forEach(function (x) {
+        var li = creer('li', {}, [creer('span', { texte: x.nom })]);
+        if (x.type === 'telecommande') {
+            li.appendChild(document.createTextNode(' '));
+            li.appendChild(x.cachee ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon', texte: 'Réservée aux administrateurs' })
+                : creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon', texte: 'Visible de tous' }));
+        }
+        ul.appendChild(li);
+    });
     zone.appendChild(ul);
     zone.appendChild(creer('p', { classe: 'w-mention', texte: 'Sur l\'ordinateur relié au grand écran, ouvrez la page Projection. Sur votre téléphone, ouvrez la page Télécommande.' }));
     if (peutEcrire()) {
         var actions = [];
+        var tele = l.filter(function (x) { return x.type === 'telecommande' && !x.cachee; })[0];
+        if (tele) {
+            actions.push(bouton('Cacher la page Télécommande', 'secondaire', 'eye-off-line', function () { relayer(cacherTelecommande(tele.vue, refaire), 'Page Télécommande cachée'); }, { id: 'aCacherTele' }));
+        }
         if (l.length < PAGES_SPECIALES.length) {
             actions.push(bouton('Recréer la page manquante', 'secondaire', 'add-line', function () { relayer(creerPagesSpeciales(refaire), 'Création des pages'); }, { id: 'aCreerPages' }));
         }
