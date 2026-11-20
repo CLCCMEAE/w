@@ -553,6 +553,38 @@
     .w-ec-note { margin: 0 0 2pt; font-size: 7.5pt; line-height: 1.3; color: var(--text-mention-grey); }
     .w-ec-saut { margin: 0 0 9pt; padding: 2pt 0; border-top: 1px dashed var(--border-plain-grey); font-size: 7.5pt; color: var(--text-mention-grey); text-align: center; }
     .w-hors-ecran { position: absolute; left: -200000px; top: 0; }
+    .w-ec-el { position: relative; }
+    .w-ec-el--objet { cursor: pointer; border-radius: 1px; }
+    .w-ec-el--objet:hover, .w-ec-el--conteneur:hover { outline: 1px dashed var(--border-default-blue-france); outline-offset: 3px; }
+    .w-ec-el--objet:focus-visible { outline: 2px solid var(--border-active-blue-france); outline-offset: 3px; }
+    .w-ec-el.w-ec-el--choisi { outline: 2px solid var(--border-active-blue-france); outline-offset: 4px; }
+    .w-ec-el--texte.w-ec-el--choisi { outline-width: 1px; }
+    .w-ec-el--cache > :not(.w-ec-el__barre):not(.w-ec-note) { opacity: .45; }
+    .w-ec-el__barre { position: absolute; z-index: 30; right: -4px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: .125rem; padding: .125rem .25rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 2px 6px rgba(0, 0, 0, .16);
+      font-family: Marianne, arial, sans-serif; font-size: .875rem; line-height: 1.5; white-space: nowrap; }
+    .w-ec-el__barre .fr-btn { margin: 0; }
+    .w-ec-el__nom { padding: 0 .375rem; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-ec-el__etiquette { position: absolute; z-index: 5; left: -4px; bottom: calc(100% + 2px); padding: 0 .375rem; border: 0; cursor: pointer; opacity: 0;
+      font: 700 .6875rem/1.5 Marianne, arial, sans-serif; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-ec-el--conteneur:hover > .w-ec-el__etiquette, .w-ec-el__etiquette:focus-visible, .w-ec-el--choisi > .w-ec-el__etiquette { opacity: 1; }
+    .w-ec-el--choisi > .w-ec-el__etiquette { visibility: hidden; }
+    .w-ec-el__vide, .w-ec-ecrire { display: block; width: 100%; margin: 0 0 9pt; padding: 4pt 6pt; border: 1px dashed var(--border-plain-grey); background: transparent;
+      font: italic 8pt/1.4 Marianne, arial, sans-serif; color: var(--text-mention-grey); text-align: left; }
+    .w-ec-ecrire { cursor: pointer; }
+    .w-ec-ecrire:hover { border-color: var(--border-active-blue-france); color: var(--text-action-high-blue-france); }
+    .w-ec-zone--vide[data-court] { min-height: 1.5em; }
+    .p-col > .w-ec-el:last-child > .p-u:last-child, .p-box > .w-ec-el:last-child > .p-u:last-child, .w-ec-corps > .w-ec-el:last-child > .p-u:last-child { margin-bottom: 0; }
+    .w-ec-el--pied:hover { outline-offset: 0; }
+    .w-ec-select { width: auto; max-width: 11rem; height: 2rem; margin: 0; padding: .125rem 2rem .125rem .5rem; font-size: .8125rem; background-position: calc(100% - .375rem) 50%; }
+    .w-elem-zone:empty { display: none; }
+    .w-pastille { cursor: pointer; }
+    .w-regle-bloc { display: flex; flex-direction: column; gap: .25rem; padding-left: .75rem; border-left: 2px solid var(--border-default-grey); }
+    .w-elem { display: flex; flex-direction: column; gap: .75rem; padding: .75rem; border-bottom: 1px solid var(--border-default-grey);
+      border-left: .25rem solid var(--border-active-blue-france); background: var(--background-alt-blue-france); }
+    .w-elem__tete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .w-elem__titre { display: flex; align-items: center; gap: .375rem; margin: 0; font-size: 1rem; line-height: 1.5; }
+    .w-elem .fr-input-group, .w-elem .fr-select-group { margin-bottom: 0; }
     .w-rediger, .w-donnees-2c, .w-deux { display: grid; grid-template-columns: minmax(22.5rem, 25rem) minmax(0, 1fr); gap: 1.5rem 3rem; align-items: start; }
     .w-reglages { position: sticky; top: .5rem; max-height: calc(100vh - 12rem); overflow-y: auto; display: flex; flex-direction: column;
       border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); }
@@ -862,7 +894,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.6.0';
+var VERSION_WIDGET = '2.7.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -1444,6 +1476,10 @@ function bouton(libelle, variante, icone, clic, o) {
         attrs: { 'aria-label': o.aria || null, disabled: o.desactive || null } }, o.iconeSeule ? [creer('span', { classe: 'fr-sr-only', texte: libelle })] : null);
     if (o.attrs) {
         Object.keys(o.attrs).forEach(function (k) { b.setAttribute(k, o.attrs[k]); });
+    }
+    if (o.iconeSeule && !b.hasAttribute('data-infobulle') && !b.hasAttribute('title')) {
+        b.classList.add('w-infobulle');
+        b.setAttribute('data-infobulle', libelle);
     }
     if (clic) {
         b.addEventListener('click', function (e) {
@@ -3143,11 +3179,13 @@ var AIDE = {
                 'L\'aperçu montre le document avec une ligne de la table choisie.'
             ] },
         'Rédiger': { titre: 'écrivez et mettez en page.', points: [
-                'Courrier et page blanche : cliquez dans la page et écrivez comme dans un traitement de texte.',
+                'Tous les types de document s\'écrivent dans la page, comme dans un traitement de texte, colonnes et encadrés compris.',
+                'Un clic sur un élément de la page le choisit : ses réglages s\'ouvrent en haut du panneau de gauche, et une barre au-dessus de lui le monte, le descend, le duplique ou le supprime.',
+                'Le bandeau règle le style, la taille et la couleur du texte, la police du document, et « Insérer » ajoute un élément à l\'endroit du curseur.',
                 'Les champs sont des pastilles, remplacées par les valeurs de chaque ligne : tapez « { », utilisez « Insérer un champ » ou la liste « Champs disponibles ».',
                 'Ctrl+B, Ctrl+I, Ctrl+U pour la mise en forme ; Ctrl+Z et Ctrl+Y pour annuler et rétablir ; Alt+F10 pour la barre d\'outils.',
                 '« Voir avec les données » montre le document tel qu\'il sera imprimé ; revenez à « Voir les champs » pour écrire.',
-                'Les autres types : ouvrez un bloc pour le modifier, les flèches changent leur ordre ; l\'aperçu en direct est à droite.',
+                '« Mise en page avancée », puis « Afficher les blocs » : la liste des blocs dans le panneau, avec l\'aperçu à droite.',
                 'Logos, mise en page, nom des fichiers et type de document se règlent dans les rubriques de gauche.',
                 'Les points à vérifier (champs vides, document de plus d\'une page) s\'affichent au-dessus du document.'
             ] },
@@ -3171,9 +3209,12 @@ var AIDE = {
         { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: 'À l\'étape « Rédiger », rubrique « Logos » : gardez « Bloc-marque de l\'État » coché et choisissez « Poste à l\'étranger », puis le poste, la liaison (en, au, aux, à, auprès de) et le pays ou la ville. WuitFusion propose le découpage en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Les choix « Gouvernement » et « République française » servent aux courriers interministériels et aux opérateurs. L\'intitulé ne se traduit pas.' },
         { q: 'Comment numéroter mes courriers ?', r: 'Rien n\'est numéroté par défaut. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, rubrique « Numérotation automatique (chrono) » : écrivez votre format, par exemple CD/{N:2}-{AAAA}, le prochain numéro et quand le compteur repart à 1, puis « Créer la numérotation ». Grist attribue alors la référence à la création de chaque ligne, sans doublon, et elle reste modifiable à la main. « Créer la page 📒 Chrono » ajoute une page avec vos courriers triés par référence.' },
         { q: 'D\'où viennent les formules de la note verbale ?', r: 'Le champ « Émetteur » suit le bloc-marque : « Le ministère de l\'Europe et des Affaires étrangères », ou « L\'Ambassade de France aux États-Unis » pour un poste. Le reste des formules s\'écrit dans la page, comme le corps de la note.' },
-        { q: 'Comment placer un nouveau bloc au bon endroit ?', r: 'Dans « Ajouter un bloc », choisissez d\'abord « Où le placer » : au début, à la fin, ou après un bloc précis. Ensuite, chaque bloc se déplace en le faisant glisser par sa poignée, ou avec les flèches : une case, ou tout en haut, tout en bas.' },
+        { q: 'Comment ajouter un tableau, une image, un encadré ou des colonnes ?', r: 'Cliquez dans la page à l\'endroit voulu, puis « Insérer » dans le bandeau. L\'élément se place au curseur : au milieu d\'un texte, le texte est coupé en deux autour de lui.' },
+        { q: 'Comment déplacer, dupliquer ou supprimer un élément ?', r: 'Cliquez sur l\'élément dans la page : une barre apparaît au-dessus de lui, avec « Tout en haut », « Monter », « Descendre », « Tout en bas », « Dupliquer » et « Supprimer ». Au clavier : Alt et flèches pour le déplacer, Suppr pour le supprimer. Dans la liste des blocs, chaque bloc se glisse aussi par sa poignée.' },
+        { q: 'Comment écrire un montant ou une date en toutes lettres ?', r: 'Cliquez sur la pastille du champ dans la page, ou placez le curseur juste après elle et tapez Alt+flèche bas : la liste des formats s\'ouvre, avec un exemple pour chacun. Un montant en euros s\'écrit « mille deux cent trente-quatre euros et cinquante centimes », une date « vingt novembre deux mille vingt-six ».' },
+        { q: 'Comment n\'imprimer un passage que dans certains cas ?', r: 'Choisissez l\'élément, puis, dans ses réglages, « Afficher ce bloc » : « Seulement si… ». Une condition porte sur un champ : rempli, vide, vaut, contient, supérieur ou inférieur à une valeur, coché. « Ajouter une condition » en pose plusieurs, toutes à remplir ou une seule. « Sinon, imprimer à la place » donne le texte de remplacement.' },
         { q: 'Comment encadrer un texte ou placer le logo dans une colonne ?', r: 'Bloc « Encadré » : un cadre, au trait fin, au trait de couleur ou sur fond, dans lequel vous ajoutez les blocs voulus. Bloc « Logo » : le logo du document, à poser où vous voulez, y compris dans une colonne ou un encadré.' },
-        { q: 'Puis-je changer le type d\'un bloc ?', r: 'Oui : en tête du bloc ouvert, « Type du bloc ». Un paragraphe devient un titre et inversement, une liste de champs ou une signature devient un paragraphe, et tout bloc peut être mis dans un encadré. Le texte est gardé.' },
+        { q: 'Puis-je changer le type d\'un bloc ?', r: 'Oui : dans les réglages de l\'élément choisi, « Type du bloc », ou le style dans le bandeau pour passer d\'un paragraphe à un titre. Un paragraphe devient un titre et inversement, une liste de champs ou une signature devient un paragraphe, et tout bloc peut être mis dans un encadré. Le texte est gardé.' },
         { q: 'Comment faire un retrait ou aligner des informations ?', r: 'Tapez des espaces en début de ligne : ils sont gardés dans le document. Pour des colonnes bien alignées, préférez le bloc « Deux colonnes » ou une « Liste de champs ».' },
         { q: 'Comment choisir la ligne affichée dans l\'aperçu ?', r: 'Au-dessus de l\'aperçu : « Repérer les lignes par » choisit la colonne qui nomme chaque ligne, par exemple un nom ou un numéro de dossier. Avec beaucoup de lignes, « Chercher une ligne » la trouve en quelques lettres.' },
         { q: 'Comment les nombres sont-ils écrits ?', r: 'Comme dans Grist : une colonne au format « Monnaie » s\'écrit avec son symbole, une colonne au format « Décimal » avec ses séparateurs de milliers. Sans format choisi, le nombre s\'écrit tel quel : une année reste 2026.' },
@@ -3454,6 +3495,9 @@ function formaterValeur(v, col, mods, prof) {
         if (mods[0] === 'jour') {
             return dateJour(v, fz);
         }
+        if (mods[0] === 'lettres') {
+            return dateEnLettres(v, fz);
+        }
         if (estModLong(mods[0])) {
             return dateLongue(v, fz);
         }
@@ -3463,6 +3507,9 @@ function formaterValeur(v, col, mods, prof) {
         return formaterDateCol(v, col);
     }
     if (t === 'Numeric' || t === 'Int') {
+        if (typeof v === 'number' && mods[0] === 'lettres') {
+            return nombreColEnLettres(v, col);
+        }
         return typeof v === 'number' ? formaterNombreCol(v, col) : String(v);
     }
     if (t === 'Attachments') {
@@ -3692,8 +3739,11 @@ function cheminsDuBloc(b) {
     if (b.type === 'image' && b.source === 'column' && b.col) {
         l.push(b.col);
     }
-    if (b.cond && b.cond.path) {
-        l.push(b.cond.path);
+    reglesCondition(b.cond).forEach(function (r) { l.push(r.path); });
+    if (b.cond && typeof b.cond.sinon === 'string') {
+        analyserTexte(b.cond.sinon).forEach(function (t) { if (t.t === 'f') {
+            l.push(t.chemin);
+        } });
     }
     return l;
 }
@@ -3758,7 +3808,8 @@ function valeurJeton(t, rc) {
     var sp = champSpecial(rc.tid, t.chemin);
     if (sp === 'aujourdhui') {
         var a = aujourdhuiDoc();
-        return { ok: true, texte: estModCourt(t.mods[0]) ? dateCourte(a, 'UTC') : dateLongue(a, 'UTC') };
+        var md = t.mods[0];
+        return { ok: true, texte: estModCourt(md) ? dateCourte(a, 'UTC') : (md === 'jour' ? dateJour(a, 'UTC') : (md === 'lettres' ? dateEnLettres(a, 'UTC') : dateLongue(a, 'UTC'))) };
     }
     if (sp === 'page' || sp === 'pages') {
         return { ok: true, texte: '', pn: sp };
@@ -3860,25 +3911,17 @@ function texteBrut(texte, rc) {
     return d.textContent;
 }
 function conditionRemplie(cond, rc) {
-    if (!cond || !cond.op || !cond.path) {
+    if (!cond || !cond.op || (rc && rc.ignorerCond)) {
         return true;
     }
-    if (typeof rc.i !== 'number' || rc.i < 0) {
+    if (!rc || typeof rc.i !== 'number' || rc.i < 0) {
         return true;
     }
-    var r = valeurChemin(rc.tid, rc.i, cond.path, []);
-    var estBool = r.col && r.col.type === 'Bool';
-    var rempli = estBool ? r.brut === true : String(r.texte || '').trim() !== '';
-    var egal = normalizer(r.texte) === normalizer(cond.value) || (r.brut !== null && r.brut !== undefined && normalizer(String(r.brut)) === normalizer(cond.value));
-    switch (cond.op) {
-        case 'filled': return rempli;
-        case 'empty': return !rempli;
-        case 'checked': return r.brut === true;
-        case 'unchecked': return r.brut !== true;
-        case 'equals': return egal;
-        case 'differs': return !egal;
-        default: return true;
+    var regles = reglesCondition(cond);
+    if (!regles.length) {
+        return true;
     }
+    return cond.join === 'or' ? regles.some(function (r) { return regleRemplie(r, rc); }) : regles.every(function (r) { return regleRemplie(r, rc); });
 }
 function libelleLigne(cfg, i) {
     var col = cfg.labelCol && infoColonne(cfg.table, cfg.labelCol) ? cfg.labelCol : null;
@@ -3963,8 +4006,11 @@ function unitesBloc(b, rc) {
     return l;
 }
 function unitesBlocBrut(b, rc) {
-    if (!b || !conditionRemplie(b.cond, rc)) {
+    if (!b) {
         return [];
+    }
+    if (!conditionRemplie(b.cond, rc)) {
+        return unitesSinon(b, rc);
     }
     switch (b.type) {
         case 'heading': return uniteTitre(b, rc);
@@ -5246,6 +5292,14 @@ function parcourirCheminsConfig(cfg, f) {
         }
         if (b.cond && typeof b.cond.path === 'string' && b.cond.path) {
             b.cond.path = f(tp, b.cond.path);
+        }
+        if (b.cond && Array.isArray(b.cond.plus)) {
+            b.cond.plus.forEach(function (r) { if (r && typeof r.path === 'string' && r.path) {
+                r.path = f(tp, r.path);
+            } });
+        }
+        if (b.cond && typeof b.cond.sinon === 'string') {
+            b.cond.sinon = reecrireChamps(b.cond.sinon, function (ch) { return f(tp, ch); });
         }
         if (b.type === 'items' && b.table) {
             ['ref', 'sort', 'sort2', 'groupe', 'amount'].forEach(function (k) { if (typeof b[k] === 'string' && b[k]) {
@@ -7261,7 +7315,7 @@ function sectionRepliable(cle, titre, enfants, ouvertDefaut) {
 }
 function listeChampsDisponibles() {
     var b = etat.brouillon;
-    var l = [creer('p', { classe: 'w-indice', texte: ecritDansPage(b.layout) && !b.avance ? 'Cliquez dans la page, puis sur un champ : il s\'insère à la position du curseur.' : 'Cliquez dans un texte de l\'éditeur, puis sur un champ : il s\'insère à la position du curseur.' })];
+    var l = [creer('p', { classe: 'w-indice', texte: !b.avance ? 'Cliquez dans la page, puis sur un champ : il s\'insère à la position du curseur.' : 'Cliquez dans un texte de l\'éditeur, puis sur un champ : il s\'insère à la position du curseur.' })];
     optionsChamps(b.table, true).forEach(function (g, kg) {
         l.push(creer('p', { classe: 'w-champs__groupe', texte: g.nom }));
         l.push(creer('ul', { classe: 'w-champs', attrs: { 'aria-label': g.nom } }, g.options.map(function (o, k) {
@@ -7275,7 +7329,7 @@ function listeChampsDisponibles() {
 }
 function insererChampDepuisPanneau(valeur) {
     var b = etat.brouillon;
-    if (ecritDansPage(b.layout) && !b.avance && document.getElementById('pCourrier')) {
+    if (!b.avance && document.getElementById('pCourrier')) {
         var z = zoneActive();
         if (!z) {
             annoncer('Cliquez d\'abord dans la page.');
@@ -7318,7 +7372,8 @@ function etapeRediger() {
     if (b.vueType) {
         return etapeChangerType();
     }
-    var courrier = ecritDansPage(b.layout);
+    var courrier = true;
+    b.ouverts = b.ouverts || {};
     var lettre = b.layout === 'letter';
     var dansPage = courrier && !b.avance;
     if (b.sections === undefined) {
@@ -7344,12 +7399,12 @@ function etapeRediger() {
     sections.push(sectionRepliable('champs', 'Champs disponibles', listeChampsDisponibles()));
     sections.push(sectionRepliable('reference', 'Numérotation automatique (chrono)', [panneauReference()]));
     if (courrier) {
-        sections.push(sectionRepliable('avance', 'Mise en page avancée', [creer('p', { classe: 'w-indice', texte: b.avance ? 'La liste des blocs du courrier, ci-dessous ; l\'aperçu est à droite.' : 'La liste des blocs du courrier, dans ce panneau, pour régler chaque élément.' }),
+        sections.push(sectionRepliable('avance', 'Mise en page avancée', [creer('p', { classe: 'w-indice', texte: b.avance ? 'La liste des blocs, ci-dessous ; l\'aperçu est à droite.' : 'La liste des blocs, dans ce panneau, à la place de l\'écriture sur la page.' }),
             creer('div', { classe: 'w-liens' }, [bouton(b.avance ? 'Revenir à l\'écriture dans la page' : 'Afficher les blocs', 'tertiaire', b.avance ? 'mail-line' : 'list-unordered', function () {
                     b.avance = !b.avance;
                     b.vueDonnees = false;
                     redessinerEtape('pAvance');
-                    annoncer(b.avance ? 'Mise en page avancée : la liste des blocs du courrier, dans le panneau.' : 'Écriture dans la page.');
+                    annoncer(b.avance ? 'Mise en page avancée : la liste des blocs, dans le panneau.' : 'Écriture dans la page.');
                 }, { petit: true, id: 'pAvance' })])].concat(b.avance ? [creer('div', { id: 'pBlocsAvance' }, listeBlocs())] : []), b.avance));
     }
     sections.push(sectionRepliable('type', 'Type de document', [creer('p', { classe: 'w-texte w-mention', texte: nomMiseEnPage(b.layout) + '.' }),
@@ -7359,7 +7414,7 @@ function etapeRediger() {
         d.focus();
     } });
     rpBrancher();
-    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages du document' } }, [evitement, b.mode === 'creation' ? blocNomDocument() : null, creer('div', { classe: 'w-rp-case' }, [caseRepererF()])].concat(sections));
+    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': 'Réglages du document' } }, [evitement, b.mode === 'creation' ? blocNomDocument() : null, creer('div', { classe: 'w-rp-case' }, [caseRepererF()]), dansPage ? creer('div', { classe: 'w-elem-zone', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()) : null].concat(sections));
     var droite = dansPage ? editeurCourrier() : apercuRedaction();
     var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': dansPage ? (lettre ? 'Le courrier, modifiable dans la page' : 'La page, modifiable') : 'Aperçu en direct du document' } }, [alerteImportWord(b), barreAfficher(courrier && !b.avance),
         creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }, [creer('p', { classe: 'w-indice', texte: 'Vérification des lignes…' })]), droite]);
@@ -9236,7 +9291,7 @@ function carteBloc(liste, k, dedans) {
         bouton('Monter', 'discret', 'arrow-up-line', function () { deplacer(-1); }, { petit: true, iconeSeule: true, aria: 'Monter : ' + nom, desactive: k === 0, id: 'pHaut' + bl.id }),
         bouton('Descendre', 'discret', 'arrow-down-line', function () { deplacer(1); }, { petit: true, iconeSeule: true, aria: 'Descendre : ' + nom, desactive: k === liste.length - 1, id: 'pBas' + bl.id }),
         bouton('Tout en bas', 'discret', 'skip-down-line', function () { deplacerA(liste.length - 1); }, { petit: true, iconeSeule: true, aria: 'Mettre tout en bas : ' + nom, desactive: k === liste.length - 1, id: 'pBottom' + bl.id }),
-        bl.type !== 'footer' ? bouton('Dupliquer', 'discret', 'file-add-line', function () {
+        bl.type !== 'footer' ? bouton('Dupliquer', 'discret', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () {
             var copie = JSON.parse(JSON.stringify(bl));
             renouvelerIds(copie);
             liste.splice(k + 1, 0, copie);
@@ -9380,6 +9435,9 @@ function changeurType(lst, k, dedans) {
         var nb = convertirBloc(bl, s.value);
         lst.splice(k, 1, nb);
         ouvrirSeul(nb.id);
+        if (etat.brouillon.choisi === bl.id) {
+            etat.brouillon.choisi = nb.id;
+        }
         changeBloc();
         rafraichirBlocs('pType' + nb.id);
         annoncer('Bloc transformé : ' + typeBloc(nb.type).nom + '.');
@@ -9503,7 +9561,12 @@ async function ajouterBloc(liste, type, position) {
 }
 function idEd(bl, cle) { return 'e' + bl.id + '_' + cle; }
 function choixListe(bl, cle, libelle, options, aide, surChange) {
-    var s = liste(idEd(bl, cle), options, bl[cle] === undefined || bl[cle] === null ? '' : bl[cle]);
+    var defauts = { size: 'M', color: 'ink', level: 2 };
+    var actuel = bl[cle] === undefined || bl[cle] === null ? '' : bl[cle];
+    if (actuel === '' && defauts[cle] !== undefined && options.some(function (o) { return String(o.valeur) === String(defauts[cle]); })) {
+        actuel = defauts[cle];
+    }
+    var s = liste(idEd(bl, cle), options, actuel);
     s.addEventListener('change', function () {
         var v = s.value;
         bl[cle] = /^-?\d+$/.test(v) && cle === 'level' ? Number(v) : v;
@@ -9609,12 +9672,13 @@ function fermerSuggestions() { if (_suggestOuverte) {
 function listeSuggestions(o) {
     fermerSuggestions();
     var boite = creer('div', { classe: 'w-suggest', id: o.id });
-    var liste = creer('ul', { classe: 'w-suggest__liste', id: o.id + 'Liste', attrs: { role: 'listbox', 'aria-label': 'Champs à insérer' } });
+    var tx = o.textes || { liste: 'Champs à insérer', filtre: 'Filtrer les champs', vide: 'Aucun champ ne correspond.', un: 'champ proposé', plusieurs: 'champs proposés' };
+    var liste = creer('ul', { classe: 'w-suggest__liste', id: o.id + 'Liste', attrs: { role: 'listbox', 'aria-label': tx.liste } });
     var etatL = creer('p', { classe: 'fr-sr-only', id: o.id + 'Etat', attrs: { role: 'status', 'aria-live': 'polite' } });
     var filtre = null;
     if (o.filtre) {
         filtre = creer('input', { classe: 'fr-input', id: o.id + 'Filtre', attrs: { type: 'text', role: 'combobox', 'aria-expanded': 'true', 'aria-controls': o.id + 'Liste',
-                'aria-autocomplete': 'list', 'aria-label': 'Filtrer les champs', placeholder: 'Filtrer les champs' } });
+                'aria-autocomplete': 'list', 'aria-label': tx.filtre, placeholder: tx.filtre } });
         boite.appendChild(filtre);
     }
     boite.appendChild(liste);
@@ -9646,10 +9710,10 @@ function listeSuggestions(o) {
             liste.appendChild(grp);
         });
         if (!options.length) {
-            liste.appendChild(creer('li', { classe: 'w-suggest__vide', attrs: { role: 'presentation' }, texte: 'Aucun champ ne correspond.' }));
+            liste.appendChild(creer('li', { classe: 'w-suggest__vide', attrs: { role: 'presentation' }, texte: tx.vide }));
         }
         activer(options.length ? 0 : -1);
-        etatL.textContent = options.length ? pluriel(options.length, 'champ proposé', 'champs proposés') + '.' : 'Aucun champ ne correspond.';
+        etatL.textContent = options.length ? pluriel(options.length, tx.un, tx.plusieurs) + '.' : tx.vide;
     };
     var activer = function (k) {
         if (actif >= 0 && options[actif]) {
@@ -9892,12 +9956,15 @@ var TAILLES_TITRE = [{ valeur: 'XS', libelle: 'Très petite' }].concat(TAILLES);
 var TAILLES_TEXTE = [{ valeur: 'XS', libelle: 'Très petite (7 pt)' }, { valeur: 'S', libelle: 'Petite (8,5 pt)' }, { valeur: 'SM', libelle: 'Assez petite (10 pt)' },
     { valeur: 'M', libelle: 'Normale (12 pt)' }, { valeur: 'L', libelle: 'Grande (14 pt)' }, { valeur: 'XL', libelle: 'Très grande (17 pt)' }];
 var COULEURS_TEXTE = [{ valeur: 'ink', libelle: 'Foncée' }, { valeur: 'brand', libelle: 'Couleur du document' }, { valeur: 'muted', libelle: 'Grise' }];
-function editeurBloc(bl, dedans) {
+function editeurBloc(bl, dedans, o) {
     var l = [];
+    var surPage = !!(o && o.page);
     var b = etat.brouillon;
     switch (bl.type) {
         case 'heading':
-            l.push(champTexteRiche(bl, 'text', 'Texte', { lignes: 2 }));
+            if (!surPage) {
+                l.push(champTexteRiche(bl, 'text', 'Texte', { lignes: 2 }));
+            }
             l.push(creer('div', { classe: 'w-ligne2' }, [
                 choixListe(bl, 'level', 'Niveau', [{ valeur: 1, libelle: 'Titre' }, { valeur: 2, libelle: 'Titre de partie' }, { valeur: 3, libelle: 'Petit titre' }]),
                 choixListe(bl, 'size', 'Taille', TAILLES_TITRE), choixListe(bl, 'color', 'Couleur', COULEURS_TEXTE)
@@ -9905,7 +9972,7 @@ function editeurBloc(bl, dedans) {
             l.push(creer('div', { classe: 'w-ligne2' }, [segmentAlign(bl, 'align'), caseBloc(bl, 'spaced', 'Lettres espacées')]));
             break;
         case 'paragraph':
-            l.push(champTexteRiche(bl, 'text', 'Texte', { lignes: 5, aide: 'Tapez « { » pour insérer un champ. Une ligne vide commence un nouveau paragraphe. Une ligne qui commence par « • » et une espace est une puce. Une ligne faite seulement de champs vides est sautée. {Colonne date|longue} donne une date en toutes lettres.' }));
+            l.push(surPage ? null : champTexteRiche(bl, 'text', 'Texte', { lignes: 5, aide: 'Tapez « { » pour insérer un champ. Une ligne vide commence un nouveau paragraphe. Une ligne qui commence par « • » et une espace est une puce. Une ligne faite seulement de champs vides est sautée. {Colonne date|longue} donne une date en toutes lettres.' }));
             l.push(creer('div', { classe: 'w-ligne2' }, [choixListe(bl, 'size', 'Taille', TAILLES_TEXTE), choixListe(bl, 'color', 'Couleur', COULEURS_TEXTE), segmentAlign(bl, 'align', false, true)]));
             break;
         case 'fields':
@@ -9918,10 +9985,10 @@ function editeurBloc(bl, dedans) {
             l = l.concat(editeurLignes(bl));
             break;
         case 'columns':
-            l = l.concat(editeurColonnes(bl));
+            l = l.concat(editeurColonnes(bl, surPage).filter(Boolean));
             break;
         case 'box':
-            l = l.concat(editeurBoite(bl));
+            l = l.concat(editeurBoite(bl, surPage).filter(Boolean));
             break;
         case 'letterhead':
             l = l.concat(editeurEnteteNormalise(bl));
@@ -10309,45 +10376,371 @@ function champLibelle(bl, cle, libelle, defaut) {
     s.addEventListener('input', function () { bl[cle] = s.value; changeBloc(); });
     return groupeChamp(libelle, s);
 }
-function editeurColonnes(bl) {
+function editeurColonnes(bl, surPage) {
     bl.left = bl.left || [];
     bl.right = bl.right || [];
     var cote = function (cle, titre) {
+        if (surPage) {
+            return null;
+        }
         return creer('section', { classe: 'w-sous-blocs', attrs: { 'aria-label': titre } }, [creer('h4', { classe: 'w-sous-blocs__h', texte: titre }),
             listeBlocs(bl[cle], true), paletteBlocs(bl[cle], true, null)]);
     };
     return [choixListe(bl, 'ratio', 'Largeurs', [{ valeur: '50', libelle: 'Moitié, moitié' }, { valeur: '60', libelle: 'Plus large à gauche (60 / 40)' }, { valeur: '40', libelle: 'Plus large à droite (40 / 60)' },
             { valeur: '67', libelle: 'Deux tiers à gauche' }, { valeur: '33', libelle: 'Deux tiers à droite' }]), cote('left', 'Colonne de gauche'), cote('right', 'Colonne de droite')];
 }
-function editeurBoite(bl) {
+function editeurBoite(bl, surPage) {
     bl.inner = bl.inner || [];
     return [choixListe(bl, 'style', 'Style', [{ valeur: 'trait', libelle: 'Trait fin' }, { valeur: 'couleur', libelle: 'Trait de couleur' }, { valeur: 'fond', libelle: 'Fond gris' }, { valeur: 'fond-couleur', libelle: 'Fond de couleur, trait à gauche' }]),
-        creer('section', { classe: 'w-sous-blocs', attrs: { 'aria-label': 'Contenu de l\'encadré' } }, [creer('h4', { classe: 'w-sous-blocs__h', texte: 'Dans l\'encadré' }),
+        surPage ? null : creer('section', { classe: 'w-sous-blocs', attrs: { 'aria-label': 'Contenu de l\'encadré' } }, [creer('h4', { classe: 'w-sous-blocs__h', texte: 'Dans l\'encadré' }),
             listeBlocs(bl.inner, true), paletteBlocs(bl.inner, true, null, ['box'])])];
+}
+/* Nombres et dates en toutes lettres */
+var LETTRES_UNITES = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+var LETTRES_DIZAINES = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
+function lettresMoins100(n) {
+    if (n < 20) {
+        return LETTRES_UNITES[n];
+    }
+    var d = Math.floor(n / 10), u = n % 10;
+    if (d === 7 || d === 9) {
+        return d === 7 && u === 1 ? 'soixante et onze' : LETTRES_DIZAINES[d] + '-' + LETTRES_UNITES[10 + u];
+    }
+    if (u === 0) {
+        return d === 8 ? 'quatre-vingts' : LETTRES_DIZAINES[d];
+    }
+    if (u === 1 && d !== 8) {
+        return LETTRES_DIZAINES[d] + ' et un';
+    }
+    return LETTRES_DIZAINES[d] + '-' + LETTRES_UNITES[u];
+}
+function lettresMoins1000(n, accordee) {
+    var c = Math.floor(n / 100), r = n % 100, s = '';
+    if (c) {
+        s = (c > 1 ? LETTRES_UNITES[c] + ' ' : '') + 'cent' + (c > 1 && r === 0 && accordee ? 's' : '');
+    }
+    if (r) {
+        var t = lettresMoins100(r);
+        if (!accordee && r === 80) {
+            t = 'quatre-vingt';
+        }
+        s += (s ? ' ' : '') + t;
+    }
+    return s;
+}
+function nombreEnLettres(n) {
+    n = Math.floor(Math.abs(n));
+    if (!isFinite(n) || n >= 1e12) {
+        return '';
+    }
+    if (n === 0) {
+        return 'zéro';
+    }
+    var parts = [], reste = n;
+    [[1e9, 'milliard'], [1e6, 'million'], [1e3, 'mille']].forEach(function (e) {
+        var q = Math.floor(reste / e[0]);
+        reste = reste % e[0];
+        if (!q) {
+            return;
+        }
+        if (e[1] === 'mille') {
+            parts.push(q === 1 ? 'mille' : lettresMoins1000(q, false) + ' mille');
+        }
+        else {
+            parts.push(lettresMoins1000(q, true) + ' ' + e[1] + (q > 1 ? 's' : ''));
+        }
+    });
+    if (reste) {
+        parts.push(lettresMoins1000(reste, true));
+    }
+    return parts.join(' ');
+}
+var NOMS_DEVISES = { EUR: ['euro', 'euros', 'centime', 'centimes'], USD: ['dollar', 'dollars', 'cent', 'cents'], CHF: ['franc', 'francs', 'centime', 'centimes'],
+    GBP: ['livre', 'livres', 'penny', 'pence'], CAD: ['dollar', 'dollars', 'cent', 'cents'] };
+function nombreColEnLettres(v, col) {
+    if (typeof v !== 'number' || !isFinite(v) || Math.abs(v) >= 1e12) {
+        return formaterNombreCol(v, col);
+    }
+    var o = col && col.options ? col.options : {};
+    var signe = v < 0 ? 'moins ' : '';
+    var a = Math.abs(v);
+    if (o.numMode === 'currency') {
+        var dev = String(o.currency || DEVISE || 'EUR').toUpperCase();
+        var noms = NOMS_DEVISES[dev];
+        var centimes = Math.round(a * 100);
+        var ent = Math.floor(centimes / 100), cts = centimes % 100;
+        if (!noms) {
+            return signe + nombreEnLettres(ent) + ' ' + dev + (cts ? ' et ' + nombreEnLettres(cts) : '');
+        }
+        var de = ent >= 1e6 && ent % 1e6 === 0 ? (/^[aeiouy]/.test(noms[1]) ? ' d\'' : ' de ') : ' ';
+        var t = ent || !cts ? nombreEnLettres(ent) + de + (ent > 1 ? noms[1] : noms[0]) : '';
+        if (cts) {
+            t += (t ? ' et ' : '') + nombreEnLettres(cts) + ' ' + (cts > 1 ? noms[3] : noms[2]);
+        }
+        return signe + t;
+    }
+    if (o.numMode === 'percent') {
+        a = a * 100;
+    }
+    var txt = String(Number(a.toFixed(6)));
+    var morceaux = txt.split('.');
+    var res = nombreEnLettres(Number(morceaux[0]));
+    if (morceaux[1]) {
+        var dec = morceaux[1];
+        var zeros = (/^0+/.exec(dec) || [''])[0].length;
+        res += ' virgule ' + (zeros ? new Array(zeros + 1).join('zéro ') : '') + nombreEnLettres(Number(dec));
+    }
+    return signe + res + (o.numMode === 'percent' ? ' pour cent' : '');
+}
+function dateEnLettres(sec, fuseau) {
+    if (typeof sec !== 'number' || !sec) {
+        return '';
+    }
+    var p = partiesDansFuseau(sec, fuseau || 'UTC');
+    return (p.j === 1 ? 'premier' : nombreEnLettres(p.j)) + ' ' + MOIS_LONGS[p.m - 1] + ' ' + nombreEnLettres(p.a);
+}
+/* Format d'un champ, choisi d'un clic sur sa pastille */
+function formatsChamp(tid, chemin) {
+    var sp = champSpecial(tid, chemin);
+    var col = sp ? null : colonneChemin(tid, chemin);
+    var t = sp === 'aujourdhui' ? 'Date' : (col ? String(col.type || '') : '');
+    var b = etat.brouillon;
+    var i = b ? indexDe(b.table, b.sampleId) : -1;
+    var ex = function (mods) {
+        try {
+            var tx = valeurJeton({ chemin: chemin, mods: mods }, { tid: tid, i: i }).texte;
+            return tx ? ' : ' + tx : '';
+        }
+        catch (e) {
+            return '';
+        }
+    };
+    if (t === 'Date' || t.indexOf('DateTime') === 0) {
+        return [{ valeur: sp ? 'longue' : '', libelle: (sp ? 'Date longue' : 'Comme dans Grist') + ex(sp ? ['longue'] : []) }].concat(sp ? [] : [{ valeur: 'longue', libelle: 'Date longue' + ex(['longue']) }]).concat([
+            { valeur: 'court', libelle: 'Date courte' + ex(['court']) }, { valeur: 'jour', libelle: 'Avec le jour' + ex(['jour']) }, { valeur: 'lettres', libelle: 'En toutes lettres' + ex(['lettres']) }]);
+    }
+    if (t === 'Numeric' || t === 'Int') {
+        return [{ valeur: '', libelle: 'Comme dans Grist' + ex([]) }, { valeur: 'lettres', libelle: 'En toutes lettres' + ex(['lettres']) }];
+    }
+    if (t === 'Bool') {
+        return [{ valeur: '', libelle: 'Oui ou Non' }, { valeur: 'case', libelle: 'Case cochée ou vide (' + CASE_COCHEE + ' ' + CASE_VIDE + ')' }];
+    }
+    return [];
+}
+function pastilleAuCurseur(z) {
+    var s = window.getSelection();
+    if (!s || !s.rangeCount || !s.isCollapsed) {
+        return null;
+    }
+    var r = s.getRangeAt(0);
+    var n = r.startContainer, avant = null;
+    if (n.nodeType === 3) {
+        avant = r.startOffset === 0 ? n.previousSibling : null;
+    }
+    else {
+        avant = r.startOffset > 0 ? n.childNodes[r.startOffset - 1] : null;
+    }
+    while (avant && avant.nodeType === 3 && !avant.textContent) {
+        avant = avant.previousSibling;
+    }
+    return estPastille(avant) && z.el.contains(avant) ? avant : null;
+}
+function ouvrirFormatPastille(z, p) {
+    var v = p.getAttribute('data-champ') || '';
+    var parts = v.split('|');
+    var chemin = parts[0].trim();
+    var tid = etat.brouillon.table;
+    var formats = formatsChamp(tid, chemin);
+    if (!formats.length) {
+        annoncer('Ce champ n\'a pas d\'autre format.');
+        return;
+    }
+    var pills = Array.prototype.slice.call(z.el.querySelectorAll('.w-pastille'));
+    var rang = pills.indexOf(p);
+    var actuel = parts.slice(1).join('|');
+    formats.forEach(function (f) { if (f.valeur === actuel) {
+        f.libelle = '✓ ' + f.libelle;
+    } });
+    listeSuggestions({ id: 'pFormatChamp', groupes: [{ nom: 'Format de « ' + libellePastille(tid, chemin).texte + ' »', options: formats }], filtre: true, ancre: document.getElementById('pCourrierAncre'), garder: [p],
+        textes: { liste: 'Formats du champ', filtre: 'Chercher un format', vide: 'Aucun format ne correspond.', un: 'format proposé', plusieurs: 'formats proposés' },
+        surChoix: function (valeur) {
+            fermerSuggestions();
+            changerFormatPastille(z, rang, chemin + (valeur ? '|' + valeur : ''));
+        },
+        surFermeture: function (parEchap) { if (parEchap) {
+            z.el.focus({ preventScroll: true });
+        } } });
+    placerSuggestion('pFormatChamp', p.getBoundingClientRect());
+}
+function changerFormatPastille(z, rang, nouvelle) {
+    var res = parcourirZone(z.el, { titre: z.titre });
+    var M = { premier: proprietesPar(res.pars[0] || {}), a: versAtomes(res.pars) };
+    var n = -1, pos = -1;
+    M.a.forEach(function (x, k) { if (x.t === 'f') {
+        n++;
+        if (n === rang) {
+            x.v = nouvelle;
+            pos = k + 1;
+        }
+    } });
+    if (pos < 0) {
+        return;
+    }
+    debutModif(z, true);
+    z.bl.text = modeleVersTexte(depuisAtomes(M.premier, M.a), z.titre);
+    remplirZone(z.el, texteVersModele(z.bl.text, z.titre), etat.brouillon.table, z.titre);
+    z.el.focus({ preventScroll: true });
+    placerSelection(z, pos, pos);
+    finModif(z);
+    fermerGroupe();
+    annoncer('Format du champ : ' + libellePastille(etat.brouillon.table, nouvelle).texte + '.');
+}
+/* Conditions : plusieurs règles, « et » ou « ou », et un texte « Sinon » */
+var OPERATEURS_COND = [
+    { op: 'filled', nom: 'est rempli' }, { op: 'empty', nom: 'est vide' }, { op: 'equals', nom: 'vaut', valeur: true }, { op: 'differs', nom: 'ne vaut pas', valeur: true },
+    { op: 'contains', nom: 'contient', valeur: true }, { op: 'gt', nom: 'est supérieur à', valeur: true }, { op: 'lt', nom: 'est inférieur à', valeur: true },
+    { op: 'checked', nom: 'est coché' }, { op: 'unchecked', nom: 'n\'est pas coché' }
+];
+function reglesCondition(cond) {
+    if (!cond || !cond.op) {
+        return [];
+    }
+    return [cond].concat(Array.isArray(cond.plus) ? cond.plus : []).filter(function (r) { return r && r.op && r.path; });
+}
+function nombreCondition(v, col) {
+    var s = String(v === undefined || v === null ? '' : v).trim();
+    var t = col ? String(col.type || '') : '';
+    if (t === 'Date' || t.indexOf('DateTime') === 0) {
+        var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+        if (m) {
+            return Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1])) / 1000;
+        }
+        var m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+        if (m2) {
+            return Date.UTC(Number(m2[1]), Number(m2[2]) - 1, Number(m2[3])) / 1000;
+        }
+    }
+    var n = parseFloat(s.replace(/[\s  ]/g, '').replace(',', '.'));
+    return isNaN(n) ? null : n;
+}
+function regleRemplie(r, rc) {
+    var v = valeurChemin(rc.tid, rc.i, r.path, []);
+    var estBool = v.col && v.col.type === 'Bool';
+    var rempli = estBool ? v.brut === true : String(v.texte || '').trim() !== '';
+    var egal = normalizer(v.texte) === normalizer(r.value) || (v.brut !== null && v.brut !== undefined && normalizer(String(v.brut)) === normalizer(r.value));
+    switch (r.op) {
+        case 'filled': return rempli;
+        case 'empty': return !rempli;
+        case 'checked': return v.brut === true;
+        case 'unchecked': return v.brut !== true;
+        case 'equals': return egal;
+        case 'differs': return !egal;
+        case 'contains': return String(r.value || '').trim() !== '' && normalizer(v.texte).indexOf(normalizer(r.value)) !== -1;
+        case 'gt':
+        case 'lt':
+            var a = typeof v.brut === 'number' ? v.brut : nombreCondition(v.brut, null);
+            var c = nombreCondition(r.value, v.col);
+            if (a === null || c === null) {
+                return false;
+            }
+            return r.op === 'gt' ? a > c : a < c;
+        default: return true;
+    }
+}
+function unitesSinon(b, rc) {
+    var t = b.cond && typeof b.cond.sinon === 'string' ? b.cond.sinon : '';
+    if (!t.trim() || b.type === 'footer') {
+        return [];
+    }
+    if (b.type === 'heading') {
+        return uniteTitre({ type: 'heading', level: b.level, size: b.size, align: b.align, color: b.color, spaced: b.spaced, text: t.replace(/\n+/g, ' ') }, rc);
+    }
+    return unitesParagraphe({ type: 'paragraph', text: t, size: b.type === 'paragraph' ? b.size : undefined, color: b.color, align: ALIGNEMENTS.indexOf(b.align) !== -1 ? b.align : undefined }, rc);
 }
 function editeurCondition(bl) {
     var b = etat.brouillon;
     bl.cond = bl.cond || { op: '' };
     var c = bl.cond;
-    var s = liste(idEd(bl, 'cond'), CONDITIONS.map(function (x) { return { valeur: x.op, libelle: x.nom }; }), c.op || '');
-    s.addEventListener('change', function () { c.op = s.value; if (!c.op) {
-        bl.cond = { op: '' };
-    } changeBloc(); rafraichirBlocs(idEd(bl, 'cond')); });
+    var refaire = function (focusId) {
+        changeBloc();
+        var pz = document.getElementById('pElementZone');
+        if (pz && pz.querySelector('#' + idEd(bl, 'cond'))) {
+            majPanneauElement();
+            var f = document.getElementById(focusId);
+            if (f) {
+                f.focus();
+            }
+        }
+        else {
+            rafraichirBlocs(focusId);
+        }
+    };
+    var actif = !!c.op;
+    var s = liste(idEd(bl, 'cond'), [{ valeur: '', libelle: 'Toujours' }, { valeur: 'si', libelle: 'Seulement si…' }], actif ? 'si' : '');
+    s.addEventListener('change', function () {
+        if (s.value) {
+            bl.cond = { op: 'filled', path: '' };
+        }
+        else {
+            bl.cond = { op: '' };
+        }
+        refaire(idEd(bl, 'cond'));
+    });
     var l = [groupeChamp('Afficher ce bloc', s)];
-    if (c.op) {
-        var estCase = c.op === 'checked' || c.op === 'unchecked';
-        var champs = selectChamps(idEd(bl, 'condCol'), b.table, c.path || '', false, 'Choisir un champ…');
-        champs.addEventListener('change', function () { c.path = champs.value; changeBloc(); });
-        var ligne = [groupeChamp(estCase ? 'Champ oui/non' : 'Champ', champs)];
-        if (c.op === 'equals' || c.op === 'differs') {
-            var v = saisie(idEd(bl, 'condVal'), c.value || '', { indice: 'Payée' });
-            v.addEventListener('input', function () { c.value = v.value; changeBloc(); });
-            ligne.push(groupeChamp('Valeur', v, 'Telle qu\'affichée dans le document, sans tenir compte des majuscules.'));
+    if (!actif) {
+        return creer('div', { classe: 'w-condition' }, l);
+    }
+    c.plus = Array.isArray(c.plus) ? c.plus : [];
+    var regles = [c].concat(c.plus);
+    if (regles.length > 1) {
+        var j = liste(idEd(bl, 'condJoin'), [{ valeur: 'and', libelle: 'Toutes les conditions sont remplies' }, { valeur: 'or', libelle: 'Au moins une condition est remplie' }], c.join === 'or' ? 'or' : 'and');
+        j.addEventListener('change', function () { c.join = j.value; changeBloc(); });
+        l.push(groupeChamp('Imprimer quand', j));
+    }
+    regles.forEach(function (r, k) {
+        var suf = k ? String(k) : '';
+        var champs = selectChamps(idEd(bl, 'condCol' + suf), b.table, r.path || '', false, 'Choisir un champ…');
+        champs.addEventListener('change', function () { r.path = champs.value; changeBloc(); });
+        var ops = liste(idEd(bl, 'condOp' + suf), OPERATEURS_COND.map(function (o) { return { valeur: o.op, libelle: o.nom }; }), r.op || 'filled');
+        ops.addEventListener('change', function () { r.op = ops.value; refaire(idEd(bl, 'condOp' + suf)); });
+        var def = OPERATEURS_COND.filter(function (o) { return o.op === r.op; })[0] || OPERATEURS_COND[0];
+        var ligne = [groupeChamp(k ? 'Champ (condition ' + (k + 1) + ')' : 'Champ', champs), groupeChamp('Condition', ops)];
+        if (def.valeur) {
+            var v = saisie(idEd(bl, 'condVal' + suf), r.value || '', { indice: r.op === 'gt' || r.op === 'lt' ? '1000' : 'Payée' });
+            v.addEventListener('input', function () { r.value = v.value; changeBloc(); });
+            ligne.push(groupeChamp('Valeur', v));
         }
-        l.push(creer('div', { classe: 'w-ligne2' }, ligne));
-        if (!c.path) {
-            l.push(creer('p', { classe: 'w-indice', texte: 'Tant qu\'aucun champ n\'est choisi, le bloc est toujours affiché.' }));
+        var rangee = [creer('div', { classe: 'w-ligne2 w-regle' }, ligne)];
+        if (regles.length > 1) {
+            rangee.push(creer('div', { classe: 'w-liens' }, [bouton('Retirer cette condition', 'tertiaire', 'delete-line', function () {
+                    if (k === 0) {
+                        var suivante = c.plus.shift();
+                        c.op = suivante.op;
+                        c.path = suivante.path;
+                        c.value = suivante.value;
+                    }
+                    else {
+                        c.plus.splice(k - 1, 1);
+                    }
+                    if (!c.plus.length) {
+                        delete c.join;
+                    }
+                    refaire(idEd(bl, 'condAjout'));
+                }, { petit: true, id: idEd(bl, 'condRetirer' + suf) })]));
         }
+        l.push(creer('div', { classe: 'w-regle-bloc' }, rangee));
+    });
+    l.push(creer('div', { classe: 'w-liens' }, [bouton('Ajouter une condition', 'tertiaire', 'add-line', function () {
+            c.plus.push({ op: 'filled', path: '' });
+            refaire(idEd(bl, 'condCol' + c.plus.length));
+        }, { petit: true, id: idEd(bl, 'condAjout') })]));
+    if (bl.type !== 'footer') {
+        var sinon = saisie(idEd(bl, 'condSinon'), c.sinon || '', { indice: 'Non concerné' });
+        sinon.addEventListener('input', function () { c.sinon = sinon.value; changeBloc(); });
+        l.push(groupeChamp('Sinon, imprimer à la place', sinon, 'Les champs s\'écrivent entre accolades : {Nom}.'));
+    }
+    if (!reglesCondition(c).length) {
+        l.push(creer('p', { classe: 'w-indice', texte: 'Tant qu\'aucun champ n\'est choisi, le bloc est toujours affiché.' }));
     }
     return creer('div', { classe: 'w-condition' }, l);
 }
@@ -10566,10 +10959,19 @@ function libellePastille(tid, v) {
         }
     }
     if (estModLong(mods[0])) {
-        lib += ' (en toutes lettres)';
+        lib += champSpecial(tid, chemin) ? '' : ' (date longue)';
     }
     else if (estModCourt(mods[0])) {
         lib += ' (date courte)';
+    }
+    else if (mods[0] === 'lettres') {
+        lib += ' (en toutes lettres)';
+    }
+    else if (mods[0] === 'jour') {
+        lib += ' (avec le jour)';
+    }
+    else if (mods[0] === 'case' && mods.length === 1) {
+        lib += ' (case à cocher)';
     }
     else if (mods.length) {
         lib += ' (' + mods.join(' ou ') + ')';
@@ -11028,7 +11430,7 @@ var INDICE_PAGE_BLANCHE = 'Écrivez ici. Tapez { pour insérer un champ.';
 function nomsZonesCourrier(blocs, layout) {
     var noms = {};
     var zones = (blocs || []).filter(estZoneCourrier);
-    if (layout === 'libre') {
+    if (!estTypeLettre(layout)) {
         var nb = zones.filter(function (bl) { return bl.type !== 'heading'; }).length, r = 0;
         zones.forEach(function (bl) {
             if (bl.type === 'heading') {
@@ -11085,7 +11487,7 @@ function nomsZonesCourrier(blocs, layout) {
 function classesZone(bl) {
     var al = 'p-a--' + valeurDans(bl.align, ALIGNEMENTS, 'left');
     var coul = 'p-c--' + valeurDans(bl.color, ['ink', 'brand', 'muted'], 'ink');
-    var taille = 'p-k--' + valeurDans(bl.size, ['S', 'M', 'L', 'XL'], 'M');
+    var taille = 'p-k--' + valeurDans(bl.size, ['XS', 'S', 'SM', 'M', 'L', 'XL'], 'M');
     if (bl.type === 'heading') {
         return classes('p-u w-ec-zone p-h p-h--' + valeurDans(Number(bl.level), [1, 2, 3], 2), taille, al, coul, bl.spaced ? 'p-h--espace' : '');
     }
@@ -11520,6 +11922,14 @@ function surToucheZone(e, z) {
         formaterCourrier({ b: 'bold', i: 'italic', u: 'underline' }[k]);
         return;
     }
+    if (e.altKey && e.key === 'ArrowDown') {
+        var pc = pastilleAuCurseur(z);
+        if (pc) {
+            e.preventDefault();
+            ouvrirFormatPastille(z, pc);
+            return;
+        }
+    }
     if (e.altKey && e.key === 'F10') {
         e.preventDefault();
         var o = document.getElementById('pOutilsCourrier');
@@ -11604,7 +12014,7 @@ function surDeposerZone(e, z) {
 function zoneCourrier(bl, info, idx) {
     var titre = bl.type === 'heading';
     var aideId = 'pZoneCond' + bl.id;
-    var cond = bl.cond && bl.cond.op && bl.cond.path;
+    var cond = texteCondition(bl);
     var el = creer('div', { classe: classesZone(bl), id: 'pZone' + bl.id, attrs: { contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true',
             'aria-label': info.nom, 'aria-describedby': 'pCourrierAide' + (cond ? ' ' + aideId : ''), spellcheck: 'true', lang: 'fr', 'data-bloc': bl.id, 'data-role': info.role } });
     remplirZone(el, texteVersModele(bl.text, titre), etat.brouillon.table, titre);
@@ -11619,6 +12029,12 @@ function zoneCourrier(bl, info, idx) {
     el.addEventListener('beforeinput', function (e) { surAvantSaisie(e, z); });
     el.addEventListener('input', function (e) { surSaisie(e, z); });
     el.addEventListener('keydown', function (e) { surToucheZone(e, z); });
+    el.addEventListener('click', function (e) {
+        var p = e.target && e.target.closest ? e.target.closest('.w-pastille') : null;
+        if (p && el.contains(p)) {
+            ouvrirFormatPastille(z, p);
+        }
+    });
     el.addEventListener('paste', function (e) { surCollerZone(e, z); });
     el.addEventListener('copy', function (e) { surCopierZone(e, z, false); });
     el.addEventListener('cut', function (e) { surCopierZone(e, z, true); });
@@ -11633,8 +12049,7 @@ function zoneCourrier(bl, info, idx) {
     });
     var l = [];
     if (cond) {
-        l.push(creer('p', { classe: 'w-ec-note', id: aideId, texte: 'Imprimé seulement si ' + (CONDITIONS.filter(function (c) { return c.op === bl.cond.op; }).map(function () { return '« ' + libellePastille(etat.brouillon.table, bl.cond.path).texte + ' »'; })[0] || 'la condition est remplie') +
-                ({ filled: ' est rempli.', empty: ' est vide.', checked: ' est coché.', unchecked: ' n\'est pas coché.', equals: ' vaut « ' + (bl.cond.value || '') + ' ».', differs: ' ne vaut pas « ' + (bl.cond.value || '') + ' ».' }[bl.cond.op] || '.') }));
+        l.push(creer('p', { classe: 'w-ec-note', id: aideId, texte: cond }));
     }
     l.push(el);
     return l;
@@ -11774,6 +12189,7 @@ function majOutilsCourrier() {
     if (cible) {
         cible.textContent = z ? 'Zone : ' + z.nom : '';
     }
+    majSelectsOutils();
 }
 function barreOutilsCourrier(info) {
     var b = [];
@@ -11802,6 +12218,29 @@ function barreOutilsCourrier(info) {
         outil('pOutilAlignjustify', 'Justifier', 'align-justify', function () { alignerCourrier('justify'); }),
         sep()
     ];
+    var outilSelect = function (sel) {
+        sel.setAttribute('tabindex', '-1');
+        b.push(sel);
+        elems.push(sel);
+    };
+    outilSelect(selectOutil('pOutilStyle', 'Style du texte', STYLES_TEXTE, changerStyleTexte));
+    outilSelect(selectOutil('pOutilTaille', 'Taille du texte', TAILLES_TEXTE, function (v) { changerProprieteTexte('size', v); }));
+    outilSelect(selectOutil('pOutilCouleur', 'Couleur du texte', COULEURS_TEXTE, function (v) { changerProprieteTexte('color', v); }));
+    outilSelect(selectOutil('pOutilPolice', 'Police du document', POLICES.map(function (p) { return { valeur: p.valeur, libelle: p.libelle.replace(/ \(.*\)$/, '') }; }), function (v) {
+        var br = etat.brouillon;
+        if (!br) {
+            return;
+        }
+        br.page.font = v;
+        var pp = document.getElementById('pPolice');
+        if (pp) {
+            pp.value = v;
+        }
+        marquerTouche();
+        majApercuBrouillon();
+        annoncer('Police du document : ' + POLICES.filter(function (p) { return p.valeur === v; })[0].libelle + '.');
+    }));
+    elems.push(sep());
     champ = outil('pOutilChamp', 'Insérer un champ', 'add-line', function () {
         if (_suggestOuverte && document.getElementById('pCourrierChamps')) {
             fermerSuggestions();
@@ -11829,7 +12268,25 @@ function barreOutilsCourrier(info) {
     }, { texte: true, classe: 'fr-btn--secondary', attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pCourrierChampsListe' } });
     champ.classList.remove('fr-btn--tertiary-no-outline');
     elems.push(champ);
-    var barre = creer('div', { classe: 'w-outils-texte w-ec-outils', id: 'pOutilsCourrier', attrs: { role: 'toolbar', 'aria-label': etat.brouillon && etat.brouillon.layout === 'libre' ? 'Mise en forme de la page' : 'Mise en forme du courrier', 'aria-controls': 'pCourrier' } }, elems.concat([
+    var ins = null;
+    ins = outil('pOutilInserer', 'Insérer', 'add-circle-line', function () {
+        if (_suggestOuverte && document.getElementById('pInserer')) {
+            fermerSuggestions();
+            return;
+        }
+        ins.setAttribute('aria-expanded', 'true');
+        listeSuggestions({ id: 'pInserer', groupes: optionsInsertion(), filtre: true, ancre: document.getElementById('pCourrierAncre'), garder: [ins],
+            textes: { liste: 'Éléments à insérer', filtre: 'Chercher un élément', vide: 'Aucun élément ne correspond.', un: 'élément proposé', plusieurs: 'éléments proposés' },
+            surChoix: function (valeur) { fermerSuggestions(); relayer(insererElementPage(valeur), 'Insertion d\'un élément'); },
+            surFermeture: function (parEchap) { ins.setAttribute('aria-expanded', 'false'); if (parEchap) {
+                ins.focus();
+            } } });
+        var br = ins.getBoundingClientRect();
+        placerSuggestion('pInserer', { left: br.left, bottom: br.bottom });
+    }, { texte: true, classe: 'fr-btn--secondary', attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pInsererListe' } });
+    ins.classList.remove('fr-btn--tertiary-no-outline');
+    elems.push(ins);
+    var barre = creer('div', { classe: 'w-outils-texte w-ec-outils', id: 'pOutilsCourrier', attrs: { role: 'toolbar', 'aria-label': etat.brouillon && !estTypeLettre(etat.brouillon.layout) ? 'Mise en forme de la page' : 'Mise en forme du courrier', 'aria-controls': 'pCourrier' } }, elems.concat([
         creer('span', { classe: 'fr-sr-only', id: 'pOutilsCible', attrs: { 'aria-hidden': 'true' } }), info || null
     ]));
     barre.addEventListener('keydown', function (e) {
@@ -11910,38 +12367,34 @@ function rendreCourrier() {
     page.classList.add('w-ec-page');
     page.style.height = 'auto';
     page.style.minHeight = geo.h + 'px';
-    page.setAttribute('aria-label', (b.layout === 'libre' ? 'Page' : 'Page du courrier') + (i >= 0 ? ', ligne ' + libelleLigne(cfg, i) : ''));
+    page.setAttribute('aria-label', (!estTypeLettre(b.layout) ? 'Page' : 'Page du courrier') + (i >= 0 ? ', ligne ' + libelleLigne(cfg, i) : ''));
     var corps = creer('div', { classe: 'w-ec-corps' });
     corps.style.padding = geo.m + 'px';
     var noms = nomsZonesCourrier(b.blocks, b.layout);
-    (b.blocks || []).forEach(function (bl, k) {
-        if (bl.type === 'footer') {
-            return;
-        }
-        if (estZoneCourrier(bl)) {
-            zoneCourrier(bl, noms[bl.id], k).forEach(function (x) { corps.appendChild(x); });
-            return;
-        }
-        try {
-            unitesBloc(bl, rc).forEach(function (u) {
-                if (u.el) {
-                    corps.appendChild(u.el);
-                }
-                else if (u.saut) {
-                    corps.appendChild(creer('div', { classe: 'w-ec-saut', texte: 'Nouvelle page' }));
-                }
-            });
-        }
-        catch (e) {
-            logSecurite('AVERTISSEMENT', 'Bloc du courrier non dessine', e);
-        }
-    });
+    _pageEd.rcVrai = rc;
+    rendreListePage(b.blocks || [], corps, { rc: Object.assign({}, rc, { ignorerCond: true }), noms: noms, dedans: false });
+    corps.addEventListener('pointerdown', function (e) { if (e.target === corps) {
+        deselectionnerElement();
+    } });
     page.appendChild(corps);
     var feuille = creer('div', { classe: 'w-ec-feuille' }, [page]);
     cont.appendChild(feuille);
     var pied = piedDuModele(cfg, rc);
     if (pied) {
         var pd = construirePied(pied, rc, geo);
+        pd.classList.add('w-ec-el', 'w-ec-el--objet', 'w-ec-el--pied');
+        pd.setAttribute('data-el', pied.id);
+        pd.setAttribute('tabindex', '0');
+        pd.setAttribute('role', 'button');
+        pd.setAttribute('aria-label', 'Pied de page. Entrée pour le régler.');
+        pd.addEventListener('click', function () { choisirElement(pied.id); });
+        pd.addEventListener('keydown', function (e) { if (e.target === pd) {
+            toucheElement(e, pied.id);
+        } });
+        if (b.choisi === pied.id) {
+            pd.classList.add('w-ec-el--choisi');
+            pd.appendChild(barreElement(pied.id));
+        }
         page.appendChild(pd);
         Array.prototype.forEach.call(pd.querySelectorAll('[data-pn]'), function (s) { s.textContent = '1'; });
         corps.style.paddingBottom = Math.max(geo.m, Math.max(22, Math.round(geo.m * 0.5)) + pd.offsetHeight + 14) + 'px';
@@ -12089,15 +12542,640 @@ function panneauEnteteCourrier() {
         creer('p', { classe: 'w-indice', texte: 'Réglés une fois pour toutes : la personne qui rédige ne voit ensuite que l\'objet et le corps du courrier.' })
     ].concat(l));
 }
+/* Écriture sur la page : chaque élément se choisit, se règle et se déplace sur la page */
+function estTypeLettre(layout) { return ecritDansPage(layout) && layout !== 'libre'; }
+function emplacementBloc(id, liste, dedans, parent) {
+    liste = liste || (etat.brouillon && etat.brouillon.blocks) || [];
+    for (var k = 0; k < liste.length; k++) {
+        var x = liste[k];
+        if (x.id === id) {
+            return { liste: liste, k: k, bl: x, dedans: !!dedans, parent: parent || null };
+        }
+        var enf = x.type === 'columns' ? [x.left, x.right] : (x.type === 'box' ? [x.inner] : []);
+        for (var j = 0; j < enf.length; j++) {
+            if (!enf[j]) {
+                continue;
+            }
+            var r = emplacementBloc(id, enf[j], true, x);
+            if (r) {
+                return r;
+            }
+        }
+    }
+    return null;
+}
+function defElement(bl) { return typeBloc(bl && bl.type === 'image' && bl.source === 'logo' ? 'logo' : (bl ? bl.type : '')); }
+function nomElement(bl) {
+    var r = resumeBloc(bl);
+    return defElement(bl).nom + (r ? ' : ' + r : '');
+}
+function texteCondition(bl) {
+    var c = bl && bl.cond;
+    var regles = reglesCondition(c);
+    if (!regles.length) {
+        return '';
+    }
+    var tid = etat.brouillon ? etat.brouillon.table : null;
+    var phr = regles.map(function (r) {
+        var nom = '« ' + libellePastille(tid, r.path).texte + ' »';
+        return nom + ({ filled: ' est rempli', empty: ' est vide', checked: ' est coché', unchecked: ' n\'est pas coché', equals: ' vaut « ' + (r.value || '') + ' »',
+            differs: ' ne vaut pas « ' + (r.value || '') + ' »', gt: ' est supérieur à ' + (r.value || ''), lt: ' est inférieur à ' + (r.value || ''),
+            contains: ' contient « ' + (r.value || '') + ' »' }[r.op] || '');
+    });
+    var t = 'Imprimé seulement si ' + phr.join(c.join === 'or' ? ' ou si ' : ' et si ') + '.';
+    if (String(c.sinon || '').trim()) {
+        t += ' Sinon : « ' + texteBrutSinon(c.sinon) + ' ».';
+    }
+    return t;
+}
+function texteBrutSinon(s) {
+    var t = String(s || '').replace(/[*_\\]/g, '').replace(/\{([^}|]+)[^}]*\}/g, function (m, ch) { return libellePastille(etat.brouillon ? etat.brouillon.table : null, ch).texte; });
+    return t.length > 60 ? t.slice(0, 59) + '…' : t;
+}
+var _pageEd = { rcVrai: null };
+function rendreListePage(liste, parent, ctx) {
+    var vus = 0;
+    liste.forEach(function (bl, k) {
+        if (!bl || bl.type === 'footer') {
+            return;
+        }
+        if (ctx.dedans && (bl.type === 'items' || bl.type === 'pagebreak' || bl.type === 'columns' || (ctx.boite && bl.type === 'box'))) {
+            return;
+        }
+        try {
+            parent.appendChild(elementPage(bl, liste, k, ctx));
+            vus++;
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Élément de la page non dessiné', e);
+        }
+    });
+    if (ctx.dedans && !vus) {
+        var ecrire = creer('button', { classe: 'w-ec-ecrire', attrs: { type: 'button' }, texte: 'Écrire ici' });
+        ecrire.addEventListener('click', function () {
+            var nb = B('paragraph', { text: '' });
+            liste.push(nb);
+            etat.brouillon.choisi = nb.id;
+            apresStructure(nb.id, 'Texte ajouté.');
+        });
+        parent.appendChild(ecrire);
+    }
+}
+function infoZoneImbriquee(bl, ctx) {
+    var lieu = ctx.cote || 'Encadré';
+    return { nom: (bl.type === 'heading' ? 'Titre, ' : 'Texte, ') + lieu.toLowerCase(), role: 'texte', indice: bl.type === 'heading' ? 'Titre' : 'Écrivez ici.', court: true };
+}
+function elementPage(bl, liste, k, ctx) {
+    var b = etat.brouillon;
+    var cache = !!(_pageEd.rcVrai && reglesCondition(bl.cond).length && !conditionRemplie(bl.cond, _pageEd.rcVrai));
+    var w = creer('div', { classe: 'w-ec-el' + (cache ? ' w-ec-el--cache' : ''), attrs: { 'data-el': bl.id } });
+    var cond = texteCondition(bl);
+    if (estZoneCourrier(bl)) {
+        w.classList.add('w-ec-el--texte');
+        var info = (!ctx.dedans && ctx.noms[bl.id]) || infoZoneImbriquee(bl, ctx);
+        if (!info.indice) {
+            info = { nom: info.nom, role: info.role, indice: bl.type === 'heading' ? 'Titre' : 'Écrivez ici.', court: true };
+        }
+        zoneCourrier(bl, info, k).forEach(function (x) { w.appendChild(x); });
+        if (info.court) {
+            var z0 = zoneDuBloc(bl.id);
+            if (z0) {
+                z0.el.setAttribute('data-court', '1');
+            }
+        }
+    }
+    else if (bl.type === 'columns' || bl.type === 'box') {
+        w.classList.add('w-ec-el--conteneur');
+        w.appendChild(etiquetteElement(bl));
+        if (cond) {
+            w.appendChild(creer('p', { classe: 'w-ec-note', texte: cond }));
+        }
+        var dedans;
+        if (bl.type === 'columns') {
+            var r = RATIOS[bl.ratio] || RATIOS['50'];
+            dedans = creer('div', { classe: 'p-u p-cols' });
+            dedans.style.gridTemplateColumns = 'minmax(0, ' + r[0] + ') minmax(0, ' + r[1] + ')';
+            [['left', 'Colonne de gauche'], ['right', 'Colonne de droite']].forEach(function (c) {
+                bl[c[0]] = bl[c[0]] || [];
+                var col = creer('div', { classe: 'p-col', attrs: { role: 'group', 'aria-label': c[1] } });
+                rendreListePage(bl[c[0]], col, { rc: ctx.rc, noms: ctx.noms, dedans: true, cote: c[1], boite: false });
+                dedans.appendChild(col);
+            });
+        }
+        else {
+            bl.inner = bl.inner || [];
+            dedans = creer('div', { classe: 'p-u p-box p-box--' + valeurDans(bl.style, ['trait', 'couleur', 'fond', 'fond-couleur'], 'trait'), attrs: { role: 'group', 'aria-label': 'Encadré' } });
+            rendreListePage(bl.inner, dedans, { rc: ctx.rc, noms: ctx.noms, dedans: true, cote: 'Encadré', boite: true });
+        }
+        w.appendChild(dedans);
+    }
+    else {
+        w.classList.add('w-ec-el--objet');
+        w.setAttribute('tabindex', '0');
+        w.setAttribute('role', 'button');
+        w.setAttribute('aria-label', nomElement(bl) + (cond ? '. ' + cond : '') + '. Entrée pour le régler, Suppr pour le supprimer, Alt et flèches pour le déplacer.');
+        if (cond) {
+            w.appendChild(creer('p', { classe: 'w-ec-note', texte: cond, attrs: { 'aria-hidden': 'true' } }));
+        }
+        var rendu = 0;
+        unitesBloc(bl, ctx.rc).forEach(function (u) {
+            if (u.el) {
+                u.el.setAttribute('aria-hidden', 'true');
+                u.el.setAttribute('inert', '');
+                w.appendChild(u.el);
+                rendu++;
+            }
+            else if (u.saut) {
+                w.appendChild(creer('div', { classe: 'w-ec-saut', texte: 'Nouvelle page' }));
+                rendu++;
+            }
+        });
+        if (!rendu) {
+            w.appendChild(creer('div', { classe: 'w-ec-el__vide', texte: defElement(bl).nom + ' : rien à imprimer pour cette ligne' }));
+        }
+        w.addEventListener('click', function () { choisirElement(bl.id); });
+        w.addEventListener('keydown', function (e) {
+            if (e.target !== w) {
+                return;
+            }
+            toucheElement(e, bl.id);
+        });
+    }
+    w.addEventListener('focusin', function (e) {
+        var t = e.target && e.target.closest ? e.target.closest('.w-ec-el') : null;
+        if (t === w && !(e.target.closest && e.target.closest('.w-ec-el__barre'))) {
+            choisirElement(bl.id);
+        }
+    });
+    if (b.choisi === bl.id) {
+        w.classList.add('w-ec-el--choisi');
+        w.appendChild(barreElement(bl.id));
+    }
+    return w;
+}
+function etiquetteElement(bl) {
+    var e = creer('button', { classe: 'w-ec-el__etiquette', id: 'pEtiq' + bl.id, attrs: { type: 'button', 'aria-label': 'Régler : ' + nomElement(bl) } }, [defElement(bl).nom]);
+    e.addEventListener('click', function () { choisirElement(bl.id); });
+    e.addEventListener('keydown', function (ev) { toucheElement(ev, bl.id); });
+    return e;
+}
+function toucheElement(e, id) {
+    var em = emplacementBloc(id);
+    if (!em) {
+        return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        choisirElement(id);
+        var r = document.querySelector('#pElementZone select, #pElementZone input, #pElementZone textarea');
+        if (r && e.key === 'Enter' && e.ctrlKey) {
+            r.focus();
+        }
+        return;
+    }
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        relayer(supprimerElement(id), 'Suppression d\'un élément');
+        return;
+    }
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        deplacerElement(id, em.k + (e.key === 'ArrowUp' ? -1 : 1));
+        return;
+    }
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        deselectionnerElement();
+    }
+}
+function dernierRang(liste) {
+    var n = liste.length - 1;
+    while (n > 0 && liste[n].type === 'footer') {
+        n--;
+    }
+    return n;
+}
+function barreElement(id) {
+    var em = emplacementBloc(id);
+    var barre = creer('div', { classe: 'w-ec-el__barre', attrs: { role: 'toolbar', 'data-pour': id, 'aria-label': 'Actions sur l\'élément' } });
+    if (!em) {
+        return barre;
+    }
+    var bl = em.bl, k = em.k, fin = dernierRang(em.liste);
+    var nom = defElement(bl).nom;
+    barre.appendChild(creer('span', { classe: 'w-ec-el__nom', texte: nom }));
+    var bt = function (lib, ico, fn, desactive, idb) {
+        var x = bouton(lib, 'discret', ico, fn, { petit: true, iconeSeule: true, aria: lib + ' : ' + nomElement(bl), desactive: desactive, id: idb + id });
+        x.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        return x;
+    };
+    if (bl.type !== 'footer') {
+        barre.appendChild(bt('Tout en haut', 'skip-up-line', function () { deplacerElement(id, 0); }, k === 0, 'pElHaut2'));
+        barre.appendChild(bt('Monter', 'arrow-up-line', function () { deplacerElement(id, k - 1); }, k === 0, 'pElHaut'));
+        barre.appendChild(bt('Descendre', 'arrow-down-line', function () { deplacerElement(id, k + 1); }, k >= fin, 'pElBas'));
+        barre.appendChild(bt('Tout en bas', 'skip-down-line', function () { deplacerElement(id, fin); }, k >= fin, 'pElBas2'));
+        barre.appendChild(bt('Dupliquer', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () { dupliquerElement(id); }, false, 'pElDup'));
+    }
+    barre.appendChild(bt('Supprimer', 'delete-line', function () { return supprimerElement(id); }, false, 'pElSuppr'));
+    return barre;
+}
+function marquerChoisiDom() {
+    var cadre = document.getElementById('pCourrierCadre');
+    if (!cadre) {
+        return;
+    }
+    Array.prototype.forEach.call(cadre.querySelectorAll('.w-ec-el--choisi'), function (x) { x.classList.remove('w-ec-el--choisi'); });
+    Array.prototype.forEach.call(cadre.querySelectorAll('.w-ec-el__barre'), function (x) { if (x.parentNode) {
+        x.parentNode.removeChild(x);
+    } });
+    var b = etat.brouillon;
+    if (!b || !b.choisi) {
+        return;
+    }
+    var w = cadre.querySelector('[data-el="' + b.choisi + '"]');
+    if (w) {
+        w.classList.add('w-ec-el--choisi');
+        w.appendChild(barreElement(b.choisi));
+    }
+}
+function choisirElement(id) {
+    var b = etat.brouillon;
+    if (!b || !id) {
+        return;
+    }
+    var deja = b.choisi === id && document.querySelector('#pCourrierCadre .w-ec-el__barre[data-pour="' + id + '"]');
+    b.choisi = id;
+    if (!deja) {
+        marquerChoisiDom();
+        majPanneauElement();
+    }
+    majOutilsCourrier();
+}
+function deselectionnerElement() {
+    var b = etat.brouillon;
+    if (!b || !b.choisi) {
+        return;
+    }
+    var id = b.choisi;
+    b.choisi = null;
+    marquerChoisiDom();
+    majPanneauElement();
+    majOutilsCourrier();
+    var w = document.querySelector('#pCourrierCadre [data-el="' + id + '"]');
+    var f = w ? (w.classList.contains('w-ec-el--objet') ? w : w.querySelector('.w-ec-el__etiquette, .w-ec-zone')) : null;
+    if (f && document.activeElement && !w.contains(document.activeElement)) {
+        f.focus({ preventScroll: true });
+    }
+}
+function focusElement(id) {
+    var z = zoneDuBloc(id);
+    if (z) {
+        z.el.focus({ preventScroll: true });
+        placerSelection(z, parcourirZone(z.el, { titre: z.titre }).longueur);
+        if (typeof z.el.scrollIntoView === 'function') {
+            z.el.scrollIntoView({ block: 'nearest' });
+        }
+        return;
+    }
+    var w = document.querySelector('#pCourrierCadre [data-el="' + id + '"]');
+    if (!w) {
+        return;
+    }
+    var zi = w.classList.contains('w-ec-el--conteneur') ? w.querySelector('.w-ec-zone') : null;
+    if (zi) {
+        var zz = infoZone(zi);
+        zi.focus({ preventScroll: true });
+        if (zz) {
+            placerSelection(zz, parcourirZone(zi, { titre: zz.titre }).longueur);
+        }
+    }
+    else {
+        (w.classList.contains('w-ec-el--objet') ? w : (w.querySelector('.w-ec-el__etiquette') || w)).focus({ preventScroll: true });
+    }
+    if (typeof w.scrollIntoView === 'function') {
+        w.scrollIntoView({ block: 'nearest' });
+    }
+}
+function apresStructure(id, message) {
+    fermerGroupe();
+    marquerTouche();
+    if (document.getElementById('pCourrier')) {
+        rendreCourrier();
+    }
+    else {
+        majApercuBrouillon();
+    }
+    majPanneauElement();
+    if (id) {
+        focusElement(id);
+    }
+    if (message) {
+        annoncer(message);
+    }
+}
+function deplacerElement(id, j) {
+    var em = emplacementBloc(id);
+    if (!em || j === em.k || j < 0 || j > dernierRang(em.liste) || em.bl.type === 'footer') {
+        return;
+    }
+    em.liste.splice(em.k, 1);
+    em.liste.splice(j, 0, em.bl);
+    apresStructure(id, defElement(em.bl).nom + ' déplacé en position ' + (j + 1) + ' sur ' + em.liste.length + '.');
+}
+function dupliquerElement(id) {
+    var em = emplacementBloc(id);
+    if (!em || em.bl.type === 'footer') {
+        return;
+    }
+    var copie = JSON.parse(JSON.stringify(em.bl));
+    renouvelerIds(copie);
+    em.liste.splice(em.k + 1, 0, copie);
+    etat.brouillon.choisi = copie.id;
+    apresStructure(copie.id, defElement(em.bl).nom + ' dupliqué.');
+}
+async function supprimerElement(id) {
+    var em = emplacementBloc(id);
+    if (!em) {
+        return;
+    }
+    var bl = em.bl, liste = em.liste, def = defElement(bl);
+    var vide = (estZoneCourrier(bl) && !String(bl.text || '').trim()) || ['divider', 'spacer', 'pagebreak'].indexOf(bl.type) !== -1 ||
+        (bl.type === 'columns' && !(bl.left || []).length && !(bl.right || []).length) || (bl.type === 'box' && !(bl.inner || []).length);
+    if (!vide && !(await confirmerAction('Supprimer « ' + def.nom + ' » ?', (resumeBloc(bl) ? resumeBloc(bl) + '. ' : '') + 'Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true }))) {
+        return;
+    }
+    var b0 = etat.brouillon;
+    var pos = liste.indexOf(bl);
+    if (pos < 0) {
+        return;
+    }
+    liste.splice(pos, 1);
+    var voisin = liste[Math.min(pos, liste.length - 1)];
+    b0.choisi = voisin && voisin.type !== 'footer' ? voisin.id : null;
+    apresStructure(b0.choisi, def.nom + ' supprimé.');
+    toast('« ' + def.nom + ' » supprimé.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () {
+        if (etat.brouillon !== b0 || liste.indexOf(bl) !== -1) {
+            return;
+        }
+        liste.splice(Math.min(pos, liste.length), 0, bl);
+        b0.choisi = bl.id;
+        apresStructure(bl.id, def.nom + ' rétabli.');
+    } } });
+}
+/* Couper le texte d'une zone au curseur */
+function couperZone(z, sel) {
+    if (!sel) {
+        return null;
+    }
+    var M = { premier: proprietesPar(sel.pars[0] || {}), a: versAtomes(sel.pars) };
+    var av = M.a.slice(0, sel.debut);
+    var ap = M.a.slice(sel.fin);
+    var premierAp = propsPar(M, parA(M.a, sel.fin));
+    if (ap.length && ap[0].t === 'sep') {
+        premierAp = ap[0].p;
+        ap = ap.slice(1);
+    }
+    while (av.length && (av[av.length - 1].t === 'sep' || av[av.length - 1].t === 'br')) {
+        av.pop();
+    }
+    while (ap.length && ap[0].t === 'br') {
+        ap.shift();
+    }
+    return { avant: modeleVersTexte(depuisAtomes(M.premier, av), z.titre), apres: modeleVersTexte(depuisAtomes(premierAp, ap), z.titre) };
+}
+function typeAdmisDans(type, parent) {
+    if (!parent) {
+        return true;
+    }
+    var t = typeBloc(type);
+    if (!t.dedans) {
+        return false;
+    }
+    return !(parent.type === 'box' && type === 'box');
+}
+function cibleInsertion(type) {
+    var b = etat.brouillon;
+    if (type === 'footer') {
+        return { liste: b.blocks, pos: b.blocks.length };
+    }
+    var em = b.choisi ? emplacementBloc(b.choisi) : null;
+    var liste = b.blocks, pos = dernierRang(b.blocks) + 1;
+    if (!b.blocks.length) {
+        pos = 0;
+    }
+    if (em && em.bl.type !== 'footer') {
+        liste = em.liste;
+        pos = em.k + 1;
+        var z = zoneDuBloc(em.bl.id);
+        var r = z && _ec.memo && _ec.memo.z === z ? selectionRange(z, _ec.memo.range) : null;
+        if (z && r) {
+            var c = couperZone(z, r);
+            var avant = c && String(c.avant).trim(), apres = c && String(c.apres).trim();
+            if (c && avant && apres) {
+                fermerGroupe();
+                var suite = JSON.parse(JSON.stringify(em.bl));
+                renouvelerIds(suite);
+                em.bl.text = c.avant;
+                suite.text = c.apres;
+                em.liste.splice(em.k + 1, 0, suite);
+            }
+            else if (c && !avant && apres) {
+                pos = em.k;
+            }
+        }
+        var parent = em.parent;
+        while (parent && !typeAdmisDans(type, parent)) {
+            var ep = emplacementBloc(parent.id);
+            if (!ep) {
+                break;
+            }
+            liste = ep.liste;
+            pos = ep.k + 1;
+            parent = ep.parent;
+        }
+    }
+    return { liste: liste, pos: pos };
+}
+async function insererElementPage(type) {
+    var b = etat.brouillon;
+    if (!b) {
+        return;
+    }
+    if (type === 'footer') {
+        var pied = (b.blocks || []).filter(function (x) { return x.type === 'footer'; })[0];
+        if (pied) {
+            choisirElement(pied.id);
+            annoncer('Le document a déjà un pied de page : ses réglages sont dans le panneau.');
+            return;
+        }
+    }
+    var c = cibleInsertion(type);
+    var nb = nouveauBloc(type);
+    if (type === 'paragraph') {
+        nb.text = '';
+    }
+    if (type === 'heading') {
+        nb.text = '';
+    }
+    if (type === 'box' || type === 'columns') {
+        parcourirBlocs(listesEnfants(nb).reduce(function (a, l) { return a.concat(l); }, []), function (x) { if (x.type === 'paragraph') {
+            x.text = '';
+        } });
+    }
+    c.liste.splice(c.pos, 0, nb);
+    b.choisi = nb.id;
+    if (type === 'items') {
+        try {
+            await assurerDonneesBrouillon();
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Donnees du tableau de lignes', e);
+        }
+    }
+    apresStructure(nb.id, typeBloc(type).nom + ' inséré.');
+}
+function optionsInsertion() {
+    var b = etat.brouillon;
+    var aPied = (b.blocks || []).some(function (x) { return x.type === 'footer'; });
+    var o = function (t) { return { valeur: t, libelle: typeBloc(t).nom }; };
+    var mep = ['logo', 'signature', 'divider', 'spacer', 'pagebreak'];
+    if (estTypeLettre(b.layout) && !(b.blocks || []).some(function (x) { return x.type === 'letterhead'; })) {
+        mep.push('letterhead');
+    }
+    if (!aPied) {
+        mep.push('footer');
+    }
+    return [{ nom: 'Texte', options: ['heading', 'paragraph', 'box', 'columns'].map(o) },
+        { nom: 'Données de la table', options: ['fields', 'items', 'image'].map(o) },
+        { nom: 'Mise en page', options: mep.map(o) }];
+}
+function zoneChoisie() {
+    var b = etat.brouillon;
+    return b && b.choisi ? zoneDuBloc(b.choisi) : null;
+}
+var STYLES_TEXTE = [{ valeur: 'p', libelle: 'Paragraphe' }, { valeur: 'h1', libelle: 'Titre' }, { valeur: 'h2', libelle: 'Titre de partie' }, { valeur: 'h3', libelle: 'Petit titre' }];
+function styleDeBloc(bl) { return bl.type === 'heading' ? 'h' + valeurDans(Number(bl.level), [1, 2, 3], 2) : 'p'; }
+function changerStyleTexte(v) {
+    var z = zoneChoisie();
+    if (!z) {
+        return;
+    }
+    var bl = z.bl;
+    if (styleDeBloc(bl) === v) {
+        return;
+    }
+    if (bl.type === 'heading' && v !== 'p') {
+        debutModif(z, true);
+        bl.level = Number(v.slice(1));
+        z.el.className = classesZone(bl);
+        finModif(z);
+        fermerGroupe();
+        majPanneauElement();
+        annoncer('Style : ' + STYLES_TEXTE.filter(function (s) { return s.valeur === v; })[0].libelle + '.');
+        return;
+    }
+    var em = emplacementBloc(bl.id);
+    if (!em) {
+        return;
+    }
+    var nb = convertirBloc(bl, v === 'p' ? 'paragraph' : 'heading');
+    if (v !== 'p') {
+        nb.level = Number(v.slice(1));
+        ['align', 'color', 'cond'].forEach(function (c) { if (bl[c] !== undefined) {
+            nb[c] = bl[c];
+        } });
+    }
+    em.liste.splice(em.k, 1, nb);
+    etat.brouillon.choisi = nb.id;
+    apresStructure(nb.id, 'Style : ' + STYLES_TEXTE.filter(function (s) { return s.valeur === v; })[0].libelle + '.');
+}
+function changerProprieteTexte(cle, v) {
+    var z = zoneChoisie();
+    if (!z) {
+        return;
+    }
+    z.bl[cle] = v;
+    z.el.className = classesZone(z.bl);
+    marquerTouche();
+    planifierCompteCourrier();
+    majPanneauElement();
+}
+function selectOutil(id, aria, options, surChange) {
+    var s = creer('select', { classe: 'fr-select w-ec-select', id: id, attrs: { 'aria-label': aria, title: aria } });
+    remplirSelectOutil(s, options);
+    s.addEventListener('change', function () { surChange(s.value); });
+    return s;
+}
+function remplirSelectOutil(s, options) {
+    var cle = options.map(function (o) { return o.valeur; }).join('|');
+    if (s.getAttribute('data-opts') === cle) {
+        return;
+    }
+    vider(s);
+    options.forEach(function (o) { s.appendChild(creer('option', { texte: o.libelle, attrs: { value: o.valeur } })); });
+    s.setAttribute('data-opts', cle);
+}
+function majSelectsOutils() {
+    var z = zoneChoisie();
+    var st = document.getElementById('pOutilStyle'), ta = document.getElementById('pOutilTaille'), co = document.getElementById('pOutilCouleur'), po = document.getElementById('pOutilPolice');
+    if (st) {
+        st.disabled = !z;
+        st.value = z ? styleDeBloc(z.bl) : 'p';
+    }
+    if (ta) {
+        var titre = !!(z && z.bl.type === 'heading');
+        remplirSelectOutil(ta, titre ? TAILLES_TITRE : TAILLES_TEXTE);
+        ta.disabled = !z;
+        ta.value = z ? valeurDans(z.bl.size, (titre ? TAILLES_TITRE : TAILLES_TEXTE).map(function (x) { return x.valeur; }), 'M') : 'M';
+    }
+    if (co) {
+        co.disabled = !z;
+        co.value = z ? valeurDans(z.bl.color, ['ink', 'brand', 'muted'], 'ink') : 'ink';
+    }
+    if (po && etat.brouillon && etat.brouillon.page) {
+        po.value = valeurDans(etat.brouillon.page.font, POLICES.map(function (x) { return x.valeur; }), 'sans');
+    }
+}
+function majPanneauElement() {
+    var zone = document.getElementById('pElementZone');
+    if (!zone) {
+        return;
+    }
+    var actif = document.activeElement && zone.contains(document.activeElement) ? document.activeElement.id : null;
+    vider(zone);
+    panneauElement().forEach(function (x) { zone.appendChild(x); });
+    if (actif) {
+        var f = document.getElementById(actif);
+        if (f) {
+            f.focus({ preventScroll: true });
+        }
+    }
+}
+function panneauElement() {
+    var b = etat.brouillon;
+    if (!b || b.avance || !b.choisi) {
+        return [];
+    }
+    var em = emplacementBloc(b.choisi);
+    if (!em) {
+        b.choisi = null;
+        return [];
+    }
+    var bl = em.bl, def = defElement(bl);
+    var titre = creer('h3', { classe: 'w-elem__titre', id: 'pElemTitre' }, [creer('span', { classe: 'fr-icon-' + def.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), def.nom]);
+    var fermer = bouton('Fermer', 'discret', 'close-line', deselectionnerElement, { petit: true, iconeSeule: true, aria: 'Fermer les réglages de : ' + def.nom, id: 'pElemFermer' });
+    var corps = [changeurType(em.liste, em.k, em.dedans)].concat(editeurBloc(bl, em.dedans, { page: true }));
+    return [creer('section', { classe: 'w-elem', attrs: { 'aria-labelledby': 'pElemTitre' } }, [creer('div', { classe: 'w-elem__tete' }, [titre, fermer])].concat(corps))];
+}
 function editeurCourrier() {
     var b = etat.brouillon;
     var donnees = !!b.vueDonnees;
     var aide = creer('p', { classe: 'fr-sr-only', id: 'pCourrierAide', texte: donnees
-            ? (b.layout === 'libre' ? 'La page' : 'Le courrier') + ' tel' + (b.layout === 'libre' ? 'le' : '') + ' qu\'il' + (b.layout === 'libre' ? 'le' : '') + ' sera imprimé' + (b.layout === 'libre' ? 'e' : '') + ' pour la ligne affichée. Pour écrire, revenez à « Voir les champs ».'
+            ? (!estTypeLettre(b.layout) ? 'La page' : 'Le courrier') + ' tel' + (!estTypeLettre(b.layout) ? 'le' : '') + ' qu\'il' + (!estTypeLettre(b.layout) ? 'le' : '') + ' sera imprimé' + (!estTypeLettre(b.layout) ? 'e' : '') + ' pour la ligne affichée. Pour écrire, revenez à « Voir les champs ».'
             : 'Écrivez dans la page. Tapez « { » pour insérer un champ ; Alt+F10 pour la barre d\'outils.' });
     var info = creer('span', { classe: 'w-mention w-ec-info', id: 'pApercuBInfo', attrs: { 'aria-live': 'polite' } });
     var cadre = creer('div', { classe: 'w-feuilles w-ec-cadre', id: 'pCourrierCadre' }, [creer('div', { classe: 'w-ec-ancre', id: 'pCourrierAncre', attrs: { 'aria-hidden': 'true' } }),
-        donnees ? creer('div', { classe: 'w-pages', id: 'pApercuB', attrs: { role: 'region', 'aria-label': (b.layout === 'libre' ? 'Page' : 'Courrier') + ' avec les données de la ligne affichée' } }) : creer('div', { classe: 'w-ec-page-zone', id: 'pCourrier' })]);
+        donnees ? creer('div', { classe: 'w-pages', id: 'pApercuB', attrs: { role: 'region', 'aria-label': (!estTypeLettre(b.layout) ? 'Page' : 'Courrier') + ' avec les données de la ligne affichée' } }) : creer('div', { classe: 'w-ec-page-zone', id: 'pCourrier' })]);
     var barre = donnees ? creer('div', { classe: 'w-ec-outils w-ec-outils--donnees' }, [creer('span', { classe: 'w-mention', texte: 'Tel qu\'il sera imprimé, sans écriture.' }), info])
         : barreOutilsCourrier(info);
     return creer('div', { classe: 'w-ec' }, [aide, barre, cadre]);
