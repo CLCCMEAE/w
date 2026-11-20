@@ -634,7 +634,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.5.0';
+var VERSION_WIDGET = '3.5.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploverse';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOVERSE_';
@@ -2656,12 +2656,14 @@ var AIDE = {
         'Général': { titre: 'le nom, qui fait partie du verse, les droits et la suppression.', points: [
                 '« Nom du verse » : affiché sur son onglet.',
                 '« Qui fait partie de ce verse ? » : les présences, les tâches et les activités suivent les personnes du verse.',
-                '« Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
+                '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
                 '« Supprimer le verse » : seuls ses réglages sont effacés, les tables et leurs lignes restent dans le document.'
             ] }
     },
     questions: [
-        { q: 'Qui peut paramétrer WuitVerse ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Général » des paramétrages : « Réserver le paramétrage aux propriétaires », puis « Voir la marche à suivre ».' },
+        { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
+        { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Qui peut paramétrer WuitVerse ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Comment me déclarer pour un autre jour ?', r: 'Changez de jour avec les flèches à côté de la date, puis cliquez sur votre prénom : votre bureau s\'ouvre sur ce jour. Une période (congés, mission) s\'enregistre aussi depuis votre bureau.' },
         { q: 'Pourquoi une pièce n\'apparaît-elle pas ?', r: 'Elle n\'est pas cochée à l\'étape « Le modèle », ou sa table et ses colonnes principales ne sont pas choisies à l\'étape « Les pièces ».' },
         { q: 'Supprimer un verse supprime-t-il des données ?', r: 'Non. Seuls ses réglages (et sa plante, son chien, ses trophées) sont effacés ; les tables et leurs lignes restent dans le document.' }
@@ -7358,7 +7360,7 @@ async function cacherPage() {
         await lirePlans();
         await majPages();
         masquerLoader();
-        afficherSucces('La vue de « ' + titreOwner() + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.');
+        afficherSucces('La vue de « ' + titreOwner() + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès décrite dans « Les droits » pour cacher la page.');
         rafraichirApresDroits('aReserverPage');
     }
     catch (e) {
@@ -11341,7 +11343,7 @@ function etapeVerse(b) {
     if (!b.param) {
         return creer('div', { classe: 'w-assistant__corps dv-etape-verse' }, elements);
     }
-    var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'dvSecVerse' } }, [creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'dvSecVerse', texte: 'Le verse' })])].concat(elements, [encartDroits(TEXTES_DROITS)]));
+    var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'dvSecVerse' } }, [creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'dvSecVerse', texte: 'Le verse' })])].concat(elements));
     var seul = etat.verses.length <= 1;
     var danger = blocSupprimer('Supprimer le verse', seul
         ? 'C\'est le seul verse : ses réglages sont effacés et WuitVerse revient à son installation. Les tables et leurs lignes restent dans le document.'
@@ -12126,10 +12128,10 @@ function etapePieces(b) {
         misC.addEventListener('input', function () { c.missionPour = misC.value.trim(); });
         bloc.appendChild(creer('section', { classe: 'dv-piece fr-mt-3w' }, [creer('h3', { classe: 'fr-h6', texte: '🗂️ La déclaration des activités' }),
             creer('p', { classe: 'w-mention', texte: 'La table « 🗂️ Activités » est créée la première fois que quelqu\'un déclare une activité dans son bureau.' }),
-            groupeChamp('Mission réalisée pour', misC, 'Écrit sur le relevé PDF de chacun (ligne omise si vide). La ligne « Titulaire » vient de la colonne facultative EMPLOYEUR de la table Équipe.', false)]));
+            groupeChamp('Mission réalisée pour', misC, 'Écrit sur le relevé PDF de chacun (ligne omise si vide). La ligne « Titulaire » vient de la colonne EMPLOYEUR de la table Équipe.', false)]));
     }
     if (aucune) {
-        bloc.appendChild(alerte('info', null, 'Aucune pièce optionnelle n\'est cochée : WuitVerse affichera l\'accueil, les bureaux, les maisons et les îles.'));
+        bloc.appendChild(alerte('info', null, 'Aucune pièce en plus n\'est cochée : WuitVerse affichera l\'accueil, les bureaux, les maisons et les îles.'));
     }
     return bloc;
 }

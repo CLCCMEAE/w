@@ -658,7 +658,7 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 </div>
 <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.0';
+var VERSION_WIDGET = '1.6.1';
 var HOMOLOGUE = false;
 var TAILLE_MAX_SVG = 200000;
 function purifierHTML(contenu, usage) {
@@ -881,7 +881,7 @@ function autoSave(cle, fn) {
         clearTimeout(_debounceTimers[cle]);
     _debounceTimers[cle] = setTimeout(function () {
         Promise.resolve().then(fn).catch(function (e) {
-            afficherErreur('Saisie non enregistrée. Vérifiez vos droits sur ce document. Si le verrou de structure est activé dans ce document, activez votre mode admin dans le widget WuitUtilisateurs, puis recommencez.', e);
+            afficherErreur('Saisie non enregistrée. Vérifiez vos droits sur ce document. Si le verrou de structure est activé dans ce document, activez votre mode structure dans le widget WuitUtilisateurs, puis recommencez.', e);
         });
     }, 600);
 }
@@ -2207,7 +2207,7 @@ async function reserverPage() {
         if (document.getElementById('panel-droits') && document.getElementById('panel-droits').classList.contains('actif'))
             await afficherDroitsDoc();
         masquerLoader();
-        toast('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.', { type: 'succes', duree: 10000 });
+        toast('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès décrite dans « Les droits » pour cacher la page.', { type: 'succes', duree: 10000 });
     }
     catch (e) {
         masquerLoader();
@@ -2441,7 +2441,7 @@ function rendrePublication() {
         return;
     vider(z);
     var nom = _pageSpecActive;
-    var ic = aideI('dpAideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre cette page seule, à jour, sans la documentation, sans aide ni roue dentée, avec les icônes pour l\'imprimer. Ce n\'est pas un droit : pour la confidentialité, posez des règles d\'accès.');
+    var ic = aideI('dpAideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre cette page seule, à jour, sans la documentation ni aide, avec les icônes pour l\'imprimer. Ce n\'est pas un droit : pour la confidentialité, posez des règles d\'accès.');
     z.appendChild(creer('h3', { classe: 'dp-section__titre', id: 'dpSecConsult', attrs: { tabindex: '-1' } }, ['Où les lecteurs la voient ', ic.bouton]));
     z.appendChild(ic.panneau);
     if (_editionPage) {
@@ -2471,7 +2471,7 @@ function rendreCacher() {
     if (!z)
         return;
     vider(z);
-    var r = aideI('dpAideCacher', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page dans la liste des pages.');
+    var r = aideI('dpAideCacher', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'onglet « Les droits ». Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     z.appendChild(creer('span', { classe: (_pageProtegee ? 'fr-icon-eye-off-line' : 'fr-icon-eye-line') + ' dp-cacher__icone', attrs: { 'aria-hidden': 'true' } }));
     z.appendChild(creer('p', { classe: 'w-texte dp-cacher__texte' }, [_pageProtegee ? 'Cette page de documentation est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page de documentation est visible par tous.', ' ', r.bouton]));
     if (!_pageProtegee)
@@ -2846,7 +2846,7 @@ async function mettreAJourDescriptionColonne(colRowId, description) {
         return true;
     }
     catch (e) {
-        afficherErreur('Description du champ non enregistrée. Vérifiez vos droits sur ce document. Si le verrou de structure est activé dans ce document, activez votre mode admin dans le widget WuitUtilisateurs, puis recommencez.', e);
+        afficherErreur('Description du champ non enregistrée. Vérifiez vos droits sur ce document. Si le verrou de structure est activé dans ce document, activez votre mode structure dans le widget WuitUtilisateurs, puis recommencez.', e);
         return false;
     }
 }
@@ -4176,7 +4176,7 @@ function afficherPagesArbo() {
         ul.textContent = 'Adresse de la page';
         var uh = document.createElement('span');
         uh.className = 'fr-hint-text';
-        uh.textContent = 'Facultative. Recopiez l’adresse depuis la barre du navigateur lorsque vous êtes sur cette page : elle rend la page cliquable dans le sommaire.';
+        uh.textContent = 'Recopiez l’adresse depuis la barre du navigateur lorsque vous êtes sur cette page : elle rend la page cliquable dans le sommaire.';
         ul.appendChild(uh);
         var uin = document.createElement('input');
         uin.type = 'text';
@@ -5719,11 +5719,11 @@ function construireEditeurDansCorps(nomPage, corps) {
 }
 function aideBloc(type) {
     switch (type) {
-        case 'titre': return 'Le titre s’écrit dans « Titre affiché ». Ici, un sous-titre facultatif, sur une ligne.';
+        case 'titre': return 'Le titre s’écrit dans « Titre affiché ». Ici, un sous-titre, sur une ligne.';
         case 'texte': return 'Texte libre. Les retours à la ligne sont conservés.';
         case 'champ_projet': return 'Un seul nom de champ, à recopier : ' + Object.keys(CHAMPS_PROJET_AFFICHABLES).join(', ') + '.';
         case 'cartes': return 'Une carte par ligne : icône | titre | description | adresse. Titre | description suffit. Pour une adresse sans icône, laissez l’icône vide : | titre | description | adresse. Avec une adresse, la carte devient cliquable.';
-        case 'contacts': return 'Un contact par ligne : nom | rôle | courriel. Le courriel est facultatif.';
+        case 'contacts': return 'Un contact par ligne : nom | rôle | courriel.';
         case 'info': return 'Texte du bandeau. Le titre s’affiche en gras au-dessus.';
         case 'alerte': return 'Texte de l’alerte. Le titre s’affiche en gras au-dessus.';
         case 'etapes': return 'Une étape par ligne. La numérotation est automatique.';
@@ -9531,10 +9531,12 @@ var AIDE = {
         'Pages spéciales': { titre: 'l\'accueil et les pages montrées aux lecteurs.', points: ['À gauche, choisissez une page ou créez-en une avec « Nouvelle page ».',
                 'Contenu : ajoutez des blocs, donnez-leur un titre et un contenu ; les flèches changent leur ordre et l\'aperçu montre le rendu.',
                 '« Où les lecteurs la voient » : « Publier sur une nouvelle page » ajoute au document une page qui montre cette page seule, sans la documentation ni aide.',
-                '« Cacher cette page », en haut de l\'onglet, cache la page de la documentation aux personnes qui ne peuvent pas lire la table ❌ OWNER ONLY ⚡.'] },
+                '« Cacher cette page », en haut de l\'onglet, cache la page de la documentation aux personnes qui ne peuvent pas lire la table ❌ ADMIN ONLY ⚡.'] },
         'Visite guidée': { titre: 'les bulles qui présentent le document.', points: ['Une étape par bulle : titre, texte et case visée.', 'Un lien peut compléter la bulle, avec son icône.'] }
     },
     questions: [
+        { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'onglet « Les droits ».' },
+        { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'onglet « Les droits », cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
         { q: 'Je vois seulement la page d\'accueil.', r: 'La documentation est réservée aux personnes que les règles d\'accès du document autorisent ; les autres voient la page d\'accueil. Adressez-vous à un propriétaire du document.' },
         { q: 'Une description ne s\'enregistre pas.', r: 'Les descriptions des tables, champs et pages sont écrites dans la structure du document. Si la modification de la structure vous est retirée, demandez à un propriétaire de les saisir.' },
         { q: 'Comment montrer une page spéciale sans la documentation ?', r: 'Dans l\'onglet Pages spéciales, choisissez la page, puis « Publier sur une nouvelle page ». Ses lecteurs voient seulement cette page, à jour, avec les icônes pour l\'imprimer.' },

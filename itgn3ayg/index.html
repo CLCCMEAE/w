@@ -582,11 +582,19 @@ var SOCLE = {
                 "points": [
                     "Bloc « Pages » de l'accueil, « Où les lecteurs la voient » : « Publier sur une nouvelle page », puis donnez son nom et le titre du bandeau, choisissez les graphiques, leur ordre, la disposition et jusqu'à 3 filtres pour les lecteurs.",
                     "La page apparaît dans la liste des pages du document, sans onglets, réglages ni aide.",
-                    "« Cacher cette page » cache la page d'administration aux personnes qui ne peuvent pas lire la table ❌ OWNER ONLY ⚡."
+                    "« Cacher cette page » cache la page d'administration aux personnes qui ne peuvent pas lire la table ❌ ADMIN ONLY ⚡."
                 ]
             }
         ],
         "questions": [
+            {
+                "q": "Comment inviter les utilisateurs ?",
+                "r": "Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L'accès public doit rester désactivé. Le détail est dans l'onglet « Les droits »."
+            },
+            {
+                "q": "Quels droits donner ?",
+                "r": "Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d'accès décrites dans l'onglet « Les droits », cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que »."
+            },
             {
                 "q": "Qui voit mes graphiques enregistrés ?",
                 "r": "Ils sont enregistrés dans le document : les personnes qui ont accès au document les voient et peuvent les utiliser."
@@ -1904,7 +1912,7 @@ let couleursPerso = {};
 let derniereAgregation = null;
 let colonneCouleurActuelle = null;
 let elementCouleurEnCours = null;
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.5.1';
 var HOMOLOGUE = false;
 let etatType = 'barres';
 let typeSuggere = null;
@@ -3647,7 +3655,7 @@ async function reserverPage() {
         if (pd && pd.style.display !== 'none')
             await afficherDroitsGraph();
         masquerLoader();
-        afficherSucces('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.');
+        afficherSucces('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès décrite dans « Les droits » pour cacher la page.');
     }
     catch (e) {
         masquerLoader();
@@ -3970,7 +3978,7 @@ function formulairePage() {
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', texte: 'Nom de la page', attrs: { 'for': 'gpNom' } }), nom,
             noeud('p', { classe: 'fr-error-text', id: 'gpNomErreur', attrs: { hidden: true } })]),
         noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpTitreBandeau' } }, ['Titre du bandeau ', noeud('span', { classe: 'fr-hint-text', texte: 'Remplace « 📊 WuitGraphiques » en haut de la page. Laissé vide, le bandeau garde ce nom.' })]), titre]),
-        noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpDesc' } }, ['Description ', noeud('span', { classe: 'fr-hint-text', texte: 'Facultative, affichée sous le nom de la page.' })]), desc]),
+        noeud('div', { classe: 'fr-input-group' }, [noeud('label', { classe: 'fr-label', attrs: { 'for': 'gpDesc' } }, ['Description ', noeud('span', { classe: 'fr-hint-text', texte: 'Affichée sous le nom de la page.' })]), desc]),
         choix, ordre, dispo, lect,
         noeud('div', { classe: 'gp-actions' }, [
             boutonPage('Annuler', 'fr-btn--tertiary', null, function () { _editionPage = null; renderPagesZone(); var t = document.getElementById('gpSecConsult'); if (t)
@@ -3984,7 +3992,7 @@ function renderPagesZone() {
     if (!z)
         return;
     z.textContent = '';
-    var r = aideI('gpAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
+    var r = aideI('gpAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'onglet « Les droits ». Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var admin = sectionPage('gpSecAdmin', 'Cette page', [
         noeud('p', { classe: 'gp-texte' }, [_pageProtegee ? 'Cette page, avec la création et les réglages des graphiques, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la création et les réglages des graphiques. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], _pageProtegee ? (_protRepliee ? null : boutonPage('Replier la vue de protection', 'fr-btn--secondary', 'arrow-up-s-line', reserverPage, { id: 'btnReplierProtection' })) : boutonPage('Cacher cette page', 'fr-btn--secondary', 'eye-off-line', reserverPage, { id: 'btnReserverPage' }));
