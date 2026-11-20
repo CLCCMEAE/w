@@ -991,6 +991,20 @@
     .s-depart__bouton { margin-top: .5rem; font-size: 1.125rem; padding: .75rem 1.5rem; }
     .s-depart__autre { text-align: center; margin: 1rem auto 0; max-width: 40rem; }
     @media print { .s-stats__outils, .w-volet { display: none !important; } .s-chaleur__case { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
+    .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
+    .s-acl__chevron { color: var(--text-mention-grey); }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
+    .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .s-acl__pousse { flex: 1; }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
+    .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
+    .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
 </style>
 </head>
 <body>
@@ -1045,7 +1059,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.35';
+var VERSION_WIDGET = '1.1.36';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -10326,6 +10340,31 @@ function modeleAcl(titre, blocs, prefixe) {
     ]);
     return creer('div', { classe: 's-acl' }, [creer('p', { classe: 's-acl__titre' }, ['Règles pour la table ', creer('strong', { texte: titre })]), tableau]);
 }
+function modeleReglesSpeciales() {
+    var ligne = function (txt, marque) {
+        return creer('div', { classe: 's-acl__special' + (marque ? ' s-acl__special--cible' : '') }, [creer('span', { classe: 's-acl__chevron', texte: '›', attrs: { 'aria-hidden': 'true' } }), creer('span', { classe: 's-acl__case', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: txt }),
+            marque ? creer('span', { classe: 's-acl__repere', texte: 'doit rester décochée' }) : null]);
+    };
+    return creer('div', { classe: 's-acl', attrs: { role: 'img', 'aria-label': 'Reproduction de la rubrique Règles spéciales : la case Autoriser les Éditeurs à modifier la structure doit rester décochée.' } }, [
+        creer('p', { classe: 's-acl__titre' }, [creer('strong', { texte: 'Règles spéciales' }), ' (développez chaque règle pour personnaliser à qui elle s\'applique.)']),
+        ligne('Autoriser les Éditeurs à modifier la structure (ex. modifier et supprimer des tables et des colonnes, et modifier les formules, les pages, les vues et les paramètres). Important : si cette option est cochée, les Éditeurs peuvent contourner les Permissions Avancées sur les tables et les colonnes, et lire et modifier toutes les données !', true),
+        ligne('Autoriser tout le monde à voir les permissions avancées.', false)
+    ]);
+}
+function modeleBarreAcl(table) {
+    var btn = function (txt, cls, num) { return creer('span', { classe: 's-acl__fbtn' + (cls ? ' ' + cls : '') }, [num ? creer('span', { classe: 's-acl__num', texte: num }) : null, txt]); };
+    return creer('div', { classe: 's-acl', attrs: { role: 'img', 'aria-label': 'Reproduction du haut de la page des Permissions avancées et d\'un nouveau bloc de règles.' } }, [
+        creer('div', { classe: 's-acl__barre' }, [btn('Enregistrer', 's-acl__fbtn--gris', '5'), creer('span', { classe: 's-acl__pousse' }), btn('Ajouter des règles pour la table ⌄', 's-acl__fbtn--cible', '1'), btn('Ajouter des propriétés d\'utilisateur'), btn('Voir en tant que ⌄', null, '6')]),
+        creer('p', { classe: 's-acl__titre' }, ['Règles pour la table ', creer('strong', { texte: table || 'choisie' })]),
+        creer('table', { classe: 's-acl__tableau' }, [
+            creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Colonnes' }), creer('th', { texte: 'Condition' }), creer('th', { texte: 'Droits' })])]),
+            creer('tbody', {}, [creer('tr', {}, [creer('td', { classe: 's-acl__cols', texte: 'Toutes' }),
+                creer('td', {}, [creer('span', { classe: 's-acl__cond' }, [creer('span', { classe: 's-acl__num', texte: '2' }), creer('span', { classe: 's-acl__plus', texte: '+' }), creer('span', { classe: 's-acl__num', texte: '3' }), creer('span', { classe: 's-acl__saisie', texte: 'coller la condition ici' })])]),
+                creer('td', {}, [creer('span', { classe: 's-acl__droits' }, [creer('span', { classe: 's-acl__num', texte: '4' })].concat(['R', 'U', 'C', 'D'].map(function (l) { return creer('span', { classe: 's-acl__droit s-acl__droit--vide', texte: l }); })))])])])
+        ]),
+        creer('p', { classe: 's-acl__legende', texte: '1 : choisir la table. 2 : ajouter une ligne. 3 : coller la condition. 4 : cliquer les lettres (vert = autorisé, rouge barré = refusé). 5 : Enregistrer. 6 : vérifier.' })
+    ]);
+}
 function blocDroits() {
     var c = etat.config || (etat.brouillon && etat.brouillon.cfg) || {};
     var nomRes = c.table ? libelleTable(c.table) : 'des réservations';
@@ -10340,8 +10379,8 @@ function blocDroits() {
     var tout = function (v) { return { R: v, U: v, C: v, D: v }; };
     var colonnesStatut = colStat + (infoColonne(c.table, 'MOTIF') ? ', MOTIF' : '');
     var etapes = [
-        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les agents contournent toutes les règles. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne de chaque table ci-dessous.' },
-        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.' },
+        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les agents contournent toutes les règles. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne de chaque table ci-dessous.', modele: modeleReglesSpeciales() },
+        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.', modele: modeleBarreAcl(titreOwner()) },
         { titre: 'Cacher la page Admin', texte: 'Cette table n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre table.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
         { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
             { condition: 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW, droits: tout(false) },
