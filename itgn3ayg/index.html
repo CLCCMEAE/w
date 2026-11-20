@@ -1538,6 +1538,9 @@ function trouverTableCentrale(ids) {
     }
     return null;
 }
+var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)_*$/;
+function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
 function estTableExclue(tid) {
     if (!tid) {
         return true;
@@ -1550,7 +1553,7 @@ function estTableExclue(tid) {
     if (brut.indexOf('GristHidden_') === 0) {
         return true;
     }
-    if (/^gristdoctour/i.test(brut)) {
+    if ((/^gristdoctour/i.test(brut) || MOTIF_TABLES_SERVICE.test(brut))) {
         return true;
     }
     if (up === 'BIBLIOTHEQUE_CENTRALE') {
@@ -1914,7 +1917,7 @@ let couleursPerso = {};
 let derniereAgregation = null;
 let colonneCouleurActuelle = null;
 let elementCouleurEnCours = null;
-var VERSION_WIDGET = '1.5.4';
+var VERSION_WIDGET = '1.5.5';
 var HOMOLOGUE = false;
 let etatType = 'barres';
 let typeSuggere = null;
@@ -2200,7 +2203,7 @@ async function listerTables() {
                 noms.push(n);
             }
         }
-        return noms.sort(function (a, b) { return String(a).localeCompare(String(b), 'fr'); });
+        return noms.sort(comparerNomsTables);
     }
     catch (e) {
         logSecurite('AVERTISSEMENT', 'Lecture des tables impossible', e);

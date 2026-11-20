@@ -1306,7 +1306,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.9.1';
+var VERSION_WIDGET = '1.9.2';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1450,6 +1450,9 @@ function getAllFields() {
 function getFieldDef(colId) {
     return getAllFields().find(function (f) { return f.id === colId; });
 }
+var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)_*$/;
+function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
 function estTableExclue(tid) {
     if (!tid) {
         return true;
@@ -3612,8 +3615,8 @@ function ouvrirEditionChamp(th, colId) {
                 o1r.value = '';
                 o1r.textContent = '- Table cible -';
                 selRef.appendChild(o1r);
-                ids.forEach(function (tid) {
-                    if (estTableExclue(tid)) {
+                ids.slice().sort(comparerNomsTables).forEach(function (tid) {
+                    if (estTableExclue(tid) || MOTIF_TABLES_SERVICE.test(tid)) {
                         return;
                     }
                     var o = document.createElement('option');
@@ -3938,8 +3941,8 @@ function ouvrirFormulaireColonne() {
                 o1.value = '';
                 o1.textContent = '- Table cible -';
                 selRef.appendChild(o1);
-                ids.forEach(function (tid) {
-                    if (estTableExclue(tid)) {
+                ids.slice().sort(comparerNomsTables).forEach(function (tid) {
+                    if (estTableExclue(tid) || MOTIF_TABLES_SERVICE.test(tid)) {
                         return;
                     }
                     var o = document.createElement('option');

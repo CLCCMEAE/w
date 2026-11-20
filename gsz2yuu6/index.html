@@ -886,7 +886,7 @@ var NOM_WIDGET_ANCIEN = 'import_excel';
 function estLigneDuWidget(valeurWidget) {
     return valeurWidget === NOM_WIDGET || valeurWidget === NOM_WIDGET_ANCIEN;
 }
-var VERSION_WIDGET = '1.4.2';
+var VERSION_WIDGET = '1.4.3';
 var HOMOLOGUE = false;
 function descriptifParametrage(nom, nomFichier) {
     var txt = 'Paramétrage d\'import';
@@ -1190,6 +1190,9 @@ function trouverTableCentrale(ids) {
     }
     return null;
 }
+var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)_*$/;
+function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
 function estTableExclue(tid) {
     if (!tid) {
         return true;
@@ -1202,7 +1205,7 @@ function estTableExclue(tid) {
     if (brut.indexOf('GristHidden_') === 0) {
         return true;
     }
-    if (/^gristdoctour/i.test(brut)) {
+    if ((/^gristdoctour/i.test(brut) || MOTIF_TABLES_SERVICE.test(brut))) {
         return true;
     }
     if (up === 'BIBLIOTHEQUE_CENTRALE') {
@@ -2442,7 +2445,7 @@ async function chargerTablesGrist() {
             var metaTables = await grist.docApi.fetchTable('_grist_Tables');
             var tIds = metaTables.tableId || [];
             etat.tablesGrist = tIds.filter(function (t) { return !estTableExclue(t); })
-                .slice().sort(function (a, b) { return a.localeCompare(b, 'fr', { sensitivity: 'base' }); });
+                .slice().sort(comparerNomsTables);
             logSecurite('INFO', 'Tables chargées (triées)', etat.tablesGrist);
             try {
                 await assurerTableBibliotheque();
@@ -4594,7 +4597,7 @@ async function allerEtape4() {
             var metaR = await grist.docApi.fetchTable('_grist_Tables');
             var tIdsR = metaR.tableId || [];
             etat.tablesGrist = tIdsR.filter(function (t) { return !estTableExclue(t); })
-                .slice().sort(function (a, b) { return a.localeCompare(b, 'fr', { sensitivity: 'base' }); });
+                .slice().sort(comparerNomsTables);
         }
         catch (e) {
             logSecurite('AVERTISSEMENT', 'Rafraichissement de la liste des tables impossible', e);
@@ -6249,7 +6252,7 @@ async function annulerDernierImport() {
         try {
             var metaR = await grist.docApi.fetchTable('_grist_Tables');
             etat.tablesGrist = (metaR.tableId || []).filter(function (t) { return !estTableExclue(t); })
-                .slice().sort(function (a, b) { return a.localeCompare(b, 'fr', { sensitivity: 'base' }); });
+                .slice().sort(comparerNomsTables);
         }
         catch (eR) {
             logSecurite('AVERTISSEMENT', 'Rafraichissement de la liste des tables impossible', eR);

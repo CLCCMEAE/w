@@ -835,7 +835,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.2';
+var VERSION_WIDGET = '1.5.3';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2066,6 +2066,9 @@ function relayer(promesse, quoi) {
     }
     return promesse;
 }
+var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)_*$/;
+function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
 function estTableExclue(tid) {
     if (!tid) {
         return true;
@@ -2078,7 +2081,7 @@ function estTableExclue(tid) {
     if (brut.indexOf('GristHidden_') === 0) {
         return true;
     }
-    if (/^gristdoctour/i.test(brut)) {
+    if ((/^gristdoctour/i.test(brut) || MOTIF_TABLES_SERVICE.test(brut))) {
         return true;
     }
     if (up === 'BIBLIOTHEQUE_CENTRALE') {
@@ -10594,7 +10597,7 @@ function tablesProposees() {
     return Object.keys(etat.meta.tables).filter(function (tid) {
         var t = etat.meta.tables[tid];
         return !estTableExclue(tid) && !t.resume && tid !== etat.biblio && colonnesDe(tid).length > 0;
-    }).sort(function (a, b) { return libelleTable(a).localeCompare(libelleTable(b), 'fr'); });
+    }).sort(function (a, b) { return comparerNomsTables(libelleTable(a), libelleTable(b)); });
 }
 function rendreDepart(zone) {
     var b = etat.brouillon;

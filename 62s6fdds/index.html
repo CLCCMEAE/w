@@ -679,7 +679,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.10.2';
+var VERSION_WIDGET = '1.10.3';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1945,6 +1945,9 @@ function echapperHTML(texte) {
     div.textContent = String(texte);
     return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)_*$/;
+function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
 function estTableExclue(tid) {
     if (!tid) {
         return true;
@@ -1957,7 +1960,7 @@ function estTableExclue(tid) {
     if (brut.indexOf('GristHidden_') === 0) {
         return true;
     }
-    if (/^gristdoctour/i.test(brut)) {
+    if ((/^gristdoctour/i.test(brut) || MOTIF_TABLES_SERVICE.test(brut))) {
         return true;
     }
     if (up === 'BIBLIOTHEQUE_CENTRALE') {
@@ -7631,7 +7634,7 @@ function tablesBranchables() {
     return Object.keys(etat.meta.tables).filter(function (tid) {
         var t = etat.meta.tables[tid];
         return !estTableExclue(tid) && !t.resume && tid.toUpperCase().indexOf(ID_BIBLIO) === -1 && !(tid.toUpperCase().indexOf(ID_TABLE_CARTES) === 0 && infoColonne(tid, COL_KANBAN));
-    }).sort(function (x, y) { return x.localeCompare(y, 'fr'); });
+    }).sort(function (x, y) { return comparerNomsTables(libelleTable(x), libelleTable(y)); });
 }
 function raisonRefusEtape(c) {
     var typeOk = c.type === 'Choice' || c.type === 'Text' || c.type === 'Any' || c.type.indexOf('Ref:') === 0;
