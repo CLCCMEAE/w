@@ -662,6 +662,9 @@
     .h-colonnes { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 1rem; padding: .5rem 0 0; }
     .h-colonnes[hidden] { display: none; }
     .w-bandeau__role { margin-left: .5rem; }
+    .w-fil__ico.w-fil__ico--ajout { color: var(--text-default-success); }
+    .w-fil__ico.w-fil__ico--modif { color: var(--text-action-high-blue-france); }
+    .w-fil__ico.w-fil__ico--suppr { color: var(--text-default-error); }
 </style>
 </head>
 <body>
@@ -717,7 +720,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.1';
+var VERSION_WIDGET = '1.4.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplohistorique';
 var TITRE_DEFAUT = '📜 WuitHistorique';
@@ -1798,6 +1801,9 @@ async function construireEvenements() {
             e.restauree = /^Restaurée en ligne n° \d+$/.test(l.apres) ? parseInt(l.apres.replace(/\D+/g, ''), 10) : 0;
             var ct2 = colonneTitre(l.table);
             e.titre = ct2 && valeurs[ct2] !== undefined ? texteBrut(valeurs[ct2]) : '';
+            if (!e.titre && /^Ligne \d+ : ./.test(l.objet || '')) {
+                e.titre = String(l.objet).replace(/^Ligne \d+ : /, '');
+            }
             var hj = e.restauree ? null : lireJson(l.detail);
             if (hj && Array.isArray(hj.j)) {
                 ajouterJournal(evts, l.table, l.ligne, e.titre, hj.j, true);
@@ -1849,17 +1855,42 @@ function ajouterCommentaires(evts, tid, rid, titre, brut) {
     });
 }
 function nomPersonne(e) { return e.nom || e.qui || ''; }
+function symboleEvenement(e) {
+    /* Le symbole dit sur quoi porte le mouvement ; sa couleur dit ce qui s'est passé. */
+    var txt = String(phrase(e) || '');
+    var genre;
+    if (e.type === 'droits') {
+        genre = ['lock-line'];
+    }
+    else if (e.type === 'partage') {
+        genre = ['team-line', 'user-line'];
+    }
+    else if (e.type === 'suivi') {
+        genre = ['time-line'];
+    }
+    else if (e.type === 'commentaire') {
+        genre = ['chat-3-line'];
+    }
+    else if (e.type === 'structure') {
+        genre = /^Page/.test(txt) ? ['file-text-line', 'article-line'] : /^(Colonne|Formule|Type)/.test(txt) ? ['layout-column-line', 'table-line'] : /^(Vue|Widget)/.test(txt) ? ['layout-grid-line', 'table-line'] : ['table-line'];
+    }
+    else {
+        genre = ['list-unordered', 'file-list-line', 'menu-line'];
+    }
+    var action = e.type === 'creation' || /(créée|ajoutée|créé|ajouté)( |$)/.test(txt) ? 'ajout' : (e.type === 'suppression' || /(supprimée|supprimé)( |$)/.test(txt) ? 'suppr' : 'modif');
+    return { icone: iconeDispo(genre), action: action };
+}
 function phrase(e) {
     var tl = libelleTable(e.table);
-    var obj = e.titre ? '« ' + e.titre + ' »' : 'la ligne n° ' + e.ligne;
+    var obj = e.titre ? '« ' + e.titre + ' »' : 'n° ' + e.ligne;
     if (e.type === 'creation') {
         return 'Ligne ' + obj + ' ajoutée dans « ' + tl + ' »';
     }
     if (e.type === 'modification') {
-        return '« ' + libelleColonne(e.table, e.colonne) + ' » de ' + obj + ' (' + tl + ')';
+        return '« ' + libelleColonne(e.table, e.colonne) + ' » de la ligne ' + obj + ' (' + tl + ')';
     }
     if (e.type === 'commentaire') {
-        return 'Commentaire sur ' + obj + ' (' + tl + ')';
+        return 'Commentaire sur la ligne ' + obj + ' (' + tl + ')';
     }
     if (e.type === 'suppression') {
         return e.ligne ? 'Ligne ' + obj + ' supprimée de « ' + tl + ' »' : e.objet;
@@ -2770,7 +2801,7 @@ function rendreEvenement(e, sansLien) {
     var neuf = !sansLien && estNouveau(e);
     var li = creer('li', { classe: 'w-fil__item w-fil__item--' + e.type }, [
         creer('span', { classe: 'w-fil__heure', texte: heure(e.quand) }),
-        creer('span', { classe: 'w-fil__ico fr-icon-' + t.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
+        (function () { var sy = symboleEvenement(e); return creer('span', { classe: 'w-fil__ico w-fil__ico--' + sy.action + ' fr-icon-' + sy.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }); })(),
         creer('div', { classe: 'w-fil__corps' }, [
             creer('p', { classe: 'w-fil__titre' }, [neuf ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new w-fil__neuf', texte: 'Nouveau' }) : null,
                 creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
