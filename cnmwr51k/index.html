@@ -717,7 +717,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.4.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplohistorique';
 var TITRE_DEFAUT = '📜 WuitHistorique';
@@ -1540,6 +1540,45 @@ async function releverSuppressions(quand) {
     });
     return { actions: ecrireEvenements('SUPPRESSION', evts, depuis, quand), releve: nouveau };
 }
+async function releverLignes(quand) {
+    /* Relevé de secours, quand l'historique des actions du document n'est pas lisible :
+       on compare les lignes de chaque table suivie avec le relevé précédent. */
+    var precedent = etat.releves.lignes;
+    var avant = precedent ? precedent.donnees : null;
+    var depuis = precedent ? precedent.quand : null;
+    var nouveau = {};
+    var evts = [];
+    var suivies = ((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; });
+    for (var i = 0; i < suivies.length; i++) {
+        var t = suivies[i], d;
+        try {
+            d = await lireTable(t);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Table ' + t + ' illisible : suppressions non relevées', e);
+            if (avant && avant[t]) {
+                nouveau[t] = avant[t];
+            }
+            continue;
+        }
+        var ct = colonneTitre(t);
+        var n = {};
+        for (var k = 0; k < d.id.length; k++) {
+            n[d.id[k]] = ct && d[ct] ? String(texteBrut(d[ct][k]) || '').slice(0, 80) : '';
+        }
+        nouveau[t] = n;
+        if (avant && avant[t]) {
+            Object.keys(avant[t]).forEach(function (rid) {
+                if (n[rid] !== undefined) {
+                    return;
+                }
+                var val = (etat.actuels && etat.actuels[t] || {})[rid];
+                evts.push({ table: t, ligne: Number(rid), objet: 'Ligne ' + rid + (avant[t][rid] ? ' : ' + avant[t][rid] : ''), avant: val ? JSON.stringify(val) : '', apres: '', detail: '' });
+            });
+        }
+    }
+    return { actions: ecrireEvenements('SUPPRESSION', evts, depuis, quand), releve: nouveau };
+}
 async function releverTout() {
     if (etat.releveEnCours || !etat.proprietaire || !etat.config) {
         return 0;
@@ -1594,6 +1633,12 @@ async function releverTout() {
         actions = actions.concat(sup.actions);
         if (sup.releve) {
             actions.push(actionReleve('etat', sup.releve, quand));
+        }
+        if (etat.suppressionsIndisponibles) {
+            var sl = await releverLignes(quand);
+            nb += sl.actions.length;
+            actions = actions.concat(sl.actions);
+            actions.push(actionReleve('lignes', sl.releve, quand));
         }
         actions = actions.concat(actionsPurge(quand));
         await agirParLots(actions);
@@ -2717,10 +2762,7 @@ function rendreEvenement(e, sansLien) {
         meta.push(creer('span', { texte: nomPersonne(e) }));
     }
     else if (e.depuis && e.type !== 'suivi') {
-        meta.push(creer('span', { texte: 'entre le ' + dateHeure(e.depuis) + ' et le ' + dateHeure(e.quand) }));
-    }
-    if (e.releve && !nomPersonne(e)) {
-        meta.push(creer('span', { texte: 'relevé par ' + e.releve }));
+        meta.push(creer('span', { texte: 'modifié entre le ' + dateHeure(e.depuis) + ' et le ' + dateHeure(e.quand) }));
     }
     if (e.supprimee) {
         meta.push(creer('span', { texte: 'ligne supprimée depuis' }));
@@ -2977,7 +3019,7 @@ function csvCellule(v) {
 }
 function exporterCsv() {
     var l = filtrees();
-    var lignes = [['Date', 'Heure', 'Sorte', 'Table', 'Ligne', 'Mouvement', 'Avant', 'Après', 'Personne', 'Relevé entre le']];
+    var lignes = [['Date', 'Heure', 'Sorte', 'Table', 'Ligne', 'Mouvement', 'Avant', 'Après', 'Personne', 'Modifié entre le']];
     l.forEach(function (e) {
         var aa = avantApres(e) || { avant: '', apres: '' };
         var d = new Date(e.quand);
