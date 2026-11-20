@@ -65,6 +65,14 @@
     .w-ordre-fiche { list-style: none; margin: 0 0 1rem; padding: 0; }
     .w-ordre-fiche__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); font-size: .875rem; }
     .w-ordre-fiche__nom { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .w-ordre-fiche__case { flex: none; margin: 0 .5rem 0 0; font-size: .75rem; }
+    .w-ordre-fiche__case .fr-label { font-size: .75rem; }
+    .w-fiche__ligne--valeur { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: inherit; align-items: start; background: var(--background-contrast-grey); border-left: 3px solid var(--border-action-high-blue-france); margin: 0 -.5rem; padding: .375rem .5rem; }
+    .w-fiche__ligne--valeur dt { color: var(--text-title-grey); font-weight: 700; }
+    .w-fiche__ligne--valeur dd { font-weight: 500; }
+    .w-fiche__meta-ligne { flex: none; margin: 0; padding: .375rem 1rem; border-top: 1px solid var(--border-default-grey); background: var(--background-alt-grey); font-size: .75rem; color: var(--text-mention-grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .w-fiche__meta-ligne + .w-fiche__pied { border-top: 0; }
+    .w-badge-choix { border: 1px solid transparent; }
     .w-mention { color: var(--text-mention-grey); font-size: .8125rem; margin: 0; }
     .w-texte { font-size: .875rem; line-height: 1.55; margin: 0; color: var(--text-default-grey); }
     .w-bandeau{display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);flex-shrink:0;color:var(--text-default-grey)}
@@ -717,7 +725,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.16.2';
+var VERSION_WIDGET = '3.17.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocarte';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_CARTES';
@@ -3078,6 +3086,10 @@ function verifierConfig() {
     }
     c.champsFiche = (c.champsFiche || []).filter(existe);
     c.filtres = (c.filtres || []).filter(existe);
+    c.ficheLecture = c.ficheLecture === true;
+    c.masquerVides = c.masquerVides === true;
+    c.champsFiges = (c.champsFiges || []).filter(existe);
+    c.champsEnValeur = (c.champsEnValeur || []).filter(existe);
     c.apparence = Object.assign({}, APPARENCE_DEFAUT, c.apparence || {});
     if (!FONDS[c.apparence.fond]) {
         c.apparence.fond = APPARENCE_DEFAUT.fond;
@@ -3729,6 +3741,8 @@ function colonnesLues() {
     var c = etat.config;
     var cols = [c.colNom, c.colLat, c.colLon, c.colAdresse, c.colPays, c.colCategorie, c.colImage, c.colIcone, c.colDate, c.colDateFin, c.colAfficher,
         c.apparence && c.apparence.rattachement ? c.apparence.rattachement : null].concat(c.champsFiche || [], c.filtres || [], IDS_META);
+    var m = colsMeta();
+    cols = cols.concat([m.creeLe, m.creePar, m.modifieLe, m.modifiePar]);
     var res = [];
     cols.forEach(function (x) { if (x && res.indexOf(x) === -1 && colLieux(x)) {
         res.push(x);
@@ -6686,12 +6700,24 @@ function rendreFicheLecture(z) {
         corps.appendChild(alerte('info', null, 'Ce lieu est masqué par les filtres en cours.'));
     }
     var dl = creer('dl', { classe: 'w-fiche__champs' });
-    var cols = champsFicheOrdonnes(c);
+    var mc = colsMeta();
+    var idsMeta = [mc.creeLe, mc.creePar, mc.modifieLe, mc.modifiePar].filter(Boolean);
+    var cols = champsFicheOrdonnes(c).filter(function (k) { return idsMeta.indexOf(k) === -1; });
     cols.forEach(function (k) {
+        if (c.masquerVides && !texteValeur(k, l.valeurs[k])) {
+            return;
+        }
         var val = creer('span', { classe: 'w-fiche__valeur' });
         valeurAffichee(val, k, l.valeurs[k]);
-        dl.appendChild(creer('dt', { texte: libelleCol(k) }));
-        dl.appendChild(creer('dd', { classe: 'w-fiche__dd' }, [val, crayonChamp(l, k)]));
+        var dt = creer('dt', { texte: libelleCol(k) });
+        var dd = creer('dd', { classe: 'w-fiche__dd' }, [val, crayonChamp(l, k)]);
+        if ((c.champsEnValeur || []).indexOf(k) !== -1) {
+            dl.appendChild(creer('div', { classe: 'w-fiche__ligne--valeur' }, [dt, dd]));
+        }
+        else {
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+        }
     });
     if (l.place) {
         dl.appendChild(creer('dt', { texte: 'Latitude, longitude' }));
@@ -6701,7 +6727,7 @@ function rendreFicheLecture(z) {
         corps.appendChild(dl);
     }
     if (!l.place) {
-        var peutPlacer = etat.peutModifier && peutPositionner();
+        var peutPlacer = etat.peutModifier && !c.ficheLecture && peutPositionner();
         if (peutPlacer && l.adresse) {
             corps.appendChild(alerte('info', null, creer('div', {}, [
                 creer('p', { texte: 'Ce lieu n\'a pas encore de position. Il peut être placé d\'après son adresse, ou à la main avec « Modifier ».' }),
@@ -6713,7 +6739,7 @@ function rendreFicheLecture(z) {
         }
     }
     var pied = creer('div', { classe: 'w-fiche__pied w-fiche__pied--ligne' });
-    if (etat.peutModifier) {
+    if (etat.peutModifier && !c.ficheLecture) {
         pied.appendChild(bouton('Supprimer le lieu', 'discret', 'delete-line', function () { return supprimerLieu(l.id); }, { petit: true, id: 'vSupprimer', classe: 'w-pousse-gauche' }));
     }
     if (l.place) {
@@ -6740,23 +6766,69 @@ function valeurAffichee(dd, colId, v) {
     var g = genreDe(col);
     if ((g === 'choix' || g === 'etiquettes') && col) {
         var vals = Array.isArray(v) && v[0] === 'L' ? v.slice(1) : [v];
-        dd.appendChild(creer('span', { classe: 'w-cats' }, vals.map(function (x) { return badge(String(x)); })));
+        dd.appendChild(creer('span', { classe: 'w-cats' }, vals.map(function (x) { return badgeChoix(col, String(x)); })));
         return;
     }
     if (/<a[\s>]/i.test(t)) {
         liensHtml(t).forEach(function (n) { dd.appendChild(n); });
         return;
     }
-    var url = urlSure(t);
-    if (url) {
-        dd.appendChild(lienExterne(url));
+    var lienGrist = /^(.*\S)\s+(https?:\/\/[^\s<>"]+)$/i.exec(t.trim());
+    if (lienGrist && g === 'lien' && urlSure(lienGrist[2])) {
+        dd.appendChild(lienExterne(lienGrist[2], lienGrist[1]));
         return;
     }
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t.trim())) {
-        dd.appendChild(creer('a', { classe: 'fr-link fr-link--sm', texte: t.trim(), attrs: { href: 'mailto:' + t.trim() } }));
-        return;
+    texteAvecLiens(t).forEach(function (n) { dd.appendChild(n); });
+}
+function couleurSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function badgeChoix(col, x) {
+    var b = badge(x);
+    var o = col && col.options && col.options.choiceOptions ? col.options.choiceOptions[x] : null;
+    if (o) {
+        var fond = couleurSure(o.fillColor), encre = couleurSure(o.textColor);
+        if (fond || encre) {
+            b.classList.add('w-badge-choix');
+            if (fond) {
+                b.style.backgroundColor = fond;
+            }
+            b.style.color = encre || '#000000';
+            if (o.fontBold) {
+                b.style.fontWeight = '700';
+            }
+        }
     }
-    dd.textContent = t;
+    return b;
+}
+function texteAvecLiens(t) {
+    var res = [];
+    var re = /(https?:\/\/[^\s<>"]+|www\.[a-z0-9-]+\.[^\s<>"]+|[^\s@<>"(),;:]+@[^\s@<>"]+\.[a-z]{2,})/gi;
+    var dernier = 0, m;
+    while ((m = re.exec(t)) !== null) {
+        var brut = m[0];
+        var fin = /[.,;:!?)\]]+$/.exec(brut);
+        if (fin) {
+            brut = brut.slice(0, -fin[0].length);
+        }
+        if (m.index > dernier) {
+            res.push(document.createTextNode(t.slice(dernier, m.index)));
+        }
+        if (brut.indexOf('@') !== -1 && !/^(https?:|www\.)/i.test(brut)) {
+            res.push(creer('a', { classe: 'fr-link fr-link--sm', texte: brut, attrs: { href: 'mailto:' + brut } }));
+        }
+        else {
+            var url = urlSure(/^www\./i.test(brut) ? 'https://' + brut : brut);
+            res.push(url ? lienExterne(url, /^www\./i.test(brut) ? brut : null) : document.createTextNode(brut));
+        }
+        dernier = m.index + brut.length;
+        re.lastIndex = dernier;
+    }
+    if (dernier < t.length) {
+        res.push(document.createTextNode(t.slice(dernier)));
+    }
+    return res;
 }
 var _jetonPj = null;
 async function urlPieceJointe(id) {
@@ -6779,7 +6851,7 @@ async function urlPieceJointe(id) {
     }
 }
 function crayonChamp(l, k) {
-    if (!k || !etat.peutModifier || !estModifiable(colLieux(k))) {
+    if (!k || !etat.peutModifier || !estModifiable(colLieux(k)) || champFige(k)) {
         return null;
     }
     var lib = libelleCol(k);
@@ -6907,45 +6979,108 @@ function liensHtml(t) {
     });
     return res;
 }
-function metaLieu(l) {
-    var info = function (date, qui) {
-        var col = colLieux(date);
-        var d = col && typeof l.valeurs[date] === 'number' ? formaterDateHeure(l.valeurs[date], fuseauDe(col)).replace(', ', ' à ') : '';
-        var p = colLieux(qui) ? texteValeur(qui, l.valeurs[qui]).trim() : '';
-        if (/^[^\s@]+@[^\s@]+$/.test(p)) {
-            p = p.split('@')[0];
+var MOTIFS_META = {
+    creePar: /\b(cree|creee|crees|creees|creation) par\b|\bcreateur\b|\bcreatrice\b|\bauteur\b|created by|creator/,
+    modifiePar: /\b(modifie|modifiee|modification|mise a jour|maj) par\b|\bmodifie par\b|updated by|modified by|last modified by|editor/,
+    creeLe: /\b(cree|creee|crees|creees) le\b|date (de )?creation|^creation$|^cree$|created (at|on|le)|^created$|date cr/,
+    modifieLe: /\b(modifie|modifiee) le\b|date (de )?(la )?(derniere )?(modification|mise a jour|maj)|^(derniere )?(modification|mise a jour)$|^modifie$|updated (at|on)|^updated$|last modified$|modified (at|on)/
+};
+function colsMeta() {
+    var c = etat.config;
+    var cle = c ? c.tableLieux : '';
+    if (etat._meta && etat._meta.cle === cle && etat._meta.meta === etat.meta) {
+        return etat._meta.res;
+    }
+    var cols = c ? (etat.meta.colonnes[c.tableLieux] || []) : [];
+    var res = { creeLe: null, creePar: null, modifieLe: null, modifiePar: null };
+    var exacts = { creeLe: 'CREE_LE', creePar: 'CREE_PAR', modifieLe: 'MODIFIE_LE', modifiePar: 'MODIFIE_PAR' };
+    var estDate = function (col) { return /^(Date|DateTime)/.test(String(col.type)); };
+    var estPersonne = function (col) { return !estDate(col) && ['Text', 'Choice', 'Any'].indexOf(String(col.type)) !== -1 || String(col.type).indexOf('Ref:') === 0; };
+    var bonType = function (k, col) { return /Le$/.test(k) ? estDate(col) : estPersonne(col); };
+    Object.keys(exacts).forEach(function (k) { var col = cols.filter(function (x) { return x.colId === exacts[k]; })[0]; if (col) {
+        res[k] = col.colId;
+    } });
+    cols.forEach(function (col) {
+        if (Object.keys(res).some(function (k) { return res[k] === col.colId; })) {
+            return;
         }
-        return { d: d, p: p };
-    };
-    var cr = info('CREE_LE', 'CREE_PAR');
-    var mo = info('MODIFIE_LE', 'MODIFIE_PAR');
-    var lignes = [];
-    if (cr.d || cr.p) {
-        lignes.push('Créé' + (cr.d ? ' le ' + cr.d : '') + (cr.p ? ' par ' + cr.p : ''));
-    }
-    if ((mo.d || mo.p) && !(mo.d === cr.d && mo.p === cr.p)) {
-        lignes.push('Modifié' + (mo.d ? ' le ' + mo.d : '') + (mo.p && (mo.p !== cr.p || !lignes.length) ? ' par ' + mo.p : ''));
-    }
-    if (!lignes.length) {
+        var f = String(col.formula || '');
+        if (!col.declencheur || !f) {
+            return;
+        }
+        var surModif = col.recalcWhen === 2 || (col.recalcWhen === 0 && Array.isArray(col.recalcDeps) && col.recalcDeps.length > 1);
+        var k = /\bNOW\(\)/.test(f) && estDate(col) ? (surModif ? 'modifieLe' : 'creeLe') : (/\buser\.(Name|Email)\b/.test(f) && estPersonne(col) ? (surModif ? 'modifiePar' : 'creePar') : null);
+        if (k && !res[k]) {
+            res[k] = col.colId;
+        }
+    });
+    ['creePar', 'modifiePar', 'creeLe', 'modifieLe'].forEach(function (k) {
+        if (res[k]) {
+            return;
+        }
+        var col = cols.filter(function (x) {
+            var pris = Object.keys(res).some(function (q) { return res[q] === x.colId; });
+            var n = normaliser(x.label || x.colId).replace(/[^a-z0-9]+/g, ' ').trim();
+            var id = normaliser(x.colId).replace(/[^a-z0-9]+/g, ' ').trim();
+            return !pris && bonType(k, x) && (MOTIFS_META[k].test(n) || MOTIFS_META[k].test(id));
+        })[0];
+        if (col) {
+            res[k] = col.colId;
+        }
+    });
+    etat._meta = { cle: cle, meta: etat.meta, res: res };
+    return res;
+}
+function metaLieu(l) {
+    if (!l) {
         return null;
     }
-    return creer('div', { classe: 'w-fiche__meta--pied', id: 'vFicheMeta' }, lignes.map(function (t) { return creer('p', { classe: 'w-fiche__meta', texte: t }); }));
+    var m = colsMeta();
+    var date = function (k) {
+        var col = colLieux(k);
+        var v = col ? l.valeurs[k] : null;
+        if (typeof v !== 'number') {
+            return { court: '', long: '' };
+        }
+        var long = /^DateTime/.test(String(col.type)) ? formaterDateHeure(v, fuseauDe(col)).replace(', ', ' à ') : formaterDate(v);
+        var d = new Date(v * 1000);
+        return { court: ('0' + d.getUTCDate()).slice(-2) + '/' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '/' + d.getUTCFullYear(), long: long };
+    };
+    var qui = function (k) {
+        var p = k && colLieux(k) ? texteValeur(k, l.valeurs[k]).trim() : '';
+        return /^[^\s@]+@[^\s@]+$/.test(p) ? p.split('@')[0] : p;
+    };
+    var cr = date(m.creeLe), mo = date(m.modifieLe), crP = qui(m.creePar), moP = qui(m.modifiePar);
+    var morceau = function (verbe, d, p) { return d || p ? verbe + (d ? ' le ' + d : '') + (p ? ' par ' + p : '') : ''; };
+    var court = [morceau('Créé', cr.court, crP), morceau('Modifié', mo.court, moP)].filter(Boolean);
+    if (!court.length) {
+        return null;
+    }
+    var long = [morceau('Créé', cr.long, crP), morceau('Modifié', mo.long, moP)].filter(Boolean).join(' · ');
+    return creer('p', { classe: 'w-fiche__meta-ligne', id: 'vFicheMeta', texte: court.join(' · '), attrs: { title: long } });
 }
 function peutPositionner() {
     var c = etat.config;
     return !!c.colLat && !!c.colLon && estModifiable(colLieux(c.colLat)) && estModifiable(colLieux(c.colLon));
 }
-function champsEditables() {
+function champFige(k) {
+    var c = etat.config || {};
+    return !!c.ficheLecture || (c.champsFiges || []).indexOf(k) !== -1;
+}
+function champsEditables(nouveau) {
     var c = etat.config;
     var res = [];
+    if (!nouveau && c.ficheLecture) {
+        return res;
+    }
     [c.colNom, c.colCategorie, c.colAdresse, c.colPays, c.colDate, c.colDateFin].concat(c.champsFiche || [], [c.colImage, c.colIcone, c.colAfficher]).forEach(function (k) {
-        if (k && res.indexOf(k) === -1 && k !== c.colLat && k !== c.colLon && k !== c.colCarte && estModifiable(colLieux(k))) {
+        if (k && res.indexOf(k) === -1 && k !== c.colLat && k !== c.colLon && k !== c.colCarte && estModifiable(colLieux(k)) && (nouveau || !champFige(k))) {
             res.push(k);
         }
     });
     return res;
 }
-function ficheModifiable() { return champsEditables().length > 0 || peutPositionner(); }
+function ficheModifiable() { return !etat.config.ficheLecture && (champsEditables().length > 0 || peutPositionner()); }
 function ouvrirNouveauLieu(prerempli) {
     if (etat.fiche && etat.fiche.mode === 'edition') {
         signalerSaisie('Terminez ou annulez la modification en cours.');
@@ -7174,7 +7309,7 @@ function rendreFicheEdition(z) {
         creer('h2', { classe: 'fr-h5 w-fiche__titre', id: 'vFicheTitre', texte: nouveau ? 'Nouveau lieu' : 'Modifier « ' + l.nom + ' »', attrs: { tabindex: '-1' } })
     ]);
     var editeurs = {};
-    var cols = champsEditables();
+    var cols = champsEditables(nouveau);
     var placerAvant = [c.colNom, c.colCategorie, c.colAdresse, c.colPays];
     cols.filter(function (k) { return placerAvant.indexOf(k) !== -1; }).forEach(function (k, i) {
         editeurs[k] = editeurChamp(k, f.valeurs[k], i);
@@ -7221,12 +7356,16 @@ function rendreFicheEdition(z) {
         corps.appendChild(editeurs[k].noeud);
     });
     f.editeurs = editeurs;
+    var metaE = nouveau ? null : metaLieu(l);
     var pied = creer('div', { classe: 'w-fiche__pied' }, [
         bouton('Annuler', 'secondaire', null, function () { annulerEdition(); }, { petit: true, id: 'eAnnuler' }),
         bouton(nouveau ? 'Ajouter le lieu' : 'Enregistrer', null, 'check-line', function () { return enregistrerLieu(); }, { petit: true, id: 'eEnregistrer' })
     ]);
     z.appendChild(barreFiche('Annuler et fermer'));
     z.appendChild(corps);
+    if (metaE) {
+        z.appendChild(metaE);
+    }
     z.appendChild(pied);
     corps.addEventListener('keydown', function (e) { if (e.key === 'Escape') {
         e.stopPropagation();
@@ -9097,7 +9236,8 @@ function ouvrirParametrage(nomEtape) {
         table: c.tableLieux, ajoutCoords: false, colLat: c.colLat || '', colLon: c.colLon || '', colAdresse: c.colAdresse || '', colPays: c.colPays || '',
         colNom: c.colNom, colCategorie: c.colCategorie || '', categories: (c.categories || []).slice(), champsFiche: (c.champsFiche || []).slice(), ordreFiche: (c.ordreFiche || []).slice(),
         filtres: (c.filtres || []).slice(), nom: c.nom || '', description: c.description || '', apparence: Object.assign({}, APPARENCE_DEFAUT, c.apparence || {}),
-        colImage: c.colImage || '', colIcone: c.colIcone || '', colDate: c.colDate || '', colDateFin: c.colDateFin || '', approximatif: !!c.approximatif, colAfficher: c.colAfficher || '', etiquette: Object.assign({}, ETIQUETTE_DEFAUT, c.etiquette || {})
+        colImage: c.colImage || '', colIcone: c.colIcone || '', colDate: c.colDate || '', colDateFin: c.colDateFin || '', approximatif: !!c.approximatif, colAfficher: c.colAfficher || '', etiquette: Object.assign({}, ETIQUETTE_DEFAUT, c.etiquette || {}),
+        ficheLecture: !!c.ficheLecture, masquerVides: !!c.masquerVides, champsFiges: (c.champsFiges || []).slice(), champsEnValeur: (c.champsEnValeur || []).slice()
     };
     etat.brouillon.initial = JSON.stringify(etatComparable(etat.brouillon));
     if (typeof nomEtape === 'string') {
@@ -9109,7 +9249,7 @@ function ouvrirParametrage(nomEtape) {
     afficherVue('assistant');
 }
 function etatComparable(b) {
-    return [b.table, b.ajoutCoords, b.colLat, b.colLon, b.colAdresse, b.colPays, b.colNom, b.colCategorie, b.categories, b.champsFiche, b.filtres, b.nom, b.apparence, b.colImage || '', b.colIcone || '', b.colDate || '', b.colDateFin || '', !!b.approximatif, b.colAfficher || '', b.etiquette || null, b.ordreFiche || [], b.description || ''];
+    return [b.table, b.ajoutCoords, b.colLat, b.colLon, b.colAdresse, b.colPays, b.colNom, b.colCategorie, b.categories, b.champsFiche, b.filtres, b.nom, b.apparence, b.colImage || '', b.colIcone || '', b.colDate || '', b.colDateFin || '', !!b.approximatif, b.colAfficher || '', b.etiquette || null, b.ordreFiche || [], b.description || '', !!b.ficheLecture, !!b.masquerVides, b.champsFiges || [], b.champsEnValeur || []];
 }
 function rendreAssistant(zone) {
     var b = etat.brouillon;
@@ -9517,7 +9657,7 @@ function etapeFiche() {
     }
     var droite = [];
     if (tid) {
-        droite.push(titreColonne('Valeurs des listes de choix', 'Une liste par colonne de choix : renommez, ajoutez ou supprimez ses valeurs. Les couleurs se règlent dans la liste de la colonne qui colore les repères. Les changements sont enregistrés aussitôt dans la table.', 'aAideValeurs'));
+        droite.push(titreColonne('Valeurs des listes de choix', 'Une liste par colonne de choix : renommez, ajoutez ou supprimez ses valeurs. Les couleurs se règlent dans la liste de la colonne qui colore les repères. Ils changent directement dans la table.', 'aAideValeurs'));
         if (perso) {
             var acc = accordeonsValeurs(tid, vierge ? 'CATEGORIE' : b.colCategorie, vierge ? ['PAYS'] : []);
             droite = droite.concat(acc.length ? acc : [creer('p', { classe: 'w-mention', texte: 'Aucune colonne de liste de choix modifiable dans cette table.' })]);
@@ -10033,7 +10173,9 @@ var AIDE = {
         { q: 'Comment réserver une carte à certaines personnes ?', r: 'Dans « Permissions avancées », sur ' + LABEL_CENTRALE + ', refusez la Lecture avec la condition rec.CLE == clé de la carte (colonne CLÉ de sa ligne) and user.Email not in [...] : son onglet disparaît pour les autres. Pour masquer aussi ses lieux, posez la même restriction sur sa table de lieux.' },
         { q: 'Pourquoi un lieu n\'apparaît-il pas sur la carte ?', r: 'Il n\'a pas encore de coordonnées, ou il est masqué par un filtre, par la légende ou par la colonne « afficher ». La vue en liste permet de le retrouver.' },
         { q: 'Comment placer les lieux qui n\'ont qu\'une adresse ?', r: 'Choisissez la « Colonne d\'adresse » à l\'étape « La localisation ». Sur la carte, « Placer les lieux sans coordonnées » les place d\'un coup ; seule l\'adresse est envoyée au service de recherche.' },
-        { q: 'Pourquoi une information ne se modifie-t-elle pas ?', r: 'Elle vient d\'une colonne calculée par une formule : elle s\'affiche dans la fiche, mais se modifie dans la table, pas depuis la carte.' },
+        { q: 'Pourquoi une information ne se modifie-t-elle pas ?', r: 'Elle vient d\'une colonne calculée par une formule : elle s\'affiche dans la fiche, mais se modifie dans la table, pas depuis la carte. Ou bien le paramétrage la fige : case « Modifiable » décochée, ou fiche « En consultation seule ».' },
+        { q: 'Comment régler la fiche d\'un lieu ?', r: '« Paramétrages de cette carte », étape des colonnes, bloc « La fiche du lieu ». « En consultation seule » : personne ne modifie ni ne supprime le lieu depuis la fiche. Sinon, décochez « Modifiable » pour figer une information. « En valeur » la fait ressortir sur fond grisé : placez-la en tête avec les flèches. Décochez « Montrer les informations vides » pour ne garder que ce qui est renseigné. Les adresses web et courriels écrits dans un texte deviennent des liens, et les choix gardent les couleurs données dans Grist.' },
+        { q: 'D\'où viennent « Créé le » et « Modifié par » en bas de la fiche ?', r: 'Des colonnes de votre table qui les enregistrent : CRÉÉ LE, CRÉÉ PAR, MODIFIÉ LE, MODIFIÉ PAR, ou des colonnes équivalentes reconnues à leur nom (« Date de création », « Dernière modification par »…) ou à leur formule (NOW(), user.Name, user.Email, appliquées à la création ou à chaque modification). La date complète s\'affiche au survol de la ligne.' },
         { q: 'Supprimer une carte supprime-t-il mes données ?', r: 'Non pour une carte faite sur votre table : elle disparaît des onglets, la table et ses lignes restent dans le document. Une carte partie de zéro supprime aussi ses lieux.' },
         { q: 'Comment montrer une seule carte sur une page ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Publier sur une nouvelle page » : donnez-lui un nom et, si besoin, des filtres. Pour une autre sélection de lieux, dupliquez la page et changez ses filtres. Les paramétrages restent sur la page qui affiche toutes les cartes.' },
         { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de cette carte », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ' + titreOwner() + ' » aux personnes qui ne gèrent pas les cartes : la page disparaît de leur liste des pages.' },
@@ -10156,9 +10298,24 @@ function champsFicheBrouillon(b) {
         champsFiche: b.champsFiche, ordreFiche: b.ordreFiche, colNom: v ? 'NOM' : b.colNom, colCategorie: v ? 'CATEGORIE' : b.colCategorie,
         colImage: b.colImage, colIcone: b.colIcone, colAfficher: v ? 'AFFICHER' : b.colAfficher });
 }
+function typeModifiable(col) {
+    return !col || (!col.formule && !col.formuleVide && !estEcrasee(col) && IDS_META.indexOf(col.colId) === -1 && GENRES_MODIFIABLES.indexOf(genreDe(col)) !== -1);
+}
 function blocOrdreFiche(b) {
     var cols = champsFicheBrouillon(b);
-    var noeuds = [titreColonne('Ordre dans la fiche', 'Les informations s\'affichent dans la fiche du lieu dans cet ordre, sous son nom et sa catégorie.', 'aAideOrdre')];
+    var tid = tableDuContenu(b);
+    b.champsFiges = b.champsFiges || [];
+    b.champsEnValeur = b.champsEnValeur || [];
+    var noeuds = [titreColonne('La fiche du lieu', 'Les informations s\'affichent dans cet ordre, sous le nom et la catégorie du lieu. « Modifiable » : la personne qui a le droit de modifier la carte peut changer cette information depuis la fiche. « En valeur » : l\'information ressort sur un fond grisé, pour la repérer d\'un coup d\'œil. Le pied de chaque fiche indique, sur une ligne, qui a créé et modifié le lieu, et quand.', 'aAideOrdre')];
+    var rMode = function (id, val, libelle) {
+        var r = creer('input', { attrs: { type: 'radio', name: 'aModeFiche', id: id }, coche: !!b.ficheLecture === val });
+        r.addEventListener('change', function () { b.ficheLecture = val; majAttente(); redessinerEtape(id); });
+        return creer('div', { classe: 'fr-fieldset__element fr-fieldset__element--inline' }, [creer('div', { classe: 'fr-radio-group fr-radio-group--sm' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: libelle })])]);
+    };
+    noeuds.push(creer('fieldset', { classe: 'fr-fieldset fr-mb-0', attrs: { 'aria-label': 'Modification de la fiche' } }, [rMode('aFicheModif', false, 'Modifiable'), rMode('aFicheLecture', true, 'En consultation seule')]));
+    var cbVides = creer('input', { attrs: { type: 'checkbox', id: 'aVides' }, coche: !b.masquerVides });
+    cbVides.addEventListener('change', function () { b.masquerVides = !cbVides.checked; majAttente(); });
+    noeuds.push(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm fr-mb-2w' }, [cbVides, creer('label', { classe: 'fr-label', attrs: { 'for': 'aVides' }, texte: 'Montrer les informations vides (« Non renseigné »)' })]));
     if (!cols.length) {
         noeuds.push(creer('p', { classe: 'w-mention', texte: 'Aucune information dans la fiche pour l\'instant.' }));
         return noeuds;
@@ -10175,9 +10332,18 @@ function blocOrdreFiche(b) {
         redessinerEtape('aOrdre' + ((sens < 0) === memeSens ? 'H' : 'B') + j);
     };
     var ol = creer('ol', { classe: 'w-ordre-fiche', attrs: { 'aria-label': 'Ordre des informations dans la fiche' } });
+    var petiteCase = function (id, coche, texte, aria, surChange, desactive) {
+        var cb = creer('input', { attrs: { type: 'checkbox', id: id, 'aria-label': aria, disabled: desactive ? 'disabled' : null }, coche: coche });
+        cb.addEventListener('change', function () { surChange(cb.checked); majAttente(); });
+        return creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm w-ordre-fiche__case' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id, 'aria-hidden': 'true' }, texte: texte })]);
+    };
     cols.forEach(function (k, i) {
         var nom = libelleColonneBrouillon(b, k) || k;
+        var modifiable = typeModifiable(tid ? infoColonne(tid, k) : null);
         ol.appendChild(creer('li', { classe: 'w-ordre-fiche__item' }, [creer('span', { classe: 'w-ordre-fiche__nom', texte: nom }),
+            b.ficheLecture ? null : (modifiable ? petiteCase('aFige' + i, b.champsFiges.indexOf(k) === -1, 'Modifiable', '« ' + nom + ' » modifiable dans la fiche', function (v) { basculerDans(b.champsFiges, k, !v); })
+                : creer('span', { classe: 'w-mention w-ordre-fiche__case', texte: 'Calculé' })),
+            petiteCase('aValeur' + i, b.champsEnValeur.indexOf(k) !== -1, 'En valeur', 'Mettre en valeur « ' + nom + ' » dans la fiche', function (v) { basculerDans(b.champsEnValeur, k, v); }),
             boutonIcone('Monter « ' + nom + ' »', 'arrow-up-line', function () { deplacer(i, -1); }, { variante: 'discret', id: 'aOrdreH' + i, desactive: i === 0 }),
             boutonIcone('Descendre « ' + nom + ' »', 'arrow-down-line', function () { deplacer(i, 1); }, { variante: 'discret', id: 'aOrdreB' + i, desactive: i === cols.length - 1 })]));
     });
@@ -10335,6 +10501,10 @@ function configDepuisBrouillon(b, base) {
     cfg.champsFiche = b.champsFiche.slice();
     cfg.ordreFiche = (b.ordreFiche || []).slice();
     cfg.filtres = b.filtres.slice();
+    cfg.ficheLecture = !!b.ficheLecture;
+    cfg.masquerVides = !!b.masquerVides;
+    cfg.champsFiges = (b.champsFiges || []).slice();
+    cfg.champsEnValeur = (b.champsEnValeur || []).slice();
     cfg.colImage = b.colImage || null;
     cfg.colIcone = b.colIcone || null;
     cfg.colDate = b.colDate || null;
