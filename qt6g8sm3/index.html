@@ -909,7 +909,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.8.2';
+var VERSION_WIDGET = '2.8.3';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -3243,7 +3243,7 @@ var AIDE = {
         { q: 'Comment faire un retrait ou aligner des informations ?', r: 'Tapez des espaces en début de ligne : ils sont gardés dans le document. Pour des colonnes bien alignées, préférez le bloc « Deux colonnes » ou une « Liste de champs ».' },
         { q: 'Comment choisir la ligne affichée dans l\'aperçu ?', r: 'Au-dessus de l\'aperçu : « Repérer les lignes par » choisit la colonne qui nomme chaque ligne, par exemple un nom ou un numéro de dossier. Avec beaucoup de lignes, « Chercher une ligne » la trouve en quelques lettres.' },
         { q: 'Comment les nombres sont-ils écrits ?', r: 'Comme dans Grist : une colonne au format « Monnaie » s\'écrit avec son symbole, une colonne au format « Décimal » avec ses séparateurs de milliers. Sans format choisi, le nombre s\'écrit tel quel : une année reste 2026.' },
-        { q: 'Un utilisateur peut-il modifier son document avant de l\'imprimer ?', r: 'Oui, si la personne qui gère le modèle l\'a permis, à l\'étape « Pour les utilisateurs » de ses paramétrages. Le bouton « Retoucher ce document » ouvre alors le document de la ligne affichée, avec ses valeurs écrites en toutes lettres : on le modifie comme dans un traitement de texte, puis « Enregistrer la retouche ». La retouche est gardée pour cette ligne, dans la table « Retouches des documents » ; « Revenir au modèle » l\'efface. Les éditeurs doivent pouvoir écrire dans cette table.' },
+        { q: 'Un utilisateur peut-il modifier son document avant de l\'imprimer ?', r: 'Oui, si la personne qui gère le modèle l\'a permis, à l\'étape « Pour les utilisateurs » de ses paramétrages. Le bouton « Retoucher ce document » ouvre alors le document de la ligne affichée, avec ses valeurs écrites en toutes lettres : on le modifie comme dans un traitement de texte, puis « Enregistrer la retouche ». La retouche est gardée pour cette ligne, dans la table « ✏️ RETOUCHES DES DOCUMENTS ⚡ » ; « Revenir au modèle » l\'efface. Les éditeurs doivent pouvoir écrire dans cette table.' },
         { q: 'Comment obtenir un PDF ?', r: 'Avec l\'icône « Enregistrer en PDF », en bas du panneau de gauche. Le nom proposé pour les fichiers se règle à l\'étape « Rédiger », rubrique « Nom des fichiers ».' },
         { q: 'Supprimer un modèle supprime-t-il mes données ?', r: 'Non. Le modèle disparaît des onglets et ses réglages sont effacés ; vos tables et leurs lignes restent dans le document.' }
     ]
@@ -6770,7 +6770,7 @@ function idTableRetouches() {
     if (t[TABLE_RETOUCHES]) {
         return TABLE_RETOUCHES;
     }
-    var ids = Object.keys(t).filter(function (id) { return /^RETOUCHES_DES_DOCUMENTS_*$/.test(id); });
+    var ids = Object.keys(t).filter(function (id) { return /^_*RETOUCHES_DES_DOCUMENTS_*$/.test(id); });
     return ids[0] || null;
 }
 function tableRetouchesExiste() { return !!idTableRetouches(); }
@@ -6781,7 +6781,7 @@ async function assurerTableRetouches() {
     var tids = await creerTables([{ id: TABLE_RETOUCHES, colonnes: [{ id: 'MODELE', type: 'Text', label: 'Modèle' }, { id: 'LISTE', type: 'Text', label: 'Liste' },
                 { id: 'LIGNE', type: 'Int', label: 'Ligne' }, { id: 'CONTENU', type: 'Text', label: 'Contenu retouché' }, { id: 'MODIFIE_LE', type: 'DateTime', label: 'Modifié le' }] }]);
     try {
-        await renommerTables([[tids[0], 'Retouches des documents']]);
+        await renommerTables([[tids[0], '✏️ Retouches des documents']]);
     }
     catch (e) {
         logSecurite('INFO', 'Nom de la table des retouches non posé', e);
@@ -6967,13 +6967,17 @@ async function quitterRetouche(sansQuestion) {
 }
 function colonneRetouches() {
     var b = etat.brouillon;
+    var idR = idTableRetouches();
+    if (idR && libelleTable(idR).indexOf('\u270f') === -1) {
+        relayer(renommerTables([[idR, '\u270f\ufe0f Retouches des documents']]).then(chargerMeta), 'Nom de la table des retouches');
+    }
     var g = groupeRadios('pRetouches', 'Les utilisateurs peuvent retoucher leur document', [{ valeur: 'non', libelle: 'Non, ils l\'impriment tel quel' }, { valeur: 'oui', libelle: 'Oui, et chaque retouche est gardée pour sa ligne' }],
         b.retouches ? 'oui' : 'non', function (v) {
             b.retouches = v === 'oui';
             marquerTouche();
             if (b.retouches && !tableRetouchesExiste()) {
                 relayer(assurerTableRetouches().then(function (ok) { if (ok) {
-                    afficherSucces('La table « Retouches des documents » est créée : elle garde les retouches des utilisateurs.');
+                    afficherSucces('La table « ✏️ RETOUCHES DES DOCUMENTS ⚡ » est créée : elle garde les retouches des utilisateurs.');
                 } }), 'Création de la table des retouches');
             }
         });
