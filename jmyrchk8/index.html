@@ -601,7 +601,7 @@ body .fr-tag{min-height:unset;height:auto;padding:.2rem .6rem;font-size:.75rem;c
 </div>
 <div class="w-toast" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.0';
+var VERSION_WIDGET = '1.5.1';
 var HOMOLOGUE = false;
 var TAILLE_MAX_SVG = 200000;
 function purifierHTML(contenu, usage) {
@@ -1626,7 +1626,8 @@ function lireChampProjet(nomColonne) {
     return (v === null || v === undefined) ? '' : String(v);
 }
 var NOM_PAGE_ACCUEIL = '\uD83C\uDFE0 Accueil';
-var CLE_COPIE = 'COPIE', ID_OWNER = 'OWNER_ONLY', TITRE_OWNER = '❌ OWNER ONLY ⚡';
+var CLE_COPIE = 'COPIE', ID_OWNER = 'ADMIN_ONLY', ID_OWNER_ANCIEN = 'OWNER_ONLY', TITRE_OWNER = '❌ ADMIN ONLY ⚡';
+var _protRepliee = true;
 var _pages = {}, _cfgPage = null, _nomsPages = {}, _nomsVues = [], _pageProtegee = false, _editionPage = null, _actionPage = false;
 function badgeValide(v) { return typeof v === 'string' && /^[a-z0-9]{6,16}$/.test(v) ? v : null; }
 function nouveauBadge() {
@@ -1749,6 +1750,29 @@ async function referenceWidget() {
     }
     return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
 }
+function vueDeCetteConsole(d) {
+    var chemin = location.pathname.replace(/index\.html?$/, '');
+    var badgesPages = Object.keys(_pages || {}).filter(function (b) { var x = _pages[b] || {}; return x.consultation && !x.admin; });
+    var vues = [];
+    for (var i = 0; i < d.id.length; i++) {
+        var opt = String((d.options || [])[i] || '');
+        var vue = (d.parentId || [])[i];
+        if (!vue || (d.parentKey && d.parentKey[i] !== 'custom') || opt.indexOf(chemin) === -1) {
+            continue;
+        }
+        if (badgesPages.some(function (b) { return opt.indexOf(b) !== -1; })) {
+            continue;
+        }
+        if (vues.indexOf(vue) === -1) {
+            vues.push(vue);
+        }
+    }
+    if (vues.length !== 1) {
+        logSecurite('AVERTISSEMENT', 'Page de la console introuvable : ' + vues.length + ' page(s) candidate(s)');
+        return null;
+    }
+    return vues[0];
+}
 function vueDuBadge(d, badge) {
     for (var i = 0; i < d.id.length; i++) {
         if (String((d.options || [])[i] || '').indexOf(badge) !== -1 && (d.parentId || [])[i])
@@ -1759,7 +1783,7 @@ function vueDuBadge(d, badge) {
 function trouverOwner(meta) {
     var ids = meta.tableId || [];
     for (var i = 0; i < ids.length; i++) {
-        if (String(ids[i]).toUpperCase().indexOf(ID_OWNER) !== -1)
+        if ((String(ids[i]).toUpperCase().indexOf(ID_OWNER) !== -1 || String(ids[i]).toUpperCase().indexOf(ID_OWNER_ANCIEN) !== -1))
             return { tid: ids[i], ref: meta.id[i] };
     }
     return null;
@@ -1789,10 +1813,24 @@ async function majPages() {
                 _nomsPages[x] = String((v.name || [])[k] || '');
         });
         var o = trouverOwner(await grist.docApi.fetchTable('_grist_Tables'));
-        if (!_badgePage || !o)
+        _protRepliee = true;
+        if (!o) {
             return;
-        var vue = vueDuBadge(d, _badgePage);
-        _pageProtegee = !!vue && d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; });
+        }
+        var vue = (_badgePage && _pages[_badgePage] ? vueDuBadge(d, _badgePage) : null) || vueDeCetteConsole(d);
+        var secsP = vue ? d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; }) : [];
+        _pageProtegee = secsP.length > 0;
+        if (secsP.length) {
+            var specP = {};
+            try {
+                specP = JSON.parse((v.layoutSpec || [])[v.id.indexOf(vue)] || '{}') || {};
+            }
+            catch (eS) {
+                specP = {};
+            }
+            var repl = (specP.collapsed || []).map(function (c) { return c.leaf; });
+            _protRepliee = secsP.every(function (x) { return repl.indexOf(x) !== -1; });
+        }
     }
     catch (e) {
         logSecurite('INFO', 'Pages du document non lues', e);
@@ -1872,28 +1910,13 @@ async function reserverPage() {
     var ligne = null;
     afficherLoader('Préparation de la page…');
     try {
-        if (!_badgePage || !_pages[_badgePage]) {
-            if (typeof grist.setOptions !== 'function')
-                throw new Error('Réglage du widget indisponible');
-            var badge = nouveauBadge();
-            ligne = await ajouterLignePage(badge, JSON.stringify({ admin: true }), 'Page d\'administration de la documentation');
-            var ancien = _badgePage;
-            _badgePage = badge;
-            try {
-                await Promise.resolve(grist.setOptions({ copie: badge }));
-            }
-            catch (eO) {
-                _badgePage = ancien;
-                throw eO;
-            }
-        }
         var o = trouverOwner(await grist.docApi.fetchTable('_grist_Tables')) || await creerTableOwner();
         var vue = null, d = null;
         for (var essai = 0; essai < 6 && !vue; essai++) {
             if (essai)
                 await new Promise(function (ok) { setTimeout(ok, 500); });
             d = await grist.docApi.fetchTable('_grist_Views_section');
-            vue = vueDuBadge(d, _badgePage);
+            vue = (_badgePage && _pages[_badgePage] ? vueDuBadge(d, _badgePage) : null) || vueDeCetteConsole(d);
         }
         if (!vue || !o)
             throw new Error('Page du widget non retrouvée');
@@ -1907,6 +1930,10 @@ async function reserverPage() {
                 reduite = await reduireVue(vue, sec);
             }
         }
+        else {
+            var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; })[0];
+            reduite = await reduireVue(vue, existante);
+        }
         await relirePages();
         masquerLoader();
         toast('La vue de « ' + TITRE_OWNER + ' » est posée' + (reduite ? ', repliée en haut de la page' : '') + '. Posez la règle d\'accès indiquée dans le « i » pour cacher la page.', { type: 'succes', duree: 10000 });
@@ -1915,7 +1942,7 @@ async function reserverPage() {
         masquerLoader();
         if (ligne)
             await ecrireDocument([['RemoveRecord', _docTableId, ligne]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
     finally {
         _actionPage = false;
@@ -2178,6 +2205,8 @@ function rendreCacher() {
     z.appendChild(creer('p', { classe: 'w-texte dp-cacher__texte' }, [_pageProtegee ? 'Cette page de documentation est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page de documentation est visible par tous.', ' ', r.bouton]));
     if (!_pageProtegee)
         z.appendChild(bouton('Cacher cette page', 'secondaire', 'eye-off-line', reserverPage, { petit: true, id: 'btnCacherPage' }));
+    else if (!_protRepliee)
+        z.appendChild(bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', reserverPage, { petit: true, id: 'btnReplierProtection' }));
     z.appendChild(r.panneau);
 }
 function renderPagesZone() {

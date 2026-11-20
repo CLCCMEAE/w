@@ -938,7 +938,8 @@ function formaterDate(ts) {
     var d = new Date(ts * 1000);
     return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
 }
-var CLE_COPIE = 'COPIE', ID_OWNER = 'OWNER_ONLY', TITRE_OWNER = '❌ OWNER ONLY ⚡';
+var CLE_COPIE = 'COPIE', ID_OWNER = 'ADMIN_ONLY', ID_OWNER_ANCIEN = 'OWNER_ONLY', TITRE_OWNER = '❌ ADMIN ONLY ⚡';
+var _protRepliee = true;
 var _badge = null, _pages = {}, _cfgPage = null, _nomsPages = {}, _nomsVues = [], _pageProtegee = false, _editionPage = null, _actionPage = false, _faqChargee = false;
 function badgeValide(v) { return typeof v === 'string' && /^[a-z0-9]{6,16}$/.test(v) ? v : null; }
 function nouveauBadge() {
@@ -1123,6 +1124,29 @@ async function referenceWidget() {
     }
     return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
 }
+function vueDeCetteConsole(d) {
+    var chemin = location.pathname.replace(/index\.html?$/, '');
+    var badgesPages = Object.keys(_pages || {}).filter(function (b) { var x = _pages[b] || {}; return x.consultation && !x.admin; });
+    var vues = [];
+    for (var i = 0; i < d.id.length; i++) {
+        var opt = String((d.options || [])[i] || '');
+        var vue = (d.parentId || [])[i];
+        if (!vue || (d.parentKey && d.parentKey[i] !== 'custom') || opt.indexOf(chemin) === -1) {
+            continue;
+        }
+        if (badgesPages.some(function (b) { return opt.indexOf(b) !== -1; })) {
+            continue;
+        }
+        if (vues.indexOf(vue) === -1) {
+            vues.push(vue);
+        }
+    }
+    if (vues.length !== 1) {
+        logSecurite('AVERTISSEMENT', 'Page de la console introuvable : ' + vues.length + ' page(s) candidate(s)');
+        return null;
+    }
+    return vues[0];
+}
 function vueDuBadge(d, badge) {
     for (var i = 0; i < d.id.length; i++) {
         if (String((d.options || [])[i] || '').indexOf(badge) !== -1 && (d.parentId || [])[i]) {
@@ -1134,7 +1158,7 @@ function vueDuBadge(d, badge) {
 function trouverOwner(meta) {
     var ids = meta.tableId || [];
     for (var i = 0; i < ids.length; i++) {
-        if (String(ids[i]).toUpperCase().indexOf(ID_OWNER) !== -1) {
+        if ((String(ids[i]).toUpperCase().indexOf(ID_OWNER) !== -1 || String(ids[i]).toUpperCase().indexOf(ID_OWNER_ANCIEN) !== -1)) {
             return { tid: ids[i], ref: meta.id[i] };
         }
     }
@@ -1168,11 +1192,24 @@ async function majPages() {
             }
         });
         var o = trouverOwner(await grist.docApi.fetchTable('_grist_Tables'));
-        if (!_badge || !o) {
+        _protRepliee = true;
+        if (!o) {
             return;
         }
-        var vue = vueDuBadge(d, _badge);
-        _pageProtegee = !!vue && d.id.some(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; });
+        var vue = (_badge && _pages[_badge] ? vueDuBadge(d, _badge) : null) || vueDeCetteConsole(d);
+        var secsP = vue ? d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; }) : [];
+        _pageProtegee = secsP.length > 0;
+        if (secsP.length) {
+            var specP = {};
+            try {
+                specP = JSON.parse((v.layoutSpec || [])[v.id.indexOf(vue)] || '{}') || {};
+            }
+            catch (eS) {
+                specP = {};
+            }
+            var repl = (specP.collapsed || []).map(function (c) { return c.leaf; });
+            _protRepliee = secsP.every(function (x) { return repl.indexOf(x) !== -1; });
+        }
     }
     catch (e) {
         logSecurite('INFO', 'Pages du document non lues', e);
@@ -1244,23 +1281,6 @@ async function reserverPage() {
     var ligne = null;
     afficherLoader('Préparation de la page…');
     try {
-        if (!_badge || !_pages[_badge]) {
-            if (typeof grist.setOptions !== 'function') {
-                throw new Error('Réglage du widget indisponible');
-            }
-            var badge = nouveauBadge();
-            var ret = await apiAdd({ STATUT: 'PARAM', QUESTION: 'copie', CLE: CLE_COPIE + ':' + badge, VALEUR: JSON.stringify({ admin: true }), DESCRIPTIF: 'Page d\'administration de la FAQ' });
-            ligne = ret && ret.retValues ? ret.retValues[0] : null;
-            var ancien = _badge;
-            _badge = badge;
-            try {
-                await Promise.resolve(grist.setOptions({ copie: badge }));
-            }
-            catch (eO) {
-                _badge = ancien;
-                throw eO;
-            }
-        }
         var o = trouverOwner(await grist.docApi.fetchTable('_grist_Tables')) || await creerTableOwner();
         var vue = null, d = null;
         for (var essai = 0; essai < 6 && !vue; essai++) {
@@ -1268,7 +1288,7 @@ async function reserverPage() {
                 await new Promise(function (ok) { setTimeout(ok, 500); });
             }
             d = await grist.docApi.fetchTable('_grist_Views_section');
-            vue = vueDuBadge(d, _badge);
+            vue = (_badge && _pages[_badge] ? vueDuBadge(d, _badge) : null) || vueDeCetteConsole(d);
         }
         if (!vue || !o) {
             throw new Error('Page du widget non retrouvée');
@@ -1283,6 +1303,10 @@ async function reserverPage() {
                 reduite = await reduireVue(vue, sec);
             }
         }
+        else {
+            var existante = d.id.filter(function (x, i) { return d.parentId[i] === vue && d.tableRef[i] === o.ref; })[0];
+            reduite = await reduireVue(vue, existante);
+        }
         await refreshFaq(true);
         await afficherPages();
         masquerLoader();
@@ -1293,7 +1317,7 @@ async function reserverPage() {
         if (ligne) {
             await apiDelete([ligne]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Réglage de page non retiré après échec', eA); });
         }
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
     finally {
         _actionPage = false;
@@ -1537,7 +1561,7 @@ function renderPagesZone() {
     var r = aide('aideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + TITRE_OWNER + ' », repliée en haut de la page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. » (ou « user.Email not in [\"adresse1\", \"adresse2\"] »). Les personnes qui ne peuvent pas lire cette table ne voient plus la page.');
     var admin = sectionPage('secAdminPage', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [_pageProtegee ? 'Cette page, avec l\'administration de la FAQ, est cachée aux personnes qui ne peuvent pas lire la table « ' + TITRE_OWNER + ' ».' : 'Cette page montre la FAQ et son administration. Elle est visible par tous.', ' ', r.bouton]), r.panneau
-    ], _pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', reserverPage, { petit: true, id: 'btnReserverPage' }));
+    ], _pageProtegee ? (_protRepliee ? null : bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', reserverPage, { petit: true, id: 'btnReplierProtection' })) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', reserverPage, { petit: true, id: 'btnReserverPage' }));
     var ic = aide('aideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre la FAQ publiée, sans roue dentée, sans aide et sans administration, limitée aux catégories choisies, avec son propre titre de bandeau. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
     var consult;
     if (_editionPage) {
@@ -3233,7 +3257,7 @@ setTimeout(function () {
         logSecurite('ERREUR', 'Promesse rejetée non capturée', evt ? evt.reason : undefined);
     });
 }, 1500);
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
