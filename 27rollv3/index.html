@@ -618,6 +618,12 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
 .sd-poignee { display: none; position: absolute; right: -12px; bottom: -12px; width: 24px; height: 24px; background: var(--background-action-high-blue-france); border: 3px solid var(--background-default-grey); cursor: nwse-resize; z-index: 4; }
 .sd-objet:focus .sd-poignee, .sd-objet:focus-within .sd-poignee, .sd-objet:hover .sd-poignee { display: block; }
 .sd-logo.sd-objet { z-index: 3; }
+.sd-zone--libre { margin: 0 !important; position: absolute !important; }
+.sd-diapo--edition .sd-zone.sd-objet { cursor: default; }
+.sd-deplacer { display: none; position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; z-index: 5; cursor: move; touch-action: none; border-radius: 50%;
+  background: var(--background-action-high-blue-france) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2l3 3h-2v5h5V8l3 3-3 3v-2h-5v5h2l-3 3-3-3h2v-5H6v2l-3-3 3-3v2h5V5H9z'/%3E%3C/svg%3E") center / 18px no-repeat;
+  border: 2px solid var(--background-default-grey); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.sd-objet:focus .sd-deplacer, .sd-objet:focus-within .sd-deplacer, .sd-objet:hover .sd-deplacer { display: block; }
 .sd-pres { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; background: var(--grey-50-1000); color: var(--grey-1000-50); }
 .sd-pres:focus { outline: 0; }
 .sd-pres:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
@@ -831,7 +837,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.1';
+var VERSION_WIDGET = '1.6.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -2611,6 +2617,22 @@ function contenuValide(o) {
     if (o.sansHabillage === true) {
         res.sansHabillage = true;
     }
+    var geos = {};
+    if (o.geos && typeof o.geos === 'object') {
+        Object.keys(LIBELLES_ZONES).forEach(function (k) {
+            var g = o.geos[k];
+            if (k === 'fond' || !g || typeof g !== 'object') {
+                return;
+            }
+            var x = nombreBorne(g.x, -1200, 2400), y = nombreBorne(g.y, -700, 1400), l = nombreBorne(g.l, 20, 2400), h = nombreBorne(g.h, 10, 1400);
+            if (x !== null && y !== null && l !== null && h !== null) {
+                geos[k] = { x: x, y: y, l: l, h: h };
+            }
+        });
+    }
+    if (Object.keys(geos).length) {
+        res.geos = geos;
+    }
     return res;
 }
 function idsListe(v) { return Array.isArray(v) && v[0] === 'L' ? v.slice(1).filter(function (x) { return typeof x === 'number'; }) : []; }
@@ -3178,7 +3200,24 @@ function zoneImage(d, cle, z, o) {
     } }), 'Affichage d\'une image');
     return boite;
 }
+function geoLibre(d, cle) { return cle !== 'fond' && d.contenu.geos && d.contenu.geos[cle] ? d.contenu.geos[cle] : null; }
 function elementZone(d, cle, o) {
+    var el = elementZoneBrut(d, cle, o);
+    if (!el || cle === 'fond' || o.apercu) {
+        return el;
+    }
+    el.setAttribute('data-cle', cle);
+    var g = geoLibre(d, cle);
+    if (g) {
+        el.classList.add('sd-zone--libre');
+        placer(el, g);
+    }
+    if (o.edition) {
+        brancherZoneObjet(el, d, cle);
+    }
+    return el;
+}
+function elementZoneBrut(d, cle, o) {
     var z = d.contenu.zones[cle];
     var el = creer('div', { classe: 'sd-zone sd-z-' + cle });
     if (cle === 'fond') {
@@ -3291,8 +3330,8 @@ function rendreDiapo(d, o) {
         racine.appendChild(blocSommaire(o.structure, o.apercu));
     }
     var pile = d.mep === 'titre' || d.mep === 'couverture' ? creer('div', { classe: 'sd-pile' }) : null;
-    ZONES_MEP[d.mep][g].forEach(function (cle) { ajouterSi(pile && (cle === 'titre' || cle === 'sousTitre') ? pile : racine, elementZone(d, cle, o)); });
-    if (pile && pile.firstChild) {
+    ZONES_MEP[d.mep][g].forEach(function (cle) { ajouterSi(pile && (cle === 'titre' || cle === 'sousTitre') && !(geoLibre(d, cle) && !o.apercu) ? pile : racine, elementZone(d, cle, o)); });
+    if (pile && (pile.firstChild || (g === 'libre' && d.mep === 'titre'))) {
         racine.appendChild(pile);
     }
     (d.contenu.formes || []).forEach(function (f) { racine.appendChild(noeudForme(f, d, o)); });
@@ -4299,7 +4338,9 @@ function brancherZone(t, d, cle) {
     t.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !riche) {
             e.preventDefault();
-            document.execCommand('insertLineBreak');
+            if (!document.execCommand('insertLineBreak')) {
+                document.execCommand('insertText', false, '\n');
+            }
             return;
         }
         if (e.key === 'Tab' && riche && ancetre(selectionNoeud(), 'LI', t)) {
@@ -4533,6 +4574,10 @@ function barreOutils() {
                 return supprimerForme(f.id);
             } }, 'sObjetSupprimer')
         ], 'sd-outils__groupe--objet'),
+        groupe('Bloc', [
+            creer('span', { classe: 'sd-outils__cible', id: 'sCibleBloc' }),
+            boutonOutil('Remettre le bloc à sa place', 'w-ico--recentrer', remettreZone, 'sBlocModele')
+        ], 'sd-outils__groupe--bloc'),
         groupe('Logo', [
             creer('span', { classe: 'sd-outils__cible', texte: 'Logo :' }),
             boutonOutil('Réduire le logo', 'zoom-out-line', function () { return redimensionnerLogo(0.9); }, 'sLogoMoins'),
@@ -4654,6 +4699,14 @@ function majBarreOutils() {
             document.getElementById('sObjetAlt').hidden = fa.type !== 'image';
         }
     }
+    var gBloc = document.querySelector('.sd-outils__groupe--bloc');
+    if (gBloc) {
+        var zl = zoneLibreActive();
+        gBloc.hidden = !zl;
+        if (zl) {
+            document.getElementById('sCibleBloc').textContent = LIBELLES_ZONES[zl] + ' :';
+        }
+    }
     var cfgc = cfgCourante();
     var gLogo = document.querySelector('.sd-outils__groupe--logo');
     var avecLogo = !!d && (cfgc.gabarit === 'officiel' || cfgc.logo);
@@ -4722,7 +4775,7 @@ function marquerModifie(id) {
     etat.minuteries[id] = setTimeout(function () { relayer(enregistrerEnAttente(id), 'Enregistrement automatique'); }, DELAI_ENREGISTREMENT_MS);
 }
 function lireZonesDuDom(d) {
-    document.querySelectorAll('.sd-texte[contenteditable="true"][data-diapo="' + d.id + '"]').forEach(function (el) {
+    document.querySelectorAll('.sd-texte[contenteditable="true"][data-zone][data-diapo="' + d.id + '"]').forEach(function (el) {
         var cle = el.getAttribute('data-zone');
         var z = d.contenu.zones[cle];
         if (z && z.type === 'image') {
@@ -4983,7 +5036,9 @@ async function changerMiseEnPage(id, mep) {
     if (!id) {
         return;
     }
-    var ok = await modifierDiapo(id, function (d) { d.mep = mepValide(mep); });
+    var ok = await modifierDiapo(id, function (d) { if (d.mep !== mepValide(mep)) {
+        delete d.contenu.geos;
+    } d.mep = mepValide(mep); });
     if (ok) {
         var m = MISES_EN_PAGE.filter(function (x) { return x.cle === mep; })[0];
         annoncer('Mise en page : ' + (m ? m.libelle : mep) + '.');
@@ -6215,7 +6270,7 @@ var AIDE = {
         'Choisir le gabarit officiel (pages blanches, bloc-marque, pied de page, police Arial) ou une présentation libre : couleurs, habillage, logo et pied de page au choix.',
         'Écrire directement dans les zones de la diapositive : gras, italique, souligné, listes sur cinq niveaux, liens.',
         'Ajouter des cadres de texte, des images, des rectangles, des cercles, des traits et des flèches, à placer où vous voulez.',
-        'Déplacer, redimensionner ou retirer le logo sur chaque diapositive.',
+        'Déplacer et redimensionner tout ce qui est sur la diapositive : titre, blocs de texte, cadres, images, formes et logo.',
         'Laisser le widget faire le sommaire, la numérotation des parties et des diapositives, le rappel de partie et la date.',
         'Présenter en plein écran, avec une vue présentateur à part (notes, diapositive suivante, temps écoulé).',
         'Piloter la présentation depuis votre téléphone : notes, diapositive suivante et grands boutons, le grand écran suit.',
@@ -6233,7 +6288,7 @@ var AIDE = {
         'Apparence': { titre: 'le style des diapositives.', points: ['Gabarit officiel ou présentation libre : le contenu est gardé.', 'En présentation libre : couleur principale et secondaire, fond de la couverture et des chapitres, habillage, logo, pied de page, numéros.', 'Taille du logo pour toute la présentation.'] },
         'Présentation': { titre: 'ce qui se passe quand vous présentez.', points: ['Diapositive de départ et ouverture automatique de la vue présentateur.'] },
         'Récapitulatif': { titre: 'vérifier, puis créer.', points: ['Rien n\'est enregistré avant « Créer la présentation ».'] },
-        'Composer': { titre: 'écrire les diapositives.', points: ['Cliquez dans une zone en pointillés (« Titre », « Texte »…) et tapez.', '« Ajouter », dans la barre d\'outils : cadre de texte, image, rectangle, cercle, trait, flèche. Faites glisser l\'objet pour le placer, la poignée du coin pour sa taille ; au clavier : flèches, plus et moins, Suppr.', 'Cliquez sur le logo pour le déplacer, le redimensionner ou le retirer.', '« Nouvelle diapositive » ajoute une diapositive après celle qui est ouverte ; la liste « Mise en page » la change.', '« Annuler » et « Rétablir » reviennent sur les dernières modifications.'] },
+        'Composer': { titre: 'écrire les diapositives.', points: ['Cliquez dans une zone en pointillés (« Titre », « Texte »…) et tapez.', '« Ajouter », dans la barre d\'outils : cadre de texte, image, rectangle, cercle, trait, flèche.', 'Tout se déplace : titre, blocs de texte, cadres, images, formes et logo. Survolez l\'élément, faites glisser la pastille ronde en haut à gauche pour le placer, le carré en bas à droite pour sa taille ; au clavier : flèches, plus et moins.', '« Remettre le bloc à sa place », dans la barre d\'outils, le ramène à la place prévue par la mise en page. Changer de mise en page remet aussi tous les blocs à leur place.', '« Nouvelle diapositive » ajoute une diapositive après celle qui est ouverte ; la liste « Mise en page » la change.', '« Annuler » et « Rétablir » reviennent sur les dernières modifications.'] },
         'Présenter': { titre: 'en plein écran, au téléphone, imprimer, enregistrer en PDF.', points: ['Flèches, Espace ou clic pour avancer, Échap pour quitter.', 'Vue présentateur : bouton en bas de l\'écran de présentation.', 'Pages à partager : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ».', 'Sur l\'ordinateur relié au grand écran : page « Projection ». Sur le téléphone : page « Télécommande ».'] }
     },
     questions: [
@@ -6452,20 +6507,25 @@ function brancherObjet(el, o) {
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'group');
     el.setAttribute('aria-roledescription', 'objet déplaçable');
-    el.setAttribute('aria-label', o.libelle + '. Flèches pour déplacer, plus et moins pour la taille, Suppr pour retirer.');
+    el.setAttribute('aria-label', o.libelle + '. Flèches pour déplacer, plus et moins pour la taille' + (o.surSuppr ? ', Suppr pour retirer.' : '.'));
     el.removeAttribute('aria-hidden');
-    var poignee = creer('span', { classe: 'sd-poignee', attrs: { 'aria-hidden': 'true' } });
+    var poignee = creer('span', { classe: 'sd-poignee', attrs: { 'aria-hidden': 'true', title: 'Glisser pour changer la taille' } });
+    var depl = creer('span', { classe: 'sd-deplacer', attrs: { 'aria-hidden': 'true', title: 'Glisser pour déplacer' } });
     el.appendChild(poignee);
+    el.appendChild(depl);
     el.addEventListener('focusin', function () {
         etat.objetActif = o.cle;
         majBarreOutils();
     });
     el.addEventListener('pointerdown', function (e) {
-        if (e.button !== 0 || (e.target.closest && e.target.closest('.sd-texte[contenteditable="true"]'))) {
+        if (e.button !== 0 || (e.target !== depl && e.target !== poignee && e.target.closest && e.target.closest('.sd-texte[contenteditable="true"]'))) {
             return;
         }
         e.preventDefault();
         el.focus();
+        if (o.geoActuelle) {
+            o.geo = o.geoActuelle();
+        }
         var redim = e.target === poignee;
         _glisse = { el: el, o: o, redim: redim, x0: e.clientX, y0: e.clientY, g0: { x: o.geo.x, y: o.geo.y, l: o.geo.l, h: o.geo.h }, k: echelleDiapo(el), bouge: false };
         try {
@@ -6481,6 +6541,9 @@ function brancherObjet(el, o) {
         if (!_glisse.bouge && Math.abs(dx) + Math.abs(dy) < 3) {
             return;
         }
+        if (!_glisse.bouge && o.avantDeplacement) {
+            o.avantDeplacement();
+        }
         _glisse.bouge = true;
         var g = _glisse.g0;
         if (_glisse.redim) {
@@ -6491,7 +6554,7 @@ function brancherObjet(el, o) {
         else {
             o.geo = { x: Math.round(g.x + dx), y: Math.round(g.y + dy), l: g.l, h: g.h };
         }
-        placer(el, o.geo);
+        (o.placer || placer)(el, o.geo);
     });
     var finir = function () {
         if (!_glisse || _glisse.el !== el) {
@@ -6510,13 +6573,20 @@ function brancherObjet(el, o) {
             return;
         }
         var pas = e.shiftKey ? 1 : 10;
-        var g = o.geo;
         var dep = { ArrowLeft: [-pas, 0], ArrowRight: [pas, 0], ArrowUp: [0, -pas], ArrowDown: [0, pas] }[e.key];
         if (dep) {
             e.preventDefault();
             e.stopPropagation();
+            if (o.geoActuelle && !o.clavier) {
+                o.geo = o.geoActuelle();
+                if (o.avantDeplacement) {
+                    o.avantDeplacement();
+                }
+                o.clavier = true;
+            }
+            var g = o.geo;
             o.geo = { x: g.x + dep[0], y: g.y + dep[1], l: g.l, h: g.h };
-            placer(el, o.geo);
+            (o.placer || placer)(el, o.geo);
             planifierObjet(o);
             return;
         }
@@ -6526,7 +6596,7 @@ function brancherObjet(el, o) {
             relayer(o.redimensionner(e.key === '-' ? 0.9 : 1.1), 'Taille d\'un objet');
             return;
         }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && o.surSuppr) {
             e.preventDefault();
             e.stopPropagation();
             relayer(o.surSuppr(), 'Retrait d\'un objet');
@@ -6538,13 +6608,93 @@ function brancherObjet(el, o) {
         }
     });
 }
+function geoMesuree(el) {
+    var dp = el.closest('.sd-diapo');
+    var k = echelleDiapo(el);
+    var r = el.getBoundingClientRect(), rd = dp.getBoundingClientRect();
+    return { x: Math.round((r.left - rd.left) / k), y: Math.round((r.top - rd.top) / k), l: Math.max(20, Math.round(r.width / k)), h: Math.max(10, Math.round(r.height / k)) };
+}
+function placerZone(el, g) {
+    var p = el.parentNode;
+    if (p && p.classList && p.classList.contains('sd-pile')) {
+        placer(el, { x: g.x - p.offsetLeft, y: g.y - p.offsetTop, l: g.l, h: g.h });
+    }
+    else {
+        placer(el, g);
+    }
+}
+function brancherZoneObjet(el, d, cle) {
+    var figes = null;
+    var o = {
+        cle: cle, libelle: LIBELLES_ZONES[cle], geo: geoLibre(d, cle), min: 40, minH: 20, placer: placerZone,
+        geoActuelle: function () { var g = geoLibre(d, cle); return g ? { x: g.x, y: g.y, l: g.l, h: g.h } : geoMesuree(el); },
+        avantDeplacement: function () {
+            figes = {};
+            var pile = el.parentNode && el.parentNode.classList.contains('sd-pile') ? el.parentNode : null;
+            var blocs = pile ? Array.prototype.filter.call(pile.children, function (c) { return c.classList.contains('sd-zone'); }) : [el];
+            blocs.forEach(function (c) { figes[c.getAttribute('data-cle')] = geoMesuree(c); });
+            if (pile) {
+                pile.style.width = pile.offsetWidth + 'px';
+                pile.style.height = pile.offsetHeight + 'px';
+                pile.style.justifyContent = 'flex-start';
+                blocs.forEach(function (c) { c.classList.add('sd-zone--libre'); placerZone(c, c === el ? o.geo : figes[c.getAttribute('data-cle')]); });
+            }
+            else {
+                el.classList.add('sd-zone--libre');
+            }
+        },
+        surFin: function (geo) { return modifierObjet(d.id, cle, function (x) {
+            x.contenu.geos = x.contenu.geos || {};
+            Object.keys(figes || {}).forEach(function (k) { if (!x.contenu.geos[k]) {
+                x.contenu.geos[k] = figes[k];
+            } });
+            x.contenu.geos[cle] = { x: geo.x, y: geo.y, l: geo.l, h: geo.h };
+        }); },
+        redimensionner: function (k) {
+            var g = o.geoActuelle();
+            if (!figes) {
+                o.avantDeplacement();
+            }
+            return o.surFin({ x: g.x, y: g.y, l: Math.max(40, Math.round(g.l * k)), h: Math.max(20, Math.round(g.h * k)) });
+        },
+        surSuppr: null,
+        surEntree: function () { var t = el.querySelector('.sd-texte[contenteditable="true"]'); if (t) {
+            t.focus();
+        } }
+    };
+    brancherObjet(el, o);
+}
+async function remettreZone() {
+    var d = diapoParId(etat.courante);
+    var cle = zoneLibreActive();
+    if (!d || !cle) {
+        return;
+    }
+    var pile = ['titre', 'couverture'].indexOf(d.mep) !== -1 && (cle === 'titre' || cle === 'sousTitre') ? ['titre', 'sousTitre'] : [cle];
+    var ok = await modifierObjet(d.id, cle, function (x) {
+        pile.forEach(function (k) { if (x.contenu.geos) {
+            delete x.contenu.geos[k];
+        } });
+        if (x.contenu.geos && !Object.keys(x.contenu.geos).length) {
+            delete x.contenu.geos;
+        }
+    });
+    if (ok) {
+        annoncer('« ' + LIBELLES_ZONES[cle] + ' » est revenu à sa place dans le modèle.');
+    }
+}
+function zoneLibreActive() {
+    var d = diapoParId(etat.courante);
+    var cle = etat.objetActif;
+    return d && cle && LIBELLES_ZONES[cle] && geoLibre(d, cle) ? cle : null;
+}
 function planifierObjet(o) {
     clearTimeout(etat.minuterieObjet);
     etat.minuterieObjet = setTimeout(function () { relayer(o.surFin(o.geo), 'Déplacement au clavier'); }, 500);
 }
 function refocaliserObjet(cle) {
     setTimeout(function () {
-        var el = cle === 'logo' ? document.querySelector('#sScene .sd-logo') : document.querySelector('#sScene .sd-forme[data-forme="' + cle + '"]');
+        var el = cle === 'logo' ? document.querySelector('#sScene .sd-logo') : (LIBELLES_ZONES[cle] ? document.querySelector('#sScene .sd-zone.sd-objet[data-cle="' + cle + '"]') : document.querySelector('#sScene .sd-forme[data-forme="' + cle + '"]'));
         if (el) {
             el.focus();
         }
