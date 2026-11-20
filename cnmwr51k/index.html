@@ -726,7 +726,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.3';
+var VERSION_WIDGET = '1.5.4';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1187,7 +1187,7 @@ function configValide(c) {
     var cons = CONSERVATIONS.some(function (x) { return x.valeur === c.conservation; }) ? c.conservation : CONSERVATION_DEFAUT;
     return { tables: Array.isArray(c.tables) ? c.tables.filter(function (t) { return typeof t === 'string' && t; }) : [],
         lecteurs: Array.isArray(c.lecteurs) ? c.lecteurs.map(function (x) { return String(x).toLowerCase(); }).filter(courrielValide) : [],
-        max: max, conservation: cons, ignoresAppliques: c.ignoresAppliques === true, colonnesExclues: (function () {
+        max: max, conservation: cons, ignoresVus: (Array.isArray(c.ignoresVus) ? c.ignoresVus.filter(function (x) { return typeof x === 'string'; }) : []).concat(c.ignoresAppliques === true && !(Array.isArray(c.ignoresVus) && c.ignoresVus.indexOf('participation') !== -1) ? ['participation'] : []), colonnesExclues: (function () {
             var o = {}, x = c.colonnesExclues;
             if (x && typeof x === 'object') {
                 Object.keys(x).forEach(function (t) { if (Array.isArray(x[t])) {
@@ -1376,17 +1376,29 @@ async function retirerJournal(tid) {
         logSecurite('AVERTISSEMENT', 'Règle d\'accès du journal non retirée pour ' + tid, e);
     }
 }
-/* Tables techniques des widgets qui changent sans cesse (signaux de présence) : pas de suivi d'office */
+/* Tables techniques des widgets qui changent sans cesse : pas de suivi d'office */
+var TABLES_IGNOREES = [
+    { cle: 'participation', motif: /^PARTICIPATION_DU_TABLEAU_BLANC/, quoi: 'Signaux de présence de Diploworkflow, qui changent toutes les 30 secondes', note: 'signaux de présence de Diploworkflow' },
+    { cle: 'telecommande', motif: /^TELECOMMANDE/, quoi: 'Position de la télécommande de WuitSlides, qui change à chaque diapositive', note: 'position de la télécommande de WuitSlides' }
+];
+function regleIgnoree(t) {
+    return TABLES_IGNOREES.filter(function (r) { return r.motif.test(String(t || '')); })[0] || null;
+}
 function tableIgnoreeDOffice(t) {
-    return /^PARTICIPATION_DU_TABLEAU_BLANC/.test(String(t || ''));
+    return !!regleIgnoree(t);
 }
 async function ignorerTablesBruyantes() {
-    if (!etat.proprietaire || !etat.config || etat.config.ignoresAppliques) {
+    if (!etat.proprietaire || !etat.config) {
         return;
     }
-    var bruyantes = etat.config.tables.filter(tableIgnoreeDOffice);
-    etat.config.tables = etat.config.tables.filter(function (t) { return !tableIgnoreeDOffice(t); });
-    etat.config.ignoresAppliques = true;
+    var vus = etat.config.ignoresVus || [];
+    var nouvelles = TABLES_IGNOREES.filter(function (r) { return vus.indexOf(r.cle) === -1; });
+    if (!nouvelles.length) {
+        return;
+    }
+    var bruyantes = etat.config.tables.filter(function (t) { var r = regleIgnoree(t); return r && nouvelles.indexOf(r) !== -1; });
+    etat.config.tables = etat.config.tables.filter(function (t) { return bruyantes.indexOf(t) === -1; });
+    etat.config.ignoresVus = vus.concat(nouvelles.map(function (r) { return r.cle; }));
     await ecrireConfig();
     for (var i = 0; i < bruyantes.length; i++) {
         var t = bruyantes[i];
@@ -1394,7 +1406,7 @@ async function ignorerTablesBruyantes() {
             if (infoColonne(t, COL_JOURNAL)) {
                 await agir([['ModifyColumn', t, COL_JOURNAL, { formula: '', recalcWhen: 0, recalcDeps: null }]]);
             }
-            await noterSuivi('Suivi de « ' + libelleTable(t) + ' » arrêté : signaux de présence de Diploworkflow', libelleTable(t), '', t);
+            await noterSuivi('Suivi de « ' + libelleTable(t) + ' » arrêté : ' + regleIgnoree(t).note, libelleTable(t), '', t);
         }
         catch (e) {
             logSecurite('AVERTISSEMENT', 'Arrêt du journal de ' + t + ' non abouti', e);
@@ -2655,7 +2667,7 @@ function rendreDepart(zone) {
         cb.addEventListener('change', function () { choisies[t] = cb.checked; majCompte(); });
         _exclDepart[t] = [];
         liste.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
-            tableIgnoreeDOffice(t) ? creer('span', { classe: 'fr-hint-text', texte: 'Signaux de présence de Diploworkflow, qui changent toutes les 30 secondes' }) : null])]));
+            tableIgnoreeDOffice(t) ? creer('span', { classe: 'fr-hint-text', texte: regleIgnoree(t).quoi }) : null])]));
         liste.appendChild(choixColonnes(t, 'dT' + i, _exclDepart[t], null));
     });
     var compte = creer('p', { classe: 'w-mention', id: 'dCompte', attrs: { 'aria-live': 'polite' } });
@@ -3347,7 +3359,7 @@ function sectionTables() {
         cb.addEventListener('change', function () { relayer(changerSuivi(t, cb.checked, id, cb), 'Suivi d\'une table'); });
         var suivie = etat.config.tables.indexOf(t) !== -1;
         s.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
-                suivie ? null : creer('span', { classe: 'fr-hint-text', texte: tableIgnoreeDOffice(t) ? 'Signaux de présence de Diploworkflow, qui changent toutes les 30 secondes' : nbre(colonnesSuivables(t).length, 'colonne', 'colonnes') })])]));
+                suivie ? null : creer('span', { classe: 'fr-hint-text', texte: tableIgnoreeDOffice(t) ? regleIgnoree(t).quoi : nbre(colonnesSuivables(t).length, 'colonne', 'colonnes') })])]));
         if (suivie) {
             etat.config.colonnesExclues = etat.config.colonnesExclues || {};
             etat.config.colonnesExclues[t] = etat.config.colonnesExclues[t] || [];
