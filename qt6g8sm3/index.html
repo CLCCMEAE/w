@@ -578,6 +578,9 @@
     .w-ec-el--pied:hover { outline-offset: 0; }
     .w-ec-select { width: auto; max-width: 11rem; height: 2rem; margin: 0; padding: .125rem 2rem .125rem .5rem; font-size: .8125rem; background-position: calc(100% - .375rem) 50%; }
     .w-elem-zone:empty { display: none; }
+    .w-ico-butee-haut, .w-ico-butee-bas { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-size: .75rem 2px; }
+    .w-ico-butee-haut { background-position: 50% calc(50% - .6rem); }
+    .w-ico-butee-bas { background-position: 50% calc(50% + .6rem); }
     .w-pastille { cursor: pointer; }
     .w-regle-bloc { display: flex; flex-direction: column; gap: .25rem; padding-left: .75rem; border-left: 2px solid var(--border-default-grey); }
     .w-elem { display: flex; flex-direction: column; gap: .75rem; padding: .75rem; border-bottom: 1px solid var(--border-default-grey);
@@ -894,7 +897,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '2.7.0';
+var VERSION_WIDGET = '2.7.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOFUSION_';
@@ -9287,10 +9290,10 @@ function carteBloc(liste, k, dedans) {
     brancherGlisser(poignee, liste, k);
     var actions = [
         poignee,
-        bouton('Tout en haut', 'discret', 'skip-up-line', function () { deplacerA(0); }, { petit: true, iconeSeule: true, aria: 'Mettre tout en haut : ' + nom, desactive: k === 0, id: 'pTop' + bl.id }),
+        bouton('Tout en haut', 'discret', iconeExtreme(true).ico, function () { deplacerA(0); }, { classe: iconeExtreme(true).classe, petit: true, iconeSeule: true, aria: 'Mettre tout en haut : ' + nom, desactive: k === 0, id: 'pTop' + bl.id }),
         bouton('Monter', 'discret', 'arrow-up-line', function () { deplacer(-1); }, { petit: true, iconeSeule: true, aria: 'Monter : ' + nom, desactive: k === 0, id: 'pHaut' + bl.id }),
         bouton('Descendre', 'discret', 'arrow-down-line', function () { deplacer(1); }, { petit: true, iconeSeule: true, aria: 'Descendre : ' + nom, desactive: k === liste.length - 1, id: 'pBas' + bl.id }),
-        bouton('Tout en bas', 'discret', 'skip-down-line', function () { deplacerA(liste.length - 1); }, { petit: true, iconeSeule: true, aria: 'Mettre tout en bas : ' + nom, desactive: k === liste.length - 1, id: 'pBottom' + bl.id }),
+        bouton('Tout en bas', 'discret', iconeExtreme(false).ico, function () { deplacerA(liste.length - 1); }, { classe: iconeExtreme(false).classe, petit: true, iconeSeule: true, aria: 'Mettre tout en bas : ' + nom, desactive: k === liste.length - 1, id: 'pBottom' + bl.id }),
         bl.type !== 'footer' ? bouton('Dupliquer', 'discret', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () {
             var copie = JSON.parse(JSON.stringify(bl));
             renouvelerIds(copie);
@@ -12543,6 +12546,10 @@ function panneauEnteteCourrier() {
     ].concat(l));
 }
 /* Écriture sur la page : chaque élément se choisit, se règle et se déplace sur la page */
+function iconeExtreme(haut) {
+    var ico = iconeDispo(haut ? ['skip-up-line', 'arrow-up-double-line', 'arrow-up-line'] : ['skip-down-line', 'arrow-down-double-line', 'arrow-down-line']);
+    return { ico: ico, classe: /^arrow-(up|down)-line$/.test(ico) ? (haut ? 'w-ico-butee-haut' : 'w-ico-butee-bas') : null };
+}
 function estTypeLettre(layout) { return ecritDansPage(layout) && layout !== 'libre'; }
 function emplacementBloc(id, liste, dedans, parent) {
     liste = liste || (etat.brouillon && etat.brouillon.blocks) || [];
@@ -12765,15 +12772,16 @@ function barreElement(id) {
     var nom = defElement(bl).nom;
     barre.appendChild(creer('span', { classe: 'w-ec-el__nom', texte: nom }));
     var bt = function (lib, ico, fn, desactive, idb) {
-        var x = bouton(lib, 'discret', ico, fn, { petit: true, iconeSeule: true, aria: lib + ' : ' + nomElement(bl), desactive: desactive, id: idb + id });
+        var ie = typeof ico === 'object' ? ico : { ico: ico, classe: null };
+        var x = bouton(lib, 'discret', ie.ico, fn, { petit: true, iconeSeule: true, aria: lib + ' : ' + nomElement(bl), desactive: desactive, id: idb + id, classe: ie.classe });
         x.addEventListener('mousedown', function (e) { e.preventDefault(); });
         return x;
     };
     if (bl.type !== 'footer') {
-        barre.appendChild(bt('Tout en haut', 'skip-up-line', function () { deplacerElement(id, 0); }, k === 0, 'pElHaut2'));
+        barre.appendChild(bt('Tout en haut', iconeExtreme(true), function () { deplacerElement(id, 0); }, k === 0, 'pElHaut2'));
         barre.appendChild(bt('Monter', 'arrow-up-line', function () { deplacerElement(id, k - 1); }, k === 0, 'pElHaut'));
         barre.appendChild(bt('Descendre', 'arrow-down-line', function () { deplacerElement(id, k + 1); }, k >= fin, 'pElBas'));
-        barre.appendChild(bt('Tout en bas', 'skip-down-line', function () { deplacerElement(id, fin); }, k >= fin, 'pElBas2'));
+        barre.appendChild(bt('Tout en bas', iconeExtreme(false), function () { deplacerElement(id, fin); }, k >= fin, 'pElBas2'));
         barre.appendChild(bt('Dupliquer', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () { dupliquerElement(id); }, false, 'pElDup'));
     }
     barre.appendChild(bt('Supprimer', 'delete-line', function () { return supprimerElement(id); }, false, 'pElSuppr'));
