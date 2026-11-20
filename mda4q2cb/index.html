@@ -664,6 +664,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -718,7 +722,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.1';
+var VERSION_WIDGET = '1.8.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocalendrier';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOCALENDRIER';
@@ -3910,7 +3914,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -4234,7 +4238,7 @@ var AIDE = {
         'Les événements': { titre: 'le titre et les couleurs.', points: [
                 '« Titre des événements » : le texte écrit sur chaque événement.',
                 '« Couleurs » : d\'après une colonne (les couleurs de votre liste de choix sont reprises), une par ressource, ou une seule.',
-                '« Statut (facultatif) » : affiché dans l\'aperçu de chaque événement.',
+                '« Statut » : affiché dans l\'aperçu de chaque événement.',
                 '« Aussi dans la loupe et l\'export » : trois informations au plus.'
             ] },
         'Les options': { titre: 'autres dates, ressource, calendriers superposés, répétitions.', points: [
@@ -4289,7 +4293,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: nomsEtapes(b), courante: b.etape,
-            repere: perso ? 'Les modifications sont enregistrées automatiquement.' : 'Rien n\'est enregistré avant « Créer mon calendrier », sauf les tables d\'un modèle, créées après confirmation.' };
+            repere: perso ? '' : 'Rien n\'est enregistré avant « Créer mon calendrier », sauf les tables d\'un modèle, créées après confirmation.' };
     }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
@@ -9607,7 +9611,7 @@ function ecranVierge() {
                 { v: 'oui', l: 'Oui, avec les heures', a: 'Réunions, rendez-vous, permanences : début et fin à l\'heure près, vue Semaine à l\'ouverture.' },
                 { v: 'non', l: 'Non, des journées entières', a: 'Congés, déplacements, échéances : du jour au jour, vue Mois à l\'ouverture.' }
             ], v.heures ? 'oui' : 'non', function (x) { v.heures = x === 'oui'; }),
-            groupeChamp('Catégories (facultatif)', cats, 'Une couleur par catégorie. Vous pourrez en ajouter ensuite dans la table.'),
+            groupeChamp('Catégories', cats, 'Une couleur par catégorie. Vous pourrez en ajouter ensuite dans la table.'),
             caseCochee('vRes', 'Ajouter une colonne Ressource (personne, salle, matériel)', v.ressource, function (x) { v.ressource = x; if (!x) {
                 v.chevauchements = false;
             } dessinerChev(); }, 'Pour filtrer par ressource dans le volet.'),
@@ -10256,7 +10260,7 @@ async function ajouterExemples(m, reel) {
         }
     }
 }
-function choixColonne(id, libelle, aideTexte, cols, valeur, facultatif, surChange, texteVide) {
+function choixColonne(id, libelle, aideTexte, cols, valeur, surChange, texteVide) {
     var ops = cols.map(function (col) { return { valeur: col.colId, libelle: col.label + ' · ' + libelleType(col) }; });
     var sel = liste(id, ops, valeur || '', { vide: facultatif ? (texteVide || '(Aucune)') : 'Choisissez une colonne' });
     sel.addEventListener('change', function () { surChange(sel.value || null); });
@@ -10423,7 +10427,7 @@ function etapeBarres() {
         bloc.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', texte: 'Couleur des événements' }), nu]));
     }
     var colsS = colonnesUtiles(t).filter(function (x) { var ty = String(x.type); return ty === 'Choice' || ty === 'Text' || ty === 'Bool' || ty.indexOf('Ref:') === 0; });
-    bloc.appendChild(choixColonne('aColStatut', 'Statut (facultatif)', 'Affiché dans l\'aperçu de chaque événement.', colsS, c.colStatus, true, function (v) {
+    bloc.appendChild(choixColonne('aColStatut', 'Statut', 'Affiché dans l\'aperçu de chaque événement.', colsS, c.colStatus, true, function (v) {
         c.colStatus = v;
         redessinerEtape('aColStatut');
     }));
@@ -10459,7 +10463,7 @@ function etapeCouloirs() {
     c.extraDates = Array.isArray(c.extraDates) ? c.extraDates.filter(function (x) { return x && infoColonne(t, x.col); }) : [];
     var dates = colonnesUtiles(t).filter(function (x) { return (x.type === 'Date' || String(x.type).indexOf('DateTime') === 0) && [c.colStart, c.colEnd].indexOf(x.colId) === -1; });
     var aideD = aide('aDatesSupAide', 'autres dates', 'Par exemple « date de commission » ou « échéance » d\'un dossier : chacune devient un événement de plus, avec son libellé, dans la même couleur.');
-    var zoneD = creer('div', { classe: 'fr-input-group' }, [creer('div', { classe: 'w-champ-aide fr-mb-1w' }, [creer('span', { classe: 'fr-label', texte: 'Autres dates de chaque ligne (facultatif)' }), aideD.bouton, aideD.panneau])]);
+    var zoneD = creer('div', { classe: 'fr-input-group' }, [creer('div', { classe: 'w-champ-aide fr-mb-1w' }, [creer('span', { classe: 'fr-label', texte: 'Autres dates de chaque ligne' }), aideD.bouton, aideD.panneau])]);
     c.extraDates.forEach(function (x, k) {
         var sc = liste('aDateSup' + k, dates.map(function (d) { return { valeur: d.colId, libelle: d.label }; }), x.col);
         sc.addEventListener('change', function () { x.col = sc.value; x.libelle = (infoColonne(t, sc.value) || {}).label || ''; redessinerEtape('aDateSup' + k); });
@@ -10480,7 +10484,7 @@ function etapeCouloirs() {
     }
     bloc.appendChild(zoneD);
     var cols = colonnesCouloir(t).filter(function (x) { return x.colId !== c.colStart; });
-    bloc.appendChild(choixColonne('aCouloir', 'Ressource (salle, personne, matériel)', 'Facultatif. Sert au filtre du volet, à la ligne « Lieu » de l\'export Outlook et au signalement des chevauchements.', cols, c.colLane, true, function (v) {
+    bloc.appendChild(choixColonne('aCouloir', 'Ressource (salle, personne, matériel)', 'Sert au filtre du volet, à la ligne « Lieu » de l\'export Outlook et au signalement des chevauchements.', cols, c.colLane, true, function (v) {
         c.colLane = v;
         if (!v) {
             c.overlapCheck = false;
@@ -10533,7 +10537,7 @@ function etapeLiens() {
     var bloc = creer('div', { classe: 'w-c3__col' });
     var pj = colonnesPJ(t);
     if (pj.length) {
-        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes (facultatif)', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
+        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
     }
     var cand = candidatsFiche(c);
     var aideF = aide('aFicheAide', 'autres champs de la fiche', 'Le titre, les dates, la ressource, la couleur et le statut y figurent toujours. Les éditeurs modifient les valeurs ; les colonnes calculées restent en lecture seule. Une colonne ajoutée plus tard à la table apparaît d\'office dans la fiche.');
@@ -10581,12 +10585,12 @@ function etapeGeneral() {
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPlan' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPlan', texte: 'Le calendrier' })]),
         groupeChamp('Nom du calendrier', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description (facultatif)', desc, null),
+        groupeChamp('Description', desc, null),
         bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(rangEtape('Les droits')); }, { petit: true, id: 'aVersDroits' })
     ]);
     var danger = blocSupprimer('Supprimer le calendrier', 'Le calendrier disparaît des onglets. Sa table et ses lignes restent dans le document.', supprimerPlan);
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section, ecranTables(true)], [danger]], '2-1'), grilleParam([[pages[0]], [pages[1]]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[section, ecranTables(true)], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
 function etapeRecapitulatif() {
     var b = etat.brouillon;
@@ -10623,7 +10627,7 @@ function etapeRecapitulatif() {
     }
     ecrit.push(etat.biblio ? 'Une ligne de réglages dans ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages par calendrier.');
     ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est ajoutée, retypée ou supprimée' + (c.creerSerie ? ', sauf la colonne SERIE demandée à l\'étape « Les options ».' : '.'));
-    return grilleParam([], '1-1', [titreColonne('Le calendrier', null, 'aSecNom'), groupeChamp('Nom du calendrier', nom, 'Affiché sur son onglet.', true), groupeChamp('Description (facultatif)', desc, null),
+    return grilleParam([], '1-1', [titreColonne('Le calendrier', null, 'aSecNom'), groupeChamp('Nom du calendrier', nom, 'Affiché sur son onglet.', true), groupeChamp('Description', desc, null),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
         titreColonne('Ce qui sera écrit dans votre document', null, 'aSecEcrit'), creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, ecrit.map(function (x) { return creer('li', { texte: x }); }))], apercuEtape('Récapitulatif'));
 }
@@ -10810,7 +10814,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (!aChange(b)) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var raison = raisonNonEnregistrable(b);

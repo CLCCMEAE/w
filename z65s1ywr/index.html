@@ -885,6 +885,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .w-grille--trois > .w-grille__col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    @media (max-width: 62em) { .w-grille--trois { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -932,7 +936,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.11.0';
+var VERSION_WIDGET = '1.11.1';
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1027,8 +1031,8 @@ var DEF_EL = {
     { id: 'LARGEUR', type: 'Numeric', label: 'LARGEUR', widgetOptions: { decimals: 0 }, description: 'Largeur de l\'élément sur la toile, en points. Rempli par le widget quand on redimensionne l\'élément.' },
     { id: 'HAUTEUR', type: 'Numeric', label: 'HAUTEUR', widgetOptions: { decimals: 0 }, description: 'Hauteur de l\'élément sur la toile, en points. Rempli par le widget quand on redimensionne l\'élément.' },
     { id: 'ORDRE', type: 'Numeric', label: 'ORDRE', widgetOptions: { decimals: 0 }, description: 'Ordre d\'empilement : un élément au nombre le plus grand passe devant les autres. Rempli par le widget (« Premier plan »).' },
-    { id: 'RESPONSABLE', type: 'Text', label: 'RESPONSABLE', description: 'Personne ou service chargé de l\'étape. Facultatif. Saisie manuelle.' },
-    { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: OPTIONS_STATUT, description: 'Avancement de l\'élément : À faire, En cours, Fait ou Bloqué. Facultatif. Choix dans une liste.' },
+    { id: 'RESPONSABLE', type: 'Text', label: 'RESPONSABLE', description: 'Personne ou service chargé de l\'étape. Saisie manuelle.' },
+    { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: OPTIONS_STATUT, description: 'Avancement de l\'élément : À faire, En cours, Fait ou Bloqué. Choix dans une liste.' },
     { id: 'VOTES', type: 'Numeric', label: 'VOTES', widgetOptions: { decimals: 0, alignment: 'right' }, description: 'Nombre de votes reçus en atelier. Rempli par le widget (« Voter »).' },
     { id: 'FICHE_TABLE', type: 'Text', label: 'FICHE TABLE', description: 'Identifiant de la table de la ligne liée à l\'élément. Rempli par le widget (« Relier à une fiche »). Ne le modifiez pas.' },
     { id: 'FICHE_LIGNE', type: 'Int', label: 'FICHE LIGNE', description: 'Numéro de la ligne liée à l\'élément dans cette table. Rempli par le widget (« Relier à une fiche »). Ne le modifiez pas.' },
@@ -5561,7 +5565,7 @@ function terminerConfirmation(oui) {
    cliquables, et en bas « Etape precedente » et « Continuer ». */
 function filAriane(noms, n, aller, idTitre, actions) {
   var d = creer('div', { classe: 'fr-stepper w-stepper' });
-  var titre = creer('h2', { classe: 'fr-stepper__title', id: idTitre || 'titreVue', attrs: { tabindex: '-1' } }, [noms[n],
+  var titre = creer('h2', { classe: 'fr-stepper__title fr-sr-only', id: idTitre || 'titreVue', attrs: { tabindex: '-1' } }, [noms[n],
     creer('span', { classe: 'fr-stepper__state fr-sr-only', texte: 'Étape ' + (n + 1) + ' sur ' + noms.length })]);
   var ol = creer('ol', { classe: 'w-etapes', attrs: { 'aria-label': 'Étapes' } });
   noms.forEach(function (nom, i) {
@@ -6034,7 +6038,7 @@ function rendreCreation() {
     var desc = saisie('cDescription', c.description, { multiligne: true, lignes: 2 });
     desc.addEventListener('input', function () { c.description = desc.value; });
     var colNom = creer('div', { classe: 'w-colonne' }, [titreColonne('Nom du tableau blanc', 'cTitreNom', 'Il nomme l\'onglet du tableau blanc ; il se change ensuite dans les paramétrages.'),
-      groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, 'Facultatif.')]);
+      groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, '')]);
     var depart = c.depart === 'donnees'
       ? [creer('span', { classe: 'w-modele__vignette w-modele__vignette--icone w-depart__vignette', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-table-line fr-icon--lg' })]),
         creer('p', { classe: 'w-texte fr-mb-0' }, [creer('strong', { texte: 'Vos données : ' + libelleTable(c.source.table) })]),
@@ -6184,7 +6188,7 @@ async function ouvrirParametrage(etape) {
   etat.editionPage = null;
   await majPages();
   if (etat.edition) { terminerEdition(true); }
-  etat.param = { etape: etape || 0, statut: 'Les modifications sont enregistrées automatiquement.' };
+  etat.param = { etape: etape || 0, statut: '' };
   etat.vue = 'parametrage';
   rendreParametrage();
   var t = document.getElementById('titreVue'); if (t) { t.focus(); }
@@ -6481,10 +6485,18 @@ function rendreParametrage() {
     bouton('Retour à ' + t.nom, 'secondaire', 'arrow-go-back-line', quitterParametrage, { petit: true, id: 'pRetour' })]));
   bloc.appendChild(filAriane(ETAPES_PARAM, p.etape, aller));
   if (p.etape === 0) {
-    var grilleG = enBlocs([etapeGeneral(t)].concat(colonnesPages()));
-    var secForm = grilleG.querySelector('.w-colonne-page .w-page-actions');
-    if (secForm && secForm.closest('.w-section')) { secForm.closest('.w-section').classList.add('w-section--large'); }
-    bloc.appendChild(grilleG);
+    var gen = etapeGeneral(t).children, pgs = colonnesPages();
+    var groupes = [[gen[0]], pgs, [gen[1]]];
+    groupes.forEach(function (g, k) { g.forEach(function (c) { Array.prototype.forEach.call(c.children, function (x) { x.setAttribute('data-groupe', String(k)); }); }); });
+    var grilleG = enBlocs([gen[0]].concat(pgs, [gen[1]]));
+    var cols = [[], [], []];
+    Array.prototype.slice.call(grilleG.children).forEach(function (x) {
+      x.classList.remove('w-section--large');
+      var m = x.querySelector('[data-groupe]');
+      cols[m ? Number(m.getAttribute('data-groupe')) : 0].push(x);
+    });
+    var trois = creer('div', { classe: 'w-grille w-grille--trois' }, cols.map(function (c) { return creer('div', { classe: 'w-grille__col' }, c); }));
+    bloc.appendChild(trois);
   }
   if (p.etape === 1) { bloc.appendChild(enBlocs([editeurJeux(t, function (cle) { return appliquerJeuTableau(t, cle); }, 'pJeu'), editeurLegende(t, enregistrerReglages, 'pLeg'), blocApercu(t)], true)); }
   if (p.etape === 2) { bloc.appendChild(enBlocs([editeurFiche(t, enregistrerReglages, 'pFiche')])); }
@@ -6505,7 +6517,7 @@ function etapeGeneral(t) {
   var desc = saisie('pDescription', t.description, { multiligne: true, lignes: 2 });
   desc.addEventListener('input', function () { t.description = desc.value; enregistrerReglages(); });
   var els = elementsDuTableau(), nl = liensDuTableau().length;
-  var col1 = [titreColonne('Le tableau blanc', 'pTitreGen', null), groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, 'Facultatif.'),
+  var col1 = [titreColonne('Le tableau blanc', 'pTitreGen', null), groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, ''),
     titreColonne('Tables utilisées', 'pTitreTables', 'Partagées par tous les tableaux blancs du document. Les lignes se consultent aussi dans Données source.'),
     creer('table', { classe: 'w-tableau-simple' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Tables utilisées' }),
       creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Contenu', attrs: { scope: 'col' } }), creer('th', { texte: 'Table', attrs: { scope: 'col' } }), creer('th', { texte: 'Lignes de ce tableau', attrs: { scope: 'col' } })])]),
@@ -7904,7 +7916,7 @@ var FICHES_AIDE = [
   { cle: 'principal', titre: 'Dessiner', texte: 'Le bouton « + » à gauche de la toile ajoute un post-it, une forme, un texte, une section, un couloir ou une image au centre de la vue ; le clic droit sur un élément ajoute la suite. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée ; le connecteur peut être droit ou coudé.' },
   { cle: 'atelier', titre: 'Animer un atelier', texte: 'Les initiales des personnes présentes s\'affichent au-dessus de la toile. « Minuteur » lance un compte à rebours visible par tous. Chacun vote avec les pastilles de la barre d\'actions, dans la limite fixée ; les commentaires se laissent dans la fiche de l\'élément.' },
   { cle: 'selection', titre: 'Modifier la sélection', texte: 'Un clic sélectionne, Maj+clic ajoute, un glisser sur le fond sélectionne au lasso. La barre d\'actions au-dessus de la sélection change la couleur, la forme, relie à une fiche, duplique ou supprime. « Annuler » reste disponible quelques secondes en bas à droite.' },
-  { cle: 'fiche', titre: 'La fiche d\'un élément', texte: '« Ouvrir la fiche » affiche à droite le texte, la description, le responsable, le statut, la fiche liée et les pièces jointes. Tout est enregistré automatiquement.' },
+  { cle: 'fiche', titre: 'La fiche d\'un élément', texte: '« Ouvrir la fiche » affiche à droite le texte, la description, le responsable, le statut, la fiche liée et les pièces jointes.' },
   { cle: 'param0', titre: 'Paramétrages : Général', texte: 'Nom et description du tableau blanc, tables utilisées, réservation du paramétrage aux propriétaires et suppression du tableau. « Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ », qu\'une règle d\'accès cache aux autres personnes. « Où les lecteurs la voient » : « Publier sur une nouvelle page », avec son nom, le titre du bandeau, les tableaux blancs, ce que la page montre, l\'affichage à l\'ouverture, ce que les personnes peuvent y faire et les filtres laissés dans le volet.' },
   { cle: 'param1', titre: 'Paramétrages : Formes et couleurs', texte: 'Le sens de chaque couleur de la légende, avec un aperçu.' },
   { cle: 'param2', titre: 'Paramétrages : La fiche', texte: 'Table reliée aux formes, colonne affichée, champs de la fiche.' },

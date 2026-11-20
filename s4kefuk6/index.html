@@ -608,6 +608,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
   <style id="gbPage">@page { size: A4 landscape; margin: 10mm; }</style>
 </head>
@@ -654,7 +658,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.1';
+var VERSION_WIDGET = '1.8.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploboard';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOBOARD';
@@ -3198,7 +3202,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -7380,7 +7384,7 @@ function commencerEdition() {
     etat.statutEdition = null;
     afficherVue('tableau', true);
     remettreFocus('#gEditionTitre');
-    annoncer('Mode modification. Les changements sont enregistrés automatiquement.');
+    annoncer('Mode modification.');
 }
 async function terminerEdition(sansRendu) {
     if (etat.minuterieSauvegarde) {
@@ -7427,7 +7431,7 @@ async function sauverTableau() {
     }
 }
 function barreEditionTableau() {
-    var st = etat.statutEdition || { texte: 'Les changements sont enregistrés automatiquement.' };
+    var st = etat.statutEdition || { texte: '' };
     var annul = bouton('Annuler le dernier changement', 'secondaire', 'arrow-go-back-line', annulerChangement, { petit: true, id: 'gAnnuler', desactive: !etat.annuler.length });
     return creer('div', { classe: 'gb-edition', attrs: { role: 'region', 'aria-label': 'Mode modification' } }, [
         creer('h3', { classe: 'gb-edition__titre', id: 'gEditionTitre', texte: 'Modification du tableau de bord', attrs: { tabindex: '-1' } }),
@@ -7774,7 +7778,7 @@ function construireFormulaire(form, b, redessiner, majApercu) {
     }
     form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
     if (b.type !== 'text') {
-        form.appendChild(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); }), 'Facultatif. Laissée vide, la tuile explique ses propres filtres.'));
+        form.appendChild(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); }), 'Laissée vide, la tuile explique ses propres filtres.'));
         form.appendChild(groupe('Table', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
@@ -7883,8 +7887,8 @@ function formulaireKPI(form, b, redessiner, maj) {
     cmpBloc.push(caseOption('eBas', 'Plus bas, c\'est mieux', !!b.plusBas, function (on) { b.plusBas = on; maj(); }, 'Par exemple les tickets ouverts ou les coûts : une baisse est présentée comme favorable.'));
     form.appendChild(section('Tendance', cmpBloc));
     form.appendChild(section('Objectif', editeurCible(b, ['fixe', 'somme'], redessiner, maj)));
-    form.appendChild(section('Affichage', [rangee([groupe('Avant le nombre', champSaisie('ePre', b.prefixe || '', function (v) { b.prefixe = v; maj(); }), 'Facultatif, par exemple ~'),
-            groupe('Après le nombre', champSaisie('eSuf', b.suffixe || '', function (v) { b.suffixe = v; maj(); }), 'Facultatif, par exemple « articles », précédé d\'une espace'),
+    form.appendChild(section('Affichage', [rangee([groupe('Avant le nombre', champSaisie('ePre', b.prefixe || '', function (v) { b.prefixe = v; maj(); }), 'Par exemple ~'),
+            groupe('Après le nombre', champSaisie('eSuf', b.suffixe || '', function (v) { b.suffixe = v; maj(); }), 'Par exemple « articles », précédé d\'une espace'),
             groupe('Décimales', champListe('eDec', [{ valeur: '', libelle: 'Automatique' }, { valeur: '0', libelle: '0' }, { valeur: '1', libelle: '1' }, { valeur: '2', libelle: '2' }], b.decimales === null || b.decimales === undefined ? '' : String(b.decimales), function (v) { b.decimales = v === '' ? null : Number(v); maj(); }))])]));
 }
 function editeurCible(b, modes, redessiner, maj) {
@@ -7956,11 +7960,11 @@ function sectionCopies(b, redessiner, maj) {
         }
         redessiner('eRepeter');
     }, 'Non, un seul graphique');
-    return section('Une copie par valeur', [groupe('Répéter ce graphique pour chaque valeur de', champ, 'Facultatif. Par exemple SERVICE : un petit graphique par service, à la même échelle pour les comparer. ' + MAX_COPIES + ' graphiques au plus ; la tuile prend alors toute la largeur.')]);
+    return section('Une copie par valeur', [groupe('Répéter ce graphique pour chaque valeur de', champ, 'Par exemple SERVICE : un petit graphique par service, à la même échelle pour les comparer. ' + MAX_COPIES + ' graphiques au plus ; la tuile prend alors toute la largeur.')]);
 }
 function formulaireBarres(form, b, redessiner, maj) {
     form.appendChild(section('Barres', [choixGroupe('eGroupe', 'Une barre par', b, 'groupe', redessiner, maj)].concat(editeurMesure(b, redessiner, maj))));
-    var split = [choixGroupe('eSerie', 'Découper chaque barre selon', b, 'serie', redessiner, maj, 'Facultatif : une deuxième colonne, par exemple PRIORITE.', true)];
+    var split = [choixGroupe('eSerie', 'Découper chaque barre selon', b, 'serie', redessiner, maj, 'Une deuxième colonne, par exemple PRIORITE.', true)];
     if (b.serie) {
         split.push(groupe('Barres découpées', champListe('eEmpile', [{ valeur: 'empile', libelle: 'Empilées' }, { valeur: 'groupe', libelle: 'Côte à côte' }], b.empile ? 'empile' : 'groupe', function (v) { b.empile = v === 'empile'; maj(); })));
     }
@@ -7978,7 +7982,7 @@ function formulaireLigne(form, b, redessiner, maj) {
         caseOption('eCumul', 'Cumulé (total progressif)', !!b.cumul, function (on) { b.cumul = on; maj(); }, 'Pour les nombres de lignes et les sommes.'),
         caseOption('eAire', 'Remplir la surface sous la courbe', !!b.aire, function (on) { b.aire = on; maj(); })
     ])));
-    form.appendChild(section('Plusieurs courbes', [choixGroupe('eSerie', 'Une courbe par', b, 'serie', redessiner, maj, 'Facultatif, jusqu\'à 6 courbes.', true)]));
+    form.appendChild(section('Plusieurs courbes', [choixGroupe('eSerie', 'Une courbe par', b, 'serie', redessiner, maj, 'Jusqu\'à 6 courbes.', true)]));
     form.appendChild(sectionCopies(b, redessiner, maj));
 }
 function formulaireDonut(form, b, redessiner, maj) {
@@ -8006,7 +8010,7 @@ function formulaireRadar(form, b, redessiner, maj) {
     else {
         form.appendChild(section('Valeurs', [choixGroupe('eGroupe', 'Colonne des axes', b, 'groupe', redessiner, maj, 'De 3 à 12 valeurs, c\'est l\'idéal.')].concat(editeurMesure(b, redessiner, maj, { codes: ['count', 'sum', 'avg', 'sumProduct', 'distinct', 'min', 'max'] }))));
     }
-    form.appendChild(section('Profils à comparer', [choixGroupe('eSerie', 'Une forme par', b, 'serie', redessiner, maj, 'Facultatif : jusqu\'à 3 formes (les 3 valeurs qui ont le plus de lignes).', true)]));
+    form.appendChild(section('Profils à comparer', [choixGroupe('eSerie', 'Une forme par', b, 'serie', redessiner, maj, 'Jusqu\'à 3 formes (les 3 valeurs qui ont le plus de lignes).', true)]));
 }
 function formulaireTable(form, b, redessiner, maj) {
     form.appendChild(section('Type de tableau', [groupe('Afficher', champListe('eTMode', [{ valeur: 'top', libelle: 'Les premières lignes, triées selon une colonne' }, { valeur: 'pivot', libelle: 'Un tableau croisé : lignes × colonnes' }], b.tableMode || 'top', function (v) {
@@ -9271,13 +9275,13 @@ function etapeGeneral() {
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecTableau' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecTableau', texte: 'Le tableau de bord' })]),
         groupeChamp('Nom du tableau de bord', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description', desc, 'Facultatif : une phrase pour les lecteurs, sous le nom.'),
+        groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),
         choixTablePrincipale(cfg),
         bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(rangEtape('Les droits')); }, { petit: true, id: 'aVersDroits' })
     ]);
     var danger = blocSupprimer('Supprimer le tableau de bord', 'Le tableau de bord disparaît des onglets. Vos tables et leurs lignes restent dans le document.', supprimerTableau);
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [danger]], '2-1'), grilleParam([[pages[0]], [pages[1]]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
 function contexteBrouillon() {
     var b = etat.brouillon;
@@ -9387,7 +9391,7 @@ function etapeRecapitulatif() {
     var ecrit = creer('p', { classe: 'w-mention', texte: (etat.biblio ? 'Une ligne de réglages dans la table ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages pour ce tableau de bord.') +
             (b.tablesModele && b.tablesModele.length ? ' Tables du modèle : ' + b.tablesModele.map(function (x) { return libelleTable(x.id) + (x.mode === 'existante' ? ' (existante)' : (x.mode === 'nouvelle' ? ' (nouvelle table, nommée par vous)' : ' (créée pour vous)')); }).join(', ') + '.' : '') });
     return grilleParam([], '1-1', [titreColonne('Le tableau de bord', null, 'aSecNom'), groupeChamp('Nom du tableau de bord', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description', desc, 'Facultatif : une phrase pour les lecteurs, sous le nom.'),
+        groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes), titreColonne('Ce qui sera écrit', null, 'aSecEcrit'), ecrit], apercuEtape('Récapitulatif'));
 }
 function texteFiltrePeriode(cfg) {
@@ -9475,7 +9479,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: etapesBrouillon(b), courante: b.etape - 1,
-            repere: perso ? 'Les modifications sont enregistrées automatiquement.' : 'Le tableau de bord est enregistré par « Créer mon tableau de bord ».' };
+            repere: perso ? '' : 'Le tableau de bord est enregistré par « Créer mon tableau de bord ».' };
     }
     if (etat.config) {
         return { etapes: ETAPES_PARAMETRAGE, courante: -1,
@@ -9610,7 +9614,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (!aChange(b)) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var raison = raisonNonEnregistrable(b);

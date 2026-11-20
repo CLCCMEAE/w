@@ -652,6 +652,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -707,7 +711,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.1';
+var VERSION_WIDGET = '1.8.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplogantt';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOPLAN';
@@ -3829,7 +3833,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -4207,7 +4211,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: nomsEtapes(b), courante: b.etape,
-            repere: perso ? 'Les modifications sont enregistrées automatiquement.' : 'Rien n\'est enregistré avant « Créer mon Gantt », sauf les tables d\'un modèle, créées après confirmation.' };
+            repere: perso ? '' : 'Rien n\'est enregistré avant « Créer mon Gantt », sauf les tables d\'un modèle, créées après confirmation.' };
     }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
@@ -8682,7 +8686,7 @@ function ouvrirItem(it, focusId) {
         }
         return { ok: true, champs: champs };
     };
-    var statut = creer('p', { classe: 'w-mention w-fiche__statut', id: 'wFicheStatut', texte: etat.peutModifier ? 'Les modifications sont enregistrées automatiquement.' : 'Consultation seule.', attrs: { role: 'status' } });
+    var statut = creer('p', { classe: 'w-mention w-fiche__statut', id: 'wFicheStatut', texte: etat.peutModifier ? '' : 'Consultation seule.', attrs: { role: 'status' } });
     var minuterie = null, enCours = false, encore = false;
     var sauver = async function () {
         if (minuterie) {
@@ -9887,7 +9891,7 @@ async function ajouterExemples(m, reel, vides) {
         }
     }
 }
-function choixColonne(id, libelle, aideTexte, cols, valeur, facultatif, surChange, texteVide) {
+function choixColonne(id, libelle, aideTexte, cols, valeur, surChange, texteVide) {
     var ops = cols.map(function (col) { return { valeur: col.colId, libelle: col.label + ' · ' + libelleType(col) }; });
     var sel = liste(id, ops, valeur || '', { vide: facultatif ? (texteVide || '(Aucune)') : 'Choisissez une colonne' });
     sel.addEventListener('change', function () { surChange(sel.value || null); });
@@ -9954,7 +9958,7 @@ function etapeDates() {
     if (c.dateMode !== 'milestone') {
         var bools = colonnesUtiles(t).filter(function (x) { return x.type === 'Bool'; });
         if (bools.length) {
-            bloc.appendChild(choixColonne('aJalon', 'Jalon (facultatif)', 'Une colonne Oui/non : les lignes cochées sont dessinées comme des jalons à leur date de fin.', bools, c.colMilestone, true, function (v) { c.colMilestone = v; planifierApercu(); }));
+            bloc.appendChild(choixColonne('aJalon', 'Jalon', 'Une colonne Oui/non : les lignes cochées sont dessinées comme des jalons à leur date de fin.', bools, c.colMilestone, true, function (v) { c.colMilestone = v; planifierApercu(); }));
         }
     }
     var colS = infoColonne(t, c.colStart);
@@ -10012,7 +10016,7 @@ function etapeBarres() {
         bloc.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', texte: 'Couleur des barres' }), nu]));
     }
     var colsS = colonnesUtiles(t).filter(function (x) { var ty = String(x.type); return ty === 'Choice' || ty === 'Text' || ty === 'Bool' || ty.indexOf('Ref:') === 0; });
-    bloc.appendChild(choixColonne('aColStatut', 'Statut (facultatif)', 'Sert à savoir quels éléments sont terminés : un élément terminé n\'est jamais signalé en retard.', colsS, c.colStatus, true, function (v) {
+    bloc.appendChild(choixColonne('aColStatut', 'Statut', 'Sert à savoir quels éléments sont terminés : un élément terminé n\'est jamais signalé en retard.', colsS, c.colStatus, true, function (v) {
         c.colStatus = v;
         var col = v ? infoColonne(t, v) : null;
         c.doneValues = col && col.type !== 'Bool' ? valeursColonne(t, v, etat.cacheTables[t]).filter(function (x) { return MOTS_FAITS.indexOf(normalizer(x)) !== -1; }) : [];
@@ -10050,7 +10054,7 @@ function etapeBarres() {
     else if (colSt) {
         bloc.appendChild(creer('p', { classe: 'w-mention', texte: 'Les lignes cochées comptent comme terminées.' }));
     }
-    bloc.appendChild(choixColonne('aProgres', 'Avancement (facultatif)', 'Un nombre ou un pourcentage : montré par une partie plus foncée dans la barre. 100 % compte comme terminé.', colonnesNombre(t), c.colProgress, true, function (v) { c.colProgress = v; planifierApercu(); }));
+    bloc.appendChild(choixColonne('aProgres', 'Avancement', 'Un nombre ou un pourcentage : montré par une partie plus foncée dans la barre. 100 % compte comme terminé.', colonnesNombre(t), c.colProgress, true, function (v) { c.colProgress = v; planifierApercu(); }));
     var pris = [c.colTitle, c.colStart, c.colEnd, c.colDuration];
     var cand = colonnesUtiles(t).filter(function (x) { return pris.indexOf(x.colId) === -1 && x.type !== 'Attachments' && x.type !== 'Bool'; });
     var fl = creer('fieldset', { classe: 'fr-fieldset' }, [creer('legend', { classe: 'fr-fieldset__legend', texte: 'Aussi sur les barres (3 au plus)' })]);
@@ -10114,11 +10118,11 @@ function etapeLiens() {
     var t = c.table;
     var bloc = creer('div', { classe: 'w-c3__col' });
     var deps = colonnesDeps(t);
-    bloc.appendChild(choixColonne('aDeps', 'Dépend de (facultatif)', deps.length ? 'Une référence (ou une liste de références) vers des lignes de la même table : dessinée par des flèches ; un élément qui commence avant la fin de son prédécesseur est signalé.'
+    bloc.appendChild(choixColonne('aDeps', 'Dépend de', deps.length ? 'Une référence (ou une liste de références) vers des lignes de la même table : dessinée par des flèches ; un élément qui commence avant la fin de son prédécesseur est signalé.'
         : 'Aucune colonne de cette table ne renvoie à ses propres lignes. Ajoutez une colonne Liste de références à ' + libelleTable(t) + ' pour dessiner les dépendances.', deps, c.colDeps, true, function (v) { c.colDeps = v; planifierApercu(); }));
     var pj = colonnesPJ(t);
     if (pj.length) {
-        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes (facultatif)', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
+        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
     }
     var roles = [c.colTitle, c.colStart, c.colEnd, c.colDuration, c.colMilestone, c.colLane, c.colColor, c.colStatus, c.colProgress, c.colDeps, c.colAttach];
     var cand = colonnesUtiles(t).filter(function (x) { return roles.indexOf(x.colId) === -1 && x.type !== 'Attachments'; });
@@ -10166,12 +10170,12 @@ function etapeGeneral() {
     var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPlan' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPlan', texte: 'Le Gantt' })]),
         groupeChamp('Nom du Gantt', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description (facultatif)', desc, null),
+        groupeChamp('Description', desc, null),
         bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(rangEtape('Les droits')); }, { petit: true, id: 'aVersDroits' })
     ]);
     var danger = blocSupprimer('Supprimer le Gantt', 'Le Gantt disparaît des onglets. Sa table et ses lignes restent dans le document.', supprimerPlan);
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section, ecranTables(true)], [danger]], '2-1'), grilleParam([[pages[0]], [pages[1]]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[section, ecranTables(true)], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
 function etapeRecapitulatif() {
     var b = etat.brouillon;
@@ -10205,7 +10209,7 @@ function etapeRecapitulatif() {
     }
     ecrit.push(etat.biblio ? 'Une ligne de réglages dans ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages par Gantt.');
     ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est ajoutée, retypée ou supprimée.');
-    return grilleParam([], '1-1', [titreColonne('Le Gantt', null, 'aSecNom'), groupeChamp('Nom du Gantt', nom, 'Affiché sur son onglet.', true), groupeChamp('Description (facultatif)', desc, null),
+    return grilleParam([], '1-1', [titreColonne('Le Gantt', null, 'aSecNom'), groupeChamp('Nom du Gantt', nom, 'Affiché sur son onglet.', true), groupeChamp('Description', desc, null),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
         titreColonne('Ce qui sera écrit dans votre document', null, 'aSecEcrit'), creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, ecrit.map(function (x) { return creer('li', { texte: x }); }))], apercuEtape('Récapitulatif'));
 }
@@ -10376,7 +10380,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (!aChange(b)) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var raison = raisonNonEnregistrable(b);

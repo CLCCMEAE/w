@@ -1005,6 +1005,7 @@
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -1059,7 +1060,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.36';
+var VERSION_WIDGET = '1.1.37';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitSalles';
 var ID_BIBLIO = 'BIBLIOTHEQUE_WUITSALLES';
@@ -10104,7 +10105,7 @@ async function creerDepuisModele(m) {
             : 'La création des tables n\'a pas abouti' + (creees.length ? ' : certaines tables ont été créées et restent dans le document.' : '.'), e);
     }
 }
-function choixColonne(id, libelle, aideTexte, cols, valeur, facultatif, surChange, texteVide) {
+function choixColonne(id, libelle, aideTexte, cols, valeur, surChange, texteVide) {
     var ops = cols.map(function (col) { return { valeur: col.colId, libelle: col.label + ' · ' + libelleType(col) }; });
     var sel = liste(id, ops, valeur || '', { vide: facultatif ? (texteVide || '(Aucune)') : 'Choisissez une colonne' });
     sel.addEventListener('change', function () { surChange(sel.value || null); });
@@ -10224,7 +10225,7 @@ function etapeBarres() {
         bloc.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', texte: 'Couleur des réservations' }), nu]));
     }
     var colsS = colonnesUtiles(t).filter(function (x) { var ty = String(x.type); return ty === 'Choice' || ty === 'Text' || ty === 'Bool' || ty.indexOf('Ref:') === 0; });
-    bloc.appendChild(choixColonne('aColStatut', 'Statut (facultatif)', 'Affiché dans l\'aperçu de chaque réservation.', colsS, c.colStatus, true, function (v) {
+    bloc.appendChild(choixColonne('aColStatut', 'Statut', 'Affiché dans l\'aperçu de chaque réservation.', colsS, c.colStatus, true, function (v) {
         c.colStatus = v;
         redessinerEtape('aColStatut');
     }));
@@ -10259,7 +10260,7 @@ function etapeLiens() {
     var bloc = creer('div', { classe: 'w-c3__col' });
     var pj = colonnesPJ(t);
     if (pj.length) {
-        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes (facultatif)', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
+        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
     }
     var cand = candidatsFiche(c);
     var aideF = aide('aFicheAide', 'autres champs de la fiche', 'Le titre, les dates, la salle et le statut y figurent toujours. Les éditeurs modifient les valeurs ; les colonnes calculées restent en lecture seule. Une colonne ajoutée plus tard à la table apparaît d\'office dans la fiche.');
@@ -10481,7 +10482,7 @@ function etapeGeneral() {
     var col1 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPlan' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPlan', texte: 'Le planning des salles' })]),
         groupeChamp('Nom', nom, null, true),
-        groupeChamp('Description (facultatif)', desc, null),
+        groupeChamp('Description', desc, null),
         table
     ]);
     var r = aide('aAideReserver', 'Cacher cette page', 'Le widget pose une vue de la table « ' + titreOwner() + ' », repliée en haut de cette page. Il reste à poser la règle d\'accès : panneau de gauche, rubrique « Outils », « Permissions avancées », puis sur cette table la règle « Condition : user.Access != OWNER. Refuser la Lecture. ». Les personnes qui ne peuvent pas lire cette table ne voient plus la page. Vérifiez avec « Voir en tant que ».');
@@ -10577,7 +10578,7 @@ function etapeRecapitulatif() {
     if (b.pageAgents !== false) {
         ecrit.push('La page « Réserver une salle », pour les agents.');
     }
-    return grilleParam([], '1-1', [titreColonne('Le planning des salles', null, 'aSecNom'), groupeChamp('Nom', nom, null, true), groupeChamp('Description (facultatif)', desc, null),
+    return grilleParam([], '1-1', [titreColonne('Le planning des salles', null, 'aSecNom'), groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, null),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
         titreColonne('La page des agents', null, 'aSecPage'), blocPage,
         titreColonne('Ce qui sera écrit dans votre document', null, 'aSecEcrit'), creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, ecrit.map(function (x) { return creer('li', { texte: x }); }))], apercuEtape('Récapitulatif'));
@@ -11768,7 +11769,7 @@ function etapeReservations() {
     if (colS && !estDateTime(colS) && !colS.formule && !(colE && colE.formule) && etat.peutParametrer) {
         bloc.appendChild(blocAjouterHeures(c, colS, colE));
     }
-    bloc.appendChild(choixColonne('aParticipants', 'Nombre de personnes (facultatif)', 'Comparé à la capacité de la salle au moment de réserver.', colonnesNombre(t), c.colParticipants, true, function (v) { c.colParticipants = v; }));
+    bloc.appendChild(choixColonne('aParticipants', 'Nombre de personnes', 'Comparé à la capacité de la salle au moment de réserver.', colonnesNombre(t), c.colParticipants, true, function (v) { c.colParticipants = v; }));
     var barres = etapeBarres();
     Array.prototype.slice.call(barres.childNodes).forEach(function (n) { bloc.appendChild(n); });
     var colSt = c.colStatus ? infoColonne(t, c.colStatus) : null;
@@ -11785,7 +11786,7 @@ function etapeReservations() {
         bloc.appendChild(fs);
     }
     var conflits = colonnesUtiles(t).filter(function (x) { return x.type === 'Bool'; });
-    bloc.appendChild(choixColonne('aConflit', 'Colonne qui signale les chevauchements (facultatif)', 'Une colonne calculée par la table : vrai quand la salle est déjà prise sur ce créneau.', conflits, c.colConflict, true, function (v) { c.colConflict = v; redessinerEtape('aConflit'); }, 'Aucune : le widget les repère'));
+    bloc.appendChild(choixColonne('aConflit', 'Colonne qui signale les chevauchements', 'Une colonne calculée par la table : vrai quand la salle est déjà prise sur ce créneau.', conflits, c.colConflict, true, function (v) { c.colConflict = v; redessinerEtape('aConflit'); }, 'Aucune : le widget les repère'));
     if (!c.colConflict && c.colLane && c.colStart && c.colEnd && etat.peutParametrer) {
         bloc.appendChild(creer('div', { classe: 'fr-mb-3w' }, [bouton('Ajouter la colonne CONFLIT à la table', 'secondaire', 'add-line', function () { return ajouterColonneConflit(c); }, { petit: true, id: 'aAjouterConflit' }),
             creer('p', { classe: 'fr-hint-text', texte: 'Une colonne calculée, vraie quand une autre réservation active occupe la même salle au même moment. Elle sert aussi aux règles d\'accès et aux exports.' })]));
@@ -12690,7 +12691,7 @@ function rendreFicheSalle(zone, s) {
     }
     champs.push(grille);
     if (rc.visio) {
-        champs.push(champTexte('sVisio', 'Lien de visioconférence (facultatif)', rc.visio, val(rc.visio), { url: true, indice: 'https://…', aide: 'Si la salle est équipée : la personne qui réserve reçoit ce lien pour le donner à ses invités.' }));
+        champs.push(champTexte('sVisio', 'Lien de visioconférence', rc.visio, val(rc.visio), { url: true, indice: 'https://…', aide: 'Si la salle est équipée : la personne qui réserve reçoit ce lien pour le donner à ses invités.' }));
     }
     champs.push(blocEquipementsSalle(s));
     if (rc.validation) {
@@ -13048,7 +13049,7 @@ function etapeColonnes() {
     Array.prototype.slice.call(r.childNodes).forEach(function (n) { z.appendChild(n); });
     var c = etat.brouillon.cfg;
     var colsDem = colonnesUtiles(c.table).filter(function (x) { return ['Text', 'Any'].indexOf(String(x.type)) !== -1 || String(x.type).indexOf('Ref:') === 0; });
-    z.appendChild(choixColonne('aDemandeur', 'Demandeur (facultatif)', 'Rempli automatiquement par la table, ou saisi quand on réserve pour quelqu\'un d\'autre.', colsDem, c.colDemandeur, true, function (v) { c.colDemandeur = v; }));
+    z.appendChild(choixColonne('aDemandeur', 'Demandeur', 'Rempli automatiquement par la table, ou saisi quand on réserve pour quelqu\'un d\'autre.', colsDem, c.colDemandeur, true, function (v) { c.colDemandeur = v; }));
     return z;
 }
 function migrerDemandesAnciennes(c) {
@@ -13108,7 +13109,7 @@ function etapeFormulaire() {
     var blocs = [];
     var cons = saisie('aConsignes', f.consignes, { multiligne: true, lignes: 3, indice: 'Par exemple : pensez à annuler si votre réunion n\'a plus lieu.' });
     cons.addEventListener('input', function () { f.consignes = cons.value; planifierApercu(); });
-    blocs.push(blocNumerote(1, 'Consignes du poste', 'Un texte court, affiché en haut de la fenêtre de réservation. Facultatif.', [groupeChamp('Consignes', cons)]));
+    blocs.push(blocNumerote(1, 'Consignes du poste', 'Un texte court, affiché en haut de la fenêtre de réservation.', [groupeChamp('Consignes', cons)]));
     var t = creer('table', { classe: 's-table' }, [creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Champ' }), creer('th', { texte: 'Demandé' }), creer('th', { texte: 'Obligatoire' })])])]);
     var tb = creer('tbody');
     var colT = infoColonne(c.table, c.colTitle);
@@ -13770,7 +13771,7 @@ function etapeCreneau(res) {
             });
             g.appendChild(bt);
         });
-        l.push(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'rEqLeg', texte: 'Il me faut (facultatif)' }), g]));
+        l.push(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'rEqLeg', texte: 'Il me faut' }), g]));
     }
     l.push(creer('p', { classe: 's-resume' }, [creer('strong', { texte: 'Votre demande : ' }), creer('span', { id: 'rResume', texte: texteDemande(res), attrs: { 'aria-live': 'polite' } })]));
     l.push(creer('p', { classe: 'fr-error-text', id: 'rErreur', attrs: { 'aria-live': 'polite' }, texte: '' }));
@@ -14067,7 +14068,7 @@ function etapeInfosReservation(res) {
     });
     l.push(fiche);
     if (f.demandes.length) {
-        var fs = creer('fieldset', { classe: 'fr-fieldset s-demandes' }, [creer('legend', { classe: 'fr-fieldset__legend fr-text--regular', texte: 'Demandes particulières (facultatif)' })]);
+        var fs = creer('fieldset', { classe: 'fr-fieldset s-demandes' }, [creer('legend', { classe: 'fr-fieldset__legend fr-text--regular', texte: 'Demandes particulières' })]);
         f.demandes.forEach(function (x, k) {
             var col = infoColonne(c.table, x.col);
             if (!col || !estModifiable(col, genreDe(col, null)) || (x.salles.length && s && x.salles.indexOf(s.cle) === -1)) {
@@ -15510,7 +15511,7 @@ function zoneDecision(it, prefixe, apresRetour) {
     var motif = function () {
         vider(z);
         var t = saisie(prefixe + 'Motif', '', { multiligne: true, lignes: 2, indice: 'Par exemple : salle réservée pour une visite officielle' });
-        z.appendChild(groupeChamp('Motif du refus (facultatif)', t, 'La personne le verra sur sa réservation.', false));
+        z.appendChild(groupeChamp('Motif du refus', t, 'La personne le verra sur sa réservation.', false));
         var g = creer('div', { classe: 's-decision' }, [
             bouton('Confirmer le refus', null, 'close-line', function () { return deciderDemandes([it], 'refusee', t.value); }, { id: prefixe + 'RefOk' }),
             serie.length > 1 ? bouton('Refuser les ' + serie.length + ' de la série', 'secondaire', null, function () { return deciderDemandes(serie, 'refusee', t.value); }, { id: prefixe + 'RefSerie' }) : null,

@@ -513,6 +513,7 @@
     }
   
   .w-wuit { color: var(--blue-france-main-525); }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -569,7 +570,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.4.0';
+var VERSION_WIDGET = '3.4.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploverse';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOVERSE_';
@@ -2173,7 +2174,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -2594,7 +2595,6 @@ var AIDE = {
         { q: 'Qui peut paramétrer WuitVerse ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Général » des paramétrages : « Réserver le paramétrage aux propriétaires », puis « Voir la marche à suivre ».' },
         { q: 'Comment me déclarer pour un autre jour ?', r: 'Changez de jour avec les flèches à côté de la date, puis cliquez sur votre prénom : votre bureau s\'ouvre sur ce jour. Une période (congés, mission) s\'enregistre aussi depuis votre bureau.' },
         { q: 'Pourquoi une pièce n\'apparaît-elle pas ?', r: 'Elle n\'est pas cochée à l\'étape « Le modèle », ou sa table et ses colonnes principales ne sont pas choisies à l\'étape « Les pièces ».' },
-        { q: 'Mes changements de paramétrage sont-ils enregistrés ?', r: 'Oui, automatiquement : l\'état est rappelé sous le titre des paramétrages. Une table à créer l\'est en revenant au plan.' },
         { q: 'Supprimer un verse supprime-t-il des données ?', r: 'Non. Seuls ses réglages (et sa plante, son chien, ses trophées) sont effacés ; les tables et leurs lignes restent dans le document.' }
     ]
 };
@@ -2602,7 +2602,7 @@ function contexteAide() {
     var b = etat.brouillon;
     if (etat.vue === 'assistant' && b) {
         return { etapes: nomsEtapes(b), courante: rangEtape(b) - 1,
-            repere: b.param ? 'Les modifications sont enregistrées automatiquement.' : 'Rien n\'est enregistré avant « Créer mon verse », sauf l\'équipe, créée à son étape.' };
+            repere: b.param ? '' : 'Rien n\'est enregistré avant « Créer mon verse », sauf l\'équipe, créée à son étape.' };
     }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
@@ -8295,7 +8295,7 @@ function ongletActivites(z, m, modifiable) {
         var choix = { projet: null, hors: null };
         var champ = champProjet(choix);
         var duree = liste('dvActDuree', DUREES.map(function (h) { return { valeur: String(h), libelle: heuresTexte(h) }; }), '1');
-        var precision = saisie('dvActPrecision', '', { indice: 'Facultatif' });
+        var precision = saisie('dvActPrecision', '', { indice: '' });
         z.appendChild(creer('div', { classe: 'dv-act-ajout' }, [
             groupeChamp('Projet', champ, 'Tapez des lettres ou un numéro : la liste se réduit', true),
             creer('div', { classe: 'dv-act-ajout__ligne' }, [groupeChamp('Durée', duree, null, true), groupeChamp('Précision', precision, null, false)]),
@@ -9654,7 +9654,7 @@ async function formulaireReunion(r, retour, pre) {
     var eds = sansDoublons([
         editeurChamp(tid, rc.colObjet, { cle: 'objet', id: 'dvF_objet', libelle: 'Objet', requis: true, valeur: brut(rc.colObjet), indice: 'Point d\'équipe' }),
         editeurChamp(tid, rc.colDebut, { cle: 'debut', id: 'dvF_debut', libelle: 'Début', requis: true, valeur: brut(rc.colDebut), defaut: def.debut }),
-        editeurChamp(tid, rc.colFin, { cle: 'fin', id: 'dvF_fin', libelle: 'Fin', valeur: brut(rc.colFin), defaut: def.fin, aide: 'Facultatif : sans fin, la réunion dure une heure' }),
+        editeurChamp(tid, rc.colFin, { cle: 'fin', id: 'dvF_fin', libelle: 'Fin', valeur: brut(rc.colFin), defaut: def.fin, aide: 'Sans fin, la réunion dure une heure' }),
         editeurChamp(tid, rc.colLieu, { cle: 'lieu', id: 'dvF_lieu', libelle: 'Lieu', valeur: brut(rc.colLieu), indice: 'Salle de réunion' }),
         editeurChamp(tid, rc.colVisio, { cle: 'visio', id: 'dvF_visio', libelle: 'Lien de la visio', valeur: brut(rc.colVisio), url: true, indice: 'https://…', aide: 'Une adresse qui commence par https:// ou http://' }),
         editeurChamp(tid, rc.colParticipants, { cle: 'participants', id: 'dvF_participants', libelle: 'Participants', valeur: brut(rc.colParticipants), defaut: def.participants, personnes: !!colP && colP.type !== 'Text' && colP.type !== 'Any',
@@ -9756,7 +9756,7 @@ async function formulairePersonne(m, retour) {
     if (colEmoji && estModifiable(colEmoji, 'texte')) {
         var emo = saisie('dvF_emoji', m ? m.emoji : '', { indice: '🦊' });
         emo.classList.add('dv-emoji');
-        eds.push(fabriquerEditeur('emoji', null, groupeChamp('Emoji', emo, 'Facultatif : un emoji, montré en pastille à côté du prénom sur la carte.', false), emo, function () {
+        eds.push(fabriquerEditeur('emoji', null, groupeChamp('Emoji', emo, 'Un emoji, montré en pastille à côté du prénom sur la carte.', false), emo, function () {
             var t = emo.value.trim();
             if (t.length > 8) {
                 return { erreur: 'Restez court : un seul emoji.' };
@@ -9809,7 +9809,7 @@ async function formulairePersonne(m, retour) {
     eds.push(fabriquerEditeur('monture', null, groupeChamp('Monture', monture, 'Comment le personnage rentre chez lui sur la carte', false), monture, function () { return { valeur: monture.value }; }));
     if (colEmp && estModifiable(colEmp, 'texte')) {
         var emp = saisie('dvF_employeur', m ? m.employeur : '', {});
-        eds.push(fabriquerEditeur('employeur', null, groupeChamp('Titulaire', emp, 'Facultatif : écrit sur le relevé PDF', false), emp, function () { return { valeur: emp.value.trim() }; }));
+        eds.push(fabriquerEditeur('employeur', null, groupeChamp('Titulaire', emp, 'Écrit sur le relevé PDF', false), emp, function () { return { valeur: emp.value.trim() }; }));
     }
     dessinerBureau();
     var focusRetour = m ? ['dvMembreModif'] : ['dvAccMembre_nouveau', 'dvAjoutMembre'];
@@ -10240,7 +10240,7 @@ function formulaireActivite(m, a) {
         heures.sort(function (x, y) { return x - y; });
     }
     var duree = liste('dvF_actDuree', heures.map(function (h) { return { valeur: String(h), libelle: heuresTexte(h) }; }), String(a.heures || 1));
-    var detail = saisie('dvF_actDetail', a.precision, { indice: 'Facultatif' });
+    var detail = saisie('dvF_actDetail', a.precision, { indice: '' });
     var eds = [
         fabriquerEditeur('date', null, groupeChamp('Date', date, null, true), date, function () { var x = saisieVersDate(date.value); return x ? { valeur: x } : { erreur: 'Indiquez la date.' }; }),
         fabriquerEditeur('projet', null, groupeChamp('Projet', combo, 'Tapez des lettres ou un numéro : la liste se réduit', true), combo.querySelector('input'), function () {
@@ -11052,7 +11052,7 @@ function etapeEquipe(b) {
         bloc.appendChild(bouton('Reprendre les personnes de « ' + nomTable(src.table) + ' »', 'tertiaire', 'download-line', function () { return importerPersonnes(b, src); }, { petit: true, id: 'dvImporter' }));
     }
     var table = creer('table', { classe: 'dv-membres' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Personnes de l\'équipe' }),
-        creer('thead', {}, [creer('tr', {}, ['Nom', 'Emoji (facultatif)', 'Site habituel', 'Monture', ''].map(function (t) { return creer('th', { attrs: { scope: 'col' }, texte: t }); }))])]);
+        creer('thead', {}, [creer('tr', {}, ['Nom', 'Emoji', 'Site habituel', 'Monture', ''].map(function (t) { return creer('th', { attrs: { scope: 'col' }, texte: t }); }))])]);
     var tb = creer('tbody');
     b.membres.forEach(function (m, i) {
         var nom = saisie('dvNom' + i, m.nom);
@@ -11522,11 +11522,11 @@ function choixTable(id, libelle, valeur, surChange) {
     sel.addEventListener('change', function () { surChange(sel.value || null); });
     return groupeChamp(libelle, sel, null, true);
 }
-function choixCol(id, libelle, tid, filtre, valeur, facultatif, surChange, aideTexte) {
+function choixCol(id, libelle, tid, filtre, valeur, surChange, aideTexte) {
     var cols = colonnesDe(tid).filter(function (c) { return c.colId.indexOf('gristHelper_') !== 0 && filtre(c); });
     var sel = liste(id, cols.map(function (c) { return { valeur: c.colId, libelle: nomColonne(c) }; }), valeur || '', { vide: facultatif ? '(Aucune)' : 'Choisir une colonne' });
     sel.addEventListener('change', function () { surChange(sel.value || null); });
-    return groupeChamp(libelle, sel, aideTexte || (facultatif ? 'Facultatif' : null), !facultatif);
+    return groupeChamp(libelle, sel, aideTexte || (facultatif ? '' : null), !facultatif);
 }
 function proposerProjets(tid) {
     var p = { table: tid, colNom: deviner(tid, /nom du projet|nom projet|^nom\b|titre|intitule/, TYPES.texte), colNum: deviner(tid, /numero|reference|\bref\b|\bn ?°/, TYPES.tout),
@@ -11541,9 +11541,9 @@ var PIECES_TABLES = {
         intro: 'Les réunions du jour sur le grand tableau, le rappel 15 minutes avant, « Rejoindre la visio ».',
         probable: function () { return tableProbable(/meeting|reunion/, null); }, proposer: function (t) { return proposerReunions(t); },
         champs: [['colObjet', 'Objet de la réunion', TYPES.texte, false], ['colDebut', 'Début', TYPES.dateheure, false],
-            ['colFin', 'Fin', TYPES.dateheure, true, 'Facultatif : sans fin, une réunion dure une heure'], ['colLieu', 'Lieu', TYPES.texte, true],
-            ['colVisio', 'Lien de visio', TYPES.texte, true, 'Facultatif : un lien web écrit dans le lieu est aussi reconnu'], ['colParticipants', 'Participants', TYPES.tout, true],
-            ['colStatut', 'Statut', TYPES.choix, true, 'Facultatif : les réunions annulées ou reportées ne sont pas affichées']] },
+            ['colFin', 'Fin', TYPES.dateheure, true, 'Sans fin, une réunion dure une heure'], ['colLieu', 'Lieu', TYPES.texte, true],
+            ['colVisio', 'Lien de visio', TYPES.texte, true, 'Un lien web écrit dans le lieu est aussi reconnu'], ['colParticipants', 'Participants', TYPES.tout, true],
+            ['colStatut', 'Statut', TYPES.choix, true, 'Les réunions annulées ou reportées ne sont pas affichées']] },
     taches: { pieces: ['paperboards'], titre: '📝 Les tâches (paperboards)', cles: ['colDescription', 'colResponsable'],
         intro: 'Les tâches ouvertes de chacun, sur son bureau et sur le paperboard. Une tâche est à quelqu\'un si sa colonne « responsable » contient son emoji ou son nom.',
         probable: function () { return tableProbable(/todo|tache/, null); }, proposer: function (t) { return proposerTaches(t); },
@@ -11553,15 +11553,15 @@ var PIECES_TABLES = {
         intro: 'Vos documents et liens utiles, en livres sur les étagères de l\'accueil : on cherche, on ouvre le lien ou on consulte le fichier.',
         probable: function () { return tableProbable(/ressource/, null); }, proposer: function (t) { return proposerRessources(t); },
         champs: [['colNom', 'Nom de la ressource', TYPES.texte, false], ['colLien', 'Lien', TYPES.texte, true], ['colType', 'Type', TYPES.choix, true],
-            ['colEpingle', 'Épinglée', TYPES.oui, true, 'Facultatif : les ressources épinglées passent en premier'],
-            ['colFichier', 'Fichier joint', TYPES.pj, true, 'Facultatif : une colonne « Pièces jointes » ; ses fichiers (PDF, images...) se consultent dans le widget']] },
+            ['colEpingle', 'Épinglée', TYPES.oui, true, 'Les ressources épinglées passent en premier'],
+            ['colFichier', 'Fichier joint', TYPES.pj, true, 'Une colonne « Pièces jointes » ; ses fichiers (PDF, images...) se consultent dans le widget']] },
     projets: { pieces: ['projets', 'planning', 'activites'], titre: '🗄️ Les projets', cles: ['colNom'],
         intro: 'La bibliothèque des projets (une étagère par statut), le planning et la déclaration des activités lisent cette table.',
         probable: function () { return tableProbable(/projet/, null); }, proposer: function (t) { return proposerProjets(t); },
-        champs: [['colNom', 'Nom du projet', TYPES.texte, false], ['colNum', 'Numéro', TYPES.tout, true], ['colStatut', 'Statut', TYPES.choix, true, 'Facultatif : une étagère par statut'],
-            ['colDev', 'Dev', TYPES.personne, true, 'Facultatif : l\'emoji ou le nom de la personne (planning, une ligne par dev)'],
-            ['colDebut', 'Début du développement', TYPES.date, true, 'Facultatif : nécessaire au planning'], ['colFin', 'Fin du développement', TYPES.date, true],
-            ['colObjet', 'Objet', TYPES.texte, true, 'Facultatif : le texte en bas de la fiche']] }
+        champs: [['colNom', 'Nom du projet', TYPES.texte, false], ['colNum', 'Numéro', TYPES.tout, true], ['colStatut', 'Statut', TYPES.choix, true, 'Une étagère par statut'],
+            ['colDev', 'Dev', TYPES.personne, true, 'L\'emoji ou le nom de la personne (planning, une ligne par dev)'],
+            ['colDebut', 'Début du développement', TYPES.date, true, 'Nécessaire au planning'], ['colFin', 'Fin du développement', TYPES.date, true],
+            ['colObjet', 'Objet', TYPES.texte, true, 'Le texte en bas de la fiche']] }
 };
 function pieceTableUtile(c, k) { return PIECES_TABLES[k].pieces.some(function (p) { return !c.pieces || c.pieces[p] !== false; }); }
 function etapePieces(b) {
@@ -11602,7 +11602,7 @@ function etapePieces(b) {
         misC.addEventListener('input', function () { c.missionPour = misC.value.trim(); });
         bloc.appendChild(creer('section', { classe: 'dv-piece fr-mt-3w' }, [creer('h3', { classe: 'fr-h6', texte: '🗂️ La déclaration des activités' }),
             creer('p', { classe: 'w-mention', texte: 'La table « 🗂️ Activités » est créée la première fois que quelqu\'un déclare une activité dans son bureau.' }),
-            groupeChamp('Mission réalisée pour', misC, 'Facultatif : écrit sur le relevé PDF de chacun (ligne omise si vide). La ligne « Titulaire » vient de la colonne facultative EMPLOYEUR de la table Équipe.', false)]));
+            groupeChamp('Mission réalisée pour', misC, 'Écrit sur le relevé PDF de chacun (ligne omise si vide). La ligne « Titulaire » vient de la colonne facultative EMPLOYEUR de la table Équipe.', false)]));
     }
     if (aucune) {
         bloc.appendChild(alerte('info', null, 'Aucune pièce optionnelle n\'est cochée : WuitVerse affichera l\'accueil, les bureaux, les maisons et les îles.'));
@@ -11927,7 +11927,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (!aChange(b)) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var pb = problemeVerse(b);

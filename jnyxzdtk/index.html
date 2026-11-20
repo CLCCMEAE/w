@@ -780,6 +780,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -994,7 +998,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_FORMULAIRES';
@@ -5384,7 +5388,7 @@ function statutSauvegarde(texte, erreur) {
     clearTimeout(_statutMinuterie);
     if (!erreur) {
         _statutMinuterie = setTimeout(function () { var x = document.getElementById('aStatut'); if (x) {
-            x.textContent = 'Les modifications sont enregistrées automatiquement.';
+            x.textContent = '';
         } }, 3000);
     }
 }
@@ -5654,7 +5658,7 @@ var AIDE = {
         'Général': { titre: 'nom, description, aide pour remplir et pages des lecteurs', points: ['Le nom s\'affiche en haut du formulaire et dans l\'onglet.', '« Aide pour remplir » : un texte et des notices PDF, ouverts par un bouton au-dessus du formulaire.', '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.', '« Où les lecteurs le voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les formulaires, les écrans, les dossiers montrés, ce que les instructeurs peuvent y faire et les filtres laissés dans le panneau.', 'La suppression retire le formulaire de la bibliothèque ; la table et les réponses restent dans le document.'] },
         'Dates et limites': { titre: 'ouverture, clôture, nombre de réponses', points: ['Le formulaire s\'ouvre et se ferme seul aux dates choisies ; la clôture vaut jusqu\'à la fin du dernier jour.', 'Un nombre maximal de réponses ferme aussi le formulaire une fois atteint (0 : illimité).', 'Pour une fermeture stricte, passez le formulaire à l\'état « Fermé » (rubrique Général).'] },
         'Colonnes enregistrées': { titre: 'où vont les réponses', points: ['Chaque question enregistre sa réponse dans une colonne, nommée une fois pour toutes.', 'Renommer le nom du champ dans l\'éditeur renomme la colonne sans toucher aux réponses.'] },
-        'Réglages': { titre: 'tous les réglages du formulaire', points: ['Choisissez une rubrique dans le sommaire à gauche : pas d\'ordre à suivre.', 'Chaque modification est enregistrée automatiquement.', '« Supprimer le formulaire » est en bas du sommaire.'] },
+        'Réglages': { titre: 'tous les réglages du formulaire', points: ['Choisissez une rubrique dans le sommaire à gauche : pas d\'ordre à suivre.', '« Supprimer le formulaire » est en bas du sommaire.'] },
         'Qui peut répondre': { titre: 'public, adresses, dates', points: ['Sans connexion : l\'adresse e-mail est demandée en premier, vérifiée, et comparée aux adresses acceptées et refusées.', 'Le testeur d\'adresses montre ce qui arrivera à une adresse donnée.', 'Les dates ouvrent et ferment le formulaire automatiquement.'] },
         'L\'instruction': { titre: 'utilisateurs, groupes, fléchage', points: ['Branchez la table des personnes du document (ou laissez le widget la créer).', 'Composez les groupes d\'instructeurs ; un groupe « Gestion » voit tous les dossiers.', 'Les règles de fléchage envoient chaque dossier au premier groupe dont la condition est vraie.', 'Annotations privées et étiquettes ne sont vues que des instructeurs.'] },
         'Affichage': { titre: 'présentation du formulaire', points: ['Barre de progression, numérotation des questions, page d\'accueil.', 'Mode quiz : score, correction et résultats selon le score.'] },
@@ -6248,7 +6252,7 @@ function editeurNotices(def) {
 function sectionAideRemplir(def) {
     var rg = def.reglages;
     return section('Aide pour remplir', 'Montrée à la personne qui répond : un bouton « Aide pour remplir » au-dessus du formulaire ouvre ce texte dans le panneau de droite, avec les notices.', 'aSecAideRemplir', [
-        champLie('aAideRemplir', 'Texte de l\'aide', rg, 'aideRemplir', { multiligne: true, aide: 'Facultatif. Une ligne vide sépare les paragraphes.' }),
+        champLie('aAideRemplir', 'Texte de l\'aide', rg, 'aideRemplir', { multiligne: true, aide: 'Une ligne vide sépare les paragraphes.' }),
         creer('p', { classe: 'w-page-sous-titre', texte: 'Notices à télécharger' }),
         creer('p', { classe: 'w-mention', texte: 'Fichiers PDF de 25 Mo au plus. Un lien de téléchargement apparaît au-dessus de chaque page du formulaire, dans l\'aide et dans « Mes dossiers ».' }),
         editeurNotices(def)
@@ -8553,10 +8557,12 @@ function paramGeneral(def) {
     } }), 'Changement d\'état'); });
     var ferme = champLie('aMsgFerme', 'Message quand le formulaire est fermé', rg, 'messageFerme', {});
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [creer('div', { classe: 'w-grille w-grille--2-1' }, [
-        creer('div', { classe: 'w-grille__col' }, [section('Le formulaire', null, 'aSecGeneral', [nom, desc]), sectionAideRemplir(def), section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme])]),
-        creer('div', { classe: 'w-grille__col' }, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerRubrique('droits'); }, { petit: true, id: 'aVersDroits' })])
-    ]), creer('div', { classe: 'w-grille w-grille--1-1' }, [creer('div', { classe: 'w-grille__col' }, [pages[0]]), creer('div', { classe: 'w-grille__col' }, [pages[1]])])]);
+    return creer('div', { classe: 'w-general' }, [creer('div', { classe: 'w-grille w-grille--1-1-1' }, [
+        creer('div', { classe: 'w-grille__col' }, [section('Le formulaire', null, 'aSecGeneral', [nom, desc]), sectionAideRemplir(def)]),
+        creer('div', { classe: 'w-grille__col' }, [pages[0], pages[1]]),
+        creer('div', { classe: 'w-grille__col' }, [section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme]),
+            section('Les droits', null, 'aSecVersDroits', [creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerRubrique('droits'); }, { petit: true, id: 'aVersDroits' })])])])
+    ])]);
 }
 async function supprimerFormulaire() {
     var def = defCourante(), e = entreeCourante();
@@ -9172,7 +9178,7 @@ function editeurPage(def, p) {
     titre.addEventListener('input', function () { p.titre = titre.value; modifie(); var b = document.getElementById('cPg_' + p.id); if (b) {
         b.textContent = nomPage(def, p);
     } });
-    var desc = saisie('cPageDesc', p.description, { multiligne: true, lignes: 2, indice: 'Texte d\'introduction (facultatif) ; @ pour reprendre une réponse' });
+    var desc = saisie('cPageDesc', p.description, { multiligne: true, lignes: 2, indice: 'Texte d\'introduction ; @ pour reprendre une réponse' });
     desc.addEventListener('input', function () { p.description = desc.value; modifie(); });
     var outils = creer('div', { classe: 'w-feuille__outils' }, [
         boutonIcone('Déplacer la page vers la gauche', 'arrow-left-line', function () { deplacerPage(def, p, -1); }, { id: 'cPageGauche', variante: 'discret' }),
@@ -9743,7 +9749,7 @@ function reglagesType(def, q, corps, maj) {
         case 'document':
             corps.appendChild(editeurDocument(q, maj));
             corps.appendChild(lier('cTitreTexte', 'Texte du lien', q, 'libelle', maj, { aide: 'Par exemple : Télécharger le modèle d\'attestation. Laissé à « Document à télécharger », le lien reprend le nom du fichier.' }));
-            corps.appendChild(lier('cTexte', 'Précision sous le lien', q, 'texte', maj, { multiligne: true, aide: 'Facultatif : à quoi sert le document, quoi en faire.' }));
+            corps.appendChild(lier('cTexte', 'Précision sous le lien', q, 'texte', maj, { multiligne: true, aide: 'À quoi sert le document, quoi en faire.' }));
             break;
         case 'calcul':
             corps.appendChild(panneauCalculQuestion(def, q, maj));
@@ -11145,7 +11151,7 @@ function adresse(q, v, maj, lib) {
     var c = function (cle, libelle, o) { var x = saisie(id + (cle === 'rue' ? '' : '_' + cle), val[cle], o); champs[cle] = x; x.addEventListener('input', function () { val[cle] = x.value; maj(Object.assign({}, val)); }); return groupeChamp(libelle, x); };
     var pays = liste(id + '_pays', DF.ref.PAYS.map(function (p) { return { valeur: p, libelle: p }; }), val.pays);
     pays.addEventListener('change', function () { val.pays = pays.value; maj(Object.assign({}, val)); });
-    return fieldsetChoix(q, lib, [c('rue', 'Numéro et voie'), c('complement', 'Complément (facultatif)'),
+    return fieldsetChoix(q, lib, [c('rue', 'Numéro et voie'), c('complement', 'Complément'),
         creer('div', { classe: 'w-ligne-champs' }, [c('codePostal', 'Code postal', { clavier: 'numeric' }), c('ville', 'Ville')]), groupeChamp('Pays', pays)]);
 }
 function champFichier(s, q, v, maj, lib) {
@@ -12529,9 +12535,9 @@ function lancerAction(def, d, p) {
     var fichier = creer('input', { classe: 'fr-sr-only', id: 'fJustif', attrs: { type: 'file' } });
     var nomF = creer('span', { classe: 'w-mention', id: 'fJustifNom' });
     fichier.addEventListener('change', function () { nomF.textContent = fichier.files[0] ? fichier.files[0].name : ''; });
-    var corps = [groupeChamp(lib + (p.motivation || p.message ? ' (obligatoire)' : ' (facultatif)'), champTexte, p.motivation ? 'Visible du répondant et inscrite dans l\'historique.' : (p.message ? 'Envoyé au répondant dans la messagerie ; le dossier repasse en modification.' : null))];
+    var corps = [groupeChamp(lib + (p.motivation || p.message ? ' (obligatoire)' : ''), champTexte, p.motivation ? 'Visible du répondant et inscrite dans l\'historique.' : (p.message ? 'Envoyé au répondant dans la messagerie ; le dossier repasse en modification.' : null))];
     if (p.decision) {
-        corps.push(creer('div', { classe: 'w-pile' }, [creer('p', { classe: 'fr-label', texte: 'Justificatif (facultatif)' }), creer('div', { classe: 'w-boutons' }, [creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-attachment-line fr-btn--icon-left', attrs: { 'for': 'fJustif' }, texte: 'Joindre un fichier' }), fichier, nomF])]));
+        corps.push(creer('div', { classe: 'w-pile' }, [creer('p', { classe: 'fr-label', texte: 'Justificatif' }), creer('div', { classe: 'w-boutons' }, [creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-attachment-line fr-btn--icon-left', attrs: { 'for': 'fJustif' }, texte: 'Joindre un fichier' }), fichier, nomF])]));
     }
     ouvrirModale({ titre: verbe + ' le dossier n° ' + d.id + ' ?', etroite: false, corps: corps, focus: 'fMotif',
         pied: [bouton('Annuler', 'secondaire', null, fermerModale, { id: 'fDecAnnuler' }), creer('span', { classe: 'w-pousse' }),

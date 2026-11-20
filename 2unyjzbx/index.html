@@ -612,6 +612,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -667,7 +671,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.0';
+var VERSION_WIDGET = '1.7.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocity';
 var ID_BIBLIO = 'BIBLIOTHEQUE_VILLE';
@@ -3287,7 +3291,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -10468,7 +10472,7 @@ async function annulerCreation() {
         demarrerCreation();
     }
 }
-function choixColonne(id, libelle, aideTexte, tid, filtre, valeur, facultatif, surChange) {
+function choixColonne(id, libelle, aideTexte, tid, filtre, valeur, surChange) {
     var cols = colonnesUtiles(tid).filter(filtre);
     var ops = cols.map(function (c) { return { valeur: c.colId, libelle: nomColonne(c) + ' · ' + libelleType(c) }; });
     var sel = liste(id, ops, valeur || '', { vide: facultatif ? '(Aucune)' : 'Choisir une colonne' });
@@ -10707,7 +10711,7 @@ function majAide() {
             '« Imprimer la marche à suivre » : pour l\'avoir sous les yeux pendant le réglage.'
         ] };
     e['Général'] = { titre: 'le nom, les droits, les pages des lecteurs et la suppression.', points: [
-            '« Nom de la ville » : affiché dans l\'onglet et au-dessus de la carte ; « Explication », facultative, s\'affiche sous le nom.',
+            '« Nom de la ville » : affiché dans l\'onglet et au-dessus de la carte ; « Explication », s\'affiche sous le nom.',
             '« Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
             '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.',
             '« Où les lecteurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les villes, ce que la page montre, l\'affichage à l\'ouverture, ce que les personnes peuvent y faire et les filtres laissés dans le panneau.',
@@ -10727,11 +10731,11 @@ function majAide() {
             'Les dessins sont proposés d\'après les mots de la colonne d\'étape : changez seulement ce qui ne vous convient pas.',
             '« Tout proposer à nouveau » reprend les propositions de départ.'
         ] };
-    e[m.etapes[3]] = { titre: 'le responsable de chaque ' + m.un + ', facultatif.', points: [
+    e[m.etapes[3]] = { titre: 'le responsable de chaque ' + m.un + '.', points: [
             'Son emoji, ou ses initiales, s\'affiche dans l\'étiquette.',
             '« Pas de responsable » : les étiquettes n\'affichent que le nom.'
         ] };
-    e['La météo'] = { titre: 'faire parler le ciel, facultatif.', points: [
+    e['La météo'] = { titre: 'faire parler le ciel.', points: [
             '« Échéance » : un orage quand elle est dépassée, un nuage quand elle approche.',
             '« Date de début » : avec l\'échéance, signale un retard sur le calendrier.',
             '« D\'après vos colonnes » : jusqu\'à ' + MAX_REGLES_METEO + ' règles, par exemple un nuage quand une colonne est renseignée.'
@@ -10744,7 +10748,7 @@ function majAide() {
             '« Filtres du panneau » : les colonnes proposées comme filtre, en plus de l\'étape, ' + m.duQ + ' et du responsable.',
             '« Proposer la recherche » : une recherche par nom dans le panneau.',
             'Univers : immeubles, plantes, véhicules, avions, fusées ou navires, avec les mêmes réglages.',
-            m.taille.selon + ' une colonne de nombres, couleur d\'un second repère, lien et référence : tout est facultatif.'
+            m.taille.selon + ' une colonne de nombres, couleur d\'un second repère, lien et référence.'
         ] };
     e['Récapitulatif'] = { titre: 'vérifiez, nommez, construisez.', points: [
             '« Nom de la ville » : affiché dans l\'onglet et au-dessus de la carte.',
@@ -10770,7 +10774,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var creation = b.mode === 'creation';
         return { etapes: nomsEtapes(creation), courante: b.etape - 1,
-            repere: creation ? 'Rien n\'est enregistré avant « Construire ma ville ».' : 'Les modifications sont enregistrées automatiquement.' };
+            repere: creation ? 'Rien n\'est enregistré avant « Construire ma ville ».' : '' };
     }
     if (etat.config) {
         return { etapes: nomsEtapes(false), courante: -1,
@@ -10799,7 +10803,7 @@ function etapeGeneral(b) {
     ]);
     var danger = blocSupprimer('Supprimer la ville', 'Seuls ses réglages sont effacés : la table et ses lignes ne sont pas touchées.', supprimerVille);
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [danger]], '2-1'), grilleParam([[pages[0]], [pages[1]]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
 function champsNomVille(b) {
     var nom = saisie('aNom', b.cfg.nom || '');
@@ -10808,7 +10812,7 @@ function champsNomVille(b) {
     desc.addEventListener('input', function () { b.cfg.description = desc.value; changement(false); });
     return creer('div', {}, [
         groupeChamp('Nom de la ville', nom, 'Affiché dans l\'onglet et au-dessus de la carte.', true),
-        groupeChamp('Explication', desc, 'Facultatif. Quelques mots sous le nom de la ville, pour dire ce qu\'elle montre.', false)
+        groupeChamp('Explication', desc, 'Quelques mots sous le nom de la ville, pour dire ce qu\'elle montre.', false)
     ]);
 }
 function miniMaquette(dessin, couleur) {
@@ -11705,7 +11709,7 @@ function etapeAvecApercu(b, enfants) {
     var noms = nomsEtapes(b.mode === 'creation');
     if (b.mode === 'creation' && b.etape >= 4 && b.etape < noms.length) {
         col1.appendChild(creer('div', { classe: 'vl-raccourci' }, [
-            creer('p', { classe: 'w-mention', texte: 'Le reste est facultatif : vous pourrez le régler plus tard, la ville déjà construite.' }),
+            creer('p', { classe: 'w-mention', texte: 'Le reste se règle plus tard, la ville déjà construite.' }),
             bouton('Construire ma ville maintenant', 'tertiaire', 'arrow-right-line', function () { allerEtape(noms.length); }, { petit: true, id: 'aMaintenant', iconeDroite: true })
         ]));
     }
@@ -11799,7 +11803,7 @@ function etapeHabitants(b) {
     var reponses = [{ valeur: '', titre: '🚫 Pas de responsable', detail: 'Les étiquettes n\'affichent que le nom ' + m.duN + '.' }];
     cand.forEach(function (x, i) { reponses.push({ valeur: x.col.colId, titre: '🧑‍💻 ' + nomColonne(x.col), exemplesCol: x.col.colId, conseille: i === 0 }); });
     var enfants = [
-        creer('p', { classe: 'w-texte vl-intro', texte: '🧑‍💻 Qui s\'occupe de chaque ' + m.un + ' ? Son emoji (ou ses initiales) s\'affiche dans l\'étiquette, encadré en couleur quand ' + m.le + ' est ' + m.etatEnCours + '. Étape facultative.' }),
+        creer('p', { classe: 'w-texte vl-intro', texte: '🧑‍💻 Qui s\'occupe de chaque ' + m.un + ' ? Son emoji (ou ses initiales) s\'affiche dans l\'étiquette, encadré en couleur quand ' + m.le + ' est ' + m.etatEnCours + '.' }),
         questionEnCartes({ id: 'aHabitant', question: 'Le responsable de chaque ' + m.un, reponses: reponses, valeur: c.colResponsable,
             autre: { filtre: TYPES_ROLES.responsable, libelle: 'Une autre colonne' },
             surChange: function (v) {
@@ -11825,7 +11829,7 @@ function etapeMeteo(b) {
     var c = b.cfg;
     var t = c.table;
     var maj = function (cle, redessiner, focusId) { return function (v) { c[cle] = v; changement(redessiner, focusId); }; };
-    var enfants = [creer('p', { classe: 'w-texte vl-intro', texte: '⛅ Faites parler le ciel : un nuage ☁️ pour ce qui est à surveiller, un orage ⛈️ pour les alertes. Étape facultative.' })];
+    var enfants = [creer('p', { classe: 'w-texte vl-intro', texte: '⛅ Faites parler le ciel : un nuage ☁️ pour ce qui est à surveiller, un orage ⛈️ pour les alertes.' })];
     var cal = creer('div', { classe: 'vl-bloc' }, [creer('h3', { classe: 'w-c3__titre', texte: '📅 D\'après une échéance' })]);
     cal.appendChild(choixColonne('aColEcheance', 'Échéance', 'Échéance dépassée : orage. Échéance proche : nuage. Seulement pour les ' + mots().des + ' ' + mots().etatEnCours + '.', t, TYPES_ROLES.date, c.colEcheance, true, maj('colEcheance', true, 'aColEcheance')));
     if (c.colEcheance) {
@@ -11969,7 +11973,7 @@ function etapeAffichage(b) {
     [rubTheme, hauteur, rubToits, rubLien].filter(Boolean).forEach(function (r) { r.addEventListener('toggle', function () { if (r.open) {
         b.rubriqueOuverte = r.id;
     } }); });
-    var dessin = [titreColonne('Dessin et étiquettes', 'Tout est facultatif : ouvrez seulement ce qui vous intéresse.', 'aAideDessin'), rubTheme, hauteur, rubToits, rubLien].filter(Boolean);
+    var dessin = [titreColonne('Dessin et étiquettes', 'Ouvrez seulement ce qui vous intéresse.', 'aAideDessin'), rubTheme, hauteur, rubToits, rubLien].filter(Boolean);
     return grilleVille(b, [filtres, dessin], '1-1');
 }
 function etapeRecapitulatif(b) {

@@ -615,6 +615,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -670,7 +674,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.0';
+var VERSION_WIDGET = '1.9.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -4841,7 +4845,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -5558,7 +5562,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (!compterChangements(b)) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var raison = raisonNonEnregistrable(b);
@@ -5716,7 +5720,7 @@ function etapeGeneral() {
     desc.addEventListener('input', function () { b.description = desc.value; majAttente(); });
     var principal = [titreColonne('Le Kanban', null),
         groupeChamp('Nom du Kanban', nom, 'Visible en tête du Kanban et dans son onglet.', true),
-        groupeChamp('Explication pour les utilisateurs (facultatif)', desc, 'Affichée sous le nom du Kanban. Par exemple : à quoi il sert, qui le met à jour, ce que signifie chaque colonne. Laissez vide si ce n\'est pas utile.')];
+        groupeChamp('Explication pour les utilisateurs', desc, 'Affichée sous le nom du Kanban. Par exemple : à quoi il sert, qui le met à jour, ce que signifie chaque colonne. Laissez vide si ce n\'est pas utile.')];
     if (!perso) {
         return grilleParam([], '1-1', principal, apercuEtape('Général'));
     }
@@ -5729,7 +5733,7 @@ function etapeGeneral() {
         ? 'Le Kanban disparaît des onglets et ses cartes sont supprimées. Les autres Kanbans du document ne sont pas touchés.'
         : 'Le Kanban disparaît des onglets. Sa table et ses lignes restent dans le document.', recommencer);
     var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([principal, [danger]], '2-1', null, apercuEtape('Général')), grilleParam([[pages[0]], [pages[1]]], '1-1')]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([principal, [pages[0], pages[1]], [danger]], '1-1-1', null, apercuEtape('Général'))]);
 }
 function apercuColonnes() {
     var act = colonnesActives();
@@ -7253,7 +7257,7 @@ var AIDE = {
             ] },
         'Général': { titre: 'le nom, l\'explication, les droits, les pages des lecteurs et la suppression.', points: [
                 '« Nom du Kanban » : affiché en tête du Kanban et dans son onglet.',
-                '« Explication pour les utilisateurs » : facultative, affichée sous le nom.',
+                '« Explication pour les utilisateurs » : affichée sous le nom.',
                 'Dans les paramétrages, « Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
                 'Dans les paramétrages, « Supprimer le Kanban » : il disparaît des onglets, après confirmation.',
                 'Dans les paramétrages, « Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.',
@@ -7313,7 +7317,7 @@ function contexteAide() {
     var b = etat.brouillon;
     if (etat.vue === 'assistant' && b) {
         if (b.mode === 'personnalisation') {
-            return { etapes: ETAPES_PARAMETRAGE, courante: b.etape - 1, repere: 'Les modifications sont enregistrées automatiquement.' };
+            return { etapes: ETAPES_PARAMETRAGE, courante: b.etape - 1, repere: '' };
         }
         var decalage = PARCOURS.modele.length - ETAPES_ASSISTANT.length;
         return { etapes: PARCOURS.modele, courante: b.etape === 0 ? (b.choixDepart === 'modele' ? 1 : 0) : decalage + b.etape - 1, repere: creation };
@@ -7763,8 +7767,8 @@ function branchementEtape3() {
         creer('div', { classe: 'w-defile-x' }, [tab]),
         titreColonne('Rangement et repères', null),
         fsOrdre,
-        groupeChamp('Colonne d\'échéance (facultatif)', selEch, 'Les cartes dont l\'échéance est dépassée seront signalées.'),
-        groupeChamp('Colonne des responsables (facultatif)', selResp, 'Elle permet de filtrer le Kanban par personne.')
+        groupeChamp('Colonne d\'échéance', selEch, 'Les cartes dont l\'échéance est dépassée seront signalées.'),
+        groupeChamp('Colonne des responsables', selResp, 'Elle permet de filtrer le Kanban par personne.')
     ], apercuEtape('La carte'));
 }
 function evoqueRole(col, role) {
@@ -10338,7 +10342,7 @@ function ouvrirCarte(carte, cleEtape, prerempli, opts) {
                 bouton('Ajouter la carte', null, 'check-line', ajouter)] });
         return;
     }
-    var statut = creer('p', { classe: 'w-mention w-fiche__statut', id: 'wFicheStatut', texte: 'Les modifications sont enregistrées automatiquement.', attrs: { role: 'status' } });
+    var statut = creer('p', { classe: 'w-mention w-fiche__statut', id: 'wFicheStatut', texte: '', attrs: { role: 'status' } });
     var minuterie = null;
     var enCours = false;
     var encore = false;

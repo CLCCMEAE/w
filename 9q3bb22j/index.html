@@ -494,6 +494,10 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -538,7 +542,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.0';
+var VERSION_WIDGET = '1.7.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplomatrice';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_MATRICES';
@@ -2977,7 +2981,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -5917,7 +5921,7 @@ async function sauvegarderBrouillon() {
         return;
     }
     if (JSON.stringify(b.cfg) === b.initial) {
-        statutSauvegarde(b.dernier ? 'Enregistré à ' + b.dernier : 'Les modifications sont enregistrées automatiquement.');
+        statutSauvegarde('');
         return;
     }
     var raison = raisonNonEnregistrable(b);
@@ -6058,7 +6062,7 @@ function champsNom(b) {
     var expl = saisie('aExplication', b.cfg.explication, { multiligne: true, lignes: 2 });
     expl.addEventListener('input', function () { b.cfg.explication = expl.value; });
     return [groupeChamp('Nom de la matrice', nom, 'Il apparaît dans l\'onglet et en titre.', true),
-        groupeChamp('Explication', expl, 'Facultative : affichée sous le nom, pour dire à quoi sert la matrice.')];
+        groupeChamp('Explication', expl, 'Affichée sous le nom, pour dire à quoi sert la matrice.')];
 }
 function rendreEtapeGeneral(bloc) {
     var b = etat.brouillon;
@@ -6068,7 +6072,7 @@ function rendreEtapeGeneral(bloc) {
     ]);
     var danger = blocSupprimer('Supprimer la matrice', 'La matrice disparaît des onglets. Sa table et ses lignes restent dans le document.', supprimerMatrice);
     var pages = sectionsPages();
-    bloc.appendChild(creer('div', { classe: 'w-general' }, [grilleParam([section, [danger]], '2-1', null, apercuEtape('Général')), grilleParam([[pages[0]], [pages[1]]], '1-1')]));
+    bloc.appendChild(creer('div', { classe: 'w-general' }, [grilleParam([section, [pages[0], pages[1]], [danger]], '1-1-1', null, apercuEtape('Général'))]));
 }
 function libelleCandidat(col) {
     return col.label + ' (' + (modeDeColonne(col) === 'choix' ? 'liste de choix' : 'nombre') + (colonneEcrivable(col) ? '' : ', calculée') + ')';
@@ -6446,7 +6450,7 @@ var AIDE = {
             ] },
         'Général': { titre: 'le nom, l\'explication, les droits, les pages des lecteurs et la suppression.', points: [
                 '« Nom de la matrice » : affiché dans l\'onglet et en titre.',
-                '« Explication » : facultative, affichée sous le nom.',
+                '« Explication » : affichée sous le nom.',
                 '« Réserver le paramétrage aux propriétaires » : « Voir la marche à suivre » donne les règles d\'accès à poser.',
                 '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.',
                 '« Où les lecteurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les matrices montrées, les conditions, les zones et les cartes à positionner, ce que les personnes peuvent y faire et les filtres laissés dans le panneau. Chaque page se modifie, se duplique ou se supprime depuis la liste.',
@@ -6470,7 +6474,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var noms = etapesBrouillon(b);
         return { etapes: noms.length > 1 ? noms : PARCOURS.donnees, courante: b.etape - 1,
-            repere: b.mode === 'personnalisation' ? 'Les modifications sont enregistrées automatiquement.' : 'Rien n\'est enregistré avant « Créer ma matrice ».' };
+            repere: b.mode === 'personnalisation' ? '' : 'Rien n\'est enregistré avant « Créer ma matrice ».' };
     }
     if (etat.config) {
         return { etapes: PARCOURS.parametrage, courante: -1,

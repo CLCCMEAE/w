@@ -720,6 +720,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
 
   
   .w-wuit { color: var(--blue-france-main-525); }
+    .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -764,7 +765,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.4.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -1847,7 +1848,7 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [
             creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || 'Les modifications sont enregistrées automatiquement.' })
+            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
         ]),
         bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
     ]);
@@ -3092,7 +3093,7 @@ function zoneImage(d, cle, z, o) {
     if (!z) {
         if (o.edition) {
             boite.classList.add('sd-image--vide');
-            boite.appendChild(creer('p', { classe: 'sd-image__invite', texte: cle === 'fond' ? 'Image de fond facultative : bouton « Image » de la barre d\'outils.' : 'Image' }));
+            boite.appendChild(creer('p', { classe: 'sd-image__invite', texte: cle === 'fond' ? 'Image de fond : bouton « Image » de la barre d\'outils.' : 'Image' }));
         }
         return boite;
     }
@@ -3950,7 +3951,7 @@ function boutonOutil(libelle, icone, action, id, o) {
 function barreOutils() {
     var mep = liste('sMep', MISES_EN_PAGE.map(function (m) { return { valeur: m.cle, libelle: m.libelle }; }), '', {});
     mep.addEventListener('change', function () { relayer(changerMiseEnPage(etat.courante, mep.value), 'Changement de mise en page'); });
-    var sp = saisie('sSousPartie', '', { indice: 'Sous-partie (facultatif)' });
+    var sp = saisie('sSousPartie', '', { indice: 'Sous-partie' });
     sp.addEventListener('input', function () {
         var d = diapoParId(etat.courante);
         if (!d) {
@@ -5282,7 +5283,7 @@ async function ecrireConfig() {
             logSecurite('AVERTISSEMENT', 'Logo partenaire non rattaché aux diapositives', eP);
         }
         if (st) {
-            st.textContent = 'Les modifications sont enregistrées automatiquement.';
+            st.textContent = '';
         }
     }
     catch (e) {
@@ -5707,7 +5708,7 @@ var AIDE = {
         'Apparence': { titre: 'le style des diapositives.', points: ['Gabarit officiel ou présentation libre : le contenu est gardé.', 'En présentation libre : couleur principale et secondaire, fond de la couverture et des chapitres, habillage, logo, pied de page, numéros.', 'Taille du logo pour toute la présentation.'] },
         'Présentation': { titre: 'ce qui se passe quand vous présentez.', points: ['Diapositive de départ et ouverture automatique de la vue présentateur.'] },
         'Récapitulatif': { titre: 'vérifier, puis créer.', points: ['Rien n\'est enregistré avant « Créer la présentation ».'] },
-        'Composer': { titre: 'écrire les diapositives.', points: ['Cliquez dans une zone en pointillés (« Titre », « Texte »…) et tapez.', '« Ajouter », dans la barre d\'outils : cadre de texte, image, rectangle, cercle, trait, flèche. Faites glisser l\'objet pour le placer, la poignée du coin pour sa taille ; au clavier : flèches, plus et moins, Suppr.', 'Cliquez sur le logo pour le déplacer, le redimensionner ou le retirer.', '« Nouvelle diapositive » ajoute une diapositive après celle qui est ouverte ; la liste « Mise en page » la change.', 'Tout est enregistré automatiquement ; « Annuler » et « Rétablir » reviennent sur les dernières modifications.'] },
+        'Composer': { titre: 'écrire les diapositives.', points: ['Cliquez dans une zone en pointillés (« Titre », « Texte »…) et tapez.', '« Ajouter », dans la barre d\'outils : cadre de texte, image, rectangle, cercle, trait, flèche. Faites glisser l\'objet pour le placer, la poignée du coin pour sa taille ; au clavier : flèches, plus et moins, Suppr.', 'Cliquez sur le logo pour le déplacer, le redimensionner ou le retirer.', '« Nouvelle diapositive » ajoute une diapositive après celle qui est ouverte ; la liste « Mise en page » la change.', '« Annuler » et « Rétablir » reviennent sur les dernières modifications.'] },
         'Présenter': { titre: 'en plein écran, au téléphone, imprimer, enregistrer en PDF.', points: ['Flèches, Espace ou clic pour avancer, Échap pour quitter.', 'Vue présentateur : bouton en bas de l\'écran de présentation.', 'Pages à partager : « Paramétrages de cette présentation », étape « Présentation », bouton « Créer les pages ».', 'Sur l\'ordinateur relié au grand écran : page « Projection ». Sur le téléphone : page « Télécommande ».'] }
     },
     questions: [
@@ -5728,7 +5729,7 @@ function contexteAide() {
     var b = etat.brouillon;
     if (etat.vue === 'assistant' && b) {
         var noms = nomsEtapes(b.mode === 'creation');
-        return { etapes: noms, courante: b.etape - 1, repere: b.mode === 'creation' ? 'Rien n\'est enregistré avant « Créer la présentation ».' : 'Les modifications sont enregistrées automatiquement.' };
+        return { etapes: noms, courante: b.etape - 1, repere: b.mode === 'creation' ? 'Rien n\'est enregistré avant « Créer la présentation ».' : '' };
     }
     return { etapes: ['Composer', 'Présenter'].concat(etat.peutParametrer ? nomsEtapes(false) : []), courante: -1, repere: etat.pres && etat.peutParametrer ? 'Pour le nom, la direction, la date et le style : « Paramétrages de cette présentation », dans le panneau de gauche.' : null };
 }
@@ -7109,7 +7110,7 @@ function sectionBlocMarque(cfg, changer) {
     };
     var dessinerPartenaire = function () {
         var p = cfg.partenaire;
-        var bloc = creer('div', { classe: 'sd-partenaire-param', id: 'aPartZone' }, [creer('p', { classe: 'fr-label', texte: 'Logo partenaire (facultatif)' }),
+        var bloc = creer('div', { classe: 'sd-partenaire-param', id: 'aPartZone' }, [creer('p', { classe: 'fr-label', texte: 'Logo partenaire' }),
             creer('p', { classe: 'fr-hint-text', texte: 'Il se place à droite du bloc-marque, jamais à sa place.' })]);
         if (!p) {
             if (peutEcrire()) {
