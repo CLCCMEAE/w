@@ -726,7 +726,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.5.2';
+var VERSION_WIDGET = '1.5.3';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1187,7 +1187,7 @@ function configValide(c) {
     var cons = CONSERVATIONS.some(function (x) { return x.valeur === c.conservation; }) ? c.conservation : CONSERVATION_DEFAUT;
     return { tables: Array.isArray(c.tables) ? c.tables.filter(function (t) { return typeof t === 'string' && t; }) : [],
         lecteurs: Array.isArray(c.lecteurs) ? c.lecteurs.map(function (x) { return String(x).toLowerCase(); }).filter(courrielValide) : [],
-        max: max, conservation: cons, colonnesExclues: (function () {
+        max: max, conservation: cons, ignoresAppliques: c.ignoresAppliques === true, colonnesExclues: (function () {
             var o = {}, x = c.colonnesExclues;
             if (x && typeof x === 'object') {
                 Object.keys(x).forEach(function (t) { if (Array.isArray(x[t])) {
@@ -1374,6 +1374,34 @@ async function retirerJournal(tid) {
     }
     catch (e) {
         logSecurite('AVERTISSEMENT', 'Règle d\'accès du journal non retirée pour ' + tid, e);
+    }
+}
+/* Tables techniques des widgets qui changent sans cesse (signaux de présence) : pas de suivi d'office */
+function tableIgnoreeDOffice(t) {
+    return /^PARTICIPATION_DU_TABLEAU_BLANC/.test(String(t || ''));
+}
+async function ignorerTablesBruyantes() {
+    if (!etat.proprietaire || !etat.config || etat.config.ignoresAppliques) {
+        return;
+    }
+    var bruyantes = etat.config.tables.filter(tableIgnoreeDOffice);
+    etat.config.tables = etat.config.tables.filter(function (t) { return !tableIgnoreeDOffice(t); });
+    etat.config.ignoresAppliques = true;
+    await ecrireConfig();
+    for (var i = 0; i < bruyantes.length; i++) {
+        var t = bruyantes[i];
+        try {
+            if (infoColonne(t, COL_JOURNAL)) {
+                await agir([['ModifyColumn', t, COL_JOURNAL, { formula: '', recalcWhen: 0, recalcDeps: null }]]);
+            }
+            await noterSuivi('Suivi de « ' + libelleTable(t) + ' » arrêté : signaux de présence de Diploworkflow', libelleTable(t), '', t);
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Arrêt du journal de ' + t + ' non abouti', e);
+        }
+    }
+    if (bruyantes.length) {
+        await chargerMeta();
     }
 }
 async function mettreAJourJournaux() {
@@ -2619,14 +2647,15 @@ function rendreDepart(zone) {
     _exclDepart = {};
     var tables = tablesDonnees();
     var choisies = {};
-    tables.forEach(function (t) { choisies[t] = true; });
+    tables.forEach(function (t) { choisies[t] = !tableIgnoreeDOffice(t); });
     var liste = creer('div', { classe: 'w-depart__tables', attrs: { role: 'group', 'aria-labelledby': 'dTablesTitre' } });
     tables.forEach(function (t, i) {
         var id = 'dTable' + i;
         var cb = creer('input', { attrs: { type: 'checkbox', id: id }, coche: true });
         cb.addEventListener('change', function () { choisies[t] = cb.checked; majCompte(); });
         _exclDepart[t] = [];
-        liste.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t)])]));
+        liste.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
+            tableIgnoreeDOffice(t) ? creer('span', { classe: 'fr-hint-text', texte: 'Signaux de présence de Diploworkflow, qui changent toutes les 30 secondes' }) : null])]));
         liste.appendChild(choixColonnes(t, 'dT' + i, _exclDepart[t], null));
     });
     var compte = creer('p', { classe: 'w-mention', id: 'dCompte', attrs: { 'aria-live': 'polite' } });
@@ -3318,7 +3347,7 @@ function sectionTables() {
         cb.addEventListener('change', function () { relayer(changerSuivi(t, cb.checked, id, cb), 'Suivi d\'une table'); });
         var suivie = etat.config.tables.indexOf(t) !== -1;
         s.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelleTable(t),
-                suivie ? null : creer('span', { classe: 'fr-hint-text', texte: nbre(colonnesSuivables(t).length, 'colonne', 'colonnes') })])]));
+                suivie ? null : creer('span', { classe: 'fr-hint-text', texte: tableIgnoreeDOffice(t) ? 'Signaux de présence de Diploworkflow, qui changent toutes les 30 secondes' : nbre(colonnesSuivables(t).length, 'colonne', 'colonnes') })])]));
         if (suivie) {
             etat.config.colonnesExclues = etat.config.colonnesExclues || {};
             etat.config.colonnesExclues[t] = etat.config.colonnesExclues[t] || [];
@@ -3720,6 +3749,7 @@ async function initialiser() {
         }
         await determinerProprietaire();
         if (etat.proprietaire) {
+            await ignorerTablesBruyantes();
             await mettreAJourJournaux();
             await releverTout();
         }
