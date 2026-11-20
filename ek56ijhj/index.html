@@ -415,14 +415,14 @@ h2.w-section__title{margin:0}
         <div class="w-aide-registre__corps" id="aideRegistre" hidden>
           <p><strong>Le registre.</strong> Il affine les droits de base (Propriétaire, Éditeur, Lecture seule) donnés dans « Gérer les utilisateurs ». Avec des champs personnalisés (zone géographique, domaine…), des règles peuvent limiter chaque utilisateur à son périmètre : voir l'onglet <em>Les droits</em>.</p>
           <p><strong>Retirer un accès en urgence.</strong> Décocher Actif bloque aussitôt l'accès de la personne, si la règle d'or est en place (onglet <em>Les droits</em>). Pour un retrait définitif, retirez aussi l'invitation dans <strong>Gérer les utilisateurs</strong> (icône de partage en haut à droite).</p>
-          <p><strong>Mode admin.</strong> Verrou contre les modifications de structure accidentelles par un propriétaire. Il n'agit que si les deux règles de structure sont posées dans les permissions avancées.</p>
+          <p><strong>Mode structure.</strong> Verrou contre les modifications de structure accidentelles par un propriétaire. Il n'agit que si les deux règles de structure sont posées dans les permissions avancées.</p>
           <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary" id="btnInfoModeAdmin" aria-expanded="false" aria-controls="infoModeAdminDetail">Voir la marche à suivre</button>
           <div id="infoModeAdminDetail" hidden>
             <p class="fr-mt-1w"><strong>Prérequis :</strong> l'attribut utilisateur <code>Utilisateur</code> (propriété <code>user.Email</code>, table <code>BIBLIOTHEQUE_CENTRALE</code>, colonne <code>EMAIL</code>), décrit dans l'onglet Les droits.</p>
             <p><strong>1.</strong> Dans le panneau de gauche du document, rubrique <strong>Outils</strong>, ouvrez <strong>Permissions avancées</strong>, puis, dans le bloc des <strong>Règles spéciales</strong>, droits de modification de la structure, ajouter la règle <code>user.Access == OWNER and user.Utilisateur.MODE_ADMIN_VALIDE == True</code> : autoriser.</p>
-            <p><strong>2.</strong> Juste en dessous, pour tous les autres : refuser, avec le message « Seuls les propriétaires ayant activé leur mode admin peuvent modifier la structure du document ».</p>
+            <p><strong>2.</strong> Juste en dessous, pour tous les autres : refuser, avec le message « Seuls les propriétaires ayant activé leur mode structure peuvent modifier la structure du document ».</p>
             <p><strong>3.</strong> Vérifier que seuls les propriétaires peuvent modifier les lignes de la gestion des utilisateurs : règle sur <code>BIBLIOTHEQUE_CENTRALE</code>, condition <code>user.Access != OWNER and rec.WIDGET in ("Gestion des utilisateurs", "utilisateurs")</code>, refuser Modification, Création et Suppression.</p>
-            <p><strong>À savoir :</strong> mode admin désactivé, les actions qui modifient la structure échouent aussi dans les widgets : création de table ou de colonne à l'import, descriptions de la Documentation, champs personnalisés de ce widget. Activer son mode admin le temps de l'opération, puis le désactiver : sans cela, il se referme seul après 2 heures (au plus tard au recalcul suivant du document). Ce verrou protège des erreurs, pas de la malveillance : un propriétaire peut toujours activer son propre mode admin.</p>
+            <p><strong>À savoir :</strong> mode structure désactivé, les actions qui modifient la structure échouent aussi dans les widgets : création de table ou de colonne à l'import, descriptions de la Documentation, champs personnalisés de ce widget. Activer son mode structure le temps de l'opération, puis le désactiver : sans cela, il se referme seul après 2 heures (au plus tard au recalcul suivant du document). Ce verrou protège des erreurs, pas de la malveillance : un propriétaire peut toujours activer son propre mode structure.</p>
           </div>
         </div>
       </div>
@@ -760,7 +760,7 @@ function modeleStructure() {
             creer('tbody', {}, [
                 creer('tr', { classe: 's-acl__debut' }, [creer('td', {}, [creer('span', { classe: 's-acl__cond' }, [creer('code', { texte: cond }),
                     bouton('Copier', 'discret', iconeDispo(['file-copy-line', 'clipboard-line', 'file-copy-2-line', 'file-text-line']), function () { return copierTexte(cond, null, 'Condition copiée : collez-la dans la ligne de la règle.'); }, { petit: true, id: 'uStructC0', aria: 'Copier la condition ' + cond })])]), creer('td', {}, [lettre(true)])]),
-                creer('tr', {}, [creer('td', {}, [creer('span', { classe: 's-acl__autres', texte: 'Tous les autres' }), creer('span', { classe: 's-acl__note', texte: 'message : Seuls les propriétaires ayant activé leur mode admin peuvent modifier la structure du document.' })]), creer('td', {}, [lettre(false)])])
+                creer('tr', {}, [creer('td', {}, [creer('span', { classe: 's-acl__autres', texte: 'Tous les autres' }), creer('span', { classe: 's-acl__note', texte: 'message : Seuls les propriétaires ayant activé leur mode structure peuvent modifier la structure du document.' })]), creer('td', {}, [lettre(false)])])
             ])
         ])
     ]);
@@ -801,12 +801,12 @@ async function renderDroitsPage() {
     var sansOr = pt.orTables && !pt.orTables.ok && !pt.orTables.nonApplicable ? pt.orTables.constat : '';
     var etapes = [
         { titre: 'Ouvrir les règles', etat: pt.schema && pt.copies ? { ok: pt.schema.ok && pt.copies.ok } : null, texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit rester décochée : sinon les éditeurs contournent toutes les règles. La case qui autorise tout le monde à copier le document entier doit rester décochée elle aussi.', modele: modeleReglesSpeciales() },
-        { titre: 'Relier les fiches aux règles', etat: pt.attribut, texte: 'En haut des Permissions avancées, bouton « Ajouter des propriétés d\'utilisateur ». Remplissez les quatre champs comme ci-dessous : les règles peuvent ensuite lire la fiche de chaque personne (ACTIF, mode admin, champs personnalisés).', modele: modeleAttribut() },
+        { titre: 'Relier les fiches aux règles', etat: pt.attribut, texte: 'En haut des Permissions avancées, bouton « Ajouter des propriétés d\'utilisateur ». Remplissez les quatre champs comme ci-dessous : les règles peuvent ensuite lire la fiche de chaque personne (ACTIF, mode structure, champs personnalisés).', modele: modeleAttribut() },
         { titre: 'Garder tous les droits aux propriétaires', etat: pt.seed, texte: 'Dans le bloc des règles par défaut, cochez la case ci-dessous : chaque nouvelle règle de table commencera par une ligne qui garde tous les droits aux propriétaires.', modele: modeleCase('Règles par défaut', 'Pour chaque ajout de règle pour une table, ajouter automatiquement une règle donnant tous les droits au groupe OWNER', true) },
         { titre: 'La règle d\'or : une personne inactive n\'a accès à rien', etat: pt.or, texte: 'Dans les règles par défaut, ajoutez cette ligne tout en haut. Décocher « Actif » dans l\'onglet Utilisateurs bloquera aussitôt l\'accès de la personne.', modele: modeleAclTitre('Règles par défaut', [{ colonnes: 'Toutes', regles: [{ condition: actif, droits: tout(false) }, { note: 'les autres règles par défaut, inchangées' }] }], 'uOr') },
         { titre: 'La règle d\'or dans les tables qui ont leurs propres règles', etat: pt.orTables, texte: (sansOr ? sansOr + ' ' : '') + 'Dans chaque table qui a ses propres règles, ajoutez la même ligne en deuxième position, juste sous celle des propriétaires : les règles d\'une table passent avant les règles par défaut.', modele: modeleAclTitre('Chaque table qui a ses propres règles', [{ colonnes: 'Toutes', regles: [proprio, { condition: actif, droits: tout(false) }, { note: 'les règles propres à la table, inchangées' }] }], 'uOrT') },
-        { titre: 'Protéger les fiches des utilisateurs', etat: pt.biblio, texte: 'Sans cette règle, un éditeur peut modifier une fiche, et même cocher « Actif » ou le mode admin d\'une autre personne. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(LABEL_TABLE_CENTRALE, [{ colonnes: 'Toutes', regles: [proprio, { condition: condBiblio, droits: { U: false, C: false, D: false } }, { note: 'laisser sans réglage' }] }], 'uBib') },
-        { titre: 'Verrouiller la structure (mode admin)', texte: 'Dans « Règles spéciales », développez « Autoriser les Éditeurs à modifier la structure » et ajoutez ces deux lignes. Un propriétaire ne modifie alors la structure (tables, colonnes, pages) qu\'après avoir coché son mode admin, qui se referme seul au bout de 2 heures.', modele: modeleStructure() },
+        { titre: 'Protéger les fiches des utilisateurs', etat: pt.biblio, texte: 'Sans cette règle, un éditeur peut modifier une fiche, et même cocher « Actif » ou le mode structure d\'une autre personne. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(LABEL_TABLE_CENTRALE, [{ colonnes: 'Toutes', regles: [proprio, { condition: condBiblio, droits: { U: false, C: false, D: false } }, { note: 'laisser sans réglage' }] }], 'uBib') },
+        { titre: 'Verrouiller la structure (mode structure)', texte: 'Dans « Règles spéciales », développez « Autoriser les Éditeurs à modifier la structure » et ajoutez ces deux lignes. Un propriétaire ne modifie alors la structure (tables, colonnes, pages) qu\'après avoir coché son mode structure, qui se referme seul au bout de 2 heures.', modele: modeleStructure() },
         { titre: 'Cacher cette page', etat: { ok: etat.pageProtegee && !(etat.protection && !etat.protection.repliee) }, texte: etat.pageProtegee ? 'La page porte sa vue de protection. Posez la règle ci-dessous sur la table « ' + titreOwner() + ' » : seuls les propriétaires verront la page.' : 'Le bouton pose sur cette page une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. Posez ensuite la règle ci-dessous : seuls les propriétaires verront la page.', action: etat.pageProtegee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }), modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'uOwn') },
         { titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues.' },
         { titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un éditeur : il ne voit pas cette page et ne modifie que ce que vos règles permettent. Revenez ensuite sur cet onglet : chaque règle doit afficher « En place ».' }
@@ -1315,7 +1315,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.7.0';
+var VERSION_WIDGET = '1.8.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Gestion des utilisateurs';
 var NOM_WIDGET_ANCIEN = 'utilisateurs';
@@ -1330,7 +1330,7 @@ var CORE_FIELDS = [
     { id: 'STATUT', type: 'Choice', label: 'STATUT', choices: ['Demande à étudier', 'ACTIF', 'Refusée', 'Accès fermé'] },
     { id: 'ROLE_GRIST', type: 'Choice', label: 'RÔLE', choices: ['Propriétaire', 'Éditeur', 'Lecture seule'] },
     { id: 'ACTIF', type: 'Bool', label: 'ACTIF' },
-    { id: 'MODE_ADMIN', type: 'Bool', label: 'MODE ADMIN' },
+    { id: 'MODE_ADMIN', type: 'Bool', label: 'MODE STRUCTURE' },
     { id: 'LIBELLE', type: 'Formula', label: 'LIBELLÉ', formula: '$PRENOM + " " + $NOM' },
     { id: 'VOIR_EN_TANT_QUE', type: 'Formula', label: 'VOIR EN TANT QUE', formula: '"[Voir en tant que "+$PRENOM+" "+$NOM+"]("+SELF_HYPERLINK()+"?aclAsUser_="+$EMAIL+")"', hidden: true },
     { id: 'CREE_PAR', type: 'Text', label: 'CRÉÉ PAR', meta: true },
@@ -2128,7 +2128,7 @@ async function reparerSchemaCentrale() {
                     logSecurite('INFO', 'Colonne ' + col.id + ' non ajoutée (déjà présente ou droits insuffisants)', eCol);
                 }
                 if (creee) {
-                    var propr = { type: col.type, label: col.label };
+                    var propr = { type: col.type, label: col.label, untieColIdFromLabel: true };
                     if (col.formula) {
                         propr.isFormula = false;
                         propr.formula = col.formula;
@@ -2378,13 +2378,23 @@ async function assurerColonneModeAdmin() {
     var existante = trouverColonne(cols, 'MODE_ADMIN');
     if (existante) {
         if (existante.colId !== 'MODE_ADMIN') {
-            logSecurite('AVERTISSEMENT', 'Colonne du mode admin trouvée sous l’identifiant ' + existante.colId + ' : renommer son ID en MODE_ADMIN dans les données source');
+            logSecurite('AVERTISSEMENT', 'Colonne du mode structure trouvée sous l’identifiant ' + existante.colId + ' : renommer son ID en MODE_ADMIN dans les données source');
+        }
+        var anciens = cols.filter(function (c) { return /^MODE_ADMIN(_DEPART|_FIN|_VALIDE)?$/.test(c.colId) && /^MODE ADMIN/.test(c.label); });
+        if (anciens.length) {
+            try {
+                await ecrireDocument(anciens.map(function (c) { return ['ModifyColumn', NOM_TABLE_CENTRALE, c.colId, { label: c.label.replace(/^MODE ADMIN/, 'MODE STRUCTURE'), untieColIdFromLabel: true }]; }));
+                logSecurite('INFO', 'Libellés du mode structure mis à jour (identifiants inchangés)');
+            }
+            catch (eL) {
+                logSecurite('INFO', 'Libellés du mode structure non mis à jour (structure verrouillée ou droits insuffisants)', eL);
+            }
         }
         return;
     }
     try {
         await ajouterColonneSure('MODE_ADMIN');
-        await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, 'MODE_ADMIN', { type: 'Bool', label: 'MODE ADMIN' }]]);
+        await ecrireDocument([['ModifyColumn', NOM_TABLE_CENTRALE, 'MODE_ADMIN', { type: 'Bool', label: 'MODE STRUCTURE', untieColIdFromLabel: true }]]);
         existingCols.add('MODE_ADMIN');
         logSecurite('INFO', 'Colonne MODE_ADMIN créée');
     }
@@ -2394,15 +2404,15 @@ async function assurerColonneModeAdmin() {
 }
 var DUREE_MODE_ADMIN_HEURES = 2;
 var COLONNES_EXPIRATION_ADMIN = [
-    { id: 'MODE_ADMIN_DEPART', label: 'MODE ADMIN DÉPART', type: 'DateTime:Europe/Paris', declenchement: true,
+    { id: 'MODE_ADMIN_DEPART', label: 'MODE STRUCTURE DÉPART', type: 'DateTime:Europe/Paris', declenchement: true,
         formula: 'NOW() if $MODE_ADMIN else None',
-        description: 'Heure d’activation du mode admin, posée automatiquement quand la case MODE ADMIN est cochée, vidée quand elle est décochée.' },
-    { id: 'MODE_ADMIN_FIN', label: 'MODE ADMIN FIN', type: 'DateTime:Europe/Paris',
+        description: 'Heure d’activation du mode structure, posée automatiquement quand la case MODE STRUCTURE est cochée, vidée quand elle est décochée.' },
+    { id: 'MODE_ADMIN_FIN', label: 'MODE STRUCTURE FIN', type: 'DateTime:Europe/Paris',
         formula: '$MODE_ADMIN_DEPART + datetime.timedelta(hours=' + DUREE_MODE_ADMIN_HEURES + ') if $MODE_ADMIN and $MODE_ADMIN_DEPART else None',
-        description: 'Heure à laquelle le mode admin se referme : départ + ' + DUREE_MODE_ADMIN_HEURES + ' heures. Modifier la formule pour changer la durée.' },
-    { id: 'MODE_ADMIN_VALIDE', label: 'MODE ADMIN VALIDE', type: 'Bool',
+        description: 'Heure à laquelle le mode structure se referme : départ + ' + DUREE_MODE_ADMIN_HEURES + ' heures. Modifier la formule pour changer la durée.' },
+    { id: 'MODE_ADMIN_VALIDE', label: 'MODE STRUCTURE VALIDE', type: 'Bool',
         formula: 'bool($MODE_ADMIN and $MODE_ADMIN_FIN and NOW() < $MODE_ADMIN_FIN)',
-        description: 'Vrai tant que le mode admin est activé et que l’heure de fin n’est pas passée. C’est cette colonne que teste la règle de structure des permissions avancées.' }
+        description: 'Vrai tant que le mode structure est activé et que l’heure de fin n’est pas passée. C’est cette colonne que teste la règle de structure des permissions avancées.' }
 ];
 function estColonneExpirationAdmin(colId) {
     return COLONNES_EXPIRATION_ADMIN.some(function (c) { return c.id === colId; });
@@ -2442,7 +2452,7 @@ async function assurerColonnesExpirationAdmin() {
                     continue;
                 }
             }
-            var propr = { type: col.type, label: col.label };
+            var propr = { type: col.type, label: col.label, untieColIdFromLabel: true };
             if (col.declenchement) {
                 propr.isFormula = false;
                 propr.formula = col.formula;
@@ -2467,11 +2477,11 @@ async function assurerColonnesExpirationAdmin() {
             await ecrireDocument(actions);
         }
         traitees.forEach(function (id) { existingCols.add(id); });
-        logSecurite('INFO', 'Colonnes d\'expiration du mode admin créées ou réparées', { colonnes: traitees });
+        logSecurite('INFO', 'Colonnes d\'expiration du mode structure créées ou réparées', { colonnes: traitees });
         return true;
     }
     catch (e) {
-        logSecurite('INFO', 'Colonnes d\'expiration du mode admin non créées (structure verrouillée ou droits insuffisants)', e);
+        logSecurite('INFO', 'Colonnes d\'expiration du mode structure non créées (structure verrouillée ou droits insuffisants)', e);
         return false;
     }
 }
@@ -2497,7 +2507,7 @@ function texteFinModeAdmin(r) {
         return 'jusqu’au ' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + heure;
     }
     catch (e) {
-        logSecurite('AVERTISSEMENT', 'Heure de fin du mode admin illisible', e);
+        logSecurite('AVERTISSEMENT', 'Heure de fin du mode structure illisible', e);
         return '';
     }
 }
@@ -2517,7 +2527,7 @@ function majAlerteModeAdmin() {
         var fin = texteFinModeAdmin(r);
         return fin ? nom + ' (' + fin + ')' : nom;
     });
-    texte.textContent = 'Mode admin ouvert : ' + noms.join(', ') + (expiration ? '.' : '. Il reste ouvert tant que la case est cochée.');
+    texte.textContent = 'Mode structure ouvert : ' + noms.join(', ') + (expiration ? '.' : '. Il reste ouvert tant que la case est cochée.');
     bloc.hidden = false;
 }
 ecouter('btnAideRegistre', 'click', function () {
@@ -2683,7 +2693,7 @@ function renderTableHeader() {
     tr.appendChild(thRole);
     var thAdmin = document.createElement('th');
     thAdmin.setAttribute('scope', 'col');
-    thAdmin.textContent = 'MODE ADMIN';
+    thAdmin.textContent = 'MODE STRUCTURE';
     thAdmin.title = 'Autorise ce propriétaire à modifier la structure, si les règles de structure sont posées';
     tr.appendChild(thAdmin);
     getTableCols().forEach(function (colId) {
@@ -3057,7 +3067,7 @@ function renderTableBody() {
             cbAdmin.type = 'checkbox';
             cbAdmin.autocomplete = 'off';
             cbAdmin.checked = modeAdminEnVigueur(r);
-            cbAdmin.setAttribute('aria-label', 'Mode admin - ' + ((r.PRENOM || '') + ' ' + (r.NOM || r.EMAIL || '')).trim());
+            cbAdmin.setAttribute('aria-label', 'Mode structure - ' + ((r.PRENOM || '') + ' ' + (r.NOM || r.EMAIL || '')).trim());
             var slAdmin = document.createElement('span');
             slAdmin.className = 'w-slider';
             lblAdmin.appendChild(cbAdmin);
@@ -3087,7 +3097,7 @@ function renderTableBody() {
                     }).catch(function (e) {
                         cb.checked = !etat;
                         flashError(cb);
-                        afficherErreur('Le mode admin n’a pas pu être modifié.', e);
+                        afficherErreur('Le mode structure n’a pas pu être modifié.', e);
                     });
                 });
             })(r.id, cbAdmin, r, spFin);
@@ -4387,10 +4397,10 @@ async function loadAndRenderACL() {
         var pVerrou = document.createElement('p');
         pVerrou.className = 'fr-text--sm fr-mt-1w fr-mb-0';
         pVerrou.textContent = toutesLesFormules.indexOf('MODE_ADMIN_VALIDE') !== -1
-            ? 'Verrou de structure (mode admin) : activé dans ce document, fermeture automatique après ' + DUREE_MODE_ADMIN_HEURES + ' heures.'
+            ? 'Mode structure : activé dans ce document, fermeture automatique après ' + DUREE_MODE_ADMIN_HEURES + ' heures.'
             : (toutesLesFormules.indexOf('MODE_ADMIN') !== -1
-                ? 'Verrou de structure (mode admin) : activé dans ce document, sans fermeture automatique. Pour l’obtenir, remplacez MODE_ADMIN par MODE_ADMIN_VALIDE dans la règle de structure.'
-                : 'Verrou de structure (mode admin) : non activé dans ce document.');
+                ? 'Mode structure : activé dans ce document, sans fermeture automatique. Pour l’obtenir, remplacez MODE_ADMIN par MODE_ADMIN_VALIDE dans la règle de structure.'
+                : 'Mode structure : non activé dans ce document.');
         infoTxt.appendChild(pVerrou);
         var socleManquant = [];
         try {
@@ -4742,7 +4752,7 @@ function analyserSocle(lecture) {
     var condBiblio = 'user.Access != OWNER and rec.WIDGET in ("' + NOM_WIDGET + '", "' + NOM_WIDGET_ANCIEN + '")';
     points.push({
         id: 'biblio', titre: 'Seuls les propriétaires modifient les fiches utilisateurs', ok: protege,
-        constat: protege ? 'Les fiches de ce widget sont protégées dans la bibliothèque centrale.' : 'Un éditeur peut modifier une fiche, y compris cocher ACTIF ou le mode admin d’une autre personne.',
+        constat: protege ? 'Les fiches de ce widget sont protégées dans la bibliothèque centrale.' : 'Un éditeur peut modifier une fiche, y compris cocher ACTIF ou le mode structure d’une autre personne.',
         etapes: [
             'Dans `Permissions avancées`, `Ajouter des règles pour une table` : `' + LABEL_TABLE_CENTRALE + '`.',
             'Condition : `' + condBiblio + '`',
@@ -5621,7 +5631,7 @@ var AIDE = {
     questions: [
         { q: 'Pourquoi une personne du registre ne voit-elle pas le document ?', r: 'Elle n\'a pas encore été invitée dans « Gérer les utilisateurs », ou elle n\'est pas active alors que les règles d\'accès s\'appuient sur le registre.' },
         { q: 'Comment retirer un accès en urgence ?', r: 'Décochez « Actif » : l\'accès est bloqué aussitôt si la règle d\'or est en place (onglet « Les droits »). Retirez aussi l\'invitation dans « Gérer les utilisateurs ».' },
-        { q: 'À quoi sert le mode admin ?', r: 'C\'est un verrou contre les modifications de structure accidentelles par un propriétaire. Il n\'agit que si les règles de structure sont posées, et se referme seul après 2 heures.' }
+        { q: 'À quoi sert le mode structure ?', r: 'C\'est un verrou contre les modifications de structure accidentelles par un propriétaire. Il n\'agit que si les règles de structure sont posées, et se referme seul après 2 heures.' }
     ]
 };
 function contexteAide() { return { etapes: ['Ajouter au registre', 'Activer et choisir le rôle', 'Ouvrir l\'accès au document', 'Poser les règles'], courante: -1 }; }
