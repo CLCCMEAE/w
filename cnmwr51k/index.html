@@ -670,6 +670,7 @@
     .w-fil__item .w-fil__meta { margin-left: auto; white-space: nowrap; }
     .w-fil__item .w-fil__actions { flex-basis: 100%; }
   .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
 </head>
 <body>
@@ -725,7 +726,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.5';
+var VERSION_WIDGET = '1.5.1';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -771,6 +772,53 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
 }
 function badgeChoixGrist(col, valeur, classe) {
     var b = document.createElement('span');
@@ -1051,7 +1099,7 @@ async function chargerMeta() {
         var info = { ref: c.id[j], tableRef: c.parentId[j], tableId: tidC, colId: c.colId[j], type: c.type[j] || 'Any', label: c.label ? (c.label[j] || c.colId[j]) : c.colId[j],
             formule: Boolean(c.isFormula[j]) && Boolean(c.formula[j]), formula: c.formula[j] || '', formuleVide: Boolean(c.isFormula[j]) && !c.formula[j],
             declencheur: !c.isFormula[j] && Boolean(c.formula[j]), recalcWhen: c.recalcWhen ? c.recalcWhen[j] : 0,
-            visibleCol: c.visibleCol ? c.visibleCol[j] : 0, pos: c.parentPos ? c.parentPos[j] : j, description: c.description ? String(c.description[j] || '') : '' };
+            visibleCol: c.visibleCol ? c.visibleCol[j] : 0, pos: c.parentPos ? c.parentPos[j] : j, description: c.description ? String(c.description[j] || '') : '', options: optionsColonne(c.widgetOptions ? c.widgetOptions[j] : null) };
         colParRef[c.id[j]] = info;
         (colonnes[tidC] = colonnes[tidC] || []).push(info);
     }
@@ -1612,7 +1660,7 @@ async function releverLignes(quand) {
     for (var i = 0; i < suivies.length; i++) {
         var t = suivies[i], d;
         try {
-            d = await lireTable(t);
+            d = await lireColonnes(t, [colonneTitre(t)]);
         }
         catch (e) {
             logSecurite('INFO', 'Table ' + t + ' illisible : suppressions non relevées', e);
@@ -1746,7 +1794,7 @@ async function chargerRefs(tid, ct) {
     }
     var res = {};
     try {
-        var d = await lireTable(tid);
+        var d = await lireColonnes(tid, [ct]);
         for (var i = 0; i < d.id.length; i++) {
             res[d.id[i]] = ct && d[ct] ? texteBrut(d[ct][i]) : '';
         }
@@ -1840,14 +1888,14 @@ async function construireEvenements() {
             aRefs[t + '|' + (colAffichage(c) || '')] = [t, colAffichage(c)];
         } });
         var d;
+        var ct = colonneTitre(tid);
         try {
-            d = await lireTable(tid);
+            d = await lireColonnes(tid, [ct, COL_JOURNAL, COL_KANBAN]);
         }
         catch (e) {
             logSecurite('INFO', 'Table ' + tid + ' illisible', e);
             continue;
         }
-        var ct = colonneTitre(tid);
         etat.actuels[tid] = {};
         for (var k = 0; k < d.id.length; k++) {
             var titre = ct && d[ct] ? texteBrut(d[ct][k]) : '';
@@ -2765,7 +2813,8 @@ function rendreJournal(zone) {
     principal.appendChild(creer('div', { classe: 'w-barre-mobile' }, [
         bouton('Recherche et filtres', 'secondaire', 'filter-line', function () { ouvrirVoletMobile(true); }, { petit: true, id: 'tVoletMobile' })
     ]));
-    principal.appendChild(barreVue('Historique du document', [], [creer('div', { classe: 'w-nouv', id: 'tNouv', attrs: { role: 'group', 'aria-label': 'Nouveautés', hidden: true } }), boutonPleinEcran()]));
+    principal.appendChild(barreVue('Historique du document', [], [creer('div', { classe: 'w-nouv', id: 'tNouv', attrs: { role: 'group', 'aria-label': 'Nouveautés', hidden: true } }),
+        bouton('Actualiser', 'secondaire', 'refresh-line', actualiserJournal, { petit: true, id: 'tActualiser' }), boutonPleinEcran()]));
     alertesJournal().forEach(function (a) { principal.appendChild(a); });
     principal.appendChild(creer('div', { classe: 'w-fil', id: 'tFil' }));
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
@@ -2879,8 +2928,8 @@ function rendreEvenement(e, sansLien) {
             creer('p', { classe: 'w-fil__titre' }, [neuf ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new w-fil__neuf', texte: 'Nouveau' }) : null,
                 creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
             aa && (aa.avant || aa.apres) && !(e.type === 'structure' && !aa.apres && String(phrase(e)).indexOf(aa.avant) !== -1) ? creer('p', { classe: 'w-fil__valeurs' }, e.type !== 'modification' && !aa.avant ? [creer('span', { texte: aa.apres })] : [
-                creer('span', { classe: 'w-fil__avant' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Avant' }), creer('span', { texte: aa.avant || '(vide)' })]),
-                creer('span', { classe: 'w-fil__apres' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Après' }), creer('span', { texte: aa.apres || '(vide)' })])
+                creer('span', { classe: 'w-fil__avant' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Avant' }), valeurFil(e, e.de, aa.avant)]),
+                creer('span', { classe: 'w-fil__apres' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Après' }), valeurFil(e, e.a, aa.apres)])
             ]) : null,
             e.type === 'suppression' && e.valeurs ? creer('p', { classe: 'w-fil__valeurs' }, [creer('span', { texte: resumeValeurs(e.table, e.valeurs) })]) : null,
             meta.length ? creer('p', { classe: 'w-fil__meta' }, meta.reduce(function (acc, m, i) { if (i) {
@@ -2923,6 +2972,20 @@ function versCellule(c, v) {
         return typeof v === 'number' ? v : 0;
     }
     return v === undefined ? null : v;
+}
+function optionsColonne(t) {
+    try {
+        var o = t ? JSON.parse(t) : null;
+        return o && typeof o === 'object' ? o : {};
+    }
+    catch (e) {
+        return {};
+    }
+}
+function valeurFil(e, brut, texte) {
+    var col = e && e.type === 'modification' && e.table && e.colonne ? infoColonne(e.table, e.colonne) : null;
+    var n = col && brut !== undefined ? valeurAvecCouleurs(col, brut, null) : null;
+    return n || creer('span', { texte: texte || '(vide)' });
 }
 function memeValeur(a, b) { return JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b); }
 function actionsFiche(e) {
@@ -3663,26 +3726,26 @@ function demarrerReleves() {
         clearInterval(_minuterieReleve);
     }
     _minuterieReleve = setInterval(function () {
-        if (document.visibilityState !== 'visible' || etat.vue !== 'journal' || etat.modaleOuverte || etat.releveEnCours) {
+        if (document.visibilityState !== 'visible' || !etat.proprietaire || etat.releveEnCours) {
             return;
         }
-        relayer((async function () {
-            if (etat.proprietaire) {
-                await releverTout();
-            }
-            else {
-                await lireHisto();
-            }
-            await chargerJournal();
-            if (etat.vue === 'journal' && !etat.modaleOuverte) {
-                var actif = document.activeElement ? document.activeElement.id : null;
-                afficherVue('journal', true);
-                if (actif && document.getElementById(actif)) {
-                    document.getElementById(actif).focus();
-                }
-            }
-        })(), 'Relecture automatique');
+        relayer(releverTout(), 'Relevé en arrière-plan');
     }, DELAI_RELEVE_MS);
+}
+async function actualiserJournal() {
+    if (etat.proprietaire) {
+        await releverTout();
+    }
+    else {
+        await lireHisto();
+    }
+    await chargerJournal();
+    afficherVue('journal', true);
+    var b = document.getElementById('tActualiser');
+    if (b) {
+        b.focus();
+    }
+    annoncer('Historique actualisé.');
 }
 function logSecurite(niveau, message, details) {
     var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
@@ -4091,6 +4154,70 @@ function gristAvecTimeout(promesse, delaiMs) {
     return Promise.race([promesse, new Promise(function (_, rejeter) {
             setTimeout(function () { rejeter(new Error('Délai dépassé')); }, delaiMs);
         })]);
+}
+/* Lecture légère : seulement les colonnes utiles, par l'API SQL du document ; à défaut, lecture complète */
+var _jetonSql = null;
+function identSql(x) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(String(x || ''))) {
+        throw new Error('Identifiant refusé : ' + x);
+    }
+    return '"' + x + '"';
+}
+function valeurSqlVersGrist(col, v) {
+    var t = String(col && col.type || '');
+    if (v === null || v === undefined) {
+        return null;
+    }
+    if ((/^(ChoiceList|RefList:|Attachments)/.test(t)) && typeof v === 'string') {
+        try {
+            var l = JSON.parse(v);
+            return Array.isArray(l) ? (l[0] === 'L' ? l : ['L'].concat(l)) : v;
+        }
+        catch (e) {
+            return v;
+        }
+    }
+    if (t === 'Bool') {
+        return v === 1 || v === true;
+    }
+    return v;
+}
+async function lireColonnes(tid, cols) {
+    var utiles = (cols || []).filter(function (c, i, l) { return c && c !== 'id' && l.indexOf(c) === i && infoColonne(tid, c); });
+    if (!etat.sqlIndisponible) {
+        try {
+            if (!_jetonSql || Date.now() > _jetonSql.expire) {
+                var j = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: true }), 10000);
+                if (!j || !j.token || !/^https:\/\//i.test(String(j.baseUrl || ''))) {
+                    throw new Error('Jeton de lecture indisponible');
+                }
+                _jetonSql = { token: j.token, baseUrl: j.baseUrl, expire: Date.now() + Math.max(10000, (j.ttlMsecs || 300000) - 30000) };
+            }
+            var q = 'SELECT id' + utiles.map(function (c) { return ', ' + identSql(c); }).join('') + ' FROM ' + identSql(tid);
+            var rep = await fetchDelai(_jetonSql.baseUrl + '/sql?q=' + encodeURIComponent(q) + '&auth=' + encodeURIComponent(_jetonSql.token), {}, DELAI_API_MS);
+            if (!rep.ok) {
+                var err = new Error('Réponse ' + rep.status);
+                err.definitif = [401, 403, 404].indexOf(rep.status) !== -1;
+                throw err;
+            }
+            var json = await rep.json();
+            var d = { id: [] };
+            utiles.forEach(function (c) { d[c] = []; });
+            (json && Array.isArray(json.records) ? json.records : []).forEach(function (r) {
+                var f = r && r.fields ? r.fields : {};
+                d.id.push(f.id);
+                utiles.forEach(function (c) { d[c].push(valeurSqlVersGrist(infoColonne(tid, c), f[c])); });
+            });
+            return d;
+        }
+        catch (e) {
+            if (e && e.definitif) {
+                etat.sqlIndisponible = true;
+            }
+            logSecurite('INFO', 'Lecture SQL de ' + tid + ' indisponible : lecture complète', e);
+        }
+    }
+    return lireTable(tid);
 }
 async function lireTable(tid) {
     var delais = [10000, 20000, DELAI_API_MS];

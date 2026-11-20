@@ -501,6 +501,8 @@
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
 </head>
 <body>
@@ -545,7 +547,106 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.4';
+var VERSION_WIDGET = '1.8.0';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplomatrice';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DE_MATRICES';
@@ -4738,7 +4839,7 @@ function rendreCarte(el) {
         if (!t) {
             return null;
         }
-        return creer('span', {}, [creer('span', { classe: 'w-carte__libelle', texte: libelleColonne(col) }), t]);
+        return creer('span', {}, [creer('span', { classe: 'w-carte__libelle', texte: libelleColonne(col) }), valeurAvecCouleurs(colonneMatrice(col), el.valeurs[col], t)]);
     }));
     var pied = creer('div', { classe: 'w-carte__pied' }, [
         c.score && el.place && el.score !== null && el.score !== undefined ? badge('Score ' + formaterNombre(el.score), 'info') : null,
@@ -5078,7 +5179,7 @@ async function ouvrirFiche(el) {
     }
     var lignes = [];
     var ajouter = function (lib, val) {
-        lignes.push(creer('div', {}, [creer('dt', { classe: 'w-carte__libelle', texte: lib }), creer('dd', { classe: 'fr-m-0 fr-mb-1w', texte: val || 'Non renseigné' })]));
+        lignes.push(creer('div', {}, [creer('dt', { classe: 'w-carte__libelle', texte: lib }), creer('dd', { classe: 'fr-m-0 fr-mb-1w' }, [val && typeof val === 'object' ? val : (val || 'Non renseigné')])]));
     };
     var zo = el.place ? zoneDe(c, el.xi, el.yi) : null;
     ajouter(c.x.nom, el.xi >= 0 ? libelleNiveau(c.x, el.xi) + (c.x.mode === 'nombre' ? ' (' + texteValeur(c.x.col, el.valeurs[c.x.col]) + ')' : '') : '');
@@ -5087,7 +5188,7 @@ async function ouvrirFiche(el) {
     if (c.score) {
         ajouter('Score', el.score !== null && el.score !== undefined ? formaterNombre(el.score) : '');
     }
-    c.champs.forEach(function (col) { ajouter(libelleColonne(col), texteValeur(col, el.valeurs[col])); });
+    c.champs.forEach(function (col) { ajouter(libelleColonne(col), valeurAvecCouleurs(colonneMatrice(col), el.valeurs[col], texteValeur(col, el.valeurs[col]))); });
     var corps = [el.raison ? alerte('warning', null, el.raison) : null, creer('dl', { classe: 'fr-m-0' }, lignes)];
     cols.forEach(function (k, idx) {
         if (genreCol(colonneMatrice(k)) === 'pj' && idsPJ(el.valeurs[k]).length) {
@@ -5175,7 +5276,7 @@ function editeurChamp(k, v, idx, el) {
         }
         var raison = g === 'autre' ? 'type de colonne non modifiable ici' : 'calculé automatiquement';
         return { col: k, lire: null, noeud: creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label fr-mb-0', texte: lib }),
-                creer('p', { classe: 'w-texte', texte: texteValeur(k, v) || 'Non renseigné' }),
+                creer('p', { classe: 'w-texte' }, [valeurAvecCouleurs(col, v, texteValeur(k, v) || 'Non renseigné')]),
                 creer('p', { classe: 'fr-hint-text w-lecture-seule' }, [creer('span', { classe: 'fr-icon-lock-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Non modifiable : ' + raison + '.'])]) };
     }
     if (k === c.colTitre && (g === 'texte' || g === 'texte_long')) {
@@ -5283,6 +5384,7 @@ function editeurChamp(k, v, idx, el) {
             ops.push({ valeur: cur, libelle: cur + ' (valeur hors liste)' });
         }
         var sc = liste(id, ops, cur, { vide: 'Non renseigné' });
+        colorerSelectChoix(sc, col);
         return { col: k, noeud: groupeChamp(lib, sc), lire: function () { return { ok: true, v: sc.value || '' }; } };
     }
     if (g === 'reference') {
@@ -5311,6 +5413,7 @@ function editeurChamp(k, v, idx, el) {
     if (!valeurs.length) {
         fsE.appendChild(creer('p', { classe: 'fr-hint-text', texte: multiRef ? 'La table visée ne contient aucune ligne.' : 'Aucune valeur proposée pour cette colonne.' }));
     }
+    colorerCasesChoix(fsE, col);
     return { col: k, noeud: fsE, lire: function () {
             var sel = cases.filter(function (x) { return x.n.checked; }).map(function (x) { return x.v; });
             return { ok: true, v: sel.length ? ['L'].concat(sel) : null };

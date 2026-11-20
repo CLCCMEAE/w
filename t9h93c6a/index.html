@@ -578,6 +578,8 @@
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
 </head>
 <body>
@@ -634,7 +636,106 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.5.3';
+var VERSION_WIDGET = '3.6.0';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploverse';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOVERSE_';
@@ -9440,7 +9541,7 @@ async function lireProjets() {
     } });
     return {
         projets: liste, projetsBruts: d, tableProjets: tid,
-        statuts: ordre.map(function (s, k) { return { nom: s, couleur: COULEURS_CLASSEURS[k % COULEURS_CLASSEURS.length], projets: liste.filter(function (p) { return p.statut === s; }) }; })
+        statuts: ordre.map(function (s, k) { var stG = styleChoixGrist(col, s); return { nom: s, couleur: stG && stG.fond ? stG.fond : COULEURS_CLASSEURS[k % COULEURS_CLASSEURS.length], projets: liste.filter(function (p) { return p.statut === s; }) }; })
             .filter(function (s) { return s.projets.length; }),
         listeProjets: tousProjets.map(function (p) { return { id: p.id, num: p.num, libelle: p.libelle }; })
     };
@@ -9873,6 +9974,7 @@ function editeurChamp(tid, colId, o) {
             cs.push(String(v));
         }
         champ = liste(id, cs.map(function (x) { return { valeur: x, libelle: annoter(x) }; }), v || '', { vide: '(Aucun)' });
+        colorerSelectChoix(champ, col);
         lire = function () { return { valeur: champ.value }; };
     }
     else if (genre === 'etiquettes' || genre === 'references') {

@@ -619,6 +619,8 @@
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
 </head>
 <body>
@@ -674,7 +676,106 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.5';
+var VERSION_WIDGET = '1.8.0';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplocity';
 var ID_BIBLIO = 'BIBLIOTHEQUE_VILLE';
@@ -7833,7 +7934,7 @@ function rendreListe(projets) {
         if (cfg.colResponsable) {
             cellules.push(creer('td', { texte: nomsDevs(p) }));
         }
-        extras.forEach(function (c) { cellules.push(creer('td', { texte: texteValeurCol(cfg.table, c, valeurLigne(etat.source, c, p.index), etat.source.refs) })); });
+        extras.forEach(function (c) { var vx = valeurLigne(etat.source, c, p.index); cellules.push(creer('td', {}, [valeurAvecCouleurs(infoColonne(cfg.table, c), vx, texteValeurCol(cfg.table, c, vx, etat.source.refs))])); });
         corps.appendChild(creer('tr', {}, cellules));
     });
     table.appendChild(corps);
@@ -9077,7 +9178,7 @@ function editeurChamp(p, colId) {
         var raison = raisonLectureSeule(col, genre, p.id);
         return creer('div', { classe: 'fr-input-group vl-lecture' }, [
             creer('p', { classe: 'fr-label', texte: libelle }),
-            creer('p', { classe: 'vl-valeur', texte: t || 'Non renseigné' }),
+            creer('p', { classe: 'vl-valeur' }, [valeurAvecCouleurs(col, v, t || 'Non renseigné')]),
             creer('p', { classe: 'fr-hint-text', texte: raison })
         ]);
     }
@@ -9109,6 +9210,7 @@ function editeurChamp(p, colId) {
             ops.push({ valeur: v, libelle: v + ' (hors liste)' });
         }
         champ = liste(id, ops, v || '', { vide: '(Non renseigné)' });
+        colorerSelectChoix(champ, col);
         lire = function () { return champ.value; };
     }
     else if (genre === 'etiquettes') {
@@ -10233,7 +10335,7 @@ function majFicheExemple(projets, src) {
         }
         var t = texteValeurCol(c.table, k, valeurLigne(src, k, p.index), src.refs);
         dl.appendChild(creer('dt', { texte: nomColonne(col) }));
-        dl.appendChild(creer('dd', { texte: t ? (t.length > 60 ? t.slice(0, 59) + '…' : t) : '-' }));
+        dl.appendChild(creer('dd', {}, [valeurAvecCouleurs(col, valeurLigne(src, k, p.index), t ? (t.length > 60 ? t.slice(0, 59) + '…' : t) : '-')]));
     });
     z.appendChild(creer('p', { classe: 'w-apercu__fiche-titre', texte: (p.ref ? p.ref + ' · ' : '') + p.nom }));
     z.appendChild(dl);

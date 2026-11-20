@@ -622,6 +622,8 @@
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
 </head>
 <body>
@@ -677,7 +679,106 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.4';
+var VERSION_WIDGET = '1.10.0';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplokanban';
 var ID_BIBLIO = 'BIBLIOTHEQUE_KANBAN';
@@ -2229,6 +2330,19 @@ function bouton(libelle, variante, icone, clic, o) {
 }
 function badge(texte, variante) {
     return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon' + (variante ? ' fr-badge--' + variante : ''), texte: texte });
+}
+function badgeChoixK(col, t) {
+    return styleChoixGrist(col, t) ? badgeChoixGrist(col, t) : badge(t, couleurBadge(t));
+}
+function bordCouleurCarte(art, col, vc) {
+    art.classList.add('w-carte--couleur');
+    var st = styleChoixGrist(col, vc);
+    if (st && st.fond) {
+        art.style.borderLeftColor = st.fond;
+    }
+    else {
+        art.classList.add('w-carte--c-' + couleurBadge(vc));
+    }
 }
 function couleurBadge(texte) {
     var s = String(texte || '');
@@ -6163,6 +6277,9 @@ function valeurExemple(info) {
         pj: '2', reference: 'Visas', dateheure: '15 oct. 2026, 14 h 30', entier: '12', montant: '1 250,00 €', pourcentage: '15 %' };
     return ex[info.genre] || '…';
 }
+function colInfoApercu(i) {
+    return i && i.col && etat.config && etat.config.tableCartes ? infoColonne(etat.config.tableCartes, i.col) : null;
+}
 function apercuCarte() {
     var b = etat.brouillon;
     var art = creer('div', { classe: 'w-carte', attrs: { 'aria-hidden': 'true' } });
@@ -6174,8 +6291,7 @@ function apercuCarte() {
     var coul = b.couleur ? infoParUid(b.couleur) : null;
     if (coul && infoActive(coul)) {
         var vc = valeurExemple(coul);
-        art.classList.add('w-carte--couleur');
-        art.classList.add('w-carte--c-' + couleurBadge(vc));
+        bordCouleurCarte(art, colInfoApercu(coul), vc);
     }
     var infos = creer('div', { classe: 'w-carte__infos' });
     var lib = function (i) { return b.nomsInfos ? creer('span', { classe: 'w-carte__libelle', texte: i.libelle }) : null; };
@@ -6205,7 +6321,7 @@ function apercuCarte() {
     visibles.forEach(function (i) {
         var v = valeurExemple(i);
         if (i.genre === 'choix' || i.genre === 'etiquettes') {
-            infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [ico(i), lib(i), badge(v, couleurBadge(v))]));
+            infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [ico(i), lib(i), badgeChoixK(colInfoApercu(i), v)]));
         }
         else if (i.genre === 'texte_long') {
             infos.appendChild(creer('p', { classe: 'w-carte__texte' }, [ico(i), lib(i), v]));
@@ -6222,7 +6338,7 @@ function apercuCarte() {
     });
     if (coul && infoActive(coul) && visibles.indexOf(coul) === -1) {
         var v2 = valeurExemple(coul);
-        infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [lib(coul), badge(v2, couleurBadge(v2))]));
+        infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [lib(coul), badgeChoixK(colInfoApercu(coul), v2)]));
     }
     if (infos.childNodes.length) {
         art.appendChild(infos);
@@ -8150,7 +8266,7 @@ function rendreTableau(zone) {
         if (cles.length) {
             contenu.appendChild(legendeFiltre('tVoletLeg', libelleChampCol(c.couleur), 'palette-line', cles.map(function (k) {
                 return { cle: k, compte: comptes[k], masque: !!etat.legendeMasquee[k],
-                    etiquette: [k ? badge(k, couleurBadge(k)) : creer('span', { classe: 'w-legende__nom', texte: '(Non renseigné)' })] };
+                    etiquette: [k ? badgeChoixK(colonneCartes(c.couleur), k) : creer('span', { classe: 'w-legende__nom', texte: '(Non renseigné)' })] };
             }), function (k) {
                 if (etat.legendeMasquee[k]) {
                     delete etat.legendeMasquee[k];
@@ -8936,8 +9052,7 @@ function rendreCarte(x) {
     if (c.couleur) {
         var vc = texteValeur(c.couleur, x.valeurs[c.couleur]);
         if (vc) {
-            art.classList.add('w-carte--couleur');
-            art.classList.add('w-carte--c-' + couleurBadge(vc));
+            bordCouleurCarte(art, colonneCartes(c.couleur), vc);
         }
     }
     champs.forEach(function (ch) {
@@ -8965,11 +9080,11 @@ function rendreCarte(x) {
         }
         else if (g === 'choix') {
             infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [iconeInfo(g, col), noms ? creer('span', { classe: 'w-carte__libelle', texte: lib }) : creer('span', { classe: 'fr-sr-only', texte: lib + ' : ' }),
-                badge(t, couleurBadge(t))]));
+                badgeChoixK(col, t)]));
         }
         else if (g === 'etiquettes') {
             infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [iconeInfo(g, col), noms ? creer('span', { classe: 'w-carte__libelle', texte: lib }) : creer('span', { classe: 'fr-sr-only', texte: lib + ' : ' })]
-                .concat((Array.isArray(v) ? v.slice(1) : []).map(function (e) { return badge(String(e), couleurBadge(e)); }))));
+                .concat((Array.isArray(v) ? v.slice(1) : []).map(function (e) { return badgeChoixK(col, String(e)); }))));
         }
         else if (g === 'references') {
             infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [iconeInfo(g, col), noms ? creer('span', { classe: 'w-carte__libelle', texte: lib }) : creer('span', { classe: 'fr-sr-only', texte: lib + ' : ' })]
@@ -9018,7 +9133,7 @@ function rendreCarte(x) {
     if (c.couleur && !champs.some(function (ch) { return ch.col === c.couleur; })) {
         var vcl = texteValeur(c.couleur, x.valeurs[c.couleur]);
         if (vcl) {
-            infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [creer('span', { classe: noms ? 'w-carte__libelle' : 'fr-sr-only', texte: libelleChampCol(c.couleur) + (noms ? '' : ' : ') }), badge(vcl, couleurBadge(vcl))]));
+            infos.appendChild(creer('span', { classe: 'w-carte__groupe' }, [creer('span', { classe: noms ? 'w-carte__libelle' : 'fr-sr-only', texte: libelleChampCol(c.couleur) + (noms ? '' : ' : ') }), badgeChoixK(colonneCartes(c.couleur), vcl)]));
         }
     }
     if (infos.childNodes.length) {
@@ -9846,7 +9961,7 @@ function editeurChamp(ch, carte, idx, prerempli) {
     }
     if (!estModifiable(col, g)) {
         return { noeud: creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label fr-mb-0', texte: lib }),
-                creer('p', { classe: 'w-texte', texte: texteValeur(ch.col, v) || 'Non renseigné' }),
+                creer('p', { classe: 'w-texte' }, [valeurAvecCouleurs(col, v, texteValeur(ch.col, v) || 'Non renseigné')]),
                 creer('p', { classe: 'fr-hint-text w-lecture-seule' }, [creer('span', { classe: 'fr-icon-lock-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
                     'Non modifiable : ' + raisonLectureSeule(col, g).replace(/^./, function (x) { return x.toLowerCase(); })])]), lire: null };
     }
@@ -9951,6 +10066,7 @@ function editeurChamp(ch, carte, idx, prerempli) {
             ops.push({ valeur: v, libelle: v + ' (valeur hors liste)' });
         }
         var sc = liste(id, ops, v || '', { vide: 'Non renseigné' });
+        colorerSelectChoix(sc, col);
         var groupeC = groupeChamp(lib, sc, null);
         if (!ops.length) {
             sc.setAttribute('aria-describedby', id + '_aide');
@@ -9988,6 +10104,7 @@ function editeurChamp(ch, carte, idx, prerempli) {
             fsE.setAttribute('aria-describedby', id + '_aide');
             fsE.appendChild(aideListeVide(ch, g, id + '_aide', !carte));
         }
+        colorerCasesChoix(fsE, col);
         return { noeud: fsE, lire: function () {
                 var sel = cases.filter(function (k) { return k.n.checked; }).map(function (k) { return k.v; });
                 return { ok: true, v: sel.length ? ['L'].concat(sel) : null };

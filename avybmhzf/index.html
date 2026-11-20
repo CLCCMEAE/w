@@ -485,6 +485,7 @@
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
   .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
   <style id="pvPage">@page { size: A4 landscape; margin: 10mm; }</style>
 </head>
@@ -530,7 +531,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.6';
+var VERSION_WIDGET = '1.7.7';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -576,6 +577,53 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
 }
 function badgeChoixGrist(col, valeur, classe) {
     var b = document.createElement('span');
@@ -3758,6 +3806,7 @@ function dimension(tid, def) {
     }
     else {
         var lk = lecteurCles(tid, def.col);
+        d.colInfo = col;
         d.cles = function (i) { var ks = lk(i); return ks.length > 1 ? ks.filter(function (k, j) { return ks.indexOf(k) === j; }) : ks; };
         d.lib = function (k) { return libelleCle(k); };
     }
@@ -3873,9 +3922,9 @@ function lignesAffichees(p) {
     p.arbreL.cles.forEach(function (k1) {
         var fils = p.arbreL.fils[k1];
         var replie = deux && !!etat.replies.l[k1];
-        res.push({ chemin: k1, niveau: 1, lib: p.dl[0].lib(k1), groupe: deux, replie: replie, cle: k1 });
+        res.push({ chemin: k1, niveau: 1, lib: p.dl[0].lib(k1), groupe: deux, replie: replie, cle: k1, col: p.dl[0].colInfo, brut: k1 });
         if (deux && !replie) {
-            fils.cles.forEach(function (k2) { res.push({ chemin: k1 + SEP_NIVEAU + k2, niveau: 2, lib: p.dl[1].lib(k2), parent: p.dl[0].lib(k1) }); });
+            fils.cles.forEach(function (k2) { res.push({ chemin: k1 + SEP_NIVEAU + k2, niveau: 2, lib: p.dl[1].lib(k2), parent: p.dl[0].lib(k1), col: p.dl[1].colInfo, brut: k2 }); });
         }
     });
     res.push({ chemin: TOTAL, niveau: 0, lib: 'Total', total: true });
@@ -3890,14 +3939,14 @@ function colonnesAffichees(p) {
     p.arbreC.cles.forEach(function (k1) {
         var lib1 = p.dc[0].lib(k1);
         if (!deux) {
-            res.push({ chemin: k1, niveau: 1, lib: lib1, groupe1: k1 });
+            res.push({ chemin: k1, niveau: 1, lib: lib1, groupe1: k1, col: p.dc[0].colInfo, brut: k1 });
             return;
         }
         if (etat.replies.c[k1]) {
             res.push({ chemin: k1, niveau: 1, lib: lib1, groupe1: k1, replie: true });
             return;
         }
-        p.arbreC.fils[k1].cles.forEach(function (k2) { res.push({ chemin: k1 + SEP_NIVEAU + k2, niveau: 2, lib: p.dc[1].lib(k2), groupe1: k1, parent: lib1 }); });
+        p.arbreC.fils[k1].cles.forEach(function (k2) { res.push({ chemin: k1 + SEP_NIVEAU + k2, niveau: 2, lib: p.dc[1].lib(k2), groupe1: k1, parent: lib1, col: p.dc[1].colInfo, brut: k2 }); });
         res.push({ chemin: k1, niveau: 1, lib: 'Total ' + lib1, groupe1: k1, sousTotal: true });
     });
     res.push({ chemin: TOTAL, niveau: 0, lib: 'Total', total: true });
@@ -4947,7 +4996,7 @@ function construireTable(cfg, p, o) {
             bt.addEventListener('click', function () { basculerGroupe('c', c.groupe1, 'pRepC' + i); });
             th.appendChild(bt);
         }
-        th.appendChild(document.createTextNode(nivC > 1 && c.sousTotal ? c.lib.replace(/^Total /, '') : c.lib));
+        th.appendChild(c.col && !c.sousTotal && c.brut && styleChoixGrist(c.col, c.brut) ? badgeChoixGrist(c.col, c.brut) : document.createTextNode(nivC > 1 && c.sousTotal ? c.lib.replace(/^Total /, '') : c.lib));
         return th;
     };
     if (!nivC) {
@@ -5004,7 +5053,7 @@ function construireTable(cfg, p, o) {
         if (l.niveau === 2) {
             th.appendChild(creer('span', { classe: 'fr-sr-only', texte: l.parent + ', ' }));
         }
-        th.appendChild(document.createTextNode(l.lib));
+        th.appendChild(l.col && l.brut && styleChoixGrist(l.col, l.brut) ? badgeChoixGrist(l.col, l.brut) : document.createTextNode(l.lib));
         if (l.groupe && !l.total) {
             th.appendChild(creer('span', { classe: 'fr-sr-only', texte: ' (total du groupe)' }));
         }

@@ -414,6 +414,7 @@
     .gb-lien-ligne { background: none; border: 0; padding: 0; font: inherit; color: var(--text-action-high-blue-france); cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
     .gb-table td.gb-num .gb-lien-ligne { color: var(--text-default-grey); text-decoration: none; }
     .gb-table td.gb-num .gb-lien-ligne:hover { color: var(--text-action-high-blue-france); text-decoration: underline; }
+    .gb-pastilles { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
     .gb-pastille { display: inline-block; padding: 0 .5rem; border-radius: 999px; font-size: .75rem; line-height: 1.25rem; font-weight: 600; background: var(--background-contrast-grey); color: var(--text-default-grey); white-space: nowrap; }
     .gb-bulle { position: fixed; z-index: 9980; pointer-events: none; max-width: 18rem; padding: .5rem .625rem; border-radius: 0; background: var(--background-default-grey);
       color: var(--text-default-grey); border: 1px solid var(--border-plain-grey); font-size: .8125rem; line-height: 1.35; display: none; }
@@ -615,6 +616,8 @@
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
+  .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 </style>
   <style id="gbPage">@page { size: A4 landscape; margin: 10mm; }</style>
 </head>
@@ -661,7 +664,106 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.6';
+var VERSION_WIDGET = '1.9.0';
+/* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
+function couleurChoixSure(v) {
+    var x = String(v || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
+}
+function styleChoixGrist(col, valeur) {
+    var co = col && col.options && col.options.choiceOptions;
+    var cle = String(valeur === null || valeur === undefined ? '' : valeur);
+    var o = co && Object.prototype.hasOwnProperty.call(co, cle) ? co[cle] : null;
+    if (!o || typeof o !== 'object') {
+        return null;
+    }
+    var st = { fond: couleurChoixSure(o.fillColor), encre: couleurChoixSure(o.textColor), gras: o.fontBold === true, italique: o.fontItalic === true,
+        souligne: o.fontUnderline === true, barre: o.fontStrikethrough === true };
+    if (!st.fond && !st.encre && !st.gras && !st.italique && !st.souligne && !st.barre) {
+        return null;
+    }
+    if (st.fond && !st.encre) {
+        st.encre = '#000000';
+    }
+    return st;
+}
+function styliserChoix(el, col, valeur) {
+    var st = el ? styleChoixGrist(col, valeur) : null;
+    if (!st) {
+        return el;
+    }
+    if (st.fond) {
+        el.style.backgroundColor = st.fond;
+    }
+    if (st.encre) {
+        el.style.color = st.encre;
+    }
+    if (st.gras) {
+        el.style.fontWeight = '700';
+    }
+    if (st.italique) {
+        el.style.fontStyle = 'italic';
+    }
+    var deco = [st.souligne ? 'underline' : '', st.barre ? 'line-through' : ''].filter(Boolean).join(' ');
+    if (deco) {
+        el.style.textDecoration = deco;
+    }
+    el.classList.add('w-choix-grist');
+    return el;
+}
+function colorerSelectChoix(sel, col) {
+    if (!sel || !col || !col.options || !col.options.choiceOptions) {
+        return sel;
+    }
+    Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && styleChoixGrist(col, o.value)) {
+            styliserChoix(o, col, o.value);
+        }
+    });
+    var maj = function () {
+        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
+        sel.classList.remove('w-choix-grist');
+        styliserChoix(sel, col, sel.value);
+    };
+    sel.addEventListener('change', maj);
+    maj();
+    return sel;
+}
+function colorerCasesChoix(conteneur, col) {
+    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
+        return conteneur;
+    }
+    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
+        var t = (l.textContent || '').trim();
+        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
+            l.textContent = '';
+            l.appendChild(badgeChoixGrist(col, t));
+        }
+    });
+    return conteneur;
+}
+function valeurAvecCouleurs(col, v, texte) {
+    var t = String(col && col.type || '');
+    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
+        return badgeChoixGrist(col, v);
+    }
+    if (t === 'ChoiceList' && Array.isArray(v)) {
+        var vals = v[0] === 'L' ? v.slice(1) : v;
+        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
+            var sp = document.createElement('span');
+            sp.className = 'w-choix-liste';
+            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
+            return sp;
+        }
+    }
+    return texte;
+}
+function badgeChoixGrist(col, valeur, classe) {
+    var b = document.createElement('span');
+    b.className = classe || 'fr-badge fr-badge--sm fr-badge--no-icon';
+    b.textContent = String(valeur);
+    return styliserChoix(b, col, valeur);
+}
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploboard';
 var ID_BIBLIO = 'BIBLIOTHEQUE_DIPLOBOARD';
@@ -5803,8 +5905,8 @@ function tableauTop(t) {
                 b.addEventListener('click', function () { ouvrirLignes(t, txt || 'Ligne', [i]); });
                 return creer('td', {}, [b]);
             }
-            if (genreCol(col) === 'choice' && txt) {
-                return creer('td', {}, [pastille(col, txt)]);
+            if ((genreCol(col) === 'choice' || genreCol(col) === 'choicelist') && txt) {
+                return creer('td', {}, noeudsCellule(tid, c, i, txt));
             }
             return creer('td', { classe: estNum(col) ? 'gb-num' : null, texte: txt });
         })));
@@ -5813,10 +5915,22 @@ function tableauTop(t) {
     return { table: table, n: idx.length };
 }
 function pastille(col, txt) {
-    var o = col && col.options && col.options.choiceOptions && Object.prototype.hasOwnProperty.call(col.options.choiceOptions, txt) ? col.options.choiceOptions[txt] : null;
-    var hex = function (c) { return typeof c === 'string' && /^#[0-9a-f]{3,8}$/i.test(c); };
-    var st = o && hex(o.fillColor) ? 'background:' + o.fillColor + ';color:' + (hex(o.textColor) ? o.textColor : 'var(--text-default-grey)') : null;
-    return creer('span', { classe: 'gb-pastille', texte: txt, attrs: { style: st } });
+    return styliserChoix(creer('span', { classe: 'gb-pastille', texte: txt }), col, txt);
+}
+function noeudsCellule(tid, colId, i, txt) {
+    var col = infoColonne(tid, colId);
+    var g = genreCol(col);
+    if (g === 'choice' && txt) {
+        return [pastille(col, txt)];
+    }
+    if (g === 'choicelist') {
+        var l = lecteur(tid, colId)(i);
+        var vals = Array.isArray(l) ? (l[0] === 'L' ? l.slice(1) : l) : [];
+        if (vals.length) {
+            return [creer('span', { classe: 'gb-pastilles' }, vals.map(function (x) { return pastille(col, String(x)); }))];
+        }
+    }
+    return [txt];
 }
 function jeuPivot(t) {
     var tid = t.table;
@@ -6092,7 +6206,7 @@ function ouvrirLignes(t, quoi, idx) {
         var dl = creer('dl', { classe: 'gb-lignes__champs' });
         cols.forEach(function (c) { var v = texteCellule(tid, c, i); if (v !== '') {
             dl.appendChild(creer('dt', { texte: libCol(tid, c) }));
-            dl.appendChild(creer('dd', { texte: v }));
+            dl.appendChild(creer('dd', {}, noeudsCellule(tid, c, i, v)));
         } });
         var tete = creer('div', { classe: 'gb-lignes__tete' }, [creer('h3', { classe: 'gb-lignes__titre', texte: titre || ('Ligne ' + rowId) })]);
         if (liee) {
