@@ -665,6 +665,10 @@
     .w-fil__ico.w-fil__ico--ajout { color: var(--text-default-success); }
     .w-fil__ico.w-fil__ico--modif { color: var(--text-action-high-blue-france); }
     .w-fil__ico.w-fil__ico--suppr { color: var(--text-default-error); }
+    .w-fil__item .w-fil__corps { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: .125rem 1rem; }
+    .w-fil__item .w-fil__titre { flex: 0 1 auto; }
+    .w-fil__item .w-fil__meta { margin-left: auto; white-space: nowrap; }
+    .w-fil__item .w-fil__actions { flex-basis: 100%; }
 </style>
 </head>
 <body>
@@ -720,7 +724,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.2';
+var VERSION_WIDGET = '1.4.3';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplohistorique';
 var TITRE_DEFAUT = '📜 WuitHistorique';
@@ -2793,7 +2797,8 @@ function rendreEvenement(e, sansLien) {
         meta.push(creer('span', { texte: nomPersonne(e) }));
     }
     else if (e.depuis && e.type !== 'suivi') {
-        meta.push(creer('span', { texte: 'modifié entre le ' + dateHeure(e.depuis) + ' et le ' + dateHeure(e.quand) }));
+        var memeJour = new Date(e.depuis).toDateString() === new Date(e.quand).toDateString();
+        meta.push(creer('span', { texte: memeJour ? (heure(e.depuis) === heure(e.quand) ? 'vers ' + heure(e.quand) : 'entre ' + heure(e.depuis) + ' et ' + heure(e.quand)) : 'entre le ' + dateHeure(e.depuis) + ' et le ' + dateHeure(e.quand) }));
     }
     if (e.supprimee) {
         meta.push(creer('span', { texte: 'ligne supprimée depuis' }));
@@ -2805,7 +2810,7 @@ function rendreEvenement(e, sansLien) {
         creer('div', { classe: 'w-fil__corps' }, [
             creer('p', { classe: 'w-fil__titre' }, [neuf ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new w-fil__neuf', texte: 'Nouveau' }) : null,
                 creer('span', { classe: 'fr-sr-only', texte: t.libelle + ' : ' }), titre]),
-            aa && (aa.avant || aa.apres) ? creer('p', { classe: 'w-fil__valeurs' }, e.type !== 'modification' && !aa.avant ? [creer('span', { texte: aa.apres })] : [
+            aa && (aa.avant || aa.apres) && !(e.type === 'structure' && !aa.apres && String(phrase(e)).indexOf(aa.avant) !== -1) ? creer('p', { classe: 'w-fil__valeurs' }, e.type !== 'modification' && !aa.avant ? [creer('span', { texte: aa.apres })] : [
                 creer('span', { classe: 'w-fil__avant' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Avant' }), creer('span', { texte: aa.avant || '(vide)' })]),
                 creer('span', { classe: 'w-fil__apres' }, [creer('span', { classe: 'w-fil__etiq', texte: 'Après' }), creer('span', { texte: aa.apres || '(vide)' })])
             ]) : null,
