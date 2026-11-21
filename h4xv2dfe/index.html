@@ -81,7 +81,10 @@
     @container assistant (max-width: 40rem) { .w-grille--2-1, .w-grille--1-1 { grid-template-columns: minmax(0, 1fr); } }
     .w-corps { flex: 1; min-height: 0; display: flex; }
     .w-corps > .w-contenu { flex: 1 1 auto; min-width: 0; }
-    .w-bandeau__aide { margin-left: auto; flex-shrink: 0; }
+    .w-bandeau__outils { margin-left: auto; flex-shrink: 0; display: flex; gap: .5rem; align-items: center; }
+    .w-bandeau__outils .fr-btn { margin: 0; flex-shrink: 0; }
+    .w-bandeau__param[hidden] { display: none; }
+    .w-bandeau__param[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--background-default-grey), 0 0 0 2px var(--border-action-high-blue-france); }
     .w-panneau-aide { flex: 0 0 24rem; width: 24rem; min-height: 0; display: flex; flex-direction: column;
       background: var(--background-contrast-yellow-tournesol); color: var(--text-default-grey); border-left: 1px solid var(--border-default-grey); }
     .w-panneau-aide[hidden] { display: none; }
@@ -247,6 +250,13 @@
     .w-filtres-page__liste { display: flex; flex-wrap: wrap; gap: .25rem .5rem; list-style: none; margin: 0; padding: 0; }
     .w-filtres-page__liste .fr-tag { margin: 0; }
     .w-infobulle--dessus::after { top: auto; bottom: calc(100% + .375rem); }
+    .w-infobulle.w-astuce-nom[data-infobulle]::after { left: 0; right: auto; white-space: normal !important; width: 17rem !important; }
+    .gb-constr__etiquette { display: flex; align-items: center; gap: .125rem; }
+    .gb-constr__etiquette .fr-btn { margin: 0; }
+    .w-reglages__etat { margin: 0 0 .5rem; }
+    .w-reglages__pages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-reglages__pages li { display: flex; flex-direction: column; gap: .125rem; }
+    .w-reglages__pages strong { overflow-wrap: anywhere; }
     @container assistant (max-width: 40rem) { .w-page-lecteur { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 40em) { .w-page-lecteur { grid-template-columns: minmax(0, 1fr); } }
     .w-titre-aide { display: flex; align-items: center; gap: .125rem; flex-wrap: wrap; }
@@ -852,7 +862,7 @@
       <div class="w-bandeau__sep"></div>
       <h1 class="w-bandeau__titre" id="bandeauTitre">📊 WuitStats</h1><span class="w-bandeau__version" id="bandeauVersion"></span><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
-    <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button>
+    <div class="w-bandeau__outils"><button type="button" class="fr-btn fr-btn--sm fr-icon-settings-5-line fr-btn--icon-left w-bandeau__param" id="bandeauParametres" hidden>Paramètres</button><button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button></div>
   </div>
   <div class="w-toast fr-alert fr-alert--sm fr-alert--info" id="wToast" role="status" aria-live="polite" hidden><p class="w-toast__message" id="wToastMsg"></p><span class="w-toast__action" id="wToastAction"></span><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="wToastFermer" aria-label="Fermer le message" data-infobulle="Fermer"><span class="fr-sr-only">Fermer le message</span></button></div>
   <p class="fr-sr-only" id="annonce" role="status" aria-live="polite"></p>
@@ -871,7 +881,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.13';
+var VERSION_WIDGET = '2.1.14';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8376,8 +8386,7 @@ function ongletsTableaux() {
     setTimeout(function () { var a = document.querySelector('.w-onglet[aria-selected="true"]'); if (a && a.scrollIntoView) {
         a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } }, 0);
-    var reglages = etat.peutParametrer && !etat.page && etat.config && !enCreation() && !enParametrage()
-        ? bouton('Paramètres', 'tertiaire', 'settings-5-line', ouvrirParametrage, { petit: true, id: 'gParametresWidget', classe: 'w-onglets__param' }) : null;
+    var reglages = null;
     return creer('nav', { classe: 'tab-nav w-onglets' + (reglages ? ' w-onglets--param' : ''), attrs: { 'aria-label': 'Navigation entre les tableaux de bord' } }, [ul, reglages]);
 }
 function envelopperOnglets(zone) {
@@ -8488,6 +8497,15 @@ function majBandeauRole() {
     b.textContent = role;
     b.hidden = !role;
     b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
+    var pb = document.getElementById('bandeauParametres');
+    if (pb) {
+        pb.hidden = !admin;
+        pb.setAttribute('aria-pressed', etat.vue === 'reglages' ? 'true' : 'false');
+        if (!pb.dataset.branche) {
+            pb.dataset.branche = '1';
+            pb.addEventListener('click', function () { relayer(ouvrirReglages(), 'Paramètres du widget'); });
+        }
+    }
 }
 var _iconesVues = {};
 function iconeDispo(candidats) {
@@ -8748,6 +8766,14 @@ function modeleBarreAcl(table) {
     ]);
 }
 function rafraichirApresDroits(focusId) {
+    if (etat.vue === 'reglages') {
+        afficherVue('reglages', true);
+        var fr = focusId ? document.getElementById(focusId) : null;
+        if (fr) {
+            fr.focus();
+        }
+        return;
+    }
     if (etat.panneauDroitsOuvert && typeof ouvrirPanneauDroits === 'function') {
         ouvrirPanneauDroits();
         return;
@@ -8761,6 +8787,7 @@ function afficherVue(vue, garderFocus) {
     oublierObservations();
     cacherBulle();
     etat.vue = vue;
+    majBandeauRole();
     var zone = contenu();
     var defilement = zone.scrollTop;
     vider(zone);
@@ -8773,6 +8800,9 @@ function afficherVue(vue, garderFocus) {
     else if (vue === 'construction') {
         rendreConstruction(zone);
     }
+    else if (vue === 'reglages') {
+        rendreReglages(zone);
+    }
     else if (vue === 'echec') {
         rendreEchec(zone);
     }
@@ -8782,7 +8812,7 @@ function afficherVue(vue, garderFocus) {
     else if (vue === 'aucun') {
         rendreAucun(zone);
     }
-    if (vue === 'tableau' || vue === 'assistant' || vue === 'echec') {
+    if (vue === 'tableau' || vue === 'assistant' || vue === 'echec' || vue === 'reglages') {
         envelopperOnglets(zone);
     }
     zone.classList.toggle('w-contenu--board', vue === 'tableau');
@@ -11684,7 +11714,8 @@ function rendreConstruction(zone) {
     }
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
-        creer('div', { classe: 'gb-constr__nom' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }), nom]),
+        creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }),
+                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des lecteurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom]),
         creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var form = creer('div', { classe: 'gb-constr__etapes' });
@@ -11797,6 +11828,96 @@ async function quitterConstruction() {
     }
     demarrerCreation();
 }
+var _sectionReglages = 'droits';
+async function ouvrirReglages() {
+    if (!etat.peutParametrer || etat.page) {
+        return;
+    }
+    var c = etat.construction;
+    if (etat.vue === 'construction' && c) {
+        var pub = !!c.cle && pagesDuTableau(c.cle).length > 0;
+        if (pub) {
+            if (constructionModifiee() && !(await confirmerAction('Abandonner les modifications ?', '', 'Abandonner'))) {
+                return;
+            }
+        }
+        else {
+            await enregistrerBrouillon();
+            if (!c.cle && constructionModifiee() && !(await confirmerAction('Abandonner cet élément ?', '', 'Abandonner'))) {
+                return;
+            }
+        }
+        etat.construction = null;
+    }
+    if (etat.vue === 'assistant' && etat.brouillon) {
+        if (!(await quitterAssistant(true))) {
+            return;
+        }
+    }
+    if (etat.edition) {
+        await terminerEdition(true);
+    }
+    await majPages();
+    afficherVue('reglages');
+}
+async function fermerReglages() {
+    if (etat.tableaux.length && etat.cleConfig) {
+        await allerAuTableau(etat.cleConfig);
+        return;
+    }
+    demarrerCreation();
+}
+function pagesDesLecteurs() {
+    return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.nomsPages && etat.nomsPages[x]; });
+}
+function contenuReglagesLecteurs() {
+    var cachee = !!etat.pageProtegee;
+    var admin = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecAdmin' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecAdmin', texte: 'Page admin' })]),
+        creer('p', { classe: 'w-reglages__etat' }, [creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (cachee ? 'fr-badge--success' : 'fr-badge--warning'), texte: cachee ? 'Cachée aux lecteurs' : 'Visible par tous' })]),
+        cachee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null)
+            : bouton('Cacher la page admin', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' })]);
+    var liste = creer('ul', { classe: 'w-reglages__pages' });
+    pagesDesLecteurs().forEach(function (x) {
+        liste.appendChild(creer('li', {}, [creer('strong', { texte: etat.nomsPages[x] }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]));
+    });
+    var pages = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecPages' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecPages', texte: 'Pages publiées' })]),
+        liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', id: 'rPagesVide', texte: 'Aucune page publiée' })]);
+    return creer('div', { classe: 'w-general' }, [grilleParam([[admin], [pages]], '1-1')]);
+}
+function rendreReglages(zone) {
+    var haut = creer('div', { classe: 'gb-constr__haut' }, [
+        bouton('Retour', 'tertiaire', 'arrow-left-line', fermerReglages, { petit: true, id: 'rRetour' }),
+        creer('h2', { classe: 'fr-h5 fr-m-0', id: 'titreVue', texte: 'Paramètres', attrs: { tabindex: '-1' } })]);
+    var n = pagesDesLecteurs().length;
+    var sections = [
+        { cle: 'droits', nom: 'Les droits', resume: etat.pageProtegee ? 'Page admin cachée' : 'Page admin visible', contenu: contenuDroits },
+        { cle: 'lecteurs', nom: 'Page des lecteurs', resume: n ? n + (n > 1 ? ' pages publiées' : ' page publiée') : 'Aucune page publiée', contenu: contenuReglagesLecteurs }
+    ];
+    var liste = creer('div', { classe: 'gb-acc', attrs: { role: 'list' } });
+    sections.forEach(function (g, k) {
+        var ouvert = _sectionReglages === g.cle;
+        var c = creer('div', { id: 'rSecCorps-' + g.cle });
+        c.hidden = !ouvert;
+        if (ouvert) {
+            c.appendChild(g.contenu());
+        }
+        var bt = creer('button', { classe: 'gb-acc__tete', id: 'rSec-' + g.cle, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'rSecCorps-' + g.cle } }, [
+            creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
+            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), creer('span', { classe: 'gb-acc__resume', texte: g.resume })])]);
+        bt.addEventListener('click', function () {
+            _sectionReglages = _sectionReglages === g.cle ? null : g.cle;
+            afficherVue('reglages', true);
+            var f = document.getElementById('rSec-' + g.cle);
+            if (f) {
+                f.focus();
+            }
+        });
+        liste.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt, c]));
+    });
+    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, liste]));
+}
 function nomElementValide() {
     var b = etat.construction.b;
     var nom = String(b.titre || '').trim();
@@ -11812,6 +11933,9 @@ function nomElementValide() {
     return nom;
 }
 function nomPageStats(nom) {
+    return nom;
+}
+function nomPageAncienPrefixe(nom) {
     return '\uD83D\uDCCA ' + nom;
 }
 function valeurPageAuto(cle, cfg) {
@@ -11828,7 +11952,7 @@ function configElementConstruit(nom) {
 function nomElementPris(nom) {
     var cle = etat.construction.cle;
     var vues = etat.nomsVues || [];
-    return vues.indexOf(nom) !== -1 || vues.indexOf(nomPageStats(nom)) !== -1
+    return vues.indexOf(nom) !== -1 || vues.indexOf(nomPageAncienPrefixe(nom)) !== -1
         || etat.tableaux.some(function (t) { return t.cle !== cle && normalizer(t.config.nom) === normalizer(nom); });
 }
 async function enregistrerConfigElement(nom, libelleLoader) {
@@ -11906,7 +12030,7 @@ async function publierElementExistant() {
     }
     await majPages();
     var vues = etat.nomsVues || [];
-    if (vues.indexOf(cfg.nom) !== -1 || vues.indexOf(nomPageStats(cfg.nom)) !== -1) {
+    if (vues.indexOf(cfg.nom) !== -1 || vues.indexOf(nomPageAncienPrefixe(cfg.nom)) !== -1) {
         afficherErreur('Une page porte déjà ce nom dans le document.');
         return;
     }
@@ -12111,7 +12235,7 @@ async function publierTableau() {
     var cfg = etat.config;
     var nom = String(cfg.nom || '').trim();
     await majPages();
-    if ((etat.nomsVues || []).indexOf(nom) !== -1 || (etat.nomsVues || []).indexOf(nomPageStats(nom)) !== -1) {
+    if ((etat.nomsVues || []).indexOf(nom) !== -1 || (etat.nomsVues || []).indexOf(nomPageAncienPrefixe(nom)) !== -1) {
         signalerSaisie('Une page porte déjà ce nom dans le document : changez le nom du tableau de bord.');
         return;
     }
