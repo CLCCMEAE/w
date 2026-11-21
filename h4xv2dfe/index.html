@@ -735,7 +735,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.1';
+var VERSION_WIDGET = '1.4.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1163,7 +1163,7 @@ async function reduireVue(vue, sec) {
 async function creerTableOwner() {
     var tids = await creerTables([{ id: ID_OWNER, colonnes: [{ id: 'INFO', type: 'Text', label: 'INFO' }] }]);
     try {
-        await agir([['ModifyColumn', tids[0], 'INFO', { description: 'Colonne sans usage : la table sert seulement à masquer des pages.' }]]);
+        await agir([['ModifyColumn', tids[0], 'INFO', { description: 'Colonne sans usage : la liste sert seulement à masquer des pages.' }]]);
     }
     catch (eC) {
         logSecurite('INFO', 'Description de la colonne INFO non posée', eC);
@@ -1173,7 +1173,7 @@ async function creerTableOwner() {
     if (m && m.rawViewSectionRef) {
         try {
             await agir([['UpdateRecord', '_grist_Views_section', m.rawViewSectionRef, { title: TITRE_OWNER,
-                        description: 'Protection de pages : une vue de cette table posée sur une page masque la page aux personnes qui ne peuvent pas lire la table. Les règles d\'accès de cette table décident qui voit ces pages. Ne pas supprimer.' }]]);
+                        description: 'Protection de pages : une vue de cette liste posée sur une page masque la page aux personnes qui ne peuvent pas lire la liste. Les règles d\'accès de cette liste décident qui voit ces pages. Ne pas supprimer.' }]]);
         }
         catch (eT) {
             logSecurite('INFO', 'Nom affiché non posé sur ' + tids[0], eT);
@@ -1218,7 +1218,7 @@ async function cacherPage() {
             ref = o && etat.meta.tables[o] ? etat.meta.tables[o].ref : null;
         }
         if (!ref) {
-            throw new Error('La table « ' + titreOwner() + ' » n\'a pas été retrouvée après sa création');
+            throw new Error('La liste « ' + titreOwner() + ' » n\'a pas été retrouvée après sa création');
         }
         d = await lireTable('_grist_Views_section');
         var reduite = true;
@@ -1230,7 +1230,7 @@ async function cacherPage() {
             var r = await agir([['CreateViewSection', ref, vue, 'record', null, null]]);
             var sec = r && r.retValues && r.retValues[0] ? r.retValues[0].sectionRef : null;
             if (sec) {
-                await agir([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la table ' + titreOwner() + ' : elle cache cette page aux personnes qui ne peuvent pas lire la table. Ne pas supprimer.' }]]);
+                await agir([['UpdateRecord', '_grist_Views_section', sec, { title: 'Page cachée', description: 'Vue de la liste ' + titreOwner() + ' : elle cache cette page aux personnes qui ne peuvent pas lire la liste. Ne pas supprimer.' }]]);
                 reduite = await reduireVue(vue, sec);
             }
         }
@@ -1435,7 +1435,7 @@ function formulairePage() {
         ed.table = tables[0];
     }
     var cond = [creer('legend', { texte: 'Ce que cette page montre' }),
-        creer('p', { classe: 'w-mention', texte: 'Des conditions fixes, que les lecteurs ne peuvent pas retirer. Elles s\'appliquent à toutes les tuiles dont la table a la même colonne. Sans condition, la page montre toutes les lignes.' })];
+        creer('p', { classe: 'w-mention', texte: 'Des conditions fixes, que les lecteurs ne peuvent pas retirer. Elles s\'appliquent à toutes les tuiles dont la liste a la même colonne. Sans condition, la page montre toutes les lignes.' })];
     if (tables.length) {
         var opts = tables.map(function (x) { return { valeur: x, libelle: libelleTable(x) }; });
         if (ed.table && tables.indexOf(ed.table) === -1) {
@@ -1445,9 +1445,9 @@ function formulairePage() {
         selT.addEventListener('change', function () {
             ed.table = selT.value;
             ed.conditions = [];
-            relayer(assurerDonnees(ed.table).then(function () { redessiner('aPageTable'); }), 'Changement de table des conditions');
+            relayer(assurerDonnees(ed.table).then(function () { redessiner('aPageTable'); }), 'Changement de liste des conditions');
         });
-        cond.push(groupeChamp('Colonnes prises dans la table', selT));
+        cond.push(groupeChamp('Colonnes prises dans la liste', selT));
         cond.push(editeurConditions(ed, 'conditions', 'aPc', redessiner, function () { }));
     }
     noeuds.push(creer('fieldset', { classe: 'w-page-filtre w-page-conditions' }, cond));
@@ -1567,7 +1567,7 @@ async function creerPageConsultation(nom, valeur, premier) {
     var tid = t && t.config.table && etat.meta.tables[t.config.table] ? t.config.table : etat.biblio;
     var ref = etat.meta.tables[tid] ? etat.meta.tables[tid].ref : null;
     if (!ref) {
-        afficherErreur('La page n\'a pas été créée : table introuvable.');
+        afficherErreur('La page n\'a pas été créée : liste introuvable.');
         return;
     }
     var badge = nouveauBadge();
@@ -1615,7 +1615,7 @@ async function creerPageConsultation(nom, valeur, premier) {
 }
 async function supprimerPageConsultation(badge) {
     var nom = etat.nomsPages[badge] || '';
-    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux de bord et vos tables ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
+    var ok = await confirmerAction('Supprimer la page « ' + nom + ' » ?', 'La page disparaît du document. Les tableaux de bord et vos listes ne sont pas touchés. Cette action est définitive.', 'Supprimer la page', { danger: true });
     if (!ok) {
         return;
     }
@@ -1645,11 +1645,11 @@ function sectionPage(id, titre, noeuds, action) {
 }
 function sectionsPages() {
     var centrale = etat.biblioCentrale || !etat.biblio;
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la liste « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette liste est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var admin = sectionPage('aSecAdmin', 'Cette page', [
-        creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les tableaux de bord et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la table « ' + titreOwner() + ' ».' : 'Cette page montre tous les tableaux de bord et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
+        creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les tableaux de bord et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la liste « ' + titreOwner() + ' ».' : 'Cette page montre tous les tableaux de bord et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
-    var ic = aide('aAideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide, sans onglet « Nouveau tableau de bord » et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux lecteurs. Ce ne sont pas des droits : une personne qui a accès aux tables par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les tables.');
+    var ic = aide('aAideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide, sans onglet « Nouveau tableau de bord » et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux lecteurs. Ce ne sont pas des droits : une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.');
     if (etat.editionPage) {
         return [admin, sectionPage('aSecConsult', 'Où les lecteurs la voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null)];
     }
@@ -2779,7 +2779,7 @@ async function chargerMeta() {
         Object.keys(tables).forEach(function (k) { tables[k].libelle = titres[tables[k].rawViewSectionRef] || vues[tables[k].primaryViewId] || ''; });
     }
     catch (e) {
-        logSecurite('AVERTISSEMENT', 'Noms des tables illisibles : identifiants affichés sans soulignés', e);
+        logSecurite('AVERTISSEMENT', 'Noms des listes illisibles : identifiants affichés sans soulignés', e);
     }
     etat.meta = { tables: tables, colonnes: colonnes, colParRef: colParRef };
 }
@@ -2887,7 +2887,7 @@ function choisirTablesModele(m, message, libelleCase) {
         }
     });
     if (!presentes.length) {
-        return confirmerAvecCase('Créer les tables du modèle ?', message, libelleCase, true, 'Créer les tables')
+        return confirmerAvecCase('Créer les listes du modèle ?', message, libelleCase, true, 'Créer les listes')
             .then(function (avec) { return avec === null ? null : { choix: choix, avec: avec }; });
     }
     return new Promise(function (resoudre) {
@@ -2900,12 +2900,12 @@ function choisirTablesModele(m, message, libelleCase) {
             var ex = tableExistante(t.id);
             var ch = choix[t.id];
             var conflits = conflitsModele(ex, t);
-            var fs = creer('fieldset', { classe: 'fr-fieldset', attrs: { 'aria-labelledby': 'aTab_' + t.id + '_leg' } }, [creer('legend', { classe: 'fr-fieldset__legend', id: 'aTab_' + t.id + '_leg', texte: 'La table « ' + libelleTable(ex) + ' » existe déjà' })]);
+            var fs = creer('fieldset', { classe: 'fr-fieldset', attrs: { 'aria-labelledby': 'aTab_' + t.id + '_leg' } }, [creer('legend', { classe: 'fr-fieldset__legend', id: 'aTab_' + t.id + '_leg', texte: 'La liste « ' + libelleTable(ex) + ' » existe déjà' })]);
             var champNom = saisie('aTabNom_' + t.id, '', { indice: 'Par exemple : ' + libelleTable(ex) + ' Paris' });
             champNom.addEventListener('input', function () { ch.nom = champNom.value; });
-            var zoneNom = groupeChamp('Nom de la nouvelle table', champNom, null, true);
+            var zoneNom = groupeChamp('Nom de la nouvelle liste', champNom, null, true);
             zoneNom.hidden = ch.mode !== 'nouvelle';
-            [['existante', 'L\'utiliser : ses lignes restent, les colonnes du modèle qui manquent sont ajoutées'], ['nouvelle', 'Créer une autre table, que vous nommez']].forEach(function (o) {
+            [['existante', 'L\'utiliser : ses lignes restent, les colonnes du modèle qui manquent sont ajoutées'], ['nouvelle', 'Créer une autre liste, que vous nommez']].forEach(function (o) {
                 var r = creer('input', { attrs: { type: 'radio', name: 'aTab_' + t.id, id: 'aTab_' + t.id + '_' + o[0], disabled: o[0] === 'existante' && conflits.length ? true : null }, coche: ch.mode === o[0] });
                 r.addEventListener('change', function () {
                     ch.mode = o[0];
@@ -2923,7 +2923,7 @@ function choisirTablesModele(m, message, libelleCase) {
             corps.push(fs);
         });
         var c = creer('input', { id: 'aTabExemples', attrs: { type: 'checkbox' }, coche: true });
-        corps.push(creer('div', { classe: 'fr-checkbox-group fr-mt-2w' }, [c, creer('label', { classe: 'fr-label', texte: libelleCase + ' (dans les tables vides seulement)', attrs: { 'for': 'aTabExemples' } })]));
+        corps.push(creer('div', { classe: 'fr-checkbox-group fr-mt-2w' }, [c, creer('label', { classe: 'fr-label', texte: libelleCase + ' (dans les listes vides seulement)', attrs: { 'for': 'aTabExemples' } })]));
         var valider = function () {
             var ids = idsTablesModele(m, choix);
             var vus = [];
@@ -2933,11 +2933,11 @@ function choisirTablesModele(m, message, libelleCase) {
                     continue;
                 }
                 if (!ch.nom.trim() || !ids[t.id]) {
-                    marquerInvalide('aTabNom_' + t.id, 'Donnez un nom à la nouvelle table.');
+                    marquerInvalide('aTabNom_' + t.id, 'Donnez un nom à la nouvelle liste.');
                     return;
                 }
                 if (tableExistante(ids[t.id]) || vus.indexOf(ids[t.id]) !== -1) {
-                    marquerInvalide('aTabNom_' + t.id, 'Une table porte déjà ce nom dans le document : choisissez-en un autre.');
+                    marquerInvalide('aTabNom_' + t.id, 'Une liste porte déjà ce nom dans le document : choisissez-en un autre.');
                     return;
                 }
                 vus.push(ids[t.id]);
@@ -2945,7 +2945,7 @@ function choisirTablesModele(m, message, libelleCase) {
             finir({ choix: choix, avec: c.checked });
             fermerModale();
         };
-        ouvrirModale({ titre: 'Créer les tables du modèle ?', corps: corps, surFermeture: function () { finir(null); },
+        ouvrirModale({ titre: 'Créer les listes du modèle ?', corps: corps, surFermeture: function () { finir(null); },
             pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerModale, { id: 'aTabAnnuler' }), bouton('Continuer', null, null, valider, { id: 'aTabContinuer' })] });
     });
 }
@@ -3475,9 +3475,9 @@ function encartDroits(t) {
     }
     regles.push(centrale
         ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
+        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la liste ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
     var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
+        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la liste ' + nomBib + ' :' })
     ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
         creer('p', { classe: 'w-texte', texte: t.figer
                 ? 'Sans ces règles, le paramétrage reste proposé à tous, et un lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
@@ -3491,8 +3491,8 @@ function encartDroits(t) {
         btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
     }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
     var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
+    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne liste « ' + libelleTable(ac.table) + ' » reste dans le document '
+            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne liste, et elle sera supprimée à la prochaine ouverture.'
                 : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
                     : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
     return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
@@ -5600,10 +5600,10 @@ function problemeTuile(t) {
         return null;
     }
     if (!t.table || !etat.meta.tables[t.table]) {
-        return 'Sa table n\'existe plus dans ce document.';
+        return 'Sa liste n\'existe plus dans ce document.';
     }
     if (etat.illisibles[t.table]) {
-        return 'Sa table n\'a pas pu être lue : votre accès est peut-être restreint.';
+        return 'Sa liste n\'a pas pu être lue : votre accès est peut-être restreint.';
     }
     var manque = function (c) { return c && !infoColonne(t.table, c); };
     if (['kpi', 'kpigrid', 'bar', 'line', 'donut', 'progress', 'radar', 'gauge', 'funnel', 'heatmap'].indexOf(t.type) !== -1 && t.mesure && !mesureValide(t.table, t.mesure) && !(t.type === 'radar' && t.radarMode === 'colonnes')) {
@@ -5720,7 +5720,7 @@ function rendreTuile(t, o) {
     }
     var na = filtresNonAppliques(t);
     if (na.length && t.type !== 'text') {
-        art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: 'Non filtrée par ' + na.join(', ') + ' : sa table n\'a pas cette colonne.' }));
+        art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: 'Non filtrée par ' + na.join(', ') + ' : sa liste n\'a pas cette colonne.' }));
     }
     return art;
 }
@@ -5775,7 +5775,7 @@ function copiesDeTuile(t) {
 function rendreCopies(t, corps, o) {
     var r = copiesDeTuile(t);
     if (!r.copies.length) {
-        corps.appendChild(etatVide(nbLignes(t.table) ? 'Aucune donnée ne correspond' : 'Pas encore de données', nbLignes(t.table) ? 'Aucune ligne ne correspond aux filtres de cette tuile.' : 'La table ' + libelleTable(t.table) + ' n\'a pas encore de ligne.'));
+        corps.appendChild(etatVide(nbLignes(t.table) ? 'Aucune donnée ne correspond' : 'Pas encore de données', nbLignes(t.table) ? 'Aucune ligne ne correspond aux filtres de cette tuile.' : 'La liste ' + libelleTable(t.table) + ' n\'a pas encore de ligne.'));
         return;
     }
     var grille = creer('ul', { classe: 'gb-copies', attrs: { 'aria-label': 'Un graphique par valeur de ' + libCol(t.table, t.repeter) } });
@@ -5850,7 +5850,7 @@ function rendreCorps(t, corps, o) {
     }
     var jeu = jeuDeTuile(t);
     if (!jeu.cats.length || !jeu.n) {
-        corps.appendChild(etatVide(nbLignes(t.table) ? 'Aucune donnée ne correspond' : 'Pas encore de données', nbLignes(t.table) ? 'Aucune ligne ne correspond aux filtres de cette tuile.' : 'La table ' + libelleTable(t.table) + ' n\'a pas encore de ligne.'));
+        corps.appendChild(etatVide(nbLignes(t.table) ? 'Aucune donnée ne correspond' : 'Pas encore de données', nbLignes(t.table) ? 'Aucune ligne ne correspond aux filtres de cette tuile.' : 'La liste ' + libelleTable(t.table) + ' n\'a pas encore de ligne.'));
         return;
     }
     if (t.type === 'radar' && jeu.cats.length < 3) {
@@ -7846,10 +7846,10 @@ function ouvrirLignes(t, quoi, idx) {
         corps.push(creer('p', { classe: 'w-texte', texte: 'Aucune ligne.' }));
     }
     if (!liee && idx.length) {
-        corps.push(creer('p', { classe: 'w-mention', texte: 'Liste en lecture seule. Pour aller à une ligne depuis cette liste, liez ce widget à la table ' + libelleTable(tid) + ' (réglages du widget, « Sélectionner par » sur cette table).' }));
+        corps.push(creer('p', { classe: 'w-mention', texte: 'Liste en lecture seule. Pour aller à une ligne depuis cette liste, liez ce widget à la liste ' + libelleTable(tid) + ' (réglages du widget, « Sélectionner par » sur cette liste).' }));
     }
     corps.push(ul);
-    ouvrirModale({ titre: nombreSur(idx.length, 'ligne') + ' : ' + quoi, sousTitre: (t.titre ? t.titre + ' · ' : '') + 'table ' + libelleTable(tid), laterale: true, fermerDehors: true, corps: corps,
+    ouvrirModale({ titre: nombreSur(idx.length, 'ligne') + ' : ' + quoi, sousTitre: (t.titre ? t.titre + ' · ' : '') + 'liste ' + libelleTable(tid), laterale: true, fermerDehors: true, corps: corps,
         pied: [creer('span', { classe: 'w-pousse' }), bouton('Exporter ces lignes (CSV)', 'secondaire', 'download-line', function () {
                 var tous = [colT].concat(cols).filter(Boolean);
                 telechargerCSV((t.titre || 'lignes') + ' ' + quoi, tous.map(function (c) { return libCol(tid, c); }), idx.map(function (i) { return tous.map(function (c) { var col = infoColonne(tid, c); var v = lecteur(tid, c)(i); return estDate(col) ? texteCellule(tid, c, i) : (Array.isArray(v) ? v.join(', ') : v); }); }));
@@ -8076,7 +8076,7 @@ function retrouverRenommages(cfg) {
             }
             ancien[n] = tid;
             change = true;
-            logSecurite('INFO', 'Table renommée : ' + tid + ' devient ' + n);
+            logSecurite('INFO', 'Liste renommée : ' + tid + ' devient ' + n);
             return n;
         }, function (tid, colId) {
             if (infoColonne(tid, colId)) {
@@ -8457,16 +8457,16 @@ function blocDroitsGenerique() {
     var proprio = { condition: 'user.Access in [OWNER]', droits: { R: true, U: true, C: true, D: true } };
     var tout = function (v) { return { R: v, U: v, C: v, D: v }; };
     var etapes = [
-        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les éditeurs contournent toutes les règles. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne de chaque table ci-dessous.', modele: modeleReglesSpeciales() },
-        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.', modele: modeleBarreAcl(titreOwner()) },
-        { titre: 'Cacher la page Admin', texte: 'Cette table n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre table.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
-        { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
+        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les éditeurs contournent toutes les règles. Si votre document a une règle commune en tête de chaque liste (personnes inactives, par exemple), gardez-la en première ligne de chaque liste ci-dessous.', modele: modeleReglesSpeciales() },
+        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la liste : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.', modele: modeleBarreAcl(titreOwner()) },
+        { titre: 'Cacher la page Admin', texte: 'Cette liste n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre liste.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
+        { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la liste sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
             { condition: 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW, droits: tout(false) },
             { condition: centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"' : 'user.Access != OWNER', droits: { R: true, U: false, C: false, D: false } },
             { note: 'laisser sans réglage' }] }], 'aAclB') }
     ];
     tablesDuWidget().forEach(function (t, k) {
-        etapes.push({ titre: 'La table ' + libelleTable(t), texte: 'À adapter à votre besoin. Pour que les éditeurs la modifient, laissez « Tous les autres » sans réglage ; pour la lecture seule, réglez-la comme ci-dessous.', modele: modeleAcl(libelleTable(t), [{ colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclT' + k) });
+        etapes.push({ titre: 'La liste ' + libelleTable(t), texte: 'À adapter à votre besoin. Pour que les éditeurs la modifient, laissez « Tous les autres » sans réglage ; pour la lecture seule, réglez-la comme ci-dessous.', modele: modeleAcl(libelleTable(t), [{ colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclT' + k) });
     });
     etapes.push({ titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues, sans avertissement.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('span', { classe: 's-acl__btn', texte: 'Enregistrer' }), ' devient ', creer('span', { classe: 's-acl__btn s-acl__btn--fait', texte: 'Enregistré' })]) });
     etapes.push({ titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un éditeur : il ne voit pas la page Admin, il fait ce que vos règles permettent, rien de plus.' });
@@ -8537,7 +8537,7 @@ function modeleBarreAcl(table) {
                 creer('td', {}, [creer('span', { classe: 's-acl__cond' }, [creer('span', { classe: 's-acl__num', texte: '2' }), creer('span', { classe: 's-acl__plus', texte: '+' }), creer('span', { classe: 's-acl__num', texte: '3' }), creer('span', { classe: 's-acl__saisie', texte: 'coller la condition ici' })])]),
                 creer('td', {}, [creer('span', { classe: 's-acl__droits' }, [creer('span', { classe: 's-acl__num', texte: '4' })].concat(['R', 'U', 'C', 'D'].map(function (l) { return creer('span', { classe: 's-acl__droit s-acl__droit--vide', texte: l }); })))])])])
         ]),
-        creer('p', { classe: 's-acl__legende', texte: '1 : choisir la table. 2 : ajouter une ligne. 3 : coller la condition. 4 : cliquer les lettres (vert = autorisé, rouge barré = refusé). 5 : Enregistrer. 6 : vérifier.' })
+        creer('p', { classe: 's-acl__legende', texte: '1 : choisir la liste. 2 : ajouter une ligne. 3 : coller la condition. 4 : cliquer les lettres (vert = autorisé, rouge barré = refusé). 5 : Enregistrer. 6 : vérifier.' })
     ]);
 }
 function rafraichirApresDroits(focusId) {
@@ -8602,7 +8602,7 @@ function rendreAucun(zone) {
 }
 function rendreAcces(zone) {
     zone.appendChild(creer('div', { classe: 'w-centre' }, [titreVue('WuitStats a besoin d\'un accès complet au document'),
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de droite de ce widget, sous « Accès », choisissez « Accès complet au document ». WuitStats lit vos tables pour calculer les indicateurs, et n\'écrit que les réglages de ses tableaux de bord.' })]));
+        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de droite de ce widget, sous « Accès », choisissez « Accès complet au document ». WuitStats lit vos listes pour calculer les indicateurs, et n\'écrit que les réglages de ses tableaux de bord.' })]));
 }
 function rendreEchec(zone) {
     zone.appendChild(creer('div', { classe: 'w-centre' }, [titreVue('Le chargement n\'a pas abouti'),
@@ -8631,7 +8631,7 @@ function tablesDuTableau(cfg) {
 async function chargerDonneesTables(tids) {
     var echecs = [];
     var lus = await Promise.all(tids.map(function (tid) {
-        return lireTable(tid).then(function (d) { return [tid, d]; }, function (e) { echecs.push(e); logSecurite('AVERTISSEMENT', 'Table illisible : ' + tid, e); return [tid, null]; });
+        return lireTable(tid).then(function (d) { return [tid, d]; }, function (e) { echecs.push(e); logSecurite('AVERTISSEMENT', 'Liste illisible : ' + tid, e); return [tid, null]; });
     }));
     if (tids.length && echecs.length === tids.length) {
         throw echecs[0];
@@ -9067,7 +9067,7 @@ async function detecterTableLiee() {
     }
     catch (e) {
         etat.tableLiee = null;
-        logSecurite('INFO', 'Table liée à la vue non déterminée', e);
+        logSecurite('INFO', 'Liste liée à la vue non déterminée', e);
     }
 }
 var _accesRecu = null;
@@ -9104,7 +9104,7 @@ async function migrerNomsTables() {
         ids = await renommerTables(liste);
     }
     catch (e) {
-        logSecurite('INFO', 'Noms des tables non mis à jour', e);
+        logSecurite('INFO', 'Noms des listes non mis à jour', e);
         return false;
     }
     var corresp = Object.create(null), nb = 0;
@@ -9115,7 +9115,7 @@ async function migrerNomsTables() {
     if (!nb) {
         return false;
     }
-    logSecurite('INFO', 'Tables renommées : ' + Object.keys(corresp).map(function (a) { return a + ' > ' + corresp[a]; }).join(', '));
+    logSecurite('INFO', 'Listes renommées : ' + Object.keys(corresp).map(function (a) { return a + ' > ' + corresp[a]; }).join(', '));
     await resoudreBibliotheque();
     var tB = etat.biblio;
     if (!tB) {
@@ -9156,7 +9156,7 @@ async function migrerNomsTables() {
         }
     }
     catch (e) {
-        logSecurite('AVERTISSEMENT', 'Tableaux de bord non mis à jour après le renommage des tables', e);
+        logSecurite('AVERTISSEMENT', 'Tableaux de bord non mis à jour après le renommage des listes', e);
     }
     return true;
 }
@@ -9561,12 +9561,12 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
     var form = creer('div', { classe: 'gb-editeur__form' });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
     var zoneApercu = creer('div', { classe: 'gb-editeur__apercu' }, [creer('h3', { classe: 'gb-section__titre', texte: 'Aperçu en direct' }), apercu,
-        creer('p', { classe: 'w-mention', texte: 'Calculé sur vos données avec les filtres en cours. Rien n\'est écrit dans vos tables.' })]);
+        creer('p', { classe: 'w-mention', texte: 'Calculé sur vos données avec les filtres en cours. Rien n\'est écrit dans vos listes.' })]);
     var majApercu = function () {
         oublierApercu(apercu);
         vider(apercu);
         if (b.table && !etat.donnees[b.table] && !etat.illisibles[b.table]) {
-            apercu.appendChild(etatVide('Lecture de la table…', ''));
+            apercu.appendChild(etatVide('Lecture de la liste…', ''));
             relayer(assurerDonnees(b.table).then(majApercu), 'Données de l\'aperçu');
             return;
         }
@@ -9625,7 +9625,7 @@ function validerTuile(b) {
         return 'Écrivez un titre ou un texte.';
     }
     if (b.type !== 'text' && !b.table) {
-        return 'Choisissez une table.';
+        return 'Choisissez une liste.';
     }
     var p = problemeTuile(b);
     return p;
@@ -9665,26 +9665,26 @@ function construireFormulaire(form, b, redessiner, majApercu) {
     if (tid && etat.donnees[tid] && b.type !== 'text') {
         var sug = tuilesSuggerees(tid).filter(function (s) { return s.type === b.type; }).slice(0, 5);
         if (sug.length) {
-            var ul = creer('ul', { classe: 'gb-puces', attrs: { 'aria-label': 'Tuiles suggérées pour cette table' } });
+            var ul = creer('ul', { classe: 'gb-puces', attrs: { 'aria-label': 'Tuiles suggérées pour cette liste' } });
             sug.forEach(function (s, k) {
                 var bt = creer('button', { classe: 'gb-puce fr-icon-lightbulb-line', texte: s.titre, attrs: { id: 'eSug' + k } });
                 bt.addEventListener('click', function () { var id = b.id, taille = b.taille; Object.keys(b).forEach(function (x) { delete b[x]; }); Object.assign(b, cloner(s), { id: id, taille: taille }); redessiner('eSug' + k); annoncer('Suggestion appliquée : ' + s.titre); });
                 ul.appendChild(creer('li', {}, [bt]));
             });
-            form.appendChild(creer('div', { classe: 'fr-mb-1w' }, [creer('p', { classe: 'w-mention fr-mb-1v', texte: 'Tuiles suggérées pour cette table' }), ul]));
+            form.appendChild(creer('div', { classe: 'fr-mb-1w' }, [creer('p', { classe: 'w-mention fr-mb-1v', texte: 'Tuiles suggérées pour cette liste' }), ul]));
         }
     }
     form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
     if (b.type !== 'text') {
         form.appendChild(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); }), 'Laissée vide, la tuile explique ses propres filtres.'));
-        form.appendChild(groupe('Table', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
+        form.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
             neuve.taille = b.taille;
             Object.keys(b).forEach(function (x) { delete b[x]; });
             Object.assign(b, neuve);
-            relayer(assurerDonnees(v).then(function () { redessiner('eTable'); }), 'Changement de table');
-        }, 'Choisissez une table')));
+            relayer(assurerDonnees(v).then(function () { redessiner('eTable'); }), 'Changement de liste');
+        }, 'Choisissez une liste')));
     }
     var tailles = creer('div', { classe: 'gb-tailles', attrs: { role: 'radiogroup', 'aria-labelledby': 'eTailleLeg' } });
     TAILLES.forEach(function (s) {
@@ -9727,7 +9727,7 @@ function editeurMesure(b, redessiner, maj, o) {
     var a = agregat(m.agg);
     if (a.col >= 1) {
         var c1 = colonnesPour(tid, m.agg, 1).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
-        var champs = [groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : 'Colonne A') : 'Colonne', c1.length ? champListe('eCol', c1, m.col, function (v) { m.col = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eCol', texte: 'Aucune colonne adaptée dans cette table.' }))];
+        var champs = [groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : 'Colonne A') : 'Colonne', c1.length ? champListe('eCol', c1, m.col, function (v) { m.col = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eCol', texte: 'Aucune colonne adaptée dans cette liste.' }))];
         if (a.col === 2) {
             var c2 = colonnesPour(tid, m.agg, 2).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
             champs.push(groupe(m.agg === 'avgDuration' ? 'À la date (B)' : 'Colonne B', champListe('eCol2', c2, m.col2, function (v) { m.col2 = v; maj(); })));
@@ -9778,7 +9778,7 @@ function formulaireKPI(form, b, redessiner, maj) {
     var cmpBloc = [caseOption('eCmp', 'Comparer à la période précédente', !!b.comparer, function (on) {
             b.comparer = on ? { col: (dates[0] || {}).valeur || null, periode: 'month' } : null;
             redessiner('eCmp');
-        }, dates.length ? 'Affiche la valeur de la période en cours et l\'évolution, en + ou en - avec une flèche.' : 'Cette table n\'a pas de colonne de date.')];
+        }, dates.length ? 'Affiche la valeur de la période en cours et l\'évolution, en + ou en - avec une flèche.' : 'Cette liste n\'a pas de colonne de date.')];
     if (b.comparer) {
         cmpBloc.push(rangee([groupe('Colonne de date', champListe('eCmpCol', dates, b.comparer.col, function (v) { b.comparer.col = v; maj(); })),
             groupe('Périodes', champListe('eCmpPer', PERIODES_COMPARAISON.map(function (p) { return { valeur: p.code, libelle: p.nom }; }), b.comparer.periode, function (v) { b.comparer.periode = v; maj(); }), 'Quand le filtre de période du tableau de bord porte sur la même colonne, la comparaison le suit.')]));
@@ -9793,7 +9793,7 @@ function formulaireKPI(form, b, redessiner, maj) {
 }
 function editeurCible(b, modes, redessiner, maj) {
     b.cible = b.cible || null;
-    var noms = { fixe: 'Un nombre fixe', somme: 'La somme d\'une colonne', colonne: 'La somme d\'une colonne, par catégorie', table: 'Lu dans une autre table' };
+    var noms = { fixe: 'Un nombre fixe', somme: 'La somme d\'une colonne', colonne: 'La somme d\'une colonne, par catégorie', table: 'Lu dans une autre liste' };
     var mode = b.cible ? b.cible.mode : '';
     var bloc = [groupe('Objectif', champListe('eCible', [{ valeur: '', libelle: 'Pas d\'objectif' }].concat(modes.map(function (m) { return { valeur: m, libelle: noms[m] }; })), mode, function (v) {
             if (!v) {
@@ -9811,7 +9811,7 @@ function editeurCible(b, modes, redessiner, maj) {
             else {
                 var t2 = tablesUtilisateur().filter(function (x) { return x !== b.table; })[0] || b.table;
                 b.cible = { mode: 'table', table: t2, cle: (optionsColonnes(t2, estCategorie)[0] || {}).valeur, col: (optionsColonnes(t2, estNum)[0] || {}).valeur };
-                relayer(assurerDonnees(t2).then(function () { redessiner('eCible'); }), 'Table de l\'objectif');
+                relayer(assurerDonnees(t2).then(function () { redessiner('eCible'); }), 'Liste de l\'objectif');
                 return;
             }
             redessiner('eCible');
@@ -9821,21 +9821,21 @@ function editeurCible(b, modes, redessiner, maj) {
         bloc.push(groupe('Valeur de l\'objectif', champSaisie('eCibleVal', c.valeur === null || c.valeur === undefined ? '' : nombreLocale(c.valeur, 6), function (v) { var n = lireNombreSaisi(v); c.valeur = typeof n === 'number' ? n : null; maj(); }, { clavier: 'decimal' }), 'Saisie à la française, par exemple ' + nombreLocale(12500.5, 2)));
     }
     if (c && c.mode === 'somme') {
-        bloc.push(rangee([groupe('Table', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table || b.table, function (v) {
+        bloc.push(rangee([groupe('Liste', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table || b.table, function (v) {
                 c.table = v;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur || null;
-                relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Table de l\'objectif');
+                relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Liste de l\'objectif');
             })), groupe('Colonne', champListe('eCibleCol', optionsColonnes(c.table || b.table, estNum), c.col, function (v) { c.col = v; maj(); }))]));
     }
     if (c && c.mode === 'colonne') {
         bloc.push(groupe('Colonne de l\'objectif', champListe('eCibleCol', optionsColonnes(b.table, estNum), c.col, function (v) { c.col = v; maj(); }), 'Additionnée pour chaque catégorie, par exemple BUDGET pour CONSOMME.'));
     }
     if (c && c.mode === 'table') {
-        bloc.push(rangee([groupe('Table des objectifs', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table, function (v) {
+        bloc.push(rangee([groupe('Liste des objectifs', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table, function (v) {
                 c.table = v;
                 c.cle = (optionsColonnes(v, estCategorie)[0] || {}).valeur;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur;
-                relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Table de l\'objectif');
+                relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Liste de l\'objectif');
             })), groupe('Colonne des catégories', champListe('eCibleCle', optionsColonnes(c.table, estCategorie), c.cle, function (v) { c.cle = v; maj(); }), 'Ses valeurs reprennent les noms des catégories.'),
             groupe('Colonne de l\'objectif', champListe('eCibleCol', optionsColonnes(c.table, estNum), c.col, function (v) { c.col = v; maj(); }))]));
     }
@@ -9877,7 +9877,7 @@ function formulaireBarres(form, b, redessiner, maj) {
 }
 function formulaireLigne(form, b, redessiner, maj) {
     var dates = optionsColonnes(b.table, estDate);
-    form.appendChild(section('Temps', [rangee([groupe('Colonne de date', dates.length ? champListe('eDate', dates, b.colDate, function (v) { b.colDate = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eDate', texte: 'Cette table n\'a pas de colonne de date.' })),
+    form.appendChild(section('Temps', [rangee([groupe('Colonne de date', dates.length ? champListe('eDate', dates, b.colDate, function (v) { b.colDate = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eDate', texte: 'Cette liste n\'a pas de colonne de date.' })),
             groupe('Un point par', champListe('ePas', PAS_TEMPS.map(function (p) { return { valeur: p.code, libelle: p.nom }; }), b.pas || 'month', function (v) { b.pas = v; maj(); }))]),
         choixNombre('eDerniers', 'Afficher seulement les dernières', b, 'derniers', 0, 0, 400, maj, 'périodes, jusqu\'à la période en cours (0 = toutes)')]));
     form.appendChild(section('Valeurs', editeurMesure(b, redessiner, maj).concat([
@@ -10792,7 +10792,7 @@ function configDepuisModele(m, T) {
     cfg.origine = 'modele:' + m.id;
     return cfg;
 }
-var ETAPES_CREATION = ['Point de départ', 'La table', 'Les tuiles', 'Affichage et filtres', 'Récapitulatif'];
+var ETAPES_CREATION = ['Point de départ', 'La liste', 'Les tuiles', 'Affichage et filtres', 'Récapitulatif'];
 var ETAPES_PARAMETRAGE = ['Général', 'Les tuiles', 'Affichage et filtres', 'Les droits'];
 function demarrerCreation() {
     if (!etat.peutParametrer) {
@@ -10832,14 +10832,14 @@ async function quitterAssistant(versAutre) {
         if (b.tablesCreees.length) {
             var noms = b.tablesCreees.map(libelleTable).join(', ');
             var plu = b.tablesCreees.length > 1;
-            var sup = await confirmerAction('Supprimer aussi les tables du modèle ?', 'Le widget a créé ' + (plu ? 'les tables ' : 'la table ') + noms + ' pour ce modèle. ' + (plu ? 'Les supprimer' : 'La supprimer') + ' avec leurs lignes ? Choisissez Annuler pour ' + (plu ? 'les garder' : 'la garder') + '.', 'Supprimer les tables', { danger: true });
+            var sup = await confirmerAction('Supprimer aussi les listes du modèle ?', 'Le widget a créé ' + (plu ? 'les listes ' : 'la liste ') + noms + ' pour ce modèle. ' + (plu ? 'Les supprimer' : 'La supprimer') + ' avec leurs lignes ? Choisissez Annuler pour ' + (plu ? 'les garder' : 'la garder') + '.', 'Supprimer les listes', { danger: true });
             if (sup) {
                 try {
                     await agir(b.tablesCreees.map(function (t) { return ['RemoveTable', t]; }));
-                    annoncer('Tables du modèle supprimées.');
+                    annoncer('Listes du modèle supprimées.');
                 }
                 catch (e) {
-                    afficherErreur('Les tables du modèle n\'ont pas pu être supprimées. Vous pouvez les supprimer dans Données brutes.', e);
+                    afficherErreur('Les listes du modèle n\'ont pas pu être supprimées. Vous pouvez les supprimer dans Données brutes.', e);
                 }
             }
         }
@@ -10875,7 +10875,7 @@ function rendreAssistant(zone) {
                 return;
             } return allerEtape(r); };
         })]);
-    if (b.origine && nom === 'La table') {
+    if (b.origine && nom === 'La liste') {
         bloc.appendChild(alerte('info', null, 'Prérempli à partir de ' + b.origine + '. Tout reste modifiable.'));
     }
     if (nom === 'Point de départ') {
@@ -10904,7 +10904,7 @@ function contenuEtape(nom) {
     if (nom === 'Les droits') {
         return contenuDroits();
     }
-    if (nom === 'La table') {
+    if (nom === 'La liste') {
         return etapeTable();
     }
     if (nom === 'Les tuiles') {
@@ -11002,13 +11002,13 @@ function rendreDepart(bloc) {
         ]);
     };
     var tDonnees = option('dDonnees', 'database-line', 'J\'ai déjà des données', aDesDonnees
-        ? 'WuitStats examine vos tables et propose des tableaux de bord prêts : nombres, totaux, graphiques par catégorie et dans le temps. Ou branchez-vous sur n\'importe quelle table.'
-        : 'Ce document n\'a pas encore de table de données : ce choix sera proposé dès qu\'il en aura une.', 'Partir de mes données', function () { return choisirDepart('donnees'); }, aDesDonnees, b.choix === 'donnees');
+        ? 'WuitStats examine vos listes et propose des tableaux de bord prêts : nombres, totaux, graphiques par catégorie et dans le temps. Ou branchez-vous sur n\'importe quelle liste.'
+        : 'Ce document n\'a pas encore de liste de données : ce choix sera proposé dès qu\'il en aura une.', 'Partir de mes données', function () { return choisirDepart('donnees'); }, aDesDonnees, b.choix === 'donnees');
     if (!aDesDonnees) {
         tDonnees.querySelector('button').disabled = true;
     }
     var cartes = [tDonnees,
-        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
+        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les listes, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
     if (etat.reprisesPresentes) {
         cartes.push(option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'Reprendre mes anciens réglages', 'Ce document contient des réglages de WuitBoard, WuitGraphiques ou WuitPivot : reprenez-les ici. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
     }
@@ -11038,7 +11038,7 @@ async function choisirDepart(choix) {
     var b = etat.brouillon;
     b.choix = choix;
     if (choix === 'donnees') {
-        afficherLoader('Analyse de vos tables…');
+        afficherLoader('Analyse de vos listes…');
         try {
             await chargerMeta();
             var tids = tablesUtilisateur();
@@ -11049,7 +11049,7 @@ async function choisirDepart(choix) {
             await chargerDonneesTables(tids.concat(refs));
         }
         catch (e) {
-            afficherErreur('Vos tables n\'ont pas pu être lues.', e);
+            afficherErreur('Vos listes n\'ont pas pu être lues.', e);
         }
         finally {
             masquerLoader();
@@ -11209,14 +11209,14 @@ function blocSuggestions() {
         grille.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sNom' + i } }, [
             creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-lightbulb-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
                 creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sNom' + i, texte: s.nom + ' : ' + nombreSur(s.tuiles.length, 'tuile') })]),
-            creer('p', { classe: 'w-mention fr-m-0', texte: 'D\'après la table ' + libelleTable(s.table) + ' (' + nombreSur(nbLignes(s.table), 'ligne') + ')' }),
+            creer('p', { classe: 'w-mention fr-m-0', texte: 'D\'après la liste ' + libelleTable(s.table) + ' (' + nombreSur(nbLignes(s.table), 'ligne') + ')' }),
             vignetteReelle(s, 'sv' + i + '-') || miniApercu(s.tuiles),
             creer('p', { classe: 'fr-sr-only', texte: 'Tuiles : ' + s.tuiles.map(function (t) { return t.titre; }).join(', ') }),
             creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () { return utiliserConfig(cloner(s), 'la suggestion « ' + s.nom + ' »'); }, { petit: true, aria: 'Utiliser cette suggestion : ' + s.nom, id: 'sUtiliser' + i })])
         ]));
     });
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'sTitre', texte: 'Tableaux de bord suggérés d\'après vos tables', attrs: { tabindex: '-1' } }),
-        sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : vos tables n\'ont pas encore de lignes, ou trop peu de colonnes à représenter. Branchez-vous sur une table ci-dessous.' })]));
+    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'sTitre', texte: 'Tableaux de bord suggérés d\'après vos listes', attrs: { tabindex: '-1' } }),
+        sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : vos listes n\'ont pas encore de lignes, ou trop peu de colonnes à représenter. Branchez-vous sur une liste ci-dessous.' })]));
     var tables = tablesUtilisateur();
     var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
     var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos listes', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
@@ -11225,7 +11225,7 @@ function blocSuggestions() {
         groupeChamp('Liste', choixT),
         creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de cette liste', 'secondaire', 'arrow-right-line', function () {
                 var s = suggestionTableau(choixT.value);
-                return utiliserConfig(s, 'la table ' + libelleTable(choixT.value));
+                return utiliserConfig(s, 'la liste ' + libelleTable(choixT.value));
             }, { petit: true, id: 'sConnecterBtn' })])
     ]);
     var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
@@ -11251,7 +11251,7 @@ function blocSuggestions() {
 }
 function blocModeles() {
     var bloc = creer('section', { attrs: { 'aria-labelledby': 'mTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'mTitre', texte: 'Modèles prêts à l\'emploi', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-texte w-mention', texte: 'Un modèle crée ses tables dans votre document (après votre confirmation), puis un tableau de bord prêt, que vous adaptez à votre guise.' })]);
+        creer('p', { classe: 'w-texte w-mention', texte: 'Un modèle crée ses listes dans votre document (après votre confirmation), puis un tableau de bord prêt, que vous adaptez à votre guise.' })]);
     var grille = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
     MODELES.forEach(function (m) {
         var cfgFictive = m.tableau(m.tables.reduce(function (o, t) { o[t.id] = t.id; return o; }, {}));
@@ -11268,12 +11268,12 @@ function blocModeles() {
 }
 async function utiliserModele(m) {
     var b = etat.brouillon;
-    var rep = await choisirTablesModele(m, 'Le widget va créer ' + (m.tables.length > 1 ? 'les tables ' : 'la table ') + m.tables.map(function (t) { return t.titre; }).join(' et ') + ' dans votre document, avec leurs colonnes et leurs listes de choix. Si vous abandonnez ce nouveau tableau de bord, il vous proposera de ' + (m.tables.length > 1 ? 'les supprimer' : 'la supprimer') + '.', 'Ajouter des lignes d\'exemple (datées autour d\'aujourd\'hui), pour voir tout de suite le tableau de bord à l\'œuvre');
+    var rep = await choisirTablesModele(m, 'Le widget va créer ' + (m.tables.length > 1 ? 'les listes ' : 'la liste ') + m.tables.map(function (t) { return t.titre; }).join(' et ') + ' dans votre document, avec leurs colonnes et leurs listes de choix. Si vous abandonnez ce nouveau tableau de bord, il vous proposera de ' + (m.tables.length > 1 ? 'les supprimer' : 'la supprimer') + '.', 'Ajouter des lignes d\'exemple (datées autour d\'aujourd\'hui), pour voir tout de suite le tableau de bord à l\'œuvre');
     if (rep === null) {
         return;
     }
     var avec = rep.avec;
-    afficherLoader('Création des tables…');
+    afficherLoader('Création des listes…');
     try {
         var res = await creerTablesModele(m, avec, rep.choix);
         var T = res.T;
@@ -11282,12 +11282,12 @@ async function utiliserModele(m) {
         var cfg = configDepuisModele(m, T);
         await chargerDonneesTables(tablesDuTableau(cfg));
         masquerLoader();
-        afficherSucces((res.creees.length ? 'Tables prêtes : ' : 'Tables existantes utilisées : ') + Object.keys(T).map(function (k) { return libelleTable(T[k]); }).join(' et ') + '.');
+        afficherSucces((res.creees.length ? 'Listes prêtes : ' : 'Listes existantes utilisées : ') + Object.keys(T).map(function (k) { return libelleTable(T[k]); }).join(' et ') + '.');
         await utiliserConfig(cfg, 'le modèle « ' + m.nom + ' »');
     }
     catch (e) {
         masquerLoader();
-        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer des tables.' : 'Les tables du modèle n\'ont pas pu être créées.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer des listes.' : 'Les listes du modèle n\'ont pas pu être créées.', e);
     }
 }
 async function utiliserConfig(cfg, origine) {
@@ -11330,23 +11330,23 @@ function optionsColonnesDoc(filtre) {
 }
 function choixTablePrincipale(cfg) {
     var tables = tablesUtilisateur();
-    var mt = liste('wTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), cfg.table, { vide: tables.length ? undefined : 'Aucune table' });
+    var mt = liste('wTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), cfg.table, { vide: tables.length ? undefined : 'Aucune liste' });
     mt.addEventListener('change', function () { cfg.table = mt.value; majAttente(); });
-    return groupeChamp('Table principale', mt, 'Utilisée par défaut pour les nouvelles tuiles. Chaque tuile peut utiliser une autre table.');
+    return groupeChamp('Liste principale', mt, 'Utilisée par défaut pour les nouvelles tuiles. Chaque tuile peut utiliser une autre liste.');
 }
 function etapeTable() {
     var b = etat.brouillon;
     var cfg = b.cfg;
     var lues = tablesDuTableau(cfg).filter(function (tid) { return tablesUtilisateur().indexOf(tid) !== -1; });
     var tables = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecTable' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecTable', texte: 'La table' })]),
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecTable', texte: 'La liste' })]),
         choixTablePrincipale(cfg)
     ]);
     var lu = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecLues' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecLues', texte: 'Tables lues par les tuiles' })]),
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecLues', texte: 'Listes lues par les tuiles' })]),
         lues.length ? creer('ul', { classe: 'w-texte w-apercu__filtres' }, lues.map(function (tid) { return creer('li', { texte: libelleTable(tid) + ' (' + nombreSur(nbLignes(tid), 'ligne') + ')' }); }))
             : creer('p', { classe: 'w-mention', texte: 'Aucune tuile pour l\'instant.' }),
-        creer('p', { classe: 'w-mention', texte: 'Vos tables sont seulement lues : un tableau de bord n\'y écrit jamais.' })
+        creer('p', { classe: 'w-mention', texte: 'Vos listes sont seulement lues : un tableau de bord n\'y écrit jamais.' })
     ]);
     return grilleParam([[tables], [lu]], '1-1');
 }
@@ -11364,7 +11364,7 @@ function etapeGeneral() {
         choixTablePrincipale(cfg),
         bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(etapesBrouillon(etat.brouillon).indexOf('Les droits') + 1); }, { petit: true, id: 'aVersDroits' })
     ]);
-    var danger = blocSupprimer('Supprimer le tableau de bord', 'Le tableau de bord disparaît des onglets. Vos tables et leurs lignes restent dans le document.', supprimerTableau);
+    var danger = blocSupprimer('Supprimer le tableau de bord', 'Le tableau de bord disparaît des onglets. Vos listes et leurs lignes restent dans le document.', supprimerTableau);
     var pages = sectionsPages();
     return creer('div', { classe: 'w-general' }, [grilleParam([[section], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
@@ -11411,7 +11411,7 @@ function etapeAffichage() {
         }
         redessinerParam('#wPeriodeCol');
     });
-    var colPer = [titreColonne('Filtre de période', 'Les filtres sont proposés dans le volet de gauche et s\'appliquent à chaque tuile dont la table a une colonne de même identifiant. Les autres tuiles indiquent qu\'elles ne sont pas filtrées.', 'wFiltresT'),
+    var colPer = [titreColonne('Filtre de période', 'Les filtres sont proposés dans le volet de gauche et s\'appliquent à chaque tuile dont la liste a une colonne de même identifiant. Les autres tuiles indiquent qu\'elles ne sont pas filtrées.', 'wFiltresT'),
         groupeChamp('Filtre de période sur la colonne de date', per, 'Propose Cette semaine, Ce mois-ci, Ce trimestre, Cette année, une année donnée, 12 derniers mois, une période personnalisée ou Toute la période.')];
     if (cfg.periode) {
         var def = liste('wPeriodeDef', PERIODES.filter(function (p) { return p.code !== 'custom'; }).map(function (p) { return { valeur: p.code, libelle: p.nom }; }), cfg.periode.defaut || 'all');
@@ -11466,15 +11466,15 @@ function etapeRecapitulatif() {
     var ajouter = function (etape, lignes) { var r = noms.indexOf(etape) + 1; if (r > 1) {
         groupes.push({ etape: etape, rang: r, lignes: lignes });
     } };
-    ajouter('La table', [['Table principale', cfg.table ? libelleTable(cfg.table) : '']]);
+    ajouter('La liste', [['Liste principale', cfg.table ? libelleTable(cfg.table) : '']]);
     var parType = {};
     cfg.tuiles.forEach(function (t) { var n = (TYPES_TUILES.filter(function (x) { return x.code === t.type; })[0] || {}).nom; parType[n] = (parType[n] || 0) + 1; });
     ajouter('Les tuiles', [['Tuiles', nombreSur(cfg.tuiles.length, 'tuile') + (cfg.tuiles.length ? ' : ' + Object.keys(parType).map(function (k) { return parType[k] + ' ' + k; }).join(', ') : '')],
         ['Titres', cfg.tuiles.map(function (t) { return t.titre || 'Tuile sans titre'; }).join(', ')]]);
     ajouter('Affichage et filtres', [['Période', texteFiltrePeriode(cfg)],
         ['Filtres de choix', (cfg.filtres || []).map(function (f) { return (f.libelle || libCol(f.table, f.col)) + (f.defaut ? ' (à l\'ouverture : ' + libelleCle(f.defaut === '\u0000vide' ? '' : f.defaut) + ')' : ''); }).join(', ')]]);
-    var ecrit = creer('p', { classe: 'w-mention', texte: (etat.biblio ? 'Une ligne de réglages dans la table ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages pour ce tableau de bord.') +
-            (b.tablesModele && b.tablesModele.length ? ' Tables du modèle : ' + b.tablesModele.map(function (x) { return libelleTable(x.id) + (x.mode === 'existante' ? ' (existante)' : (x.mode === 'nouvelle' ? ' (nouvelle table, nommée par vous)' : ' (créée pour vous)')); }).join(', ') + '.' : '') });
+    var ecrit = creer('p', { classe: 'w-mention', texte: (etat.biblio ? 'Une ligne de réglages dans la liste ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La liste partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages pour ce tableau de bord.') +
+            (b.tablesModele && b.tablesModele.length ? ' Listes du modèle : ' + b.tablesModele.map(function (x) { return libelleTable(x.id) + (x.mode === 'existante' ? ' (existante)' : (x.mode === 'nouvelle' ? ' (nouvelle liste, nommée par vous)' : ' (créée pour vous)')); }).join(', ') + '.' : '') });
     return grilleParam([], '1-1', [titreColonne('Le tableau de bord', null, 'aSecNom'), groupeChamp('Nom du tableau de bord', nom, 'Affiché sur son onglet.', true),
         groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes), titreColonne('Ce qui sera écrit', null, 'aSecEcrit'), ecrit], apercuEtape('Récapitulatif'));
@@ -11486,12 +11486,12 @@ function texteFiltrePeriode(cfg) {
     return libelleTable(cfg.periode.table) + ' › ' + libCol(cfg.periode.table, cfg.periode.col) + ', à l\'ouverture : ' + ((PERIODES.filter(function (p) { return p.code === (cfg.periode.defaut || 'all'); })[0] || {}).nom || 'Toute la période');
 }
 var TEXTES_DROITS = {
-    usages: 'Un tableau de bord n\'écrit jamais dans vos tables. Toute personne qui peut ouvrir le document consulte les tableaux de bord, utilise les filtres, ouvre les vues de données et exporte. Seuls les propriétaires créent, modifient et suppriment les tableaux de bord, une fois les règles d\'accès posées.',
+    usages: 'Un tableau de bord n\'écrit jamais dans vos listes. Toute personne qui peut ouvrir le document consulte les tableaux de bord, utilise les filtres, ouvre les vues de données et exporte. Seuls les propriétaires créent, modifient et suppriment les tableaux de bord, une fois les règles d\'accès posées.',
     figer: 'Signaler aux lecteurs la consultation seule',
     pluriel: 'les tableaux de bord'
 };
 var AIDE = {
-    resume: 'WuitStats compose des tableaux de bord à partir des tables du document : nombres clés, totaux, graphiques par catégorie et dans le temps, tableaux. Tout est calculé à partir de vos lignes, sans table de synthèse ni formule, et vos tables ne sont jamais modifiées.',
+    resume: 'WuitStats compose des tableaux de bord à partir des listes du document : nombres clés, totaux, graphiques par catégorie et dans le temps, tableaux. Tout est calculé à partir de vos lignes, sans liste de synthèse ni formule, et vos listes ne sont jamais modifiées.',
     fonctions: [
         'Tenir plusieurs tableaux de bord dans le même document, chacun dans son onglet.',
         'Filtrer toutes les tuiles à la fois depuis le volet de gauche : période et filtres de choix.',
@@ -11502,20 +11502,20 @@ var AIDE = {
         'Publier un ou plusieurs tableaux de bord sur une page pour les lecteurs, sans paramétrages, avec son titre de bandeau et ses propres filtres.'
     ],
     avant: [
-        'Une ou plusieurs tables avec des lignes : demandes, dépenses, inscriptions, projets...',
-        'Pas encore de table ? « Partir d\'un modèle » crée des tables prêtes, avec des lignes d\'exemple si vous le souhaitez.',
+        'Une ou plusieurs listes avec des lignes : demandes, dépenses, inscriptions, projets...',
+        'Pas encore de liste ? « Partir d\'un modèle » crée des listes prêtes, avec des lignes d\'exemple si vous le souhaitez.',
         'Créer ou paramétrer un tableau de bord demande le droit de modifier le document.'
     ],
     etapes: {
-        'Point de départ': { titre: 'partez de vos tables ou d\'un modèle.', points: [
-                '« Partir de mes données » : WuitStats propose des tableaux de bord d\'après vos tables ; « Utiliser cette suggestion » remplit les étapes, il ne reste qu\'à vérifier.',
-                '« Partir de l\'une de vos tables » : un tableau de bord construit d\'après les colonnes de la table choisie.',
+        'Point de départ': { titre: 'partez de vos listes ou d\'un modèle.', points: [
+                '« Partir de mes données » : WuitStats propose des tableaux de bord d\'après vos listes ; « Utiliser cette suggestion » remplit les étapes, il ne reste qu\'à vérifier.',
+                '« Partir de l\'une de vos listes » : un tableau de bord construit d\'après les colonnes de la liste choisie.',
                 '« Partir d\'un tableau de bord vierge » : aucune tuile au départ, vous les ajoutez une à une.',
-                '« Partir d\'un modèle » : six modèles prêts ; le widget crée leurs tables après votre confirmation.'
+                '« Partir d\'un modèle » : six modèles prêts ; le widget crée leurs listes après votre confirmation.'
             ] },
-        'La table': { titre: 'la table principale du tableau de bord.', points: [
-                '« Table principale » : proposée par défaut pour chaque nouvelle tuile. Chaque tuile peut utiliser une autre table.',
-                '« Tables lues par les tuiles » : les tables que le tableau de bord lit, sans jamais y écrire.'
+        'La liste': { titre: 'la liste principale du tableau de bord.', points: [
+                '« Liste principale » : proposée par défaut pour chaque nouvelle tuile. Chaque tuile peut utiliser une autre liste.',
+                '« Listes lues par les tuiles » : les listes que le tableau de bord lit, sans jamais y écrire.'
             ] },
         'Les tuiles': { titre: 'les indicateurs et les graphiques.', points: [
                 '« Ajouter une tuile » : nombre, grille d\'indicateurs, barres, courbe, anneau, radar, tableau, progression, texte ou dernières lignes.',
@@ -11527,7 +11527,7 @@ var AIDE = {
                 '« Filtre de période sur la colonne de date » : propose Cette semaine, Ce mois-ci, Cette année...',
                 '« Période affichée à l\'ouverture du tableau de bord » : chaque lecteur peut la changer.',
                 '« Ajouter un filtre de choix » : trois au plus, avec leur libellé dans le volet et leur valeur à l\'ouverture.',
-                'Un filtre s\'applique aux tuiles dont la table a la même colonne ; l\'aperçu indique les tuiles non filtrées.'
+                'Un filtre s\'applique aux tuiles dont la liste a la même colonne ; l\'aperçu indique les tuiles non filtrées.'
             ] },
         'Récapitulatif': { titre: 'vérifiez, nommez, créez.', points: [
                 '« Nom du tableau de bord » : affiché sur son onglet.',
@@ -11539,29 +11539,29 @@ var AIDE = {
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
                 '« Imprimer la marche à suivre » : pour l\'avoir sous les yeux pendant le réglage.'
             ] },
-        'Général': { titre: 'le nom, la table, les droits, les pages des lecteurs et la suppression.', points: [
+        'Général': { titre: 'le nom, la liste, les droits, les pages des lecteurs et la suppression.', points: [
                 '« Nom du tableau de bord » et « Description » : affichés sur l\'onglet et au-dessus des tuiles.',
                 '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
-                '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.',
+                '« Cette page » : « Cacher cette page » pose sur la page une vue de la liste « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette liste la cache aux autres personnes. Le « i » voisin donne la règle.',
                 '« Où les lecteurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les tableaux de bord montrés, les conditions fixes et les filtres laissés aux lecteurs. Chaque page se modifie, se duplique ou se supprime depuis la liste.',
-                '« Supprimer le tableau de bord » : il disparaît des onglets, vos tables et leurs lignes restent dans le document.'
+                '« Supprimer le tableau de bord » : il disparaît des onglets, vos listes et leurs lignes restent dans le document.'
             ] }
     },
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
         { q: 'Qui peut paramétrer un tableau de bord ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Les droits » des paramétrages.' },
-        { q: 'Un tableau de bord modifie-t-il mes tables ?', r: 'Non. Il lit vos lignes et calcule chaque chiffre lui-même. Seuls ses réglages sont enregistrés, dans une table technique du document.' },
-        { q: 'Pourquoi une tuile indique-t-elle qu\'elle n\'est pas filtrée ?', r: 'Sa table n\'a pas la colonne du filtre. Les filtres du volet ne s\'appliquent qu\'aux tuiles dont la table a une colonne de même identifiant.' },
+        { q: 'Un tableau de bord modifie-t-il mes listes ?', r: 'Non. Il lit vos lignes et calcule chaque chiffre lui-même. Seuls ses réglages sont enregistrés, dans une liste technique du document.' },
+        { q: 'Pourquoi une tuile indique-t-elle qu\'elle n\'est pas filtrée ?', r: 'Sa liste n\'a pas la colonne du filtre. Les filtres du volet ne s\'appliquent qu\'aux tuiles dont la liste a une colonne de même identifiant.' },
         { q: 'Que se passe-t-il quand je clique sur une barre ou une part ?', r: 'Tout le tableau de bord se filtre sur cette valeur : les autres tuiles dont la liste a la même colonne ne montrent plus que ces lignes. Un bandeau au-dessus des tuiles rappelle le filtre, avec « Voir les lignes » et « Retirer ce filtre ». Un second clic sur la même valeur retire aussi le filtre.' },
         { q: 'Comment voir le détail d\'une courbe ?', r: 'Cliquez sur un point : une année montre ses trimestres, un trimestre ses mois, un mois ses jours. Le chemin au-dessus de la courbe permet de remonter. Ce détail se coupe dans les réglages de la courbe, « Détail au clic ».' },
         { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : si le document en contient, « Nouveau tableau de bord » propose la carte « Reprendre mes anciens réglages ». WuitStats en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
         { q: 'Comment publier un seul graphique ?', r: 'Sur la tuile, le bouton « Publier cette tuile seule » prépare une page de consultation qui ne montre qu\'elle. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
-        { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos tables seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
-        { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos tables et leurs lignes restent dans le document.' },
+        { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos listes seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
+        { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos listes et leurs lignes restent dans le document.' },
         { q: 'Comment montrer un tableau de bord sans les paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Où les lecteurs la voient », puis « Publier sur une nouvelle page ». La nouvelle page montre le tableau de bord sans aide ni paramétrages, avec son propre titre de bandeau, ses conditions fixes et les filtres que vous laissez aux lecteurs.' },
-        { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les tableaux de bord : la page disparaît de leur liste des pages.' },
-        { q: 'Les conditions d\'une page de consultation protègent-elles les données ?', r: 'Non : elles règlent ce que la page montre. Une personne qui a accès aux tables par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les tables.' },
+        { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la liste « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les tableaux de bord : la page disparaît de leur liste des pages.' },
+        { q: 'Les conditions d\'une page de consultation protègent-elles les données ?', r: 'Non : elles règlent ce que la page montre. Une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.' },
         { q: 'Comment coller un graphique dans Tchap, un courriel ou un document ?', r: 'Icône « Copier l\'image » en haut à droite de la tuile, puis Ctrl+V (ou Cmd+V) dans le message. Si le navigateur refuse la copie, l\'image est téléchargée : glissez-la dans le message.' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du volet de gauche, en A4 à l\'italienne, avec le rappel des filtres appliqués. L\'icône voisine enregistre en PDF.' }
     ]
@@ -11611,7 +11611,7 @@ function affichageApercu(cfg) {
         var tuiles = (cfg.tuiles || []).filter(function (t) { return t.table && etat.donnees[t.table]; });
         res.push(creer('p', { classe: 'w-apercu__sous-titre', texte: 'Tuiles à l\'ouverture' }));
         if (!tuiles.length) {
-            res.push(creer('p', { classe: 'w-mention', texte: 'Aucune tuile calculée sur une table.' }));
+            res.push(creer('p', { classe: 'w-mention', texte: 'Aucune tuile calculée sur une liste.' }));
         }
         else {
             res.push(creer('ul', { classe: 'w-apercu__filtres' }, tuiles.map(function (t) {
@@ -11781,7 +11781,7 @@ async function sortirParametrages(afficher) {
 async function supprimerTableau() {
     var nom = etat.config ? etat.config.nom : '';
     var nbP = pagesDuTableau(etat.cleConfig).length;
-    var ok = await confirmerAction('Supprimer le tableau de bord « ' + nom + ' » ?', 'Le tableau de bord disparaît des onglets et ses réglages sont effacés. Vos tables et leurs lignes restent dans le document.' + (nbP ? ' ' + nombreSur(nbP, 'page') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer le tableau de bord', { danger: true });
+    var ok = await confirmerAction('Supprimer le tableau de bord « ' + nom + ' » ?', 'Le tableau de bord disparaît des onglets et ses réglages sont effacés. Vos listes et leurs lignes restent dans le document.' + (nbP ? ' ' + nombreSur(nbP, 'page') + ' de consultation le ' + (nbP > 1 ? 'montrent : elles ne le montreront plus.' : 'montre : elle ne le montrera plus.') : '') + ' Cette action est définitive.', 'Supprimer le tableau de bord', { danger: true });
     if (!ok) {
         return;
     }
