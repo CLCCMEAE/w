@@ -207,6 +207,7 @@
     .w-feuille { display: inline-flex; align-items: center; gap: .375rem; padding: .375rem .875rem; border: 1px solid var(--border-default-grey); border-top: 0; margin-right: -1px; background: var(--background-alt-grey); color: var(--text-mention-grey); font: inherit; font-size: .875rem; cursor: pointer; }
     .w-feuille:hover { color: var(--text-action-high-blue-france); }
     .w-feuille:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-id-table { color: var(--text-mention-grey); font-weight: normal; font-size: .75rem; }
     .w-feuille__textes { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
     .w-feuille__source { color: var(--text-label-green-emeraude); font-weight: normal; font-size: .75rem; line-height: 1rem; }
     .w-feuille--active { background: var(--background-default-grey); color: var(--text-action-high-blue-france); font-weight: 700; box-shadow: inset 0 -3px 0 var(--border-action-high-blue-france); }
@@ -1576,11 +1577,36 @@ function valeurGristEnTexte(valeur, type, colonneMeta) {
         return valeur ? 'Oui' : 'Non';
     return String(valeur);
 }
+var _libellesTables = {};
+function libelleTable(id) {
+    return (id && _libellesTables[id]) || id || '';
+}
+function noeudLibelleTable(id) {
+    var frag = document.createDocumentFragment();
+    frag.appendChild(document.createTextNode(libelleTable(id)));
+    if (libelleTable(id) !== id) {
+        frag.appendChild(el('span', { class: 'w-id-table', text: ' (' + id + ')' }));
+    }
+    return frag;
+}
 async function chargerListeBases() {
     try {
         var meta = await grist.docApi.fetchTable('_grist_Tables');
         var ids = meta.tableId || [];
-        etat.basesDisponibles = ids.filter(function (t) { return !estTableExclue(t); }).sort(comparerNomsTables);
+        var titres = {};
+        try {
+            var sections = await grist.docApi.fetchTable('_grist_Views_section');
+            (sections.id || []).forEach(function (sid, i) { titres[sid] = sections.title[i]; });
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Libellés des tables indisponibles', e);
+        }
+        _libellesTables = {};
+        ids.forEach(function (t, i) {
+            var titre = meta.rawViewSectionRef ? titres[meta.rawViewSectionRef[i]] : '';
+            _libellesTables[t] = (titre && String(titre).trim()) || t;
+        });
+        etat.basesDisponibles = ids.filter(function (t) { return !estTableExclue(t); }).sort(function (a, b) { return comparerNomsTables(libelleTable(a), libelleTable(b)); });
         return etat.basesDisponibles;
     }
     catch (error) {
@@ -1943,7 +1969,7 @@ async function enregistrerDisposition() {
         tablesAExporter: etat.tablesAExporter.slice(),
         parametragesParBase: JSON.parse(JSON.stringify(etat.parametragesParBase))
     };
-    var descriptif = 'Modèle d’export de la table ' + etat.baseSelectionnee + (etat.tablesAExporter.length > 1 ? ' et ' + (etat.tablesAExporter.length - 1) + ' autre(s)' : '');
+    var descriptif = 'Modèle d’export de la table ' + libelleTable(etat.baseSelectionnee) + (etat.tablesAExporter.length > 1 ? ' et ' + (etat.tablesAExporter.length - 1) + ' autre(s)' : '');
     var maintenant = String(Math.floor(Date.now() / 1000));
     afficherLoader('Enregistrement du modèle…');
     try {
@@ -3224,7 +3250,7 @@ async function telechargerExcel() {
         var totalLignes = 0;
         for (var di = 0; di < toutesLesDonnees.length; di++) {
             var d = toutesLesDonnees[di];
-            var nbL = ajouterFeuilleAuWorkbook(wb, d.data.colonnes, d.data.lignes, d.param.champsSelectionnes, d.param.filtres, d.tid);
+            var nbL = ajouterFeuilleAuWorkbook(wb, d.data.colonnes, d.data.lignes, d.param.champsSelectionnes, d.param.filtres, libelleTable(d.tid));
             totalLignes += nbL;
         }
         var nomFichier = genererNomFichier('.xlsx');
@@ -3300,10 +3326,10 @@ function afficherBarreTables() {
         var btn = el('button', { type: 'button', class: 'w-feuille' + (actif ? ' w-feuille--active' : ''), role: 'tab', id: 'feuille-onglet-' + k, 'aria-selected': actif ? 'true' : 'false', 'data-table-id': tableId });
         btn.appendChild(pictoTable());
         var textes = el('span', { class: 'w-feuille__textes' });
-        textes.appendChild(el('span', { class: 'w-feuille__nom', text: nettoyerNomFeuille(tableId) }));
-        textes.appendChild(el('span', { class: 'w-feuille__source', text: 'de la table ' + tableId }));
+        textes.appendChild(el('span', { class: 'w-feuille__nom', text: nettoyerNomFeuille(libelleTable(tableId)) }));
+        textes.appendChild(el('span', { class: 'w-feuille__source', text: 'de la table ' + libelleTable(tableId) }));
         btn.appendChild(textes);
-        btn.title = 'De la table ' + tableId + ' vers l\'onglet ' + nettoyerNomFeuille(tableId) + ' du fichier';
+        btn.title = 'De la table ' + libelleTable(tableId) + ' vers l\'onglet ' + nettoyerNomFeuille(libelleTable(tableId)) + ' du fichier';
         btn.addEventListener('click', function () { relayer(selectionnerTable(tableId), 'Chargement de la table impossible'); });
         barre.appendChild(btn);
     });
@@ -3564,7 +3590,7 @@ function carteModele(d, k) {
     bt.appendChild(el('span', { class: 'w-carte__titre', text: nom }));
     var tables = el('span', { class: 'w-carte__tables' });
     tables.appendChild(pictoTable());
-    tables.appendChild(document.createTextNode(inf.tables.length ? inf.tables.join(', ') : 'Table non précisée'));
+    tables.appendChild(document.createTextNode(inf.tables.length ? inf.tables.map(libelleTable).join(', ') : 'Table non précisée'));
     bt.appendChild(tables);
     bt.appendChild(el('span', { class: 'w-carte__sous', text: inf.nbCol + (inf.nbCol > 1 ? ' colonnes' : ' colonne') + ', ' + (inf.nf ? inf.nf + (inf.nf > 1 ? ' filtres' : ' filtre') : 'toutes les lignes') }));
     var date = dateCourteModele(d.DATE_MAJ || d.DATE_CREATION);
@@ -3605,10 +3631,10 @@ function rendreAccueil() {
         }
         etat.basesDisponibles.forEach(function (tid, k) {
             var nb = (etat.metadonneesColonnes[tid] || []).length;
-            var bt = el('button', { type: 'button', class: 'w-carte w-carte--table', id: 'carteTable' + k, role: 'listitem', 'aria-label': 'Exporter la table ' + tid });
+            var bt = el('button', { type: 'button', class: 'w-carte w-carte--table', id: 'carteTable' + k, role: 'listitem', 'aria-label': 'Exporter la table ' + libelleTable(tid) });
             var t = el('span', { class: 'w-carte__titre w-carte__tables' });
             t.appendChild(pictoTable());
-            t.appendChild(document.createTextNode(tid));
+            t.appendChild(noeudLibelleTable(tid));
             bt.appendChild(t);
             bt.appendChild(el('span', { class: 'w-carte__sous', text: nb + (nb > 1 ? ' colonnes' : ' colonne') }));
             bt.addEventListener('click', function () { relayer(nouvelExport(tid), 'Ouverture de la table impossible'); });
@@ -3623,7 +3649,7 @@ function rendreAccueil() {
         bb.appendChild(el('span', { class: 'w-carte__titre', text: 'Reprendre l\'export en cours' }));
         var tb = el('span', { class: 'w-carte__tables' });
         tb.appendChild(pictoTable());
-        tb.appendChild(document.createTextNode(etat.tablesAExporter.join(', ')));
+        tb.appendChild(document.createTextNode(etat.tablesAExporter.map(libelleTable).join(', ')));
         bb.appendChild(tb);
         bb.addEventListener('click', function () {
             _vue.etape = 'colonnes';
@@ -3723,11 +3749,11 @@ function majResumes() {
             x.textContent = t;
         }
     };
-    r('feuilles', etat.tablesAExporter.length ? etat.tablesAExporter.join(', ') : 'Aucune feuille');
+    r('feuilles', etat.tablesAExporter.length ? etat.tablesAExporter.map(libelleTable).join(', ') : 'Aucune feuille');
     var total = etat.donneesBaseCourante ? etat.donneesBaseCourante.colonnes.length : 0;
     var nbSel = etat.champsSelectionnes.length;
-    r('colonnes', etat.baseSelectionnee ? nbSel + (nbSel > 1 ? ' colonnes sélectionnées' : ' colonne sélectionnée') + ' sur ' + total + ' (' + etat.baseSelectionnee + ')' : 'Choisissez une feuille');
-    r('lignes', etat.baseSelectionnee ? resumeLignes(etat.filtres) + ' (' + etat.baseSelectionnee + ')' : 'Choisissez une feuille');
+    r('colonnes', etat.baseSelectionnee ? nbSel + (nbSel > 1 ? ' colonnes sélectionnées' : ' colonne sélectionnée') + ' sur ' + total + ' (' + libelleTable(etat.baseSelectionnee) + ')' : 'Choisissez une feuille');
+    r('lignes', etat.baseSelectionnee ? resumeLignes(etat.filtres) + ' (' + libelleTable(etat.baseSelectionnee) + ')' : 'Choisissez une feuille');
     var f = document.getElementById('export-format');
     var lib = { xlsx: 'Excel', csv: 'CSV', pdf: 'PDF' };
     r('fichier', (f ? lib[f.value] || 'Excel' : 'Excel') + ', ' + (etat.options.nomFichier || 'export'));
@@ -3743,7 +3769,7 @@ function majResumes() {
         viderElement(x);
         if (etat.baseSelectionnee) {
             x.appendChild(document.createTextNode('Feuille : '));
-            x.appendChild(el('strong', { text: etat.baseSelectionnee }));
+            x.appendChild(el('strong', { text: libelleTable(etat.baseSelectionnee) }));
         }
     });
 }
@@ -3767,7 +3793,7 @@ function rendreEtapeFeuilles() {
         });
         var lab = el('label', { for: 'feuille-cb-' + k, class: 'w-feuilles-choix__lib' });
         lab.appendChild(pictoTable());
-        lab.appendChild(document.createTextNode(tid));
+        lab.appendChild(noeudLibelleTable(tid));
         ul.appendChild(el('li', { class: 'w-feuilles-choix__item' + (tid === etat.baseSelectionnee ? ' w-feuilles-choix__item--active' : '') }, cb, lab));
     });
 }
@@ -3786,7 +3812,7 @@ function preparerExport() {
     });
 }
 function nomSuggere(tables) {
-    var n = (_vue.modele && document.getElementById('nomModele').value.trim()) || ('Export ' + (etat.baseSelectionnee || 'donnees'));
+    var n = (_vue.modele && document.getElementById('nomModele').value.trim()) || ('Export ' + (libelleTable(etat.baseSelectionnee) || 'donnees'));
     if (!_vue.modele && tables.length > 1) {
         var autres = tables.length - 1;
         n += ' + ' + autres + (autres > 1 ? ' tables' : ' table');
@@ -3817,7 +3843,7 @@ function majEtapeFichier() {
         if (lignesActive > SEUIL_AVERTISSEMENT_LIGNES) {
             alerteVol.style.display = '';
             if (alerteVolDetail) {
-                alerteVolDetail.textContent = 'La table ' + etat.baseSelectionnee + ' compte ' + lignesActive.toLocaleString('fr-FR')
+                alerteVolDetail.textContent = 'La table ' + libelleTable(etat.baseSelectionnee) + ' compte ' + lignesActive.toLocaleString('fr-FR')
                     + ' lignes après filtrage. La génération peut prendre plusieurs minutes et solliciter fortement votre navigateur.'
                     + (lignesActive > LIMITE_LIGNES_EXPORT ? ' Au-delà de ' + LIMITE_LIGNES_EXPORT.toLocaleString('fr-FR') + ' lignes, une feuille Excel ne peut pas les contenir : choisissez le format CSV.' : '');
             }
@@ -4035,7 +4061,7 @@ async function telechargerPDF() {
         await chargerLibellesReferences(tablesToExport);
         var zone = document.getElementById('wImpression');
         viderElement(zone);
-        var titre = (_vue.modele && document.getElementById('nomModele').value.trim()) || (tablesToExport.length > 1 ? 'Export de ' + tablesToExport.length + ' tables' : 'Export de la table ' + tablesToExport[0]);
+        var titre = (_vue.modele && document.getElementById('nomModele').value.trim()) || (tablesToExport.length > 1 ? 'Export de ' + tablesToExport.length + ' tables' : 'Export de la table ' + libelleTable(tablesToExport[0]));
         var maintenant = new Date();
         var p = function (x) { return x < 10 ? '0' + x : '' + x; };
         var edite = 'Édité le ' + dateIsoLisible(isoJour(maintenant)) + ' à ' + p(maintenant.getHours()) + ' h ' + p(maintenant.getMinutes());
@@ -4071,7 +4097,7 @@ async function telechargerPDF() {
             var aoa = construireAoA(colonnesAffichees, lignesFiltrees);
             var section = el('section', { class: 'w-impr__section' });
             if (tablesToExport.length > 1 || ti === 0) {
-                section.appendChild(el('h2', { class: 'w-impr__feuille', text: tid }));
+                section.appendChild(el('h2', { class: 'w-impr__feuille', text: libelleTable(tid) }));
             }
             var phrase = phraseFiltres(param.filtres, data.colonnes);
             section.appendChild(el('p', { class: 'w-impr__filtres', text: (phrase ? 'Filtres : ' + phrase : 'Toutes les lignes') + ' - ' + lignesFiltrees.length + (lignesFiltrees.length > 1 ? ' lignes' : ' ligne') }));
