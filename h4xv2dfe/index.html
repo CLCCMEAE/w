@@ -491,6 +491,7 @@
     .gb-table { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .gb-table th, .gb-table td { padding: .375rem .5rem; text-align: left; border-bottom: 1px solid var(--border-default-grey); vertical-align: top; }
     .gb-table thead th { font-size: .75rem; font-weight: 650; color: var(--text-mention-grey); background: transparent; border-bottom: 1px solid var(--border-default-grey); white-space: nowrap; }
+    .gb-tuile--quadrille .gb-table th, .gb-tuile--quadrille .gb-table td { border: 1px solid var(--border-default-grey); }
     .gb-table td.gb-num, .gb-table th.gb-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .gb-table tbody tr:hover td { background: var(--background-alt-grey); color: var(--text-default-grey); }
     .gb-table tfoot td { font-weight: 650; border-top: 1px solid var(--border-default-grey); border-bottom: 0; }
@@ -853,7 +854,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.3';
+var VERSION_WIDGET = '2.1.4';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5787,6 +5788,9 @@ function rendreTuile(t, o) {
     if (t.fond && FONDS_TUILE.some(function (f) { return f.code === t.fond; })) {
         classes += ' gb-fond gb-fond--' + t.fond;
     }
+    if (t.quadrillage) {
+        classes += ' gb-tuile--quadrille';
+    }
     var art = creer('article', { classe: classes, attrs: { 'data-id': t.id, 'aria-labelledby': 'tt-' + (o.prefixe || '') + t.id } });
     if (o.barreEdition) {
         art.appendChild(o.barreEdition);
@@ -5827,21 +5831,18 @@ function rendreTuile(t, o) {
         var icoImg = iconeDispo(['image-line', 'file-image-line', 'file-copy-line']);
         var bImg = creer('button', { classe: 'gb-outil fr-icon-' + icoImg + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Copier l\'image : ' + (t.titre || ''), 'data-infobulle': 'Copier l\'image' } });
         bImg.addEventListener('click', function () { relayer(copierImageTuile(t, art), 'Copie de l\'image'); });
-        outils.appendChild(bImg);
-        outils.appendChild(bCsv);
-        if (o.exportPage) {
-            [['Imprimer', 'printer-line', imprimer, 'gImprimer'], ['Enregistrer en PDF', 'file-pdf-line', imprimerPdf, 'gPdf']].forEach(function (x) {
-                var bx = creer('button', { classe: 'gb-outil fr-icon-' + x[1] + ' w-infobulle w-infobulle--dessous', id: x[3], attrs: { type: 'button', 'aria-label': x[0], 'data-infobulle': x[0] } });
-                bx.addEventListener('click', x[2]);
-                outils.appendChild(bx);
-            });
+        if (!o.exportPage) {
+            outils.appendChild(bImg);
+            outils.appendChild(bCsv);
         }
-        if (etat.peutParametrer && etat.vue === 'tableau' && !etat.edition && !etat.page && !o.prefixe) {
+        if (!o.exportPage && etat.peutParametrer && etat.vue === 'tableau' && !etat.edition && !etat.page && !o.prefixe) {
             var bPub = creer('button', { classe: 'gb-outil fr-icon-' + iconeDispo(['send-plane-line', 'external-link-line']) + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Publier cette tuile seule sur une page : ' + (t.titre || ''), 'data-infobulle': 'Publier cette tuile seule' } });
             bPub.addEventListener('click', function () { relayer(publierTuile(t), 'Publication de la tuile'); });
             outils.appendChild(bPub);
         }
-        tete.appendChild(outils);
+        if (outils.childNodes.length) {
+            tete.appendChild(outils);
+        }
     }
     art.appendChild(tete);
     art.appendChild(corps);
@@ -9019,10 +9020,11 @@ function rendreTableau(zone) {
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [
         seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Pas encore publié' }) : null,
         etat.majA ? creer('span', { classe: 'gb-stamp fr-icon-time-line', id: 'gStamp', texte: 'Mis à jour à ' + heureCourte(etat.majA) }) : null
-    ], seulAdmin ? [bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
+    ], seulAdmin ? [pagesT.length ? null : bouton('Publier', null, 'send-plane-line', publierElementExistant, { petit: true, id: 'gPublierSeul' }),
+        bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
         bouton('Ajouter un élément', 'secondaire', 'add-line', ajouterElementAuTableau, { petit: true, id: 'gAjouterSeul' }),
         bouton('Ajouter à un tableau de bord', 'secondaire', 'layout-grid-line', ouvrirAjoutATableau, { petit: true, id: 'gAjoutTableau' }),
-        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' }), boutonPleinEcran()] : [cfg.seul ? null : boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), cfg.seul ? null : boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' }), boutonPleinEcran()]);
+        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' })].concat(outilsPageSeule(cfg), [boutonPleinEcran()]) : [].concat(cfg.seul ? outilsPageSeule(cfg) : [],[cfg.seul ? null : boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), cfg.seul ? null : boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' }), boutonPleinEcran()]));
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
@@ -9957,6 +9959,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
             neuve.id = b.id;
             neuve.taille = b.taille;
             neuve.fond = b.fond;
+            neuve.quadrillage = b.quadrillage;
             Object.keys(b).forEach(function (x) { delete b[x]; });
             Object.assign(b, neuve);
             relayer(assurerDonnees(v).then(function () { redessiner('eTable'); }), 'Changement de liste');
@@ -9980,6 +9983,11 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
                 }
                 contenus[cle].appendChild(n);
             });
+        }
+        if (b.type === 'table') {
+            var cq = creer('input', { attrs: { type: 'checkbox', id: 'eQuadrillage' }, coche: !!b.quadrillage });
+            cq.addEventListener('change', function () { b.quadrillage = cq.checked; maj(); });
+            vp.insertBefore(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cq, creer('label', { classe: 'fr-label', attrs: { 'for': 'eQuadrillage' }, texte: 'Quadrillage' })]), vp.firstChild);
         }
         vp.insertBefore(blocFond, vp.firstChild);
         if (!o.sansTaille) {
@@ -11726,6 +11734,35 @@ async function enregistrerElement() {
         f.focus();
     }
     afficherSucces('Enregistré.');
+}
+function outilsPageSeule(cfg) {
+    var t = cfg.tuiles && cfg.tuiles[0];
+    if (!cfg.seul || !t || t.type === 'text' || problemeTuile(t)) {
+        return [];
+    }
+    var d = function (lib, ico, act, id) { return boutonIcone(lib, ico, act, { id: id, variante: 'discret' }); };
+    return [d('Copier l\'image', iconeDispo(['image-line', 'file-image-line', 'file-copy-line']), function () { relayer(copierImageTuile(t, document.querySelector('.gb-tuile')), 'Copie de l\'image'); }, 'gCopieImage'),
+        d('Exporter en CSV', 'download-line', function () { exporterTuile(t); }, 'gExportCsv'),
+        d('Imprimer', 'printer-line', imprimer, 'gImprimer'),
+        d('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, 'gPdf')];
+}
+async function publierElementExistant() {
+    var cle = etat.cleConfig, cfg = etat.config;
+    if (!cle || !cfg) {
+        return;
+    }
+    await majPages();
+    var vues = etat.nomsVues || [];
+    if (vues.indexOf(cfg.nom) !== -1 || vues.indexOf(nomPageStats(cfg.nom)) !== -1) {
+        afficherErreur('Une page porte déjà ce nom dans le document.');
+        return;
+    }
+    var ok = await creerPageConsultation(nomPageStats(cfg.nom), valeurPageAuto(cle, cfg), cle, true);
+    memoriserTableau(cle);
+    await chargerTout();
+    if (ok) {
+        afficherSucces('Publié sur la page « ' + cfg.nom + ' » de ce document.');
+    }
 }
 async function publierElement() {
     var nom = nomElementValide();
