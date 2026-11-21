@@ -665,6 +665,7 @@
     .gb-atelier-liste > .gb-rang__ajout { align-self: center; }
     .gb-constr__panneau .w-grille { display: flex; flex-direction: column; gap: 1rem; }
     .gb-titre-param { display: inline-block; margin: 0 0 .75rem; }
+    .gb-gantt__prevu { fill: var(--background-contrast-grey); stroke: var(--border-default-grey); stroke-dasharray: 3 2; }
     .gb-sous-titre { margin: .5rem 0 .25rem; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-resultat__titre { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; color: #161616; background: #fff200; }
     .gb-constr__resultat, .gb-constr__panneau--plein { order: 0; }
@@ -963,7 +964,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.36';
+var VERSION_WIDGET = '2.1.37';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1071,7 +1072,7 @@ function pageValide(o) {
         tableaux: Array.isArray(o.tableaux) ? o.tableaux.filter(function (x) { return typeof x === 'string' && x; }) : [],
         titre: typeof o.titre === 'string' ? o.titre : '',
         table: typeof o.table === 'string' ? o.table : '',
-        conditions: Array.isArray(o.conditions) ? o.conditions.filter(conditionComplete) : [],
+        conditions: Array.isArray(o.conditions) ? o.conditions.filter(function (c) { return conditionComplete(c) || estMarqueMode(c); }) : [],
         lecteurs: lecteursValides(o.lecteurs) };
 }
 function lireCopie(v) {
@@ -1158,11 +1159,57 @@ function tableCondition(p, c) {
     });
     return l.filter(function (tid) { return infoColonne(tid, c.col); })[0] || null;
 }
+var MODES_CONDITIONS = [{ code: 'et', nom: 'toutes les conditions' }, { code: 'ou', nom: 'au moins une condition' }, { code: 'et_ou', nom: 'au moins une condition par colonne' }];
+function estMarqueMode(c) { return !!c && !c.col && (c.mode === 'ou' || c.mode === 'et_ou'); }
+function modeConditions(conds) {
+    var m = (conds || []).filter(estMarqueMode)[0];
+    return m ? m.mode : 'et';
+}
+function fixerModeConditions(conds, mode) {
+    for (var i = conds.length - 1; i >= 0; i--) {
+        if (estMarqueMode(conds[i]) || (conds[i] && !conds[i].col && conds[i].mode)) {
+            conds.splice(i, 1);
+        }
+    }
+    if (mode === 'ou' || mode === 'et_ou') {
+        conds.unshift({ mode: mode });
+    }
+}
+function combinerPredicats(items, mode) {
+    if (!items.length) {
+        return null;
+    }
+    if (mode === 'ou') {
+        return function (i) { for (var k = 0; k < items.length; k++) {
+            if (items[k].p(i)) {
+                return true;
+            }
+        } return false; };
+    }
+    if (mode === 'et_ou') {
+        var parCol = {}, ordre = [];
+        items.forEach(function (x) { if (!parCol[x.col]) {
+            parCol[x.col] = [];
+            ordre.push(x.col);
+        } parCol[x.col].push(x); });
+        var groupes = ordre.map(function (c) { return combinerPredicats(parCol[c], 'ou'); });
+        return function (i) { for (var k = 0; k < groupes.length; k++) {
+            if (!groupes[k](i)) {
+                return false;
+            }
+        } return true; };
+    }
+    return function (i) { for (var k = 0; k < items.length; k++) {
+        if (!items[k].p(i)) {
+            return false;
+        }
+    } return true; };
+}
 function conditionsPage(tid) {
     if (!etat.page || !etat.page.conditions.length) {
         return [];
     }
-    return etat.page.conditions.filter(function (c) { return infoColonne(tid, c.col) && (!/Col$/.test(c.op) || infoColonne(tid, c.val)); });
+    return etat.page.conditions.filter(function (c) { return estMarqueMode(c) || (infoColonne(tid, c.col) && (!/Col$/.test(c.op) || infoColonne(tid, c.val))); });
 }
 function etiquettesConditions(p) {
     return p.conditions.map(function (c) {
@@ -4368,19 +4415,23 @@ function selection(tid, conds, opts) {
     opts = opts || {};
     var cfg = opts.config || etat.config;
     var glob = opts.sansGlobal ? [] : conditionsGlobales(cfg, tid, opts.sansPeriode);
-    var toutes = conditionsPage(tid).concat(glob).concat((conds || []).filter(function (c) { return c && c.col && infoColonne(tid, c.col); }));
-    var cle = tid + '|' + JSON.stringify(toutes) + '|' + (opts.fenetre ? opts.fenetre.col + ':' + opts.fenetre.de + '-' + opts.fenetre.a : '');
+    var condsP = conditionsPage(tid);
+    var condsT = (conds || []).filter(function (c) { return c && c.col && infoColonne(tid, c.col); });
+    var modeP = modeConditions(condsP), modeT = modeConditions(conds);
+    condsP = condsP.filter(function (c) { return c && c.col; });
+    var cle = tid + '|' + modeP + JSON.stringify(condsP) + '|' + JSON.stringify(glob) + '|' + modeT + JSON.stringify(condsT) + '|' + (opts.fenetre ? opts.fenetre.col + ':' + opts.fenetre.de + '-' + opts.fenetre.a : '');
     if (etat.calc.selections[cle]) {
         return etat.calc.selections[cle];
     }
     var n = nbLignes(tid);
-    var preds = toutes.map(function (c) {
+    var versItem = function (c) {
         if (c.periode) {
             var ld = lecteurDateLocale(tid, c.col);
-            return function (i) { var v = ld(i); return v !== null && v >= c.de && v < c.a; };
+            return { col: c.col, p: function (i) { var v = ld(i); return v !== null && v >= c.de && v < c.a; } };
         }
-        return predicat(tid, c);
-    });
+        return { col: c.col, p: predicat(tid, c) };
+    };
+    var preds = [combinerPredicats(condsP.map(versItem), modeP), combinerPredicats(glob.map(versItem), 'et'), combinerPredicats(condsT.map(versItem), modeT)].filter(Boolean);
     if (opts.fenetre) {
         var lf = lecteurDateLocale(tid, opts.fenetre.col), f = opts.fenetre;
         preds.push(function (i) { var v = lf(i); return v !== null && v >= f.de && v < f.a; });
@@ -5126,6 +5177,7 @@ function dessinerBarres(zone, jeu, t, largeur, surClic) {
     var nS = jeu.series.length, nC = jeu.cats.length;
     var fmt = jeu.fmt;
     var totaux = jeu.cats.map(function (c, j) { var s = 0; jeu.val.forEach(function (vs) { s += vs[j] || 0; }); return s; });
+    var totalGeneral = totaux.reduce(function (a, v) { return a + v; }, 0);
     var vmax = 0, vmin = 0;
     jeu.cats.forEach(function (c, j) {
         if (empile) {
@@ -5212,7 +5264,7 @@ function dessinerBarres(zone, jeu, t, largeur, surClic) {
             });
             var vLib = empile ? totaux[j] : (nS === 1 ? jeu.val[0][j] : null);
             if (vLib !== null && vLib !== undefined && !t.sansValeurs) {
-                var txt = fmt.court(vLib);
+                var txt = texteEtiquette(t, vLib, totalGeneral, fmt);
                 if (largeurTexte(txt, 11.5, true) <= bande - 2) {
                     g.appendChild(texteSvg(mG + j * bande + bande / 2, y(Math.max(vLib, 0)) - 5, txt, 'gb-val', { 'text-anchor': 'middle' }));
                 }
@@ -5273,7 +5325,7 @@ function dessinerBarres(zone, jeu, t, largeur, surClic) {
             });
             var vLib = empile ? totaux[j] : (nS === 1 ? jeu.val[0][j] : null);
             if (vLib !== null && vLib !== undefined && !t.sansValeurs) {
-                g.appendChild(texteSvg(x(Math.max(vLib, 0)) + 6, yc + ligneH / 2 + 4, fmt.court(vLib), 'gb-val'));
+                g.appendChild(texteSvg(x(Math.max(vLib, 0)) + 6, yc + ligneH / 2 + 4, texteEtiquette(t, vLib, totalGeneral, fmt), 'gb-val'));
             }
             brancherMarque(g, { aria: ariaCat(j), titre: etiquetteCat(j), lignes: lignesTooltip(j), clic: function () { surClic(j, null); } });
             s.appendChild(g);
@@ -5297,7 +5349,8 @@ function dessinerLignes(zone, jeu, t, largeur, surClic) {
     if (t._echelle) {
         vals.push(t._echelle.min, t._echelle.max);
     }
-    var ticks = graduations(Math.min(0, Math.min.apply(null, vals.concat([0]))), Math.max.apply(null, vals.concat([0])), 4, fmt.entier);
+    var libre = t.axeZero === false && vals.length;
+    var ticks = libre ? graduations(Math.min.apply(null, vals), Math.max.apply(null, vals), 4, fmt.entier) : graduations(Math.min(0, Math.min.apply(null, vals.concat([0]))), Math.max.apply(null, vals.concat([0])), 4, fmt.entier);
     var dMin = ticks[0], dMax = ticks[ticks.length - 1];
     var lg = t.legende === 'masquee' || lat.fait ? null : legende(jeu.series, 'ligne');
     var lgBas = t.legende === 'bas' ? lg : null;
@@ -5728,6 +5781,9 @@ function filtresNonAppliques(t) {
     });
     if (etat.page) {
         etat.page.conditions.forEach(function (c) {
+            if (!c || !c.col) {
+                return;
+            }
             var tc = tableCondition(etat.page, c);
             var lib = tc ? libCol(tc, c.col) : c.col;
             if (!infoColonne(t.table, c.col) && res.indexOf(lib) === -1) {
@@ -6508,9 +6564,9 @@ function repriseGraphique(g, nom) {
     var tid = g.table, notes = [];
     if (g.type === 'gantt') {
         var tg = { id: idTuile(), type: 'gantt', taille: 'XL', titre: g.titrePerso || nom || '', table: tid, filtres: [], mesure: null, colTitre: g.ganttTache || colonneTitre(tid),
-            colDebut: g.ganttDebut || null, colFin: g.ganttFin || null, colCouleur: g.ganttCouleur || null, colGroupe: g.ganttRessource || null, max: 30 };
+            colDebut: g.ganttDebut || null, colFin: g.ganttFin || null, colCouleur: g.ganttCouleur || null, colGroupe: g.ganttRessource || null, colFinPrevue: g.ganttBaseline || null, max: 30 };
         appliquerStyleGraphique(tg, g);
-        return { nom: nom || 'Planning', cfg: { nom: nom || '', description: '', table: tid, periode: null, filtres: [], tuiles: [tg] }, notes: g.ganttBaseline ? ['Dates de référence non reprises'] : [], detail: 'Diagramme de Gantt' };
+        return { nom: nom || 'Planning', cfg: { nom: nom || '', description: '', table: tid, periode: null, filtres: [], tuiles: [tg] }, notes: [], detail: 'Diagramme de Gantt' };
     }
     var mesure = !g.mesure || g.mesure === 'count' ? { agg: 'count' } : { agg: AGG_REPRISE[g.agg] || 'sum', col: g.mesure };
     var col = infoColonne(tid, g.regroupement);
@@ -6559,16 +6615,14 @@ function repriseGraphique(g, nom) {
     appliquerStyleGraphique(t, g);
     var fs = Array.isArray(g.filtres) ? g.filtres : [];
     var perdus = 0;
-    if (g.modeFiltre === 'ou' && fs.length > 1) {
-        perdus = fs.length;
+    fs.forEach(function (k) { var c = conditionReprise(k || {}); if (c) {
+        t.filtres = t.filtres.concat(c);
     }
     else {
-        fs.forEach(function (k) { var c = conditionReprise(k || {}); if (c) {
-            t.filtres = t.filtres.concat(c);
-        }
-        else {
-            perdus++;
-        } });
+        perdus++;
+    } });
+    if ((g.modeFiltre === 'ou' || g.modeFiltre === 'et_ou') && t.filtres.length > 1) {
+        fixerModeConditions(t.filtres, g.modeFiltre);
     }
     if (perdus) {
         notes.push(nombreSur(perdus, 'filtre') + ' à refaire');
@@ -6732,11 +6786,18 @@ function editeurCouleurs(b, redessiner, maj, o) {
     }
     return bloc;
 }
+function texteEtiquette(t, v, total, fmt) {
+    if (t.etiquettes === 'pct' && total) {
+        return (Math.round(v / total * 1000) / 10).toLocaleString('fr-FR') + ' %';
+    }
+    return fmt.court(v);
+}
 function editeurPresentation(b, redessiner, maj, o) {
     o = o || {};
     var bloc = [];
     if (o.valeurs !== false) {
-        bloc.push(caseOption('eeVals', 'Écrire les valeurs sur le graphique', !b.sansValeurs, function (on) { b.sansValeurs = !on; maj(); }));
+        bloc.push(groupe('Écrire sur le graphique', champListe('eeVals', [{ valeur: 'valeurs', libelle: 'Les valeurs' }, { valeur: 'pct', libelle: 'Les pourcentages' }, { valeur: 'aucune', libelle: 'Rien' }],
+            b.sansValeurs ? 'aucune' : (b.etiquettes === 'pct' ? 'pct' : 'valeurs'), function (v) { b.sansValeurs = v === 'aucune'; b.etiquettes = v === 'pct' ? 'pct' : null; maj(); })));
     }
     if (o.legende !== false) {
         bloc.push(groupe('Légende', champListe('eeLeg', [{ valeur: 'haut', libelle: 'Au-dessus du graphique' }, { valeur: 'bas', libelle: 'Sous le graphique' }, { valeur: 'gauche', libelle: 'À gauche du graphique' }, { valeur: 'droite', libelle: 'À droite du graphique' }, { valeur: 'masquee', libelle: 'Masquée' }], b.legende || 'haut', function (v) { b.legende = v === 'haut' ? null : v; maj(); }), 'Elle n\'apparaît qu\'avec plusieurs séries.'));
@@ -6758,6 +6819,7 @@ function jeuGantt(t) {
     var lf = t.colFin && infoColonne(tid, t.colFin) ? lecteurDateLocale(tid, t.colFin) : null;
     var lg = t.colGroupe && infoColonne(tid, t.colGroupe) ? lecteurCles(tid, t.colGroupe) : null;
     var lc = t.colCouleur && infoColonne(tid, t.colCouleur) ? lecteurCles(tid, t.colCouleur) : null;
+    var lp = t.colFinPrevue && infoColonne(tid, t.colFinPrevue) ? lecteurDateLocale(tid, t.colFinPrevue) : null;
     var taches = [], sansDate = 0;
     idx.forEach(function (i) {
         var de = ld(i);
@@ -6769,7 +6831,8 @@ function jeuGantt(t) {
         if (fin === null || fin < de) {
             fin = de;
         }
-        taches.push({ i: i, de: de, a: fin + JOUR, titre: texteCellule(tid, t.colTitre, i) || ('Ligne ' + i), groupe: lg ? (lg(i)[0] || '') : null, couleur: lc ? (lc(i)[0] || '') : null });
+        var prevue = lp ? lp(i) : null;
+        taches.push({ i: i, de: de, a: fin + JOUR, prevue: prevue !== null && prevue >= de ? prevue + JOUR : null, titre: texteCellule(tid, t.colTitre, i) || ('Ligne ' + i), groupe: lg ? (lg(i)[0] || '') : null, couleur: lc ? (lc(i)[0] || '') : null });
     });
     var cmpG = lg ? comparateurNaturel(tid, t.colGroupe) : null;
     taches.sort(function (x, y) { return (cmpG ? cmpG(x.groupe, y.groupe) : 0) || x.de - y.de || x.a - y.a; });
@@ -6816,7 +6879,7 @@ function rendreGantt(t, corps) {
 }
 function dessinerGantt(zone, g, t, largeur) {
     var de = Infinity, a = -Infinity;
-    g.taches.forEach(function (x) { de = Math.min(de, x.de); a = Math.max(a, x.a); });
+    g.taches.forEach(function (x) { de = Math.min(de, x.de); a = Math.max(a, x.a, x.prevue || x.a); });
     var aujourdhui = aujourdhuiLocal();
     if (t.aujourdhui !== false && aujourdhui >= de - 30 * JOUR && aujourdhui <= a + 30 * JOUR) {
         de = Math.min(de, aujourdhui);
@@ -6867,10 +6930,16 @@ function dessinerGantt(zone, g, t, largeur) {
         var x0 = x(tc.de), x1 = Math.max(x0 + 3, x(tc.a));
         var coul = tc.couleur !== null ? g.couleurDe[tc.couleur] : couleurValeur(t, 0, '', false, null);
         var gm = svg('g', {});
+        if (tc.prevue) {
+            gm.appendChild(svg('rect', { x: x0, y: y0 + 2, width: Math.max(3, x(tc.prevue) - x0), height: hL - 4, rx: 3, 'class': 'gb-gantt__prevu' }));
+        }
         gm.appendChild(svg('rect', { x: x0, y: y0 + 5, width: x1 - x0, height: hL - 10, rx: 3, fill: coul, 'class': 'gb-forme' }));
         var nbJ = Math.round((tc.a - tc.de) / JOUR);
         var periode = nbJ <= 1 ? 'le ' + libellePas(tc.de, 'day') : 'du ' + libellePas(tc.de, 'day') + ' au ' + libellePas(tc.a - JOUR, 'day') + ' (' + nombreSur(nbJ, 'jour') + ')';
         var infos = [{ val: periode, lib: '' }];
+        if (tc.prevue) {
+            infos.push({ val: libellePas(tc.prevue - JOUR, 'day'), lib: 'Fin prévue' });
+        }
         if (tc.couleur !== null) {
             infos.push({ val: libelleCle(tc.couleur), lib: libCol(t.table, t.colCouleur) });
         }
@@ -6919,6 +6988,7 @@ function formulaireGantt(form, b, redessiner, maj) {
         groupe('Nom de la tâche', champListe('eGTitre', toutes, b.colTitre, function (v) { b.colTitre = v; maj(); })),
         rangee([groupe('Début', dates.length ? champListe('eGDebut', dates, b.colDebut, function (v) { b.colDebut = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eGDebut', texte: 'Cette liste n\'a pas de colonne de date.' })),
             groupe('Fin', champListe('eGFin', dates, b.colFin || '', function (v) { b.colFin = v || null; maj(); }, 'Aucune : un seul jour'))]),
+        groupe('Fin prévue', champListe('eGPrevue', dates, b.colFinPrevue || '', function (v) { b.colFinPrevue = v || null; maj(); }, 'Aucune'), 'Le planning initial s\'affiche en grisé derrière chaque tâche.'),
         rangee([groupe('Couleur selon', champListe('eGCoul', cats, b.colCouleur || '', function (v) { b.colCouleur = v || null; redessiner('eGCoul'); }, 'Aucune')),
             groupe('Regrouper par', champListe('eGGroupe', cats, b.colGroupe || '', function (v) { b.colGroupe = v || null; maj(); }, 'Aucun regroupement'))]),
         choixNombre('eMax', 'Au plus', b, 'max', 30, 5, 100, maj, 'tâches, les plus anciennes d\'abord'),
@@ -8167,7 +8237,7 @@ function visiterReferences(cfg, fT, fC) {
         }
         T(t, 'table');
         var tid = t.table;
-        ['groupe', 'serie', 'colDate', 'triCol', 'lignesPivot', 'colonnesPivot', 'repeter', 'colValeur', 'colTitre', 'colDebut', 'colFin', 'colCouleur', 'colGroupe'].forEach(function (k) { C(t, k, tid); });
+        ['groupe', 'serie', 'colDate', 'triCol', 'lignesPivot', 'colonnesPivot', 'repeter', 'colValeur', 'colTitre', 'colDebut', 'colFin', 'colFinPrevue', 'colCouleur', 'colGroupe'].forEach(function (k) { C(t, k, tid); });
         if (Array.isArray(t.colonnes) && tid) {
             t.colonnes = t.colonnes.map(function (x) { return typeof x === 'string' && x ? fC(tid, x) : x; });
         }
@@ -10069,7 +10139,8 @@ function resumeLignesTuile(b) {
         return '';
     }
     var conds = (b.filtres || []).filter(function (c) { return c && c.col && infoColonne(b.table, c.col) && !(Array.isArray(c.val) && !c.val.length); });
-    return libelleIcone(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(', ') : 'toutes les lignes');
+    var lien = modeConditions(b.filtres) === 'ou' ? ' ou ' : ', ';
+    return libelleIcone(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(lien) : 'toutes les lignes');
 }
 function voletLignes(vl, b, redessiner, maj) {
     var tid = b.table;
@@ -10279,6 +10350,7 @@ function formulaireLigne(form, b, redessiner, maj) {
     form.appendChild(section('Valeurs', editeurMesure(b, redessiner, maj).concat([
         caseOption('eCumul', 'Cumulé (total progressif)', !!b.cumul, function (on) { b.cumul = on; maj(); }, 'Pour les nombres de lignes et les sommes.'),
         caseOption('eAire', 'Remplir la surface sous la courbe', !!b.aire, function (on) { b.aire = on; maj(); }),
+        caseOption('eZero', 'Démarrer l\'axe à zéro', b.axeZero !== false, function (on) { b.axeZero = on ? null : false; maj(); }),
         caseOption('eN1', 'Comparer avec un an plus tôt', !!b.n1, function (on) { b.n1 = on; maj(); }, b.serie ? 'Avec une seule courbe.' : 'Une courbe en pointillés pour la même période, un an avant.'),
         caseOption('eDescente', 'Détail au clic', b.descente !== false, function (on) { b.descente = on; maj(); }, 'Un clic sur une année montre ses trimestres, puis ses mois, puis ses jours.')
     ])));
@@ -10397,7 +10469,14 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
     b[cle] = b[cle] || [];
     var conds = b[cle];
     var box = creer('div', {});
+    var reelles = conds.filter(function (c) { return c && c.col; });
+    if (reelles.length > 1) {
+        box.appendChild(groupe('Garder les lignes qui remplissent', champListe(prefixe + 'Mode', MODES_CONDITIONS.map(function (m) { return { valeur: m.code, libelle: m.nom }; }), modeConditions(conds), function (v) { fixerModeConditions(conds, v); redessiner(prefixe + 'Mode'); })));
+    }
     conds.forEach(function (c, k) {
+        if (!c || !c.col) {
+            return;
+        }
         var col = infoColonne(tid, c.col);
         var fam = famille(col);
         var row = creer('div', { classe: 'gb-condition', attrs: { role: 'group', 'aria-label': 'Condition ' + (k + 1) } });
