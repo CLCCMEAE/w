@@ -853,7 +853,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.2';
+var VERSION_WIDGET = '2.1.3';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5792,7 +5792,7 @@ function rendreTuile(t, o) {
         art.appendChild(o.barreEdition);
     }
     var tete = creer('div', { classe: 'gb-tuile__tete' });
-    var titres = creer('div', { classe: 'gb-tuile__titres' }, [creer('h3', { classe: 'gb-tuile__titre', id: 'tt-' + (o.prefixe || '') + t.id, texte: t.titre || (t.type === 'text' ? '' : 'Tuile sans titre') })]);
+    var titres = creer('div', { classe: 'gb-tuile__titres' }, [creer('h3', { classe: 'gb-tuile__titre' + (o.exportPage ? ' fr-sr-only' : ''), id: 'tt-' + (o.prefixe || '') + t.id, texte: t.titre || (t.type === 'text' ? '' : 'Tuile sans titre') })]);
     var nivT = t.type === 'line' && t.descente !== false && peutCroiser() ? niveauxDescente(t, o) : [];
     var st = t.type === 'text' ? '' : sousTitreAuto(nivT.length ? Object.assign({}, t, { pas: nivT[nivT.length - 1].pas, derniers: 0 }) : t);
     if (st) {
@@ -5830,8 +5830,11 @@ function rendreTuile(t, o) {
         outils.appendChild(bImg);
         outils.appendChild(bCsv);
         if (o.exportPage) {
-            outils.appendChild(boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer', variante: 'tertiaire', classe: 'gb-outil-page' }));
-            outils.appendChild(boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf', variante: 'tertiaire', classe: 'gb-outil-page' }));
+            [['Imprimer', 'printer-line', imprimer, 'gImprimer'], ['Enregistrer en PDF', 'file-pdf-line', imprimerPdf, 'gPdf']].forEach(function (x) {
+                var bx = creer('button', { classe: 'gb-outil fr-icon-' + x[1] + ' w-infobulle w-infobulle--dessous', id: x[3], attrs: { type: 'button', 'aria-label': x[0], 'data-infobulle': x[0] } });
+                bx.addEventListener('click', x[2]);
+                outils.appendChild(bx);
+            });
         }
         if (etat.peutParametrer && etat.vue === 'tableau' && !etat.edition && !etat.page && !o.prefixe) {
             var bPub = creer('button', { classe: 'gb-outil fr-icon-' + iconeDispo(['send-plane-line', 'external-link-line']) + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Publier cette tuile seule sur une page : ' + (t.titre || ''), 'data-infobulle': 'Publier cette tuile seule' } });
