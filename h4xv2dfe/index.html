@@ -329,7 +329,8 @@
     .gb-fond--gris { background: var(--background-contrast-grey); }
     .gb-fonds { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
     .gb-fonds label { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; }
-    .gb-fonds__pastille { display: inline-block; width: 1.25rem; height: 1.25rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .gb-fonds__pastille { display: inline-block; width: 1.25rem; height: 1.25rem; border: 1px solid var(--border-default-grey); }
+    .gb-fonds__pastille.gb-fond--aucun { background: var(--background-default-grey); }
     .gb-tuile__corps { flex: 1 1 auto; min-width: 0; position: relative; display: flex; flex-direction: column; }
     .gb-tuile__pied { margin: 0; font-size: .75rem; color: var(--text-mention-grey); }
     .gb-tuile--texte-titre { background: transparent; border-color: transparent; box-shadow: none; padding: .5rem .25rem 0; justify-content: flex-end; color: var(--text-default-grey); }
@@ -597,7 +598,9 @@
     @media (max-width: 52em) { .gb-constr__corps { flex-direction: column; } .gb-constr__etapes { flex-basis: auto; width: 100%; } .gb-constr__resultat { position: static; } }
     .gb-constr .gb-acc { gap: 0; margin: 0; }
     .gb-constr .gb-acc__item { position: relative; border: 0; background: transparent; padding-bottom: .5rem; }
-    .gb-constr .gb-acc__item:not(:last-child)::before { content: ''; position: absolute; left: calc(.75rem + .75rem - 1px); top: 2.25rem; bottom: 0; width: 2px; background: var(--border-default-blue-france); }
+    .gb-constr .gb-acc__tete { align-items: flex-start; }
+    .gb-constr .gb-acc__tete::after { margin-top: .5rem; }
+    .gb-constr .gb-acc__item:not(:last-child)::before { content: ''; position: absolute; left: calc(.75rem + .75rem - 1px); top: calc(.375rem + 1.5rem + .125rem); bottom: -.25rem; width: 2px; background: var(--border-default-blue-france); }
     .gb-constr .gb-acc__num { background: var(--background-default-grey); color: var(--text-action-high-blue-france); border: 2px solid var(--border-action-high-blue-france); }
     .gb-constr .gb-acc__item--ouvert .gb-acc__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .gb-constr .gb-acc__contenu { padding-left: 2.875rem; }
@@ -859,7 +862,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.6';
+var VERSION_WIDGET = '2.1.7';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11630,7 +11633,6 @@ function rendreConstruction(zone) {
     nom.setAttribute('aria-label', 'Nom de la page');
     var actions = [bouton('Ajouter d\'autres tuiles', 'secondaire', 'add-line', ajouterAutresTuiles, { id: 'eAutres' })];
     if (!publie) {
-        actions.push(bouton('Enregistrer', 'secondaire', 'save-line', enregistrerElement, { id: 'eEnregistrer', desactive: existe && !modifie }));
         actions.push(bouton('Publier', null, 'send-plane-line', publierElement, { id: 'ePublier' }));
     }
     else {
@@ -11642,7 +11644,7 @@ function rendreConstruction(zone) {
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }), nom]),
-        existe ? creer('span', { classe: 'gb-etat' + (modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: modifie ? (publie ? 'Modifications non publiées' : 'Modifications non enregistrées') : (publie ? 'Publié' : 'Enregistré, pas encore publié') }) : null,
+        creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Pas encore publié' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var form = creer('div', { classe: 'gb-constr__etapes' });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
@@ -11675,37 +11677,83 @@ function rendreConstruction(zone) {
 }
 function majEtatConstruction() {
     var c = etat.construction;
-    if (!c || !c.cle) {
+    if (!c) {
         return;
     }
     var m = constructionModifiee();
-    var pub = pagesDuTableau(c.cle).length > 0;
+    var pub = !!c.cle && pagesDuTableau(c.cle).length > 0;
     var e = document.getElementById('eEtat');
     if (e) {
-        e.textContent = m ? (pub ? 'Modifications non publiées' : 'Modifications non enregistrées') : (pub ? 'Publié' : 'Enregistré, pas encore publié');
-        e.classList.toggle('gb-etat--modifie', m);
+        e.textContent = pub ? (m ? 'Modifications non publiées' : 'Publié') : 'Pas encore publié';
+        e.classList.toggle('gb-etat--modifie', pub && m);
     }
     var p = document.getElementById('ePublier');
     if (p && pub) {
         p.disabled = !m;
     }
-    var en = document.getElementById('eEnregistrer');
-    if (en) {
-        en.disabled = !m;
+    if (!pub) {
+        planifierBrouillon();
     }
+}
+var _minuterieBrouillon = null;
+function planifierBrouillon() {
+    clearTimeout(_minuterieBrouillon);
+    if (!constructionModifiee() && etat.construction && etat.construction.cle) {
+        return;
+    }
+    _minuterieBrouillon = setTimeout(function () { relayer(enregistrerBrouillon(), 'Enregistrement du brouillon'); }, 1200);
+}
+function enregistrerBrouillon() {
+    var c = etat.construction;
+    clearTimeout(_minuterieBrouillon);
+    _minuterieBrouillon = null;
+    if (!c) {
+        return Promise.resolve(null);
+    }
+    c.enCours = (c.enCours || Promise.resolve()).then(async function () {
+        if (etat.construction !== c || (c.cle && pagesDuTableau(c.cle).length)) {
+            return null;
+        }
+        var nom = String(c.b.titre || '').trim();
+        if (!nom || validerTuile(c.b) || (c.cle && !constructionModifiee())) {
+            return null;
+        }
+        await majPages();
+        if (nomElementPris(nom)) {
+            return null;
+        }
+        var instantane = JSON.stringify(c.b);
+        var r = await enregistrerConfigElement(nom, null);
+        if (!r) {
+            return null;
+        }
+        c.cle = r.cle;
+        c.initial = instantane;
+        majEtatConstruction();
+        return r;
+    });
+    return c.enCours;
 }
 async function quitterConstruction() {
     var c = etat.construction;
-    if (constructionModifiee() && !(await confirmerAction(c.cle ? 'Abandonner les modifications ?' : 'Abandonner cet élément ?', '', 'Abandonner'))) {
+    var pub = !!c.cle && pagesDuTableau(c.cle).length > 0;
+    if (pub) {
+        if (constructionModifiee() && !(await confirmerAction('Abandonner les modifications ?', '', 'Abandonner'))) {
+            return;
+        }
+        etat.construction = null;
+        await allerAuTableau(c.cle);
+        return;
+    }
+    await enregistrerBrouillon();
+    if (!c.cle && constructionModifiee() && !(await confirmerAction('Abandonner cet élément ?', '', 'Abandonner'))) {
         return;
     }
     etat.construction = null;
     if (c.cle) {
-        await allerAuTableau(c.cle);
+        await chargerTout();
     }
-    else {
-        demarrerCreation();
-    }
+    demarrerCreation();
 }
 function nomElementValide() {
     var b = etat.construction.b;
@@ -11744,7 +11792,9 @@ function nomElementPris(nom) {
 async function enregistrerConfigElement(nom, libelleLoader) {
     var c = etat.construction;
     var cfg = configElementConstruit(nom);
-    afficherLoader(libelleLoader);
+    if (libelleLoader) {
+        afficherLoader(libelleLoader);
+    }
     try {
         await assurerBibliotheque();
         await lireTableaux();
@@ -11760,31 +11810,6 @@ async function enregistrerConfigElement(nom, libelleLoader) {
         afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas d\'enregistrer.' : 'L\'enregistrement n\'a pas abouti. Réessayez.', e);
         return null;
     }
-}
-async function enregistrerElement() {
-    var nom = nomElementValide();
-    if (!nom) {
-        return;
-    }
-    await majPages();
-    if (nomElementPris(nom)) {
-        marquerInvalide('eNomElement', 'Un élément ou une page porte déjà ce nom.');
-        return;
-    }
-    var r = await enregistrerConfigElement(nom, 'Enregistrement…');
-    if (!r) {
-        return;
-    }
-    var c = etat.construction;
-    c.cle = r.cle;
-    c.initial = JSON.stringify(c.b);
-    masquerLoader();
-    afficherVue('construction', true);
-    var f = document.getElementById('eEnregistrer');
-    if (f) {
-        f.focus();
-    }
-    afficherSucces('Enregistré.');
 }
 function barreExport(cfg) {
     var l = outilsPageSeule(cfg);
@@ -11854,6 +11879,10 @@ async function publierElement() {
     var nom = nomElementValide();
     if (!nom) {
         return;
+    }
+    clearTimeout(_minuterieBrouillon);
+    if (etat.construction.enCours) {
+        await etat.construction.enCours;
     }
     await majPages();
     if (nomElementPris(nom)) {
