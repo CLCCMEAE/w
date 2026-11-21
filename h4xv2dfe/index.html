@@ -619,6 +619,7 @@
     .gb-rang__carte--publie { border: 2px solid var(--border-plain-success); background: var(--background-contrast-success); }
     .gb-rang__carte--brouillon { border: 2px dashed var(--border-default-grey); }
     .gb-rang__etat--brouillon { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+    .gb-rang__etat--suggestion { background: var(--background-contrast-info); color: var(--text-default-info); }
     .gb-rang__sep { flex: none; align-self: stretch; width: 1px; margin: 0 .25rem; background: var(--border-default-grey); }
     #gOngletNouveau { margin-right: .5rem; }
     .gb-rang__carte { position: relative; }
@@ -925,7 +926,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.19';
+var VERSION_WIDGET = '2.1.20';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11619,8 +11620,9 @@ function suggestionsElements() {
     return res;
 }
 function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
-    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree ' + (etatTexte === 'Publié' ? 'gb-rang__carte--publie' : 'gb-rang__carte--brouillon') : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
-        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : ' gb-rang__etat--brouillon'), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
+    var sug = etatTexte === 'Suggestion';
+    var bt = creer('button', { classe: 'gb-rang__carte' + (sug ? ' gb-rang__carte--suggestion' : (etatTexte ? ' gb-rang__carte--cree ' + (etatTexte === 'Publié' ? 'gb-rang__carte--publie' : 'gb-rang__carte--brouillon') : '')), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
+        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : (sug ? ' gb-rang__etat--suggestion' : ' gb-rang__etat--brouillon')), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
         creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null]);
     bt.addEventListener('click', function () { relayer(action(), titre); });
     return bt;
@@ -11717,13 +11719,13 @@ function rendreDepart(bloc) {
         sugg[rang.cle].filter(function (t) { return !dejaCree(t.titre); }).forEach(function (t, k) {
             var t2 = Object.assign(cloner(t), { taille: 'XL' });
             var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + rang.cle + k + '-', 460) || miniApercu([t]);
-            grille.appendChild(carteSuggestion('dS-' + rang.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); }));
+            grille.appendChild(carteSuggestion('dS-' + rang.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); }, 'Suggestion'));
         });
         grille.appendChild(carteZero('dZ-' + rang.cle, 'Ajouter', function () { return ouvrirConstructionNeuve(rang.cle); }, !aDesDonnees, 'Partir de zéro : ' + minuscule(rang.titre)));
     }
     else if (b.rubrique === 'tdb') {
         (charge ? suggestionsDocument().filter(function (x) { return !dejaCree(x.nom); }).slice(0, 3) : []).forEach(function (x, k) {
-            grille.appendChild(carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); }));
+            grille.appendChild(carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); }, 'Suggestion'));
         });
         grille.appendChild(carteZero('dZ-tdb', 'Ajouter', function () {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
