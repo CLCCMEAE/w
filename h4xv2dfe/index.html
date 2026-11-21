@@ -557,7 +557,10 @@
     .gb-accueil__item { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 2.75rem; padding: 0 .75rem; border: 0; background: transparent; color: var(--text-default-grey); font: inherit; font-size: .9rem; text-align: left; cursor: pointer; }
     .gb-accueil__item:hover { background: var(--background-alt-grey); }
     .gb-accueil__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .gb-accueil__item--publie { background: var(--background-contrast-success); color: var(--text-default-grey); box-shadow: inset 0 0 0 2px var(--border-plain-success); }
+    .gb-accueil__item--publie:hover { background: var(--background-contrast-success-hover); }
     .gb-accueil__item[aria-current="page"] { background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; box-shadow: inset 3px 0 0 var(--border-action-high-blue-france); }
+    .gb-accueil__item--publie[aria-current="page"] { background: var(--background-contrast-success); color: var(--text-default-success); box-shadow: inset 4px 0 0 var(--border-plain-success), inset 0 0 0 2px var(--border-plain-success); }
     .gb-accueil__item .gb-mini__g { flex: none; width: 1.75rem; height: .875rem; margin: 0; }
     .gb-accueil__ico { flex: none; width: 1.75rem; text-align: center; }
     .gb-accueil__scene { flex: 999 1 26rem; min-width: 0; box-sizing: border-box; padding: 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
@@ -11636,7 +11639,7 @@ function rendreDepart(bloc) {
     }
     var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [] };
     var items = (etat.reprises || []).filter(function (it) { return !it.vide; });
-    var rubriques = [{ cle: 'pages', titre: 'Mes pages', icone: 'layout-grid-line' }].concat(RANGS_DEPART.map(function (r) { return { cle: r.cle, titre: r.titre, glyphe: r.glyphe }; }),
+    var rubriques = [{ cle: 'pages', titre: 'Mes pages publiées', icone: 'layout-grid-line' }].concat(RANGS_DEPART.map(function (r) { return { cle: r.cle, titre: r.titre, glyphe: r.glyphe }; }),
         [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : []);
     if (!rubriques.some(function (r) { return r.cle === b.rubrique; })) {
         b.rubrique = 'pages';
@@ -11647,11 +11650,16 @@ function rendreDepart(bloc) {
             menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: 'Créer' }));
         }
         var on = b.rubrique === r.cle;
-        var it = creer('button', { classe: 'gb-accueil__item', id: 'dR-' + r.cle, attrs: { type: 'button', 'aria-current': on ? 'page' : null } }, [
+        var publiees = r.cle === 'pages' && etat.tableaux.some(function (t) { return pagesDuTableau(t.cle).length > 0; });
+        var it = creer('button', { classe: 'gb-accueil__item' + (publiees ? ' gb-accueil__item--publie' : ''), id: 'dR-' + r.cle, attrs: { type: 'button', 'aria-current': on ? 'page' : null } }, [
             r.icone ? creer('span', { classe: 'fr-icon-' + r.icone + ' gb-accueil__ico', attrs: { 'aria-hidden': 'true' } }) : glypheType(r.glyphe), creer('span', { texte: r.titre })]);
         it.addEventListener('click', function () {
             b.rubrique = r.cle;
             b.choix = null;
+            if (r.cle === 'pages') {
+                relayer(majPages().then(function () { redessinerParam('dR-pages'); }), 'Lecture des pages');
+                return;
+            }
             redessinerParam('dR-' + r.cle);
         });
         menu.appendChild(it);
