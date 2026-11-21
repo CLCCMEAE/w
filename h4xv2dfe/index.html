@@ -863,7 +863,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.8';
+var VERSION_WIDGET = '2.1.9';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11524,6 +11524,9 @@ function ouvrirConstructionAvec(t) {
     _sectionTuile = null;
     afficherVue('construction');
 }
+function dejaCree(nom) {
+    return etat.tableaux.some(function (t) { return normalizer(t.config.nom) === normalizer(nom); });
+}
 function rendreDepart(bloc) {
     var b = etat.brouillon;
     var tables = tablesUtilisateur();
@@ -11551,14 +11554,14 @@ function rendreDepart(bloc) {
     var rangs = creer('div', { classe: 'gb-rangs' });
     RANGS_DEPART.forEach(function (r) {
         var crees = charge ? cartesCreees(function (t) { return t.config.seul && t.config.tuiles[0] && r.types.indexOf(categorieTuile(t.config.tuiles[0])) !== -1; }, 'dC-' + r.cle + '-') : [];
-        var cartes = crees.concat(sugg[r.cle].map(function (t, k) {
+        var cartes = crees.concat(sugg[r.cle].filter(function (t) { return !dejaCree(t.titre); }).map(function (t, k) {
             var t2 = Object.assign(cloner(t), { taille: 'XL' });
             var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + r.cle + k + '-', 460) || miniApercu([t]);
             return carteSuggestion('dS-' + r.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); });
         }));
         rangs.appendChild(rangDepart(r.glyphe, r.titre, cartes, [carteZero('dZ-' + r.cle, 'Ajouter', function () { return ouvrirConstructionNeuve(r.cle); }, !aDesDonnees, 'Ajouter : ' + minuscule(r.titre))]));
     });
-    var sTdb = charge ? suggestionsDocument().slice(0, 3) : [];
+    var sTdb = charge ? suggestionsDocument().filter(function (x) { return !dejaCree(x.nom); }).slice(0, 3) : [];
     var creesTdb = charge ? cartesCreees(function (t) { return !t.config.seul; }, 'dC-tdb-') : [];
     rangs.appendChild(rangDepart('tdb', 'Un tableau de bord', creesTdb.concat(sTdb.map(function (x, k) {
         return carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); });
@@ -11736,6 +11739,7 @@ function enregistrerBrouillon() {
         }
         await majPages();
         if (nomElementPris(nom)) {
+            marquerInvalide('eNomElement', 'Un élément ou une page porte déjà ce nom. Changez le nom pour enregistrer.', true);
             return null;
         }
         var instantane = JSON.stringify(c.b);
