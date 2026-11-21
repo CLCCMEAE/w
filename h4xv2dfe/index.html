@@ -445,6 +445,10 @@
     .gb-radar-toile { fill: none; stroke: var(--border-default-grey); stroke-width: 1; }
     .gb-radar-aire { fill-opacity: .12; stroke-width: 2; stroke-linejoin: round; }
     .gb-legende { display: flex; flex-wrap: wrap; gap: .25rem .875rem; margin: 0 0 .375rem; padding: 0; list-style: none; font-size: .75rem; color: var(--text-default-grey); }
+    .gb-graphe-lat { display: flex; align-items: flex-start; gap: .75rem; min-width: 0; }
+    .gb-graphe-lat--droite { flex-direction: row-reverse; }
+    .gb-graphe-lat__zone { flex: 1 1 0; min-width: 0; }
+    .gb-legende--lat { flex: none; flex-direction: column; flex-wrap: nowrap; margin: 0; }
     .gb-legende li { display: inline-flex; align-items: center; gap: .375rem; min-width: 0; }
     .gb-cle { flex-shrink: 0; width: .625rem; height: .625rem; border-radius: 0; display: inline-block; }
     .gb-cle--ligne { width: .875rem; height: 2px; border-radius: 0; }
@@ -735,7 +739,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.5.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -4558,7 +4562,14 @@ function jeuCategories(t) {
     var m = t.mesure || { agg: 'count' };
     var g = grouperLignes(tid, idx, t.groupe);
     g.colId = t.groupe;
-    var cats = categoriesTriees(tid, g, m, t.tri || (t.type === 'donut' ? 'valeur' : 'naturel'), t.type === 'donut' ? (t.max || 6) : (t.max || 12));
+    var avecVides = !!t.catVides && t.type === 'bar' && genreCol(infoColonne(tid, t.groupe)) === 'choice';
+    if (avecVides) {
+        choixDe(infoColonne(tid, t.groupe)).forEach(function (c) { if (!g.par[c]) {
+            g.par[c] = [];
+            g.cles.push(c);
+        } });
+    }
+    var cats = categoriesTriees(tid, g, m, t.tri || (t.type === 'donut' ? 'valeur' : 'naturel'), t.type === 'donut' ? (t.max || 6) : (t.max || 12), avecVides);
     if (t._cats) {
         var connues = {};
         t._cats.forEach(function (c) { if (!c.autre) {
@@ -4976,9 +4987,25 @@ function legende(series, forme) {
     });
     return ul;
 }
+function legendeLaterale(zone, series, t, largeur, forme) {
+    var cote = t.legende === 'gauche' || t.legende === 'droite' ? t.legende : null;
+    if (!cote || series.length < 2 || largeur < 360) {
+        return { zone: zone, largeur: largeur, fait: false };
+    }
+    var lg = legende(series, forme);
+    var lw = Math.max(90, Math.min(190, Math.max.apply(null, series.map(function (x) { return String(x.lib).length; })) * 6.6 + 30));
+    lg.classList.add('gb-legende--lat');
+    lg.style.width = lw + 'px';
+    var interne = creer('div', { classe: 'gb-graphe-lat__zone' });
+    zone.appendChild(creer('div', { classe: 'gb-graphe-lat gb-graphe-lat--' + cote }, [lg, interne]));
+    return { zone: interne, largeur: largeur - lw - 12, fait: true };
+}
 function nombreSur(n, mot) { return nombreCompte(n) + ' ' + mot + (n < 2 ? '' : 's'); }
 function nombreCompte(n) { return typeof n === 'number' && isFinite(n) ? nfLocale({ maximumFractionDigits: 0 }).format(n) : String(n); }
 function dessinerBarres(zone, jeu, t, largeur, surClic) {
+    var lat = legendeLaterale(zone, jeu.series, t, largeur, 'barre');
+    zone = lat.zone;
+    largeur = lat.largeur;
     var horizontal = !!t.horizontal;
     var empile = !!t.empile && jeu.series.length > 1 && mesureAdditive(t.mesure);
     var nS = jeu.series.length, nC = jeu.cats.length;
@@ -5000,7 +5027,7 @@ function dessinerBarres(zone, jeu, t, largeur, surClic) {
     var ticks = graduations(vmin, vmax, horizontal ? Math.max(2, Math.floor(largeur / 110)) : 4, fmt.entier);
     var dMin = ticks[0], dMax = ticks[ticks.length - 1];
     var coulCats = couleursCategories(t, jeu);
-    var lg = t.legende === 'masquee' ? null : legende(jeu.series, 'barre');
+    var lg = t.legende === 'masquee' || lat.fait ? null : legende(jeu.series, 'barre');
     var lgBas = t.legende === 'bas' ? lg : null;
     if (lgBas) {
         lg = null;
@@ -5143,6 +5170,9 @@ function dessinerBarres(zone, jeu, t, largeur, surClic) {
     }
 }
 function dessinerLignes(zone, jeu, t, largeur, surClic) {
+    var lat = legendeLaterale(zone, jeu.series, t, largeur, 'ligne');
+    zone = lat.zone;
+    largeur = lat.largeur;
     var fmt = jeu.fmt;
     var nS = jeu.series.length, nC = jeu.cats.length;
     var vals = [];
@@ -5154,7 +5184,7 @@ function dessinerLignes(zone, jeu, t, largeur, surClic) {
     }
     var ticks = graduations(Math.min(0, Math.min.apply(null, vals.concat([0]))), Math.max.apply(null, vals.concat([0])), 4, fmt.entier);
     var dMin = ticks[0], dMax = ticks[ticks.length - 1];
-    var lg = t.legende === 'masquee' ? null : legende(jeu.series, 'ligne');
+    var lg = t.legende === 'masquee' || lat.fait ? null : legende(jeu.series, 'ligne');
     var lgBas = t.legende === 'bas' ? lg : null;
     if (lgBas) {
         lg = null;
@@ -6338,6 +6368,12 @@ function appliquerStyleGraphique(t, g) {
     else if (g.legende === 'bottom') {
         t.legende = 'bas';
     }
+    else if (g.legende === 'left') {
+        t.legende = 'gauche';
+    }
+    else if (g.legende === 'right') {
+        t.legende = 'droite';
+    }
     if (t.type !== 'gantt' && (!g.etiquettes || g.etiquettes === 'aucune')) {
         t.sansValeurs = true;
     }
@@ -6383,6 +6419,7 @@ function repriseGraphique(g, nom) {
         t.type = 'bar';
         t.groupe = g.regroupement;
         t.horizontal = g.type === 'barres_horizontales';
+        t.catVides = g.vides !== false;
     }
     if (g.serie && g.type !== 'camembert' && g.type !== 'anneau') {
         t.serie = g.serie;
@@ -6579,7 +6616,7 @@ function editeurPresentation(b, redessiner, maj, o) {
         bloc.push(caseOption('eeVals', 'Écrire les valeurs sur le graphique', !b.sansValeurs, function (on) { b.sansValeurs = !on; maj(); }));
     }
     if (o.legende !== false) {
-        bloc.push(groupe('Légende', champListe('eeLeg', [{ valeur: 'haut', libelle: 'Au-dessus du graphique' }, { valeur: 'bas', libelle: 'Sous le graphique' }, { valeur: 'masquee', libelle: 'Masquée' }], b.legende || 'haut', function (v) { b.legende = v === 'haut' ? null : v; maj(); }), 'Elle n\'apparaît qu\'avec plusieurs séries.'));
+        bloc.push(groupe('Légende', champListe('eeLeg', [{ valeur: 'haut', libelle: 'Au-dessus du graphique' }, { valeur: 'bas', libelle: 'Sous le graphique' }, { valeur: 'gauche', libelle: 'À gauche du graphique' }, { valeur: 'droite', libelle: 'À droite du graphique' }, { valeur: 'masquee', libelle: 'Masquée' }], b.legende || 'haut', function (v) { b.legende = v === 'haut' ? null : v; maj(); }), 'Elle n\'apparaît qu\'avec plusieurs séries.'));
     }
     return bloc;
 }
@@ -9871,6 +9908,10 @@ function formulaireBarres(form, b, redessiner, maj) {
     form.appendChild(section('Deuxième colonne', split));
     form.appendChild(section('Couleurs', editeurCouleurs(b, redessiner, maj, { choix: true, parValeur: !b.serie, colId: b.serie || b.groupe, toujours: !!b.serie, valeurs: function () { return valeursGroupe(b, b.serie || b.groupe); } })));
     form.appendChild(section('Valeurs et légende', editeurPresentation(b, redessiner, maj)));
+    var colG = b.groupe ? infoColonne(b.table, b.groupe) : null;
+    if (colG && genreCol(colG) === 'choice') {
+        form.appendChild(section('Valeurs sans ligne', [caseOption('eVides', 'Montrer les choix qui n\'ont aucune ligne', !!b.catVides, function (on) { b.catVides = on; maj(); }, 'Ils apparaissent avec une barre à 0.')]));
+    }
     form.appendChild(section('Affichage', [rangee([groupe('Sens', champListe('eSens', [{ valeur: 'v', libelle: 'Verticales' }, { valeur: 'h', libelle: 'Horizontales' }], b.horizontal ? 'h' : 'v', function (v) { b.horizontal = v === 'h'; maj(); })),
             choixTri(b, maj), choixNombre('eMax', 'Au plus', b, 'max', 12, 2, 40, maj, 'barres, puis « Autres »')])]));
     form.appendChild(sectionCopies(b, redessiner, maj));
