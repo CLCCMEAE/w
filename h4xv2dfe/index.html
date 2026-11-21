@@ -542,6 +542,36 @@
     .gb-editeur__apercu .gb-tuile__tete { display: none; }
     .gb-editeur { gap: .5rem; }
     .gb-acc__tete { padding-top: .375rem; padding-bottom: .375rem; }
+    .gb-departs { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .gb-depart { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1.25rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey);
+      color: var(--text-default-grey); cursor: pointer; text-align: left; }
+    .gb-depart:hover:not(:disabled), .gb-depart--choisi { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); }
+    .gb-depart:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .gb-depart:disabled { opacity: .5; cursor: not-allowed; }
+    .gb-depart .gb-mini__g { width: 5rem; height: 2.5rem; margin: 0; }
+    .gb-depart__titre { font-size: 1.125rem; font-weight: 700; }
+    .gb-constr { display: flex; flex-direction: column; gap: 1rem; }
+    .gb-constr__haut { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
+    .gb-constr__haut .fr-btn { margin: 0; }
+    .gb-constr__nom { width: min(22rem, 100%); }
+    .gb-constr__nom .fr-label { font-size: .8125rem; }
+    .gb-constr__nom .fr-input { margin-top: .25rem; }
+    .gb-constr__corps { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .gb-constr__etapes { flex: 0 0 min(30rem, 45%); min-width: 0; }
+    .gb-constr__resultat { flex: 1 1 0; min-width: 0; position: sticky; top: 0; display: flex; flex-direction: column; gap: .5rem; }
+    @media (max-width: 52em) { .gb-constr__corps { flex-direction: column; } .gb-constr__etapes { flex-basis: auto; width: 100%; } .gb-constr__resultat { position: static; } }
+    .gb-constr .gb-acc { gap: 0; margin: 0; }
+    .gb-constr .gb-acc__item { position: relative; border: 0; background: transparent; padding-bottom: .5rem; }
+    .gb-constr .gb-acc__item:not(:last-child)::before { content: ''; position: absolute; left: calc(.75rem + .75rem - 1px); top: 2.25rem; bottom: 0; width: 2px; background: var(--border-default-blue-france); }
+    .gb-constr .gb-acc__num { background: var(--background-default-grey); color: var(--text-action-high-blue-france); border: 2px solid var(--border-action-high-blue-france); }
+    .gb-constr .gb-acc__item--ouvert .gb-acc__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .gb-constr .gb-acc__contenu { padding-left: 2.875rem; }
+    .gb-etat { display: inline-flex; align-items: center; padding: .125rem .5rem; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      background: var(--background-contrast-success); color: var(--text-default-success); }
+    .gb-etat--modifie { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+    .gb-danger { color: var(--text-default-error) !important; }
+    .gb-edition__nom { width: min(20rem, 100%); }
+    .gb-edition__nom .fr-input { margin: 0; }
     .gb-acc { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .375rem; }
     .gb-acc__item { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .gb-acc__item--ouvert { border-color: var(--border-action-high-blue-france); }
@@ -794,7 +824,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.0';
+var VERSION_WIDGET = '2.0.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1618,7 +1648,7 @@ async function enregistrerPage() {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier cette page.' : 'La page n\'a pas été enregistrée. Réessayez.', e);
     }
 }
-async function creerPageConsultation(nom, valeur, premier) {
+async function creerPageConsultation(nom, valeur, premier, silencieux) {
     var t = trouverTableau(premier);
     var tid = t && t.config.table && etat.meta.tables[t.config.table] ? t.config.table : etat.biblio;
     var ref = etat.meta.tables[tid] ? etat.meta.tables[tid].ref : null;
@@ -1649,10 +1679,14 @@ async function creerPageConsultation(nom, valeur, premier) {
             ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: t ? t.config.nom || '' : '', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
         await lireTableaux();
         await majPages();
-        etat.editionPage = null;
         masquerLoader();
+        if (silencieux) {
+            return true;
+        }
+        etat.editionPage = null;
         afficherSucces('La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.');
         redessinerParam('#aPageConsultation');
+        return true;
     }
     catch (e) {
         masquerLoader();
@@ -1667,6 +1701,7 @@ async function creerPageConsultation(nom, valeur, premier) {
             await agir(annuler).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Création de page non annulée', eA); });
         }
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
+        return false;
     }
 }
 async function supprimerPageConsultation(badge) {
@@ -8215,7 +8250,7 @@ function ongletsTableaux() {
         activer.push(function () { return allerAuTableau(t.cle); });
     });
     if (etat.peutParametrer) {
-        onglets.push(creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet', id: 'gOngletNouveau', texte: 'Nouveau tableau de bord',
+        onglets.push(creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet', id: 'gOngletNouveau', texte: 'Nouveau',
             attrs: { role: 'tab', 'aria-selected': creation ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: creation ? '0' : '-1' } }));
         activer.push(async function () {
             if (enCreation()) {
@@ -8651,6 +8686,9 @@ function afficherVue(vue, garderFocus) {
     else if (vue === 'tableau') {
         rendreTableau(zone);
     }
+    else if (vue === 'construction') {
+        rendreConstruction(zone);
+    }
     else if (vue === 'echec') {
         rendreEchec(zone);
     }
@@ -8939,14 +8977,20 @@ function heureCourte(d) { var p = partiesDansFuseau(Math.floor(d.getTime() / 100
 function rendreTableau(zone) {
     var cfg = etat.config;
     initialiserFiltres(cfg);
+    var seulAdmin = !!cfg.seul && etat.peutParametrer && !etat.page;
+    var pagesT = seulAdmin ? pagesDuTableau(etat.cleConfig) : [];
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [
+        seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Pas encore publié' }) : null,
         etat.majA ? creer('span', { classe: 'gb-stamp fr-icon-time-line', id: 'gStamp', texte: 'Mis à jour à ' + heureCourte(etat.majA) }) : null
-    ], [boutonPleinEcran()]);
+    ], seulAdmin ? [bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
+        bouton('Ajouter un élément', 'secondaire', 'add-line', ajouterElementAuTableau, { petit: true, id: 'gAjouterSeul' }),
+        bouton('Ajouter à un tableau de bord', 'secondaire', 'layout-grid-line', ouvrirAjoutATableau, { petit: true, id: 'gAjoutTableau' }),
+        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' }), boutonPleinEcran()] : [boutonPleinEcran()]);
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
     }
-    if (etat.peutParametrer) {
+    if (etat.peutParametrer && !cfg.seul) {
         volet.appendChild(ajoutVolet('Ajouter une tuile', function () {
             if (!etat.edition) {
                 commencerEdition();
@@ -8962,7 +9006,7 @@ function rendreTableau(zone) {
     if (bf) {
         volet.appendChild(bf);
     }
-    if (etat.peutParametrer && !etat.edition) {
+    if (etat.peutParametrer && !etat.edition && !cfg.seul) {
         volet.appendChild(creer('div', { classe: 'gb-volet__bloc' }, [
             bouton('Modifier le tableau de bord', 'secondaire', 'edit-line', commencerEdition, { petit: true, id: 'gEditer' }),
             bouton('Paramétrages de ce tableau de bord', 'secondaire', 'settings-5-line', ouvrirParametrage, { petit: true, id: 'gParametres' })
@@ -9029,7 +9073,7 @@ function poigneeVolet(volet, compte) {
 function grilleTuiles(cfg, ctx, prefixe) {
     var grille = creer('div', { classe: 'gb-grille' + (ctx ? ' gb-grille--edition' : ''), attrs: { 'aria-label': 'Tuiles' } });
     (cfg.tuiles || []).forEach(function (t, i) {
-        grille.appendChild(rendreTuile(t, { prefixe: prefixe || '', barreEdition: ctx ? barreEditionTuile(ctx, t, i) : null }));
+        grille.appendChild(rendreTuile(cfg.seul ? Object.assign({}, t, { taille: 'XL' }) : t, { prefixe: prefixe || '', barreEdition: ctx ? barreEditionTuile(ctx, t, i) : null }));
     });
     if (ctx) {
         var aj = creer('button', { classe: 'gb-ajout fr-icon-add-line', id: (prefixe || '') + 'gAjoutTuile' }, [creer('span', { texte: 'Ajouter une tuile' })]);
@@ -9376,13 +9420,27 @@ function barreEditionTableau() {
     var st = etat.statutEdition || { texte: '' };
     var annul = bouton('Annuler le dernier changement', 'secondaire', 'arrow-go-back-line', annulerChangement, { petit: true, id: 'gAnnuler', desactive: !etat.annuler.length });
     return creer('div', { classe: 'gb-edition', attrs: { role: 'region', 'aria-label': 'Mode modification' } }, [
-        creer('h3', { classe: 'gb-edition__titre', id: 'gEditionTitre', texte: 'Modification du tableau de bord', attrs: { tabindex: '-1' } }),
+        creer('h3', { classe: 'fr-sr-only', id: 'gEditionTitre', texte: 'Modification du tableau de bord', attrs: { tabindex: '-1' } }),
+        champNomTableau(),
         creer('p', { classe: 'w-statut' + (st.genre === 'ok' ? ' w-statut--ok' : (st.genre === 'erreur' ? ' w-statut--erreur' : '')), id: 'gStatut', attrs: { role: 'status' }, texte: st.texte }),
         creer('span', { classe: 'w-pousse' }),
         bouton('Ajouter une tuile', 'secondaire', 'add-line', function () { ouvrirChoixType(contexteTableau()); }, { petit: true, id: 'gAjouter' }),
         annul,
-        bouton('Terminer', null, 'check-line', function () { return terminerEdition(); }, { petit: true, id: 'gTerminer' })
+        pagesDuTableau(etat.cleConfig).length ? bouton('Terminer', null, 'check-line', function () { return terminerEdition(); }, { petit: true, id: 'gTerminer' })
+            : bouton('Publier', null, 'send-plane-line', publierTableau, { petit: true, id: 'gPublier' })
     ]);
+}
+function champNomTableau() {
+    var c = champSaisie('gNomTableau', etat.config.nom || '', function (v) {
+        var n = v.trim();
+        if (!n || etat.tableaux.some(function (t) { return t.cle !== etat.cleConfig && normalizer(t.config.nom) === normalizer(n); })) {
+            return;
+        }
+        etat.config.nom = n;
+        planifierSauvegardeTableau('Nom changé');
+    });
+    c.setAttribute('aria-label', 'Nom du tableau de bord');
+    return creer('div', { classe: 'gb-edition__nom' }, [c]);
 }
 function annulerChangement() {
     if (!etat.annuler.length) {
@@ -9813,13 +9871,14 @@ function resumeDepuisChamps(zone) {
     });
     return morceaux.map(function (x) { return x.replace(/\s*\([^)]*\)\s*$/, ''); }).filter(function (x, k, a) { return x && a.indexOf(x) === k; }).slice(0, 4).join(' · ');
 }
-function construireFormulaire(form, b, redessiner, majApercu) {
+function construireFormulaire(form, b, redessiner, majApercu, o) {
+    o = o || {};
     var tid = b.table;
     var maj = function () { majApercu(); };
     var contenus = {};
     GROUPES_TUILE.forEach(function (g) { contenus[g.cle] = creer('div', { classe: 'gb-acc__contenu' }); });
     var sorte = creer('div', { classe: 'gb-sortes', attrs: { role: 'radiogroup', 'aria-label': 'Sorte de tuile' } });
-    TYPES_TUILES.forEach(function (ty) {
+    TYPES_TUILES.filter(function (ty) { return !o.sansTexte || ty.code !== 'text'; }).forEach(function (ty) {
         var r = creer('input', { id: 'eSorte-' + ty.code, attrs: { type: 'radio', name: 'eSorte', value: ty.code }, coche: b.type === ty.code });
         r.addEventListener('change', function () {
             var neuve = nouvelleTuile(ty.code, ty.code === 'text' ? null : (b.table || tablesUtilisateur()[0]));
@@ -9889,10 +9948,14 @@ function construireFormulaire(form, b, redessiner, majApercu) {
             });
         }
         vp.insertBefore(blocFond, vp.firstChild);
-        vp.insertBefore(blocTaille, vp.firstChild);
+        if (!o.sansTaille) {
+            vp.insertBefore(blocTaille, vp.firstChild);
+        }
         vp.insertBefore(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); })), vp.firstChild);
     }
-    form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
+    if (!o.sansTitre) {
+        form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
+    }
     var liste = creer('ol', { classe: 'gb-acc' });
     var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' || (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
     visibles.forEach(function (g, k) {
@@ -9910,7 +9973,7 @@ function construireFormulaire(form, b, redessiner, majApercu) {
             }
         }
         var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
-            presentation: function () { return 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
+            presentation: function () { return o.sansTaille ? (b.fond ? 'Fond ' + minuscule(nomFond(b.fond)) : 'Par défaut') : 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
         resume = resume ? resume() : resumeDepuisChamps(c);
         var ouvert = _sectionTuile === g.cle;
         var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
@@ -11132,8 +11195,9 @@ function rendreAssistant(zone) {
     var perso = b.mode === 'parametrage';
     var entete = perso
         ? enteteParametrage(etat.config ? etat.config.nom : '', 'Retour au tableau de bord', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation('Nouveau tableau de bord', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
-    var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(b.etape, noms, function (r) {
+        : enteteCreation('Nouveau', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
+    var depart = !perso && nom === 'Point de départ';
+    var bloc = creer('div', { classe: 'w-assistant' }, [entete, depart ? null : stepper(b.etape, noms, function (r) {
             if (r > b.etapeMax + (perso ? 0 : 1)) {
                 return null;
             }
@@ -11259,27 +11323,22 @@ function raisonNom(b) {
     var doublon = etat.tableaux.some(function (t) { return t.cle !== (b.mode === 'parametrage' ? etat.cleConfig : null) && normalizer(t.config.nom) === normalizer(b.cfg.nom); });
     return doublon ? 'Un autre tableau de bord de ce document porte déjà ce nom.' : null;
 }
+var CARTES_DEPART = [{ id: 'dChiffre', glyphe: 'kpi', titre: 'Un chiffre', type: 'kpi' }, { id: 'dGraphique', glyphe: 'bar', titre: 'Un graphique', type: 'bar' },
+    { id: 'dCroise', glyphe: 'croise', titre: 'Un tableau croisé', type: 'croise' }, { id: 'dPlanning', glyphe: 'gantt', titre: 'Un planning', type: 'gantt' }];
 function rendreDepart(bloc) {
     var b = etat.brouillon;
     var tables = tablesUtilisateur();
     var aDesDonnees = tables.some(function (t) { return colonnesUtiles(t).length > 0; });
-    var option = function (id, icone, titre, texte, libelle, action, principal, choisie) {
-        var bt = bouton(libelle, principal ? null : 'secondaire', 'arrow-right-line', action, { id: id + 'Btn', iconeDroite: true });
-        return creer('section', { classe: 'w-tuile' + (choisie ? ' w-tuile--choisie' : ''), attrs: { 'aria-labelledby': id } }, [
-            creer('span', { classe: 'fr-icon-' + icone + ' fr-icon--lg w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-            creer('h3', { classe: 'fr-h5 fr-m-0', id: id, texte: titre }), creer('p', { classe: 'w-texte w-mention', texte: texte }), creer('div', { classe: 'w-tuile__bas' }, [bt])
-        ]);
+    var carte = function (id, glyphe, titre, action, desactive, choisie) {
+        var bt = creer('button', { classe: 'gb-depart' + (choisie ? ' gb-depart--choisi' : ''), id: id, attrs: { type: 'button' } }, [glypheType(glyphe), creer('span', { classe: 'gb-depart__titre', texte: titre })]);
+        bt.disabled = !!desactive;
+        bt.addEventListener('click', function () { relayer(action(), titre); });
+        return bt;
     };
-    var tDonnees = option('dDonnees', 'database-line', 'J\'ai déjà des données', aDesDonnees
-        ? 'Des tableaux de bord proposés d\'après vos listes.'
-        : 'Ce document n\'a pas encore de liste de données : ce choix sera proposé dès qu\'il en aura une.', 'Partir de mes données', function () { return choisirDepart('donnees'); }, aDesDonnees, b.choix === 'donnees');
-    if (!aDesDonnees) {
-        tDonnees.querySelector('button').disabled = true;
-    }
-    var cartes = [tDonnees,
-        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Six modèles : le widget crée les listes et le tableau de bord.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
+    var cartes = CARTES_DEPART.map(function (c) { return carte(c.id, c.glyphe, c.titre, function () { return ouvrirConstructionNeuve(c.type); }, !aDesDonnees); });
+    cartes.push(carte('dTableau', 'tdb', 'Un tableau de bord', function () { return choisirDepart('tdb'); }, false, b.choix === 'tdb'));
     if (etat.reprisesPresentes) {
-        cartes.push(option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'Reprendre mes anciens réglages', 'Vos tableaux WuitBoard, WuitGraphiques et WuitPivot, sans toucher aux originaux.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
+        cartes.push(carte('dReprise', 'reprise', 'Reprendre mes anciens réglages', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
     }
     else if (etat.reprisesPresentes === undefined) {
         etat.reprisesPresentes = false;
@@ -11292,21 +11351,396 @@ function rendreDepart(bloc) {
             }
         }), 'Recherche des réglages des autres widgets');
     }
-    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, cartes));
-    if (b.choix === 'donnees') {
-        bloc.appendChild(blocSuggestions());
-    }
-    if (b.choix === 'modele') {
+    bloc.appendChild(creer('h2', { classe: 'fr-h4 fr-mb-2w', id: 'titreVue', texte: 'Que voulez-vous créer ?', attrs: { tabindex: '-1' } }));
+    bloc.appendChild(creer('div', { classe: 'gb-departs' }, cartes));
+    if (b.choix === 'tdb') {
+        if (aDesDonnees) {
+            bloc.appendChild(blocSuggestions());
+        }
         bloc.appendChild(blocModeles());
     }
     if (b.choix === 'reprise') {
         bloc.appendChild(blocReprises());
     }
 }
+async function chargerListesDocument() {
+    afficherLoader('Analyse de vos listes…');
+    try {
+        await chargerMeta();
+        var tids = tablesUtilisateur();
+        var refs = [];
+        tids.forEach(function (t) { colonnesDe(t).forEach(function (c) { var ci = tableCibleRef(c.type); if (ci && tids.indexOf(ci) === -1 && refs.indexOf(ci) === -1) {
+            refs.push(ci);
+        } }); });
+        await chargerDonneesTables(tids.concat(refs));
+    }
+    finally {
+        masquerLoader();
+    }
+}
+function meilleureListe() {
+    var sug = suggestionsDocument();
+    if (sug.length) {
+        return sug[0].table;
+    }
+    var tids = tablesUtilisateur();
+    return tids.filter(function (t) { return nbLignes(t) > 0; })[0] || tids[0] || null;
+}
+async function ouvrirConstructionNeuve(type) {
+    try {
+        await chargerListesDocument();
+    }
+    catch (e) {
+        afficherErreur('Vos listes n\'ont pas pu être lues.', e);
+        return;
+    }
+    var tid = meilleureListe();
+    var t = nouvelleTuile(type === 'croise' ? 'table' : type, tid);
+    if (type === 'croise') {
+        var cats = colonnesUtiles(tid).filter(estCategorie);
+        t.tableMode = 'pivot';
+        t.lignesPivot = meilleureCategorie(tid, 2, 30) || (cats[0] || {}).colId;
+        t.colonnesPivot = meilleureCategorie(tid, 2, 30, [t.lignesPivot]) || (cats.filter(function (c) { return c.colId !== t.lignesPivot; })[0] || {}).colId || null;
+        t.mesure = { agg: 'count' };
+        t.titre = libCol(tid, t.lignesPivot) + (t.colonnesPivot ? ' par ' + minuscule(libCol(tid, t.colonnesPivot)) : '');
+    }
+    t.taille = 'XL';
+    t.titre = nomLibre(t.titre);
+    etat.construction = { b: t, cle: null, initial: JSON.stringify(t) };
+    _sectionTuile = null;
+    afficherVue('construction');
+}
+function ouvrirConstructionExistante() {
+    if (!etat.config || !etat.config.tuiles.length) {
+        return;
+    }
+    var t = cloner(etat.config.tuiles[0]);
+    t.titre = etat.config.nom;
+    etat.construction = { b: t, cle: etat.cleConfig, initial: JSON.stringify(t) };
+    _sectionTuile = null;
+    afficherVue('construction');
+}
+function constructionModifiee() { var c = etat.construction; return !!c && JSON.stringify(c.b) !== c.initial; }
+function rendreConstruction(zone) {
+    var c = etat.construction;
+    var b = c.b;
+    var publie = !!c.cle;
+    var modifie = constructionModifiee();
+    var nom = champSaisie('eNomElement', b.titre || '', function (v) { b.titre = v; majEtatConstruction(); majApercu(); });
+    nom.setAttribute('aria-label', 'Nom de la page');
+    var actions = [bouton('Ajouter d\'autres tuiles', 'secondaire', 'add-line', ajouterAutresTuiles, { id: 'eAutres' }),
+        publie ? bouton('Publier les modifications', null, 'send-plane-line', publierModifications, { id: 'ePublier', desactive: !modifie })
+            : bouton('Publier', null, 'send-plane-line', publierElement, { id: 'ePublier' })];
+    if (publie) {
+        actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { id: 'eSupprimer', classe: 'gb-danger' }));
+    }
+    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
+        creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: publie ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
+        creer('div', { classe: 'gb-constr__nom' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }), nom]),
+        publie ? creer('span', { classe: 'gb-etat' + (modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: modifie ? 'Modifications non publiées' : 'Publié' }) : null,
+        creer('span', { classe: 'w-pousse' })].concat(actions));
+    var form = creer('div', { classe: 'gb-constr__etapes' });
+    var apercu = creer('div', { classe: 'gb-apercu-fond' });
+    var compte = creer('div', { classe: 'gb-compte-lignes', id: 'eCompte', attrs: { 'aria-live': 'polite' } });
+    var majApercu = function () {
+        oublierApercu(apercu);
+        vider(apercu);
+        if (b.table && !etat.donnees[b.table] && !etat.illisibles[b.table]) {
+            apercu.appendChild(etatVide('Lecture de la liste…', ''));
+            relayer(assurerDonnees(b.table).then(majApercu), 'Données de l\'aperçu');
+            return;
+        }
+        var t2 = cloner(b);
+        t2.taille = 'XL';
+        apercu.appendChild(rendreTuile(t2, { prefixe: 'ap-', sansOutils: true }));
+        resumeLignes(compte, b);
+        majEtatConstruction();
+    };
+    var redessiner = function (focusId) {
+        var actif = focusId || (document.activeElement && document.activeElement.id);
+        afficherVue('construction', true);
+        var f = actif ? document.getElementById(actif) : null;
+        if (f) {
+            f.focus();
+        }
+    };
+    construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true });
+    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, creer('div', { classe: 'gb-constr__resultat' }, [apercu, compte])])]));
+    majApercu();
+}
+function majEtatConstruction() {
+    var c = etat.construction;
+    if (!c || !c.cle) {
+        return;
+    }
+    var m = constructionModifiee();
+    var e = document.getElementById('eEtat');
+    if (e) {
+        e.textContent = m ? 'Modifications non publiées' : 'Publié';
+        e.classList.toggle('gb-etat--modifie', m);
+    }
+    var p = document.getElementById('ePublier');
+    if (p) {
+        p.disabled = !m;
+    }
+}
+async function quitterConstruction() {
+    var c = etat.construction;
+    if (constructionModifiee() && !(await confirmerAction(c.cle ? 'Abandonner les modifications ?' : 'Abandonner cet élément ?', '', 'Abandonner'))) {
+        return;
+    }
+    etat.construction = null;
+    if (c.cle) {
+        await allerAuTableau(c.cle);
+    }
+    else {
+        demarrerCreation();
+    }
+}
+function nomElementValide() {
+    var b = etat.construction.b;
+    var nom = String(b.titre || '').trim();
+    if (!nom) {
+        marquerInvalide('eNomElement', 'Donnez un nom.');
+        return null;
+    }
+    var err = validerTuile(b);
+    if (err) {
+        signalerSaisie(err);
+        return null;
+    }
+    return nom;
+}
+function valeurPageAuto(cle, cfg) {
+    var lec = {};
+    lec[cle] = lecteursParDefaut(cfg);
+    return JSON.stringify({ consultation: true, tableaux: [cle], titre: '', table: '', conditions: [], lecteurs: lecteursValides(lec) });
+}
+async function publierElement() {
+    var nom = nomElementValide();
+    if (!nom) {
+        return;
+    }
+    await majPages();
+    if ((etat.nomsVues || []).indexOf(nom) !== -1 || etat.tableaux.some(function (t) { return normalizer(t.config.nom) === normalizer(nom); })) {
+        marquerInvalide('eNomElement', 'Une page porte déjà ce nom dans le document.');
+        return;
+    }
+    var t = cloner(etat.construction.b);
+    t.titre = nom;
+    t.taille = 'XL';
+    var cfg = { nom: nom, description: '', table: t.table, periode: null, filtres: [], tuiles: [t], seul: true };
+    afficherLoader('Publication…');
+    var cle = null;
+    try {
+        await assurerBibliotheque();
+        await lireTableaux();
+        await determinerDroits();
+        cle = nouvelleCleConfig();
+        await ecrireConfig(cfg, cle, null);
+        await lireTableaux();
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de publier.' : 'La publication n\'a pas abouti. Réessayez.', e);
+        return;
+    }
+    var ok = await creerPageConsultation(nom, valeurPageAuto(cle, cfg), cle, true);
+    etat.construction = null;
+    etat.brouillon = null;
+    etat.filtres = null;
+    etat.edition = false;
+    memoriserTableau(cle);
+    await chargerTout();
+    if (ok) {
+        afficherSucces('Publié sur la page « ' + nom + ' » de ce document.');
+    }
+}
+async function publierModifications() {
+    var c = etat.construction;
+    var nom = nomElementValide();
+    var t = nom ? trouverTableau(c.cle) : null;
+    if (!t) {
+        return;
+    }
+    var cfg = cloner(t.config);
+    var tu = cloner(c.b);
+    tu.titre = nom;
+    tu.taille = 'XL';
+    cfg.tuiles = [tu];
+    cfg.nom = nom;
+    cfg.table = tu.table;
+    afficherLoader('Publication des modifications…');
+    try {
+        await ecrireConfig(cfg, c.cle, t.ligne);
+        await lireTableaux();
+        c.initial = JSON.stringify(c.b);
+        masquerLoader();
+        afficherSucces('Modifications publiées.');
+        afficherVue('construction', true);
+        remettreFocus('#eRetour');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de publier.' : 'Les modifications n\'ont pas été publiées. Réessayez.', e);
+    }
+}
+async function supprimerElement() {
+    var cle = etat.construction ? etat.construction.cle : etat.cleConfig;
+    var t = trouverTableau(cle);
+    if (!t) {
+        return;
+    }
+    var nom = t.config.nom || '';
+    await majPages();
+    var badges = pagesDuTableau(cle).filter(function (x) { return etat.copies[x].tableaux.length === 1; });
+    if (!(await confirmerAction('Supprimer « ' + nom + ' »' + (badges.length ? ' et sa page' : '') + ' ?', 'Vos listes ne sont pas touchées.', 'Supprimer'))) {
+        return;
+    }
+    afficherLoader('Suppression…');
+    try {
+        var actions = [];
+        if (badges.length) {
+            var d = await lireTable('_grist_Views_section');
+            badges.forEach(function (x) {
+                var v = vueDuBadge(d, x);
+                if (v) {
+                    actions.push(['RemoveRecord', '_grist_Views', v]);
+                }
+                actions.push(['RemoveRecord', etat.biblio, etat.copies[x].ligne]);
+            });
+        }
+        actions.push(['RemoveRecord', etat.biblio, t.ligne]);
+        await agir(actions);
+        etat.construction = null;
+        etat.config = null;
+        etat.biblioLigne = null;
+        etat.tableauSession = null;
+        etat.tableauMemorise = null;
+        ecrireStockage('', null);
+        await chargerTout();
+        masquerLoader();
+        afficherSucces('« ' + nom + ' » supprimé.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer.' : 'La suppression n\'a pas abouti. Réessayez.', e);
+    }
+}
+async function ajouterAutresTuiles() {
+    var c = etat.construction;
+    var nom = nomElementValide();
+    if (!nom) {
+        return;
+    }
+    var tu = cloner(c.b);
+    tu.titre = nom;
+    tu.taille = 'L';
+    afficherLoader('Passage en tableau de bord…');
+    try {
+        await assurerBibliotheque();
+        await lireTableaux();
+        await determinerDroits();
+        var cle = c.cle, t = cle ? trouverTableau(cle) : null;
+        var cfg = t ? cloner(t.config) : { nom: nomLibre(nom), description: '', table: tu.table, periode: null, filtres: [] };
+        cfg.tuiles = [tu];
+        delete cfg.seul;
+        if (!cle) {
+            cle = nouvelleCleConfig();
+        }
+        await ecrireConfig(cfg, cle, t ? t.ligne : null);
+        etat.construction = null;
+        etat.brouillon = null;
+        etat.filtres = null;
+        etat.edition = false;
+        memoriserTableau(cle);
+        await chargerTout();
+        masquerLoader();
+        commencerEdition();
+        ouvrirChoixType(contexteTableau());
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer un tableau de bord.' : 'Le passage en tableau de bord n\'a pas abouti. Réessayez.', e);
+    }
+}
+async function ajouterElementAuTableau() {
+    etat.config.seul = false;
+    delete etat.config.seul;
+    etat.config.tuiles.forEach(function (t) { t.taille = 'L'; });
+    try {
+        await ecrireConfig(etat.config, etat.cleConfig, etat.biblioLigne);
+    }
+    catch (e) {
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de modifier.' : 'Le changement n\'a pas pu être enregistré.', e);
+        return;
+    }
+    commencerEdition();
+    ouvrirChoixType(contexteTableau());
+}
+function ouvrirAjoutATableau() {
+    var cibles = etat.tableaux.filter(function (t) { return t.cle !== etat.cleConfig && !t.config.seul; });
+    var choix = cibles.length ? cibles[0].cle : '';
+    var groupeR = creer('div', { classe: 'fr-fieldset', attrs: { role: 'radiogroup', 'aria-label': 'Tableau de bord' } });
+    cibles.forEach(function (t, k) {
+        var r = creer('input', { id: 'eCible' + k, attrs: { type: 'radio', name: 'eCible', value: t.cle }, coche: k === 0 });
+        r.addEventListener('change', function () { choix = t.cle; });
+        groupeR.appendChild(creer('div', { classe: 'fr-radio-group' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': 'eCible' + k } }, [t.config.nom || 'Tableau de bord sans nom', creer('span', { classe: 'fr-hint-text', texte: nombreSur(t.config.tuiles.length, 'tuile') })])]));
+    });
+    if (!cibles.length) {
+        groupeR.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun tableau de bord dans ce document.' }));
+    }
+    ouvrirModale({ titre: 'Ajouter à un tableau de bord', etroite: true, corps: [groupeR],
+        pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerModale), bouton('Ajouter', null, 'add-line', async function () {
+                var t = trouverTableau(choix);
+                if (!t) {
+                    return;
+                }
+                var cfg = cloner(t.config);
+                var tu = cloner(etat.config.tuiles[0]);
+                tu.id = idTuile();
+                tu.taille = 'L';
+                cfg.tuiles.push(tu);
+                fermerModale();
+                afficherLoader('Ajout…');
+                try {
+                    await ecrireConfig(cfg, t.cle, t.ligne);
+                    await lireTableaux();
+                    masquerLoader();
+                    await allerAuTableau(t.cle);
+                    afficherSucces('Ajouté à « ' + (cfg.nom || '') + ' ».');
+                }
+                catch (e) {
+                    masquerLoader();
+                    afficherErreur('L\'ajout n\'a pas abouti. Réessayez.', e);
+                }
+            }, { id: 'eAjouterCible', desactive: !cibles.length })] });
+}
+async function publierTableau() {
+    var cfg = etat.config;
+    var nom = String(cfg.nom || '').trim();
+    await majPages();
+    if ((etat.nomsVues || []).indexOf(nom) !== -1) {
+        signalerSaisie('Une page porte déjà ce nom dans le document : changez le nom du tableau de bord.');
+        return;
+    }
+    if (etat.minuterieSauvegarde) {
+        clearTimeout(etat.minuterieSauvegarde);
+        etat.minuterieSauvegarde = null;
+        await sauverTableau();
+    }
+    var ok = await creerPageConsultation(nom, valeurPageAuto(etat.cleConfig, cfg), etat.cleConfig, true);
+    if (ok) {
+        await majPages();
+        etat.edition = false;
+        afficherVue('tableau', true);
+        afficherSucces('Publié sur la page « ' + nom + ' » de ce document.');
+    }
+}
 async function choisirDepart(choix) {
     var b = etat.brouillon;
     b.choix = choix;
-    if (choix === 'donnees') {
+    if (choix === 'donnees' || choix === 'tdb') {
         afficherLoader('Analyse de vos listes…');
         try {
             await chargerMeta();
@@ -11343,7 +11777,7 @@ async function choisirDepart(choix) {
         }
     }
     afficherVue('assistant', true);
-    var t = document.getElementById(choix === 'donnees' ? 'sTitre' : (choix === 'reprise' ? 'rTitre' : 'mTitre'));
+    var t = document.getElementById(choix === 'reprise' ? 'rTitre' : 'sTitre') || document.getElementById('mTitre');
     if (t) {
         t.focus();
     }
@@ -11362,6 +11796,11 @@ var GLYPHES = {
     histogram: [['rect', { x: 0, y: 21, width: 9, height: 7 }], ['rect', { x: 10, y: 13, width: 9, height: 15 }], ['rect', { x: 20, y: 3, width: 9, height: 25 }], ['rect', { x: 30, y: 8, width: 9, height: 20 }], ['rect', { x: 40, y: 17, width: 9, height: 11 }], ['rect', { x: 50, y: 23, width: 9, height: 5 }]],
     funnel: [['rect', { x: 2, y: 2, width: 56, height: 5 }], ['rect', { x: 9, y: 9, width: 42, height: 5, o: .8 }], ['rect', { x: 16, y: 16, width: 28, height: 5, o: .6 }], ['rect', { x: 23, y: 23, width: 14, height: 5, o: .45 }]],
     heatmap: [],
+    croise: [['rect', { x: 0, y: 2, width: 60, height: 5 }], ['rect', { x: 0, y: 10, width: 13, height: 5, o: .5 }], ['rect', { x: 16, y: 10, width: 13, height: 5, o: .25 }], ['rect', { x: 32, y: 10, width: 13, height: 5, o: .7 }], ['rect', { x: 48, y: 10, width: 12, height: 5, o: .4 }],
+        ['rect', { x: 0, y: 17, width: 13, height: 5, o: .5 }], ['rect', { x: 16, y: 17, width: 13, height: 5, o: .8 }], ['rect', { x: 32, y: 17, width: 13, height: 5, o: .3 }], ['rect', { x: 48, y: 17, width: 12, height: 5, o: .6 }],
+        ['rect', { x: 0, y: 24, width: 13, height: 5, o: .5 }], ['rect', { x: 16, y: 24, width: 13, height: 5, o: .4 }], ['rect', { x: 32, y: 24, width: 13, height: 5, o: .9 }], ['rect', { x: 48, y: 24, width: 12, height: 5, o: .2 }]],
+    tdb: [['rect', { x: 0, y: 0, width: 18, height: 12, o: .5 }], ['rect', { x: 21, y: 0, width: 18, height: 12, o: .5 }], ['rect', { x: 42, y: 0, width: 18, height: 12, o: .5 }], ['rect', { x: 0, y: 15, width: 29, height: 15 }], ['rect', { x: 32, y: 15, width: 28, height: 15, o: .75 }]],
+    reprise: [['path', { d: 'M10 15a20 12 0 0 1 38-5', fill: 'none', 'stroke-width': 3 }], ['path', { d: 'M50 15a20 12 0 0 1-38 5', fill: 'none', 'stroke-width': 3 }], ['path', { d: 'M46 3l3 8-8 1z' }], ['path', { d: 'M14 27l-3-8 8-1z' }]],
     gantt: [['rect', { x: 0, y: 3, width: 22, height: 5 }], ['rect', { x: 14, y: 12, width: 28, height: 5, o: .7 }], ['rect', { x: 34, y: 21, width: 24, height: 5, o: .5 }], ['line', { x1: 38, y1: 0, x2: 38, y2: 30, 'stroke-width': 1, o: .6 }]],
     progress: [['rect', { x: 0, y: 3, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 3, width: 48, height: 5 }], ['rect', { x: 0, y: 13, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 13, width: 28, height: 5 }],
         ['rect', { x: 0, y: 23, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 23, width: 40, height: 5 }]],
@@ -11557,27 +11996,41 @@ async function utiliserModele(m) {
         afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer des listes.' : 'Les listes du modèle n\'ont pas pu être créées.', e);
     }
 }
-async function utiliserConfig(cfg, origine) {
-    var b = etat.brouillon;
+async function utiliserConfig(cfg) {
     delete cfg.score;
+    delete cfg.origine;
     (cfg.tuiles || []).forEach(function (t) { if (!t.id) {
         t.id = idTuile();
     } });
-    if (cfg.nom) {
-        var base = cfg.nom, k = 2;
-        while (etat.tableaux.some(function (t) { return normalizer(t.config.nom) === normalizer(cfg.nom); })) {
-            cfg.nom = base + ' ' + k;
-            k++;
-        }
+    cfg.nom = nomLibre(cfg.nom || 'Nouveau tableau de bord');
+    afficherLoader('Création du tableau de bord…');
+    try {
+        await assurerBibliotheque();
+        await lireTableaux();
+        await determinerDroits();
+        var cle = nouvelleCleConfig();
+        await ecrireConfig(cloner(cfg), cle, null);
+        etat.brouillon = null;
+        memoriserTableau(cle);
+        etat.filtres = null;
+        etat.edition = false;
+        await chargerTout();
+        masquerLoader();
+        commencerEdition();
     }
-    b.cfg = cfg;
-    b.origine = origine;
-    b.etapeMax = 2;
-    await allerEtape(2);
-    var f = document.getElementById('wTable');
-    if (f) {
-        f.focus();
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer un tableau de bord.' : 'Le tableau de bord n\'a pas pu être créé. Réessayez.', e);
     }
+}
+function nomLibre(nom) {
+    var base = String(nom || '').trim() || 'Sans nom', n = base, k = 2;
+    var pris = function (x) { return etat.tableaux.some(function (t) { return normalizer(t.config.nom) === normalizer(x); }) || (etat.nomsVues || []).indexOf(x) !== -1; };
+    while (pris(n)) {
+        n = base + ' ' + k;
+        k++;
+    }
+    return n;
 }
 function confirmerAvecCase(titre, message, libelleCase, cocheParDefaut, libelleOui) {
     var zone = null;
