@@ -503,6 +503,8 @@
     .gb-filtre-def .fr-select, .gb-filtre-def .fr-input { margin-top: .25rem; font-size: .875rem; padding-top: .25rem; padding-bottom: .25rem; }
     .gb-filtre-def .fr-label { font-size: .8125rem; }
     .gb-filtre-def > .gb-outil { grid-row: 1; grid-column: 2; align-self: start; }
+    .gb-filtre-def > div { grid-column: 1 / -1; min-width: 0; }
+    .gb-filtre-def > div:first-child { grid-column: 1; }
     .gb-tailles { display: flex; gap: .375rem; flex-wrap: wrap; }
     .gb-tailles label { display: inline-flex; align-items: center; gap: .375rem; padding: .25rem .625rem; border: 1px solid var(--border-default-grey); border-radius: 0; cursor: pointer; font-size: .875rem; }
     .gb-tailles input { accent-color: var(--background-action-high-blue-france); }
@@ -704,7 +706,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -6161,6 +6163,9 @@ function rendreJauge(t, corps) {
         if (libC || es) {
             box.appendChild(creer('p', { classe: 'gb-jauge__texte fr-m-0', attrs: { 'aria-hidden': 'true' } }, [libC ? creer('span', { texte: libC }) : null, pastilleSeuil(es)]));
         }
+        else if (r === null) {
+            box.appendChild(creer('p', { classe: 'gb-jauge__texte fr-m-0', texte: 'Objectif à indiquer dans les réglages de la tuile.' }));
+        }
     };
     observerTaille(box, dessiner);
 }
@@ -8651,7 +8656,7 @@ function nouvelleTuile(type, tid) {
     var date = meilleureDate(tid);
     var num = meilleurNombre(tid);
     if (type === 'kpi') {
-        t.titre = 'Nombre de ' + minuscule(nomTable(tid));
+        t.titre = nombreDe(minuscule(nomTable(tid)));
     }
     if (type === 'kpigrid') {
         t.groupe = cat;
@@ -8687,7 +8692,7 @@ function nouvelleTuile(type, tid) {
         t.titre = 'Dernières lignes : ' + minuscule(nomTable(tid));
     }
     if (type === 'gauge') {
-        t.titre = 'Nombre de ' + minuscule(nomTable(tid)) + ' par rapport à l\'objectif';
+        t.titre = nombreDe(minuscule(nomTable(tid))) + ' par rapport à l\'objectif';
         t.cible = { mode: 'fixe', valeur: null };
     }
     if (type === 'histogram') {
@@ -9522,7 +9527,7 @@ function tuilesSuggerees(tid) {
     var mesNum = num ? { agg: estMontant(colNum) || motsEvoquent(colNum, 'quantite') ? 'sum' : 'avg', col: num } : null;
     var nomNum = colNum ? (/^(total|sum|somme|montant total)$/i.test(normalizer(colNum.label)) ? nomT + ' ' + minuscule(colNum.label) : colNum.label) : '';
     var base = function (type, titre, o) { return Object.assign({ id: idTuile(), type: type, titre: titre, table: tid, filtres: [], mesure: { agg: 'count' }, taille: (TYPES_TUILES.filter(function (x) { return x.code === type; })[0] || {}).taille || 'M' }, o || {}); };
-    res.push(base('kpi', 'Nombre de ' + minuscule(nomT), { taille: 'S' }));
+    res.push(base('kpi', nombreDe(minuscule(nomT)), { taille: 'S' }));
     if (mesNum) {
         res.push(base('kpi', nomNum !== colNum.label ? nomNum.charAt(0).toUpperCase() + nomNum.slice(1) : majuscule(minuscule(colNum.label)) + (mesNum.agg === 'sum' ? ' (total)' : ' (moyenne)'), { mesure: mesNum, taille: 'S' }));
     }
@@ -10271,6 +10276,20 @@ function miniApercu(tuiles, grand) {
     });
     return d;
 }
+function nombreDe(x) { return 'Nombre ' + (/^[aeiouyhàâéèêëîïôöûü]/i.test(String(x || '')) ? 'd\'' : 'de ') + x; }
+function configToutesTuiles(tid) {
+    var tuiles = [];
+    TYPES_TUILES.forEach(function (ty) {
+        if (ty.code === 'text') {
+            return;
+        }
+        var t = nouvelleTuile(ty.code, tid);
+        if (!problemeTuile(t)) {
+            tuiles.push(t);
+        }
+    });
+    return { nom: '', description: '', table: tid, periode: null, filtres: [], tuiles: tuiles, origine: 'toutes' };
+}
 function blocSuggestions() {
     var bloc = creer('div', { classe: 'w-assistant' });
     var sug = suggestionsDocument();
@@ -10289,25 +10308,34 @@ function blocSuggestions() {
         sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : vos tables n\'ont pas encore de lignes, ou trop peu de colonnes à représenter. Branchez-vous sur une table ci-dessous.' })]));
     var tables = tablesUtilisateur();
     var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
-    var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos tables', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
+    var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos listes', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
     var connecter = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sConnecter' } }, [
-        creer('div', { classe: 'w-tuile__tete w-titre-aide' }, [creer('span', { classe: 'fr-icon-table-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sConnecter', texte: 'Partir de l\'une de vos tables' }), aideConnecter.bouton, aideConnecter.panneau]),
-        groupeChamp('Table', choixT),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de cette table', 'secondaire', 'arrow-right-line', function () {
+        creer('div', { classe: 'w-tuile__tete w-titre-aide' }, [creer('span', { classe: 'fr-icon-table-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sConnecter', texte: 'Partir de l\'une de vos listes' }), aideConnecter.bouton, aideConnecter.panneau]),
+        groupeChamp('Liste', choixT),
+        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de cette liste', 'secondaire', 'arrow-right-line', function () {
                 var s = suggestionTableau(choixT.value);
                 return utiliserConfig(s, 'la table ' + libelleTable(choixT.value));
             }, { petit: true, id: 'sConnecterBtn' })])
     ]);
     var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
     var vierge = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sVierge' } }, [
-        creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-add-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sVierge', texte: 'Partir d\'un tableau de bord vierge' })]),
-        creer('p', { classe: 'w-mention fr-m-0', texte: 'Aucune tuile au départ : vous les ajoutez une à une, avec des suggestions pour chaque table.' }),
-        groupeChamp('Table principale', choixV),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir d\'un tableau de bord vierge', 'secondaire', 'arrow-right-line', function () {
+        creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-add-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sVierge', texte: 'Page blanche' })]),
+        creer('p', { classe: 'w-mention fr-m-0', texte: 'Aucune tuile au départ : vous les ajoutez une à une, avec des suggestions pour chaque liste.' }),
+        groupeChamp('Liste', choixV),
+        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir d\'une page blanche', 'secondaire', 'arrow-right-line', function () {
                 return utiliserConfig({ nom: '', description: '', table: choixV.value, periode: null, filtres: [], tuiles: [], origine: 'blank' }, null);
             }, { petit: true, id: 'sViergeBtn' })])
     ]);
-    bloc.appendChild(creer('section', { attrs: { 'aria-label': 'Autres façons de commencer' } }, [creer('h3', { classe: 'fr-h6', texte: 'Ou composez-le vous-même' }), creer('div', { classe: 'w-tuiles w-tuiles--grille' }, [connecter, vierge])]));
+    var choixTT = liste('sTableToutes', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+    var toutes = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sToutes' } }, [
+        creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-layout-grid-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sToutes', texte: 'Toutes les tuiles' })]),
+        creer('p', { classe: 'w-mention fr-m-0', texte: 'Une tuile de chaque sorte, déjà réglée sur vos colonnes : vous supprimez celles qui ne vous servent pas.' }),
+        groupeChamp('Liste', choixTT),
+        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de toutes les tuiles', 'secondaire', 'arrow-right-line', function () {
+                return utiliserConfig(configToutesTuiles(choixTT.value), 'le modèle « Toutes les tuiles »');
+            }, { petit: true, id: 'sToutesBtn' })])
+    ]);
+    bloc.appendChild(creer('section', { attrs: { 'aria-label': 'Autres façons de commencer' } }, [creer('h3', { classe: 'fr-h6', texte: 'Ou composez-le vous-même' }), creer('div', { classe: 'w-tuiles w-tuiles--grille' }, [connecter, vierge, toutes])]));
     return bloc;
 }
 function blocModeles() {
