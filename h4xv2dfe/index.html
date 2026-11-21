@@ -646,6 +646,14 @@
     .gb-constr__panneau { flex: 0 1 24rem; min-width: min(18rem, 100%); box-sizing: border-box; padding: 1rem 1.5rem 1.5rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: 1rem; }
     .gb-constr .gb-constr__panneau > .gb-acc__contenu { padding: 0; }
     .gb-panneau__suite { display: flex; justify-content: flex-end; }
+    .gb-constr__resultat, .gb-constr__panneau--plein { order: 0; }
+    .gb-constr__etapes { order: 1; border-right: 0; border-left: 1px solid var(--border-default-grey); }
+    .gb-constr__panneau { order: 2; border-right: 0; border-left: 1px solid var(--border-default-grey); }
+    .gb-constr__panneau--plein { border-left: 0; }
+    @keyframes gb-entree-droite { from { transform: translateX(3rem); opacity: 0; } to { transform: none; opacity: 1; } }
+    .gb-constr--entree .gb-constr__etapes, .gb-constr--entree .gb-constr__panneau:not(.gb-constr__panneau--plein) { animation: gb-entree-droite .25s ease-out; }
+    @media (prefers-reduced-motion: reduce) { .gb-constr--entree .gb-constr__etapes, .gb-constr--entree .gb-constr__panneau { animation: none; } }
+    @media (max-width: 48em) { .gb-constr__etapes, .gb-constr__panneau { border-left: 0; } }
     .gb-constr__panneau--plein { flex: 999 1 30rem; border-right: 0; }
     .gb-atelier-liste { display: flex; flex-direction: column; gap: 1rem; }
     .gb-etat.gb-etat--brouillon { background: var(--background-contrast-warning); color: var(--text-default-warning); }
@@ -929,7 +937,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.24';
+var VERSION_WIDGET = '2.1.25';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8865,6 +8873,9 @@ function versAtelier(vue) {
 }
 function afficherVue(vue, garderFocus) {
     vue = versAtelier(vue);
+    var signature = vue + (vue === 'assistant' && etat.brouillon ? ':' + etat.brouillon.mode : '');
+    etat.entreeVue = signature !== etat.signatureVue;
+    etat.signatureVue = signature;
     majBandeauRole();
     oublierObservations();
     cacherBulle();
@@ -11549,7 +11560,7 @@ function rendreAtelierTdb(zone) {
     if (!plein) {
         cols.push(creer('div', { classe: 'gb-constr__resultat' }, [b.cfg.tuiles.length ? (vignetteReelle(b.cfg, 'atv-') || miniApercu(b.cfg.tuiles, true)) : etatVide('Aucune tuile', '')]));
     }
-    zone.appendChild(creer('div', { classe: 'gb-constr gb-atelier-tdb' }, [haut, creer('div', { classe: 'gb-constr__corps' }, cols)]));
+    zone.appendChild(creer('div', { classe: 'gb-constr gb-atelier-tdb' + (etat.entreeVue ? ' gb-constr--entree' : '') }, [haut, creer('div', { classe: 'gb-constr__corps' }, cols)]));
 }
 function rendreAssistant(zone) {
     var b = etat.brouillon;
@@ -11987,7 +11998,7 @@ function rendreConstruction(zone) {
         }
     };
     construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true, panneau: panneau });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, panneau, creer('div', { classe: 'gb-constr__resultat' }, [apercu, compte])])]));
+    zone.appendChild(creer('div', { classe: 'gb-constr' + (etat.entreeVue ? ' gb-constr--entree' : '') }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, panneau, creer('div', { classe: 'gb-constr__resultat' }, [apercu, compte])])]));
     majApercu();
 }
 function majEtatConstruction() {
