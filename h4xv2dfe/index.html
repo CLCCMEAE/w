@@ -327,6 +327,7 @@
     .gb-fond--vert { background: var(--background-contrast-green-emeraude); }
     .gb-fond--rose { background: var(--background-contrast-pink-macaron); }
     .gb-fond--gris { background: var(--background-contrast-grey); }
+    .gb-tuile__pied { margin: .5rem 0 0; font-size: .75rem; color: var(--text-mention-grey); text-align: left; }
     .gb-fonds { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
     .gb-fonds label { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; }
     .gb-fonds__pastille { display: inline-block; width: 1.25rem; height: 1.25rem; border: 1px solid var(--border-default-grey); }
@@ -862,7 +863,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.7';
+var VERSION_WIDGET = '2.1.8';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5871,6 +5872,9 @@ function rendreTuile(t, o) {
     }
     art.appendChild(tete);
     art.appendChild(corps);
+    if (t.type !== 'text' && !o.sansOutils && etat.majA) {
+        art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: texteMiseAJour() }));
+    }
     if (probleme) {
         corps.appendChild(etatVide('Cette tuile ne peut pas s\'afficher', probleme, true));
         return art;
@@ -7992,7 +7996,7 @@ function exporterTuile(t) {
     etat.tuileEnCours = t.id;
     try {
         var d = donneesTabulaires(t);
-        telechargerCSV(t.titre || 'tuile', d.entetes, d.brut || d.lignes);
+        telechargerCSV((t.titre || 'tuile') + suffixeMiseAJour(), d.entetes, d.brut || d.lignes);
     }
     catch (e) {
         afficherErreur('L\'export CSV n\'a pas abouti.', e);
@@ -9050,6 +9054,21 @@ function rappelFiltresImpression(cfg) {
     }
     return morceaux.length ? creer('p', { classe: 'gb-filtres-impression', texte: 'Filtres : ' + morceaux.join(' · ') }) : null;
 }
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function texteMiseAJour() {
+    if (!etat.majA) {
+        return '';
+    }
+    var p = partiesDansFuseau(Math.floor(etat.majA.getTime() / 1000), fuseauDoc());
+    return 'Mis à jour le ' + pad2(p.j) + '/' + pad2(p.m) + '/' + p.a + ' à ' + heureFr(p.h, p.mi);
+}
+function suffixeMiseAJour() {
+    if (!etat.majA) {
+        return '';
+    }
+    var p = partiesDansFuseau(Math.floor(etat.majA.getTime() / 1000), fuseauDoc());
+    return '_' + p.a + pad2(p.m) + pad2(p.j) + '_' + pad2(p.h) + 'h' + pad2(p.mi);
+}
 function heureCourte(d) { var p = partiesDansFuseau(Math.floor(d.getTime() / 1000), fuseauDoc()); return heureFr(p.h, p.mi); }
 function rendreTableau(zone) {
     var cfg = etat.config;
@@ -9058,7 +9077,7 @@ function rendreTableau(zone) {
     var pagesT = seulAdmin ? pagesDuTableau(etat.cleConfig) : [];
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [
         seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Pas encore publié' }) : null,
-        etat.majA ? creer('span', { classe: 'gb-stamp fr-icon-time-line', id: 'gStamp', texte: 'Mis à jour à ' + heureCourte(etat.majA) }) : null
+        null
     ], seulAdmin ? [pagesT.length ? null : bouton('Publier', null, 'send-plane-line', publierElementExistant, { petit: true, id: 'gPublierSeul' }),
         bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
         menuActions('Autres actions', 'gPlus', [
@@ -9226,10 +9245,7 @@ async function rafraichirMaintenant() {
         var avant = etat.empreinte;
         await chargerDonnees(etat.config);
         etat.rafraichirEnAttente = false;
-        var stamp = document.getElementById('gStamp');
-        if (stamp) {
-            stamp.textContent = 'Mis à jour à ' + heureCourte(etat.majA);
-        }
+        Array.prototype.forEach.call(document.querySelectorAll('.gb-tuile__pied'), function (x) { x.textContent = texteMiseAJour(); });
         if (etat.empreinte === avant && !renomme) {
             return;
         }
