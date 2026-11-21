@@ -537,16 +537,34 @@
     .gb-editeur__apercu .gb-tuile { border-color: var(--border-plain-grey); }
     .gb-apercu-fond { padding: 1rem; background: var(--background-alt-grey); border-radius: 0; color: var(--text-default-grey); }
     .gb-editeur__apercu { order: -1; position: static; }
-    .gb-onglets-tuile { position: sticky; top: -.5rem; z-index: 2; background: var(--background-default-grey); margin: .5rem 0 .75rem; padding-top: .25rem; }
-    .gb-onglets-tuile .fr-tabs__tab { display: inline-flex; align-items: center; gap: .375rem; margin: 0; padding: .5rem .75rem; border: 0; background: transparent; cursor: pointer; font-size: .875rem; font-weight: 500;
-      color: var(--text-default-grey); box-shadow: none; border-bottom: 2px solid transparent; }
-    .gb-onglets-tuile .fr-tabs__tab[aria-selected="true"] { color: var(--text-active-blue-france); border-bottom-color: var(--border-active-blue-france); font-weight: 700; }
-    .gb-onglets-tuile .fr-tabs__tab:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
-    .gb-onglet-compte { display: inline-block; min-width: 1.25rem; padding: 0 .375rem; border-radius: 999px; font-size: .75rem; line-height: 1.25rem; text-align: center;
+    .gb-editeur__apercu .gb-apercu-fond { padding: .5rem; }
+    .gb-editeur__apercu .gb-tuile:not(.gb-fond) { border: 0; padding: 0; background: transparent; box-shadow: none; }
+    .gb-editeur__apercu .gb-tuile__tete { display: none; }
+    .gb-editeur { gap: .5rem; }
+    .gb-acc__tete { padding-top: .375rem; padding-bottom: .375rem; }
+    .gb-acc { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .375rem; }
+    .gb-acc__item { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .gb-acc__item--ouvert { border-color: var(--border-action-high-blue-france); }
+    .gb-acc__tete { display: flex; align-items: center; gap: .625rem; width: 100%; padding: .5rem .75rem; border: 0; background: transparent; cursor: pointer; text-align: left; color: var(--text-default-grey); }
+    .gb-acc__tete:hover { background: var(--background-alt-blue-france); }
+    .gb-acc__tete:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .gb-acc__tete::after { content: ''; flex: none; width: .5rem; height: .5rem; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+    .gb-acc__item--ouvert .gb-acc__tete::after { transform: rotate(-135deg); }
+    .gb-acc__num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; font-size: .8125rem; font-weight: 700;
       background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
-    .gb-ovolet { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
-    .gb-ovolet[hidden] { display: none; }
-    .gb-ovolet > .gb-section:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+    .gb-acc__textes { display: flex; flex-direction: column; min-width: 0; }
+    .gb-acc__nom { font-weight: 700; font-size: .9375rem; }
+    .gb-acc__resume { font-size: .8125rem; color: var(--text-mention-grey); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gb-acc__item--ouvert .gb-acc__resume { display: none; }
+    .gb-acc__contenu { padding: .25rem .75rem .75rem; display: flex; flex-direction: column; gap: .25rem; }
+    .gb-acc__contenu[hidden] { display: none; }
+    .gb-acc__contenu > .gb-section:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+    .gb-sortes { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .375rem; }
+    .gb-sorte { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .5rem; border: 1px solid var(--border-default-grey); cursor: pointer; font-size: .8125rem; }
+    .gb-sorte input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .gb-sorte:has(input:checked) { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); font-weight: 700; }
+    .gb-sorte:has(input:focus-visible) { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .gb-sorte .gb-mini__g { height: 1.25rem; width: 3rem; margin: 0; }
     .gb-compte-lignes { margin-top: .5rem; display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; }
     .gb-compte-lignes__nombre { margin: 0; font-weight: 700; font-size: .875rem; }
     .gb-compte-lignes__conds { margin: 0; padding-left: 1rem; font-size: .8125rem; }
@@ -776,7 +794,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.2';
+var VERSION_WIDGET = '1.8.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1434,7 +1452,7 @@ function lignesLecteurs(ed) {
             lignes.push(ligne('aPlF' + ti + '_' + k, f.libelle || libCol(f.table, f.col), r.montre, sf, function (v) { r.montre = v; }));
         });
         if (!lignes.length) {
-            lignes.push(creer('p', { classe: 'w-mention', texte: 'Ce tableau de bord n\'a pas de filtre dans son volet. Ils se choisissent à l\'étape « Affichage et filtres ».' }));
+            lignes.push(creer('p', { classe: 'w-mention', texte: 'Aucun filtre.' }));
         }
         blocs.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: ed.tableaux.length > 1 ? (cfg.nom || 'Tableau de bord sans nom') : 'Filtres du volet' })].concat(lignes)));
     });
@@ -1465,8 +1483,7 @@ function formulairePage() {
         });
         boite.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageTab' + i }, texte: t.config.nom || 'Tableau de bord sans nom' })]));
     });
-    noeuds.push(creer('fieldset', { classe: 'w-page-filtre', id: 'aPageTableaux' }, [creer('legend', { texte: 'Tableaux de bord montrés' }), boite,
-        creer('p', { classe: 'w-mention fr-mt-1v', texte: 'Avec plusieurs tableaux de bord, les lecteurs passent de l\'un à l\'autre par des onglets.' })]));
+    noeuds.push(creer('fieldset', { classe: 'w-page-filtre', id: 'aPageTableaux' }, [creer('legend', { texte: 'Tableaux de bord montrés' }), boite]));
     noeuds = noeuds.concat(tuilesPage(ed));
     var tables = tablesPage(ed);
     if (ed.table && tables.indexOf(ed.table) === -1 && !ed.conditions.length) {
@@ -1475,8 +1492,7 @@ function formulairePage() {
     if (!ed.table && tables.length) {
         ed.table = tables[0];
     }
-    var cond = [creer('legend', { texte: 'Ce que cette page montre' }),
-        creer('p', { classe: 'w-mention', texte: 'Des conditions fixes, que les lecteurs ne peuvent pas retirer. Elles s\'appliquent à toutes les tuiles dont la liste a la même colonne. Sans condition, la page montre toutes les lignes.' })];
+    var cond = [creer('legend', { texte: 'Conditions fixes de la page' })];
     if (tables.length) {
         var opts = tables.map(function (x) { return { valeur: x, libelle: libelleTable(x) }; });
         if (ed.table && tables.indexOf(ed.table) === -1) {
@@ -1492,8 +1508,7 @@ function formulairePage() {
         cond.push(editeurConditions(ed, 'conditions', 'aPc', redessiner, function () { }));
     }
     noeuds.push(creer('fieldset', { classe: 'w-page-filtre w-page-conditions' }, cond));
-    noeuds.push(creer('div', { classe: 'w-page-lecteurs' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' }),
-        creer('p', { classe: 'w-mention', texte: 'Un filtre coché reste dans le volet de la page, avec sa valeur à l\'ouverture ; chaque lecteur peut la changer. Un filtre décoché disparaît du volet.' })].concat(lignesLecteurs(ed))));
+    noeuds.push(creer('div', { classe: 'w-page-lecteurs' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' })].concat(lignesLecteurs(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
         bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerParam('#aPageConsultation'); }, { petit: true, id: 'aPageAnnuler' }),
         bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'aPageEnregistrer' })
@@ -2374,9 +2389,6 @@ function groupeChamp(libelle, champ, aide, obligatoire) {
         lab.appendChild(document.createTextNode(' '));
         lab.appendChild(creer('span', { texte: '(obligatoire)', classe: 'w-mention', attrs: { 'aria-hidden': 'true' } }));
         champ.setAttribute('aria-required', 'true');
-    }
-    if (aide) {
-        lab.appendChild(creer('span', { classe: 'fr-hint-text', texte: aide }));
     }
     return creer('div', { classe: 'fr-input-group' }, [lab, champ]);
 }
@@ -6588,7 +6600,7 @@ function blocReprises() {
     };
     var compte = creer('p', { classe: 'w-mention fr-m-0', id: 'rCompte', attrs: { 'aria-live': 'polite' } });
     bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'rTitre' } }, [titre,
-        creer('p', { classe: 'w-mention', texte: 'Les réglages d\'origine restent tels quels dans leur widget.' }), colonnes,
+        colonnes,
         creer('div', { classe: 'gb-reprise__bas' }, [compte, bt])]));
     majBoutonReprise();
     return bloc;
@@ -9650,8 +9662,7 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
     var form = creer('div', { classe: 'gb-editeur__form' });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
     var compte = creer('div', { classe: 'gb-compte-lignes', id: 'eCompte', attrs: { 'aria-live': 'polite' } });
-    var zoneApercu = creer('div', { classe: 'gb-editeur__apercu' }, [creer('h3', { classe: 'gb-section__titre', texte: 'Aperçu en direct' }), apercu, compte,
-        creer('p', { classe: 'w-mention', texte: 'Calculé sur vos données. Rien n\'est écrit dans vos listes.' })]);
+    var zoneApercu = creer('div', { classe: 'gb-editeur__apercu' }, [apercu, compte]);
     var majApercu = function () {
         oublierApercu(apercu);
         vider(apercu);
@@ -9664,10 +9675,6 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
         t2.taille = 'XL';
         apercu.appendChild(rendreTuile(t2, { prefixe: 'ap-', sansOutils: true }));
         resumeLignes(compte, b);
-        var cv = document.getElementById('eCompteVolet');
-        if (cv) {
-            resumeLignes(cv, b, true);
-        }
     };
     var redessiner = function (focusId) {
         var actif = focusId || (document.activeElement && document.activeElement.id);
@@ -9679,16 +9686,16 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
             f.focus();
         }
     };
-    ouvrirModale({ titre: nouvelle ? 'Nouvelle tuile' : 'Modifier la tuile', sousTitre: (TYPES_TUILES.filter(function (x) { return x.code === b.type; })[0] || {}).nom, laterale: true,
+    ouvrirModale({ titre: titreEditeurTuile(b, nouvelle),
         corps: [creer('div', { classe: 'gb-editeur' }, [form, zoneApercu])],
         pied: [bouton('Annuler', 'secondaire', null, fermerModale), creer('span', { classe: 'w-pousse' }),
             bouton(nouvelle ? 'Ajouter la tuile' : 'Appliquer', null, 'check-line', function () {
                 var err = validerTuile(b);
                 if (err) {
                     signalerSaisie(err);
-                    var oc = document.getElementById('eOnglet-calcul');
-                    if (oc && String(b.titre || '').trim()) {
-                        oc.click();
+                    if (String(b.titre || '').trim()) {
+                        _sectionTuile = !b.table ? 'lignes' : 'decoupage';
+                        redessiner('eSec-' + _sectionTuile);
                     }
                     return;
                 }
@@ -9701,10 +9708,10 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
                 } }, nouvelle ? 'Tuile ajoutée' : 'Tuile modifiée', '#' + (ctx.prefixe || '') + 'gEditer' + (nouvelle ? ctx.cfg.tuiles.length : index));
             }, { id: 'gAppliquer' })], focus: 'eTitre' });
     document.getElementById('wModale').classList.add('w-tiroir--large');
-    _ongletTuile = 'calcul';
+    _sectionTuile = null;
     redessiner('eTitre');
 }
-function resumeLignes(zone, b, sansLien) {
+function resumeLignes(zone, b) {
     vider(zone);
     if (b.type === 'text' || !b.table || !etat.donnees[b.table]) {
         return;
@@ -9712,19 +9719,7 @@ function resumeLignes(zone, b, sansLien) {
     var tid = b.table;
     var conds = (b.filtres || []).filter(function (c) { return c && c.col && infoColonne(tid, c.col); });
     var n = selection(tid, conds, { sansGlobal: true }).length, total = nbLignes(tid);
-    zone.appendChild(creer('p', { classe: 'gb-compte-lignes__nombre', texte: (n === total ? 'Toutes les lignes : ' + nombreSur(total, 'ligne') : nombreSur(n, 'ligne') + ' prise' + (n > 1 ? 's' : '') + ' en compte sur ' + nombreCompte(total)) }));
-    if (conds.length) {
-        zone.appendChild(creer('ul', { classe: 'gb-compte-lignes__conds' }, conds.map(function (c) { return creer('li', { texte: Array.isArray(c.val) && !c.val.length && (c.op === 'is' || c.op === 'not') ? libCol(tid, c.col) + ' : cochez au moins une valeur' : libelleCondition(tid, c) }); })));
-    }
-    if (sansLien) {
-        return;
-    }
-    var lien = creer('button', { classe: 'fr-link fr-link--sm fr-icon-filter-line fr-link--icon-left', texte: conds.length ? 'Modifier les conditions' : 'Garder seulement certaines lignes', attrs: { type: 'button', id: 'eAllerLignes' } });
-    lien.addEventListener('click', function () { var o = document.getElementById('eOnglet-lignes'); if (o) {
-        o.click();
-        o.focus();
-    } });
-    zone.appendChild(lien);
+    zone.appendChild(creer('p', { classe: 'gb-compte-lignes__nombre', texte: conds.length ? nombreSur(n, 'ligne') + ' prise' + (n > 1 ? 's' : '') + ' en compte sur ' + nombreCompte(total) : nombreSur(total, 'ligne') }));
 }
 function oublierApercu(apercu) { apercu.querySelectorAll('.gb-graphe, .gb-kpi div, .gb-jauge').forEach(function (n) { _aDessiner.delete(n); if (_observateur) {
     _observateur.unobserve(n);
@@ -9766,7 +9761,7 @@ function champSaisie(id, valeur, surSaisie, o) {
 function caseOption(id, libelle, coche, surChange, aide) {
     var c = creer('input', { id: id, attrs: { type: 'checkbox' }, coche: coche });
     c.addEventListener('change', function () { surChange(c.checked); });
-    return creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [c, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle, aide ? creer('span', { classe: 'fr-hint-text', texte: aide }) : null])]);
+    return creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [c, creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [libelle])]);
 }
 function optionsColonnes(tid, filtre) {
     return colonnesUtiles(tid).filter(filtre || function () { return true; }).map(function (c) { return { valeur: c.colId, libelle: c.label + ' (' + libelleGenreCol(c) + ')' }; });
@@ -9781,122 +9776,192 @@ function libelleGenreCol(c) {
 }
 function section(titre, enfants) { return creer('div', { classe: 'gb-section' }, [creer('h3', { classe: 'gb-section__titre', texte: titre })].concat(enfants)); }
 function rangee(enfants) { return creer('div', { classe: 'gb-rangee' }, enfants); }
-var SECTIONS_PRESENTATION = ['Couleurs', 'Couleur', 'Valeurs et légende', 'Affichage', 'Une copie par valeur', 'Valeurs sans ligne'];
 var FONDS_TUILE = [{ code: '', nom: 'Aucun' }, { code: 'bleu', nom: 'Bleu' }, { code: 'jaune', nom: 'Jaune' }, { code: 'vert', nom: 'Vert' }, { code: 'rose', nom: 'Rose' }, { code: 'gris', nom: 'Gris' }];
-var ONGLETS_TUILE = [{ cle: 'calcul', libelle: 'Ce qui est calculé' }, { cle: 'lignes', libelle: 'Lignes prises en compte' }, { cle: 'presentation', libelle: 'Présentation' }];
-var _ongletTuile = 'calcul';
+var GROUPES_TUILE = [{ cle: 'sorte', nom: 'Sorte de tuile' }, { cle: 'lignes', nom: 'Lignes prises en compte' }, { cle: 'calcul', nom: 'Ce qui est calculé' },
+    { cle: 'decoupage', nom: 'Découpage' }, { cle: 'reperes', nom: 'Repères' }, { cle: 'presentation', nom: 'Présentation' }];
+var SECTION_VERS_GROUPE = { 'Ce qui est compté': 'calcul', 'Valeur de chaque indicateur': 'calcul', 'Valeurs calculées': 'calcul', 'Valeurs': 'calcul',
+    'Tendance': 'reperes', 'Objectif': 'reperes', 'Objectif et couleurs': 'reperes', 'Couleur': 'reperes',
+    'Couleurs': 'presentation', 'Valeurs et légende': 'presentation', 'Affichage': 'presentation', 'Une copie par valeur': 'presentation', 'Valeurs sans ligne': 'presentation' };
+var _sectionTuile = null;
+function nomTypeTuile(code) { return (TYPES_TUILES.filter(function (x) { return x.code === code; })[0] || {}).nom || ''; }
+function titreEditeurTuile(b, nouvelle) { return (nouvelle ? 'Nouvelle tuile' : 'Modifier la tuile') + ' « ' + nomTypeTuile(b.type) + ' »'; }
+function resumeDepuisChamps(zone) {
+    var morceaux = [];
+    Array.prototype.forEach.call(zone.querySelectorAll('select, input'), function (c) {
+        if (c.closest('[hidden]') || c.closest('.gb-condition')) {
+            return;
+        }
+        if (c.tagName === 'SELECT') {
+            var o = c.options[c.selectedIndex];
+            if (o && o.value !== '') {
+                morceaux.push(o.textContent.replace(/\s*\([^)]*\)\s*$/, ''));
+            }
+        }
+        else if ((c.type === 'checkbox' || c.type === 'radio') && c.checked) {
+            var l = zone.querySelector('label[for="' + c.id + '"]');
+            var tx = l ? (l.childNodes[l.type === 'radio' ? 0 : 0].textContent || l.textContent) : '';
+            if (l) {
+                tx = Array.prototype.filter.call(l.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent; }).join(' ').trim() || l.textContent;
+            }
+            if (tx && !(c.type === 'radio' && c.value === '')) {
+                morceaux.push(tx.trim());
+            }
+        }
+        else if ((c.type === 'text' || c.type === 'number') && c.value && c.id !== 'eTitre') {
+            morceaux.push(c.value);
+        }
+    });
+    return morceaux.map(function (x) { return x.replace(/\s*\([^)]*\)\s*$/, ''); }).filter(function (x, k, a) { return x && a.indexOf(x) === k; }).slice(0, 4).join(' · ');
+}
 function construireFormulaire(form, b, redessiner, majApercu) {
     var tid = b.table;
     var maj = function () { majApercu(); };
-    form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
-    var tailles = creer('div', { classe: 'gb-tailles', attrs: { role: 'radiogroup', 'aria-labelledby': 'eTailleLeg' } });
-    TAILLES.forEach(function (s) {
-        var r = creer('input', { id: 'eTaille' + s.code, attrs: { type: 'radio', name: 'eTaille', value: s.code }, coche: (b.taille || 'M') === s.code });
-        r.addEventListener('change', function () { b.taille = s.code; });
-        tailles.appendChild(creer('label', { attrs: { 'for': 'eTaille' + s.code } }, [r, s.nom, creer('span', { classe: 'w-mention', texte: s.aide })]));
-    });
-    var blocTaille = creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'eTailleLeg', texte: 'Taille sur le tableau de bord' }), tailles]);
-    if (b.type === 'text') {
-        form.appendChild(blocTaille);
-        formulaireTexte(form, b, redessiner, maj);
-        return;
-    }
-    var nbConds = (b.filtres || []).filter(function (c) { return c && c.col; }).length;
-    var ul = creer('ul', { classe: 'fr-tabs__list', attrs: { role: 'tablist', 'aria-label': 'Réglages de la tuile' } });
-    var volets = {};
-    var choisir = function (cle, focus) {
-        _ongletTuile = cle;
-        ONGLETS_TUILE.forEach(function (o) {
-            var bt = document.getElementById('eOnglet-' + o.cle);
-            bt.setAttribute('aria-selected', o.cle === cle ? 'true' : 'false');
-            bt.tabIndex = o.cle === cle ? 0 : -1;
-            volets[o.cle].hidden = o.cle !== cle;
-        });
-        if (focus) {
-            document.getElementById('eOnglet-' + cle).focus();
-        }
-    };
-    ONGLETS_TUILE.forEach(function (o, k) {
-        var actif = o.cle === _ongletTuile;
-        var bt = creer('button', { classe: 'fr-tabs__tab', id: 'eOnglet-' + o.cle, attrs: { type: 'button', role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'eVolet-' + o.cle, tabindex: actif ? '0' : '-1' } },
-            [o.libelle, o.cle === 'lignes' && nbConds ? creer('span', { classe: 'gb-onglet-compte', texte: String(nbConds), attrs: { 'aria-label': nombreSur(nbConds, 'condition') } }) : null]);
-        bt.addEventListener('click', function () { choisir(o.cle); });
-        bt.addEventListener('keydown', function (e) {
-            var n = { ArrowRight: k + 1, ArrowLeft: k - 1, Home: 0, End: ONGLETS_TUILE.length - 1 }[e.key];
-            if (n === undefined) {
-                return;
+    var contenus = {};
+    GROUPES_TUILE.forEach(function (g) { contenus[g.cle] = creer('div', { classe: 'gb-acc__contenu' }); });
+    var sorte = creer('div', { classe: 'gb-sortes', attrs: { role: 'radiogroup', 'aria-label': 'Sorte de tuile' } });
+    TYPES_TUILES.forEach(function (ty) {
+        var r = creer('input', { id: 'eSorte-' + ty.code, attrs: { type: 'radio', name: 'eSorte', value: ty.code }, coche: b.type === ty.code });
+        r.addEventListener('change', function () {
+            var neuve = nouvelleTuile(ty.code, ty.code === 'text' ? null : (b.table || tablesUtilisateur()[0]));
+            ['id', 'filtres', 'fond', 'sousTitre'].forEach(function (k) { if (b[k] !== undefined && ty.code !== 'text') {
+                neuve[k] = b[k];
+            } });
+            neuve.id = b.id;
+            Object.keys(b).forEach(function (x) { delete b[x]; });
+            Object.assign(b, neuve);
+            var t = document.getElementById('wModaleTitre');
+            if (t) {
+                t.textContent = t.textContent.replace(/« .* »$/, '« ' + ty.nom + ' »');
             }
-            e.preventDefault();
-            choisir(ONGLETS_TUILE[(n + ONGLETS_TUILE.length) % ONGLETS_TUILE.length].cle, true);
+            relayer(assurerDonnees(b.table).then(function () { redessiner('eSorte-' + ty.code); }), 'Changement de sorte de tuile');
         });
-        ul.appendChild(creer('li', { attrs: { role: 'presentation' } }, [bt]));
-        volets[o.cle] = creer('div', { classe: 'gb-ovolet', id: 'eVolet-' + o.cle, attrs: { role: 'tabpanel', 'aria-labelledby': 'eOnglet-' + o.cle } });
-        volets[o.cle].hidden = !actif;
+        sorte.appendChild(creer('label', { classe: 'gb-sorte', attrs: { 'for': 'eSorte-' + ty.code } }, [r, glypheType(ty.code), creer('span', { texte: ty.nom })]));
     });
-    form.appendChild(creer('div', { classe: 'tab-nav gb-onglets-tuile' }, [ul]));
-    ONGLETS_TUILE.forEach(function (o) { form.appendChild(volets[o.cle]); });
-    var vc = volets.calcul, vl = volets.lignes, vp = volets.presentation;
-    vc.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
-        var neuve = nouvelleTuile(b.type, v);
-        neuve.id = b.id;
-        neuve.taille = b.taille;
-        Object.keys(b).forEach(function (x) { delete b[x]; });
-        Object.assign(b, neuve);
-        relayer(assurerDonnees(v).then(function () { redessiner('eTable'); }), 'Changement de liste');
-    }, 'Choisissez une liste')));
-    if (tid && etat.donnees[tid]) {
-        var sug = tuilesSuggerees(tid).filter(function (s) { return s.type === b.type; }).slice(0, 5);
-        if (sug.length) {
-            var ulS = creer('ul', { classe: 'gb-puces', attrs: { 'aria-labelledby': 'eSugTitre' } });
-            sug.forEach(function (s, k) {
-                var bt = creer('button', { classe: 'gb-puce fr-icon-lightbulb-line', texte: s.titre, attrs: { id: 'eSug' + k } });
-                bt.addEventListener('click', function () { var id = b.id, taille = b.taille, filtres = b.filtres; Object.keys(b).forEach(function (x) { delete b[x]; }); Object.assign(b, cloner(s), { id: id, taille: taille, filtres: filtres || [] }); redessiner('eSug' + k); annoncer('Suggestion appliquée : ' + s.titre); });
-                ulS.appendChild(creer('li', {}, [bt]));
-            });
-            vc.appendChild(creer('div', { classe: 'fr-mb-1w' }, [creer('p', { classe: 'w-mention fr-mb-1v', id: 'eSugTitre', texte: 'Partir d\'une suggestion' }), ulS]));
-        }
-    }
-    vp.appendChild(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); }), 'Laissée vide, la tuile rappelle ses conditions.'));
-    vp.appendChild(blocTaille);
+    contenus.sorte.appendChild(sorte);
+    var tailles = creer('div', { classe: 'gb-tailles', attrs: { role: 'radiogroup', 'aria-labelledby': 'eTailleLeg' } });
+    TAILLES.forEach(function (x) {
+        var r = creer('input', { id: 'eTaille' + x.code, attrs: { type: 'radio', name: 'eTaille', value: x.code }, coche: (b.taille || 'M') === x.code });
+        r.addEventListener('change', function () { b.taille = x.code; });
+        tailles.appendChild(creer('label', { attrs: { 'for': 'eTaille' + x.code } }, [r, x.nom, creer('span', { classe: 'w-mention', texte: x.aide })]));
+    });
+    var blocTaille = creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'eTailleLeg', texte: 'Taille' }), tailles]);
     var fonds = creer('div', { classe: 'gb-fonds', attrs: { role: 'radiogroup', 'aria-labelledby': 'eFondLeg' } });
     FONDS_TUILE.forEach(function (f) {
         var r = creer('input', { id: 'eFond' + (f.code || 'aucun'), attrs: { type: 'radio', name: 'eFond', value: f.code }, coche: (b.fond || '') === f.code });
         r.addEventListener('change', function () { b.fond = f.code; maj(); });
         fonds.appendChild(creer('label', { attrs: { 'for': 'eFond' + (f.code || 'aucun') } }, [r, creer('span', { classe: 'gb-fonds__pastille gb-fond--' + (f.code || 'aucun'), attrs: { 'aria-hidden': 'true' } }), f.nom]));
     });
-    vp.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'eFondLeg', texte: 'Couleur de fond' }), fonds]));
-    if (!tid) {
-        vl.appendChild(creer('p', { classe: 'w-mention', texte: 'Choisissez d\'abord une liste.' }));
-        return;
+    var blocFond = creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'eFondLeg', texte: 'Couleur de fond' }), fonds]);
+    var vp = contenus.presentation;
+    if (b.type === 'text') {
+        formulaireTexte(vp, b, redessiner, maj);
+        vp.appendChild(blocTaille);
+        vp.appendChild(blocFond);
     }
-    var tmp = creer('div', {});
-    ({ kpi: formulaireKPI, kpigrid: formulaireGrille, bar: formulaireBarres, line: formulaireLigne, donut: formulaireDonut, radar: formulaireRadar,
-        table: formulaireTable, progress: formulaireProgression, latest: formulaireDernieres, gauge: formulaireJauge, histogram: formulaireHistogramme,
-        funnel: formulaireEntonnoir, heatmap: formulaireCroise, gantt: formulaireGantt }[b.type] || function () { })(tmp, b, redessiner, maj);
-    Array.prototype.slice.call(tmp.childNodes).forEach(function (n) {
-        var h = n.classList && n.classList.contains('gb-section') ? n.querySelector('.gb-section__titre') : null;
-        (h && SECTIONS_PRESENTATION.indexOf(h.textContent) !== -1 ? vp : vc).appendChild(n);
+    else {
+        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
+            var neuve = nouvelleTuile(b.type, v);
+            neuve.id = b.id;
+            neuve.taille = b.taille;
+            neuve.fond = b.fond;
+            Object.keys(b).forEach(function (x) { delete b[x]; });
+            Object.assign(b, neuve);
+            relayer(assurerDonnees(v).then(function () { redessiner('eTable'); }), 'Changement de liste');
+        }, 'Choisissez une liste')));
+        if (tid) {
+            voletLignes(contenus.lignes, b, redessiner, maj);
+            var tmp = creer('div', {});
+            ({ kpi: formulaireKPI, kpigrid: formulaireGrille, bar: formulaireBarres, line: formulaireLigne, donut: formulaireDonut, radar: formulaireRadar,
+                table: formulaireTable, progress: formulaireProgression, latest: formulaireDernieres, gauge: formulaireJauge, histogram: formulaireHistogramme,
+                funnel: formulaireEntonnoir, heatmap: formulaireCroise, gantt: formulaireGantt }[b.type] || function () { })(tmp, b, redessiner, maj);
+            Array.prototype.slice.call(tmp.childNodes).forEach(function (n) {
+                var h = n.classList && n.classList.contains('gb-section') ? n.querySelector('.gb-section__titre') : null;
+                var cle = (h && SECTION_VERS_GROUPE[h.textContent]) || 'decoupage';
+                if (cle === 'decoupage') {
+                    var calc = n.querySelectorAll('[data-partie="calcul"]');
+                    if (calc.length) {
+                        var sc = creer('div', { classe: 'gb-section' });
+                        Array.prototype.forEach.call(calc, function (x) { sc.appendChild(x); });
+                        contenus.calcul.appendChild(sc);
+                    }
+                }
+                contenus[cle].appendChild(n);
+            });
+        }
+        vp.insertBefore(blocFond, vp.firstChild);
+        vp.insertBefore(blocTaille, vp.firstChild);
+        vp.insertBefore(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); })), vp.firstChild);
+    }
+    form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
+    var liste = creer('ol', { classe: 'gb-acc' });
+    var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' || (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
+    visibles.forEach(function (g, k) {
+        var c = contenus[g.cle];
+        Array.prototype.forEach.call(c.querySelectorAll('.gb-section'), function (sct) {
+            if (!sct.textContent.trim()) {
+                sct.remove();
+            }
+        });
+        var secs = c.querySelectorAll(':scope > .gb-section');
+        if (secs.length === 1 && c.childNodes.length === 1) {
+            var h1 = secs[0].querySelector(':scope > .gb-section__titre');
+            if (h1) {
+                h1.remove();
+            }
+        }
+        var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
+            presentation: function () { return 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
+        resume = resume ? resume() : resumeDepuisChamps(c);
+        var ouvert = _sectionTuile === g.cle;
+        var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
+            creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
+            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), resume ? creer('span', { classe: 'gb-acc__resume', texte: resume }) : null])]);
+        bt.addEventListener('click', function () {
+            _sectionTuile = _sectionTuile === g.cle ? null : g.cle;
+            redessiner('eSec-' + g.cle);
+        });
+        c.id = 'eSecCorps-' + g.cle;
+        c.hidden = !ouvert;
+        liste.appendChild(creer('li', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : '') }, [bt, c]));
     });
-    voletLignes(vl, b, redessiner, maj);
+    form.appendChild(liste);
+}
+function nomFond(code) { return (FONDS_TUILE.filter(function (f) { return f.code === code; })[0] || {}).nom || ''; }
+function resumeReperes(b) {
+    var l = [];
+    if (b.comparer) {
+        l.push('Tendance');
+    }
+    if (b.cible) {
+        l.push('Objectif');
+    }
+    if (b.seuils) {
+        l.push('Couleur selon la valeur');
+    }
+    return l.length ? l.join(' · ') : 'Aucun';
+}
+function resumeLignesTuile(b) {
+    if (!b.table) {
+        return '';
+    }
+    var conds = (b.filtres || []).filter(function (c) { return c && c.col && infoColonne(b.table, c.col) && !(Array.isArray(c.val) && !c.val.length); });
+    return libelleTable(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(', ') : 'toutes les lignes');
 }
 function voletLignes(vl, b, redessiner, maj) {
     var tid = b.table;
     var conds = b.filtres = b.filtres || [];
-    vl.appendChild(creer('p', { classe: 'w-texte fr-mb-1w', texte: conds.length
-        ? 'Une ligne de ' + libelleTable(tid) + ' est prise en compte si elle remplit ' + (conds.length > 1 ? 'toutes ces conditions.' : 'cette condition.')
-        : 'Toutes les lignes de ' + libelleTable(tid) + ' sont prises en compte. Ajoutez une condition pour garder seulement une année, ou écarter un statut.' }));
     var raccourcis = [];
     var dt = meilleureDate(tid);
     if (dt) {
-        raccourcis.push({ id: 'eRacAnnee', texte: 'Garder une année (' + libCol(tid, dt) + ')', cond: { col: dt, op: 'year', val: new Date().getFullYear() } });
+        raccourcis.push({ id: 'eRacAnnee', texte: 'Garder une année : ' + libCol(tid, dt), cond: { col: dt, op: 'year', val: new Date().getFullYear() } });
     }
     var ca = meilleureCategorie(tid, 2, 40);
     if (ca) {
-        raccourcis.push({ id: 'eRacExclure', texte: 'Écarter des valeurs (' + libCol(tid, ca) + ')', cond: { col: ca, op: 'not', val: [] } });
-        raccourcis.push({ id: 'eRacGarder', texte: 'Garder seulement des valeurs (' + libCol(tid, ca) + ')', cond: { col: ca, op: 'is', val: [] } });
+        raccourcis.push({ id: 'eRacExclure', texte: 'Écarter des valeurs : ' + libCol(tid, ca), cond: { col: ca, op: 'not', val: [] } });
+        raccourcis.push({ id: 'eRacGarder', texte: 'Garder seulement des valeurs : ' + libCol(tid, ca), cond: { col: ca, op: 'is', val: [] } });
     }
     if (raccourcis.length) {
-        var ul = creer('ul', { classe: 'gb-puces fr-mb-1w', attrs: { 'aria-label': 'Ajouter une condition toute prête' } });
+        var ul = creer('ul', { classe: 'gb-puces fr-mb-1w', attrs: { 'aria-label': 'Conditions toutes prêtes' } });
         raccourcis.forEach(function (r) {
             var bt = creer('button', { classe: 'gb-puce fr-icon-add-line', texte: r.texte, attrs: { id: r.id, type: 'button' } });
             bt.addEventListener('click', function () { conds.push(cloner(r.cond)); redessiner('eFVal' + (conds.length - 1) + (r.cond.op === 'year' ? '' : '0')); });
@@ -9905,8 +9970,6 @@ function voletLignes(vl, b, redessiner, maj) {
         vl.appendChild(ul);
     }
     vl.appendChild(editeurConditions(b, 'filtres', 'eF', redessiner, maj));
-    vl.appendChild(creer('div', { classe: 'gb-compte-lignes', id: 'eCompteVolet', attrs: { 'aria-live': 'polite' } }));
-    vl.appendChild(creer('p', { classe: 'w-mention fr-mt-1w', texte: 'Les filtres du volet du tableau de bord (période, choix) s\'ajoutent à ces conditions quand les lecteurs les utilisent.' }));
 }
 function editeurMesure(b, redessiner, maj, o) {
     o = o || {};
@@ -9936,6 +9999,7 @@ function editeurMesure(b, redessiner, maj, o) {
         }
         bloc.push(rangee(champs));
     }
+    bloc.forEach(function (n) { n.setAttribute('data-partie', 'calcul'); });
     return bloc;
 }
 function colonnesPour(tid, agg, rang) {
@@ -10047,8 +10111,7 @@ function formulaireGrille(form, b, redessiner, maj) {
     form.appendChild(section('Un indicateur par', [choixGroupe('eGroupe', 'Colonne des catégories', b, 'groupe', redessiner, maj, 'Par exemple Site, Région, Équipe.')]));
     form.appendChild(section('Valeur de chaque indicateur', editeurMesure(b, redessiner, maj)));
     form.appendChild(section('Objectif et couleurs', editeurCible(b, ['fixe', 'colonne', 'table'], redessiner, maj).concat([
-        caseOption('eBas', 'Plus bas, c\'est mieux', !!b.plusBas, function (on) { b.plusBas = on; maj(); }),
-        creer('p', { classe: 'w-mention', texte: 'Chaque indicateur indique « Objectif atteint », « Proche de l\'objectif » (à 10 % près) ou « Sous l\'objectif », en toutes lettres et par un bord coloré.' })
+        caseOption('eBas', 'Plus bas, c\'est mieux', !!b.plusBas, function (on) { b.plusBas = on; maj(); })
     ])));
     form.appendChild(section('Affichage', [rangee([choixTri(b, maj), choixNombre('eMax', 'Au plus', b, 'max', 60, 1, 200, maj, 'indicateurs')]),
         rangee([groupe('Avant le nombre', champSaisie('ePre', b.prefixe || '', function (v) { b.prefixe = v; maj(); })), groupe('Après le nombre', champSaisie('eSuf', b.suffixe || '', function (v) { b.suffixe = v; maj(); }))])]));
@@ -10180,7 +10243,7 @@ function formulaireDernieres(form, b, redessiner, maj) {
 }
 function formulaireTexte(form, b, redessiner, maj) {
     form.appendChild(groupe('Style', champListe('eStyle', [{ valeur: 'titre', libelle: 'Intertitre (un titre de partie sur le tableau de bord)' }, { valeur: 'note', libelle: 'Note (un texte mis en avant pour les lecteurs)' }], b.style || 'note', function (v) { b.style = v; maj(); })));
-    form.appendChild(groupe('Text', champSaisie('eTexte', b.texte || '', function (v) { b.texte = v; maj(); }, { multiligne: true, lignes: 6 }), 'Texte simple. Les adresses web (https://...) deviennent des liens.'));
+    form.appendChild(groupe('Texte', champSaisie('eTexte', b.texte || '', function (v) { b.texte = v; maj(); }, { multiligne: true, lignes: 6 }), 'Texte simple. Les adresses web (https://...) deviennent des liens.'));
 }
 function listeCases(id, options, choisis, surChange) {
     var box = creer('div', { classe: 'gb-cases', id: id, attrs: { role: 'group' } });
@@ -11208,15 +11271,15 @@ function rendreDepart(bloc) {
         ]);
     };
     var tDonnees = option('dDonnees', 'database-line', 'J\'ai déjà des données', aDesDonnees
-        ? 'WuitStats examine vos listes et propose des tableaux de bord prêts : nombres, totaux, graphiques par catégorie et dans le temps. Ou branchez-vous sur n\'importe quelle liste.'
+        ? 'Des tableaux de bord proposés d\'après vos listes.'
         : 'Ce document n\'a pas encore de liste de données : ce choix sera proposé dès qu\'il en aura une.', 'Partir de mes données', function () { return choisirDepart('donnees'); }, aDesDonnees, b.choix === 'donnees');
     if (!aDesDonnees) {
         tDonnees.querySelector('button').disabled = true;
     }
     var cartes = [tDonnees,
-        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les listes, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
+        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Six modèles : le widget crée les listes et le tableau de bord.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
     if (etat.reprisesPresentes) {
-        cartes.push(option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'Reprendre mes anciens réglages', 'Ce document contient des réglages de WuitBoard, WuitGraphiques ou WuitPivot : reprenez-les ici. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
+        cartes.push(option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'Reprendre mes anciens réglages', 'Vos tableaux WuitBoard, WuitGraphiques et WuitPivot, sans toucher aux originaux.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
     }
     else if (etat.reprisesPresentes === undefined) {
         etat.reprisesPresentes = false;
@@ -11423,7 +11486,7 @@ function blocSuggestions() {
         ]));
     });
     bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'sTitre', texte: 'Tableaux de bord suggérés d\'après vos listes', attrs: { tabindex: '-1' } }),
-        sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : vos listes n\'ont pas encore de lignes, ou trop peu de colonnes à représenter. Branchez-vous sur une liste ci-dessous.' })]));
+        sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion pour vos listes.' })]));
     var tables = tablesUtilisateur();
     var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
     var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos listes', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
@@ -11438,7 +11501,6 @@ function blocSuggestions() {
     var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
     var vierge = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sVierge' } }, [
         creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-add-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sVierge', texte: 'Page blanche' })]),
-        creer('p', { classe: 'w-mention fr-m-0', texte: 'Aucune tuile au départ : vous les ajoutez une à une, avec des suggestions pour chaque liste.' }),
         groupeChamp('Liste', choixV),
         creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir d\'une page blanche', 'secondaire', 'arrow-right-line', function () {
                 return utiliserConfig({ nom: '', description: '', table: choixV.value, periode: null, filtres: [], tuiles: [], origine: 'blank' }, null);
@@ -11447,7 +11509,6 @@ function blocSuggestions() {
     var choixTT = liste('sTableToutes', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
     var toutes = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sToutes' } }, [
         creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-layout-grid-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sToutes', texte: 'Toutes les tuiles' })]),
-        creer('p', { classe: 'w-mention fr-m-0', texte: 'Une tuile de chaque sorte, déjà réglée sur vos colonnes : vous supprimez celles qui ne vous servent pas.' }),
         groupeChamp('Liste', choixTT),
         creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de toutes les tuiles', 'secondaire', 'arrow-right-line', function () {
                 return utiliserConfig(configToutesTuiles(choixTT.value), 'le modèle « Toutes les tuiles »');
@@ -11457,8 +11518,7 @@ function blocSuggestions() {
     return bloc;
 }
 function blocModeles() {
-    var bloc = creer('section', { attrs: { 'aria-labelledby': 'mTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'mTitre', texte: 'Modèles prêts à l\'emploi', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-texte w-mention', texte: 'Un modèle crée ses listes dans votre document (après votre confirmation), puis un tableau de bord prêt, que vous adaptez à votre guise.' })]);
+    var bloc = creer('section', { attrs: { 'aria-labelledby': 'mTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'mTitre', texte: 'Modèles prêts à l\'emploi', attrs: { tabindex: '-1' } })]);
     var grille = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
     MODELES.forEach(function (m) {
         var cfgFictive = m.tableau(m.tables.reduce(function (o, t) { o[t.id] = t.id; return o; }, {}));
@@ -11552,8 +11612,7 @@ function etapeTable() {
     var lu = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecLues' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecLues', texte: 'Listes lues par les tuiles' })]),
         lues.length ? creer('ul', { classe: 'w-texte w-apercu__filtres' }, lues.map(function (tid) { return creer('li', { texte: libelleTable(tid) + ' (' + nombreSur(nbLignes(tid), 'ligne') + ')' }); }))
-            : creer('p', { classe: 'w-mention', texte: 'Aucune tuile pour l\'instant.' }),
-        creer('p', { classe: 'w-mention', texte: 'Vos listes sont seulement lues : un tableau de bord n\'y écrit jamais.' })
+            : creer('p', { classe: 'w-mention', texte: 'Aucune tuile pour l\'instant.' })
     ]);
     return grilleParam([[tables], [lu]], '1-1');
 }
