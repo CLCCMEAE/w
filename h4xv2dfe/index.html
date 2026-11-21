@@ -653,6 +653,10 @@
     .gb-liste-tuiles > li { list-style: none; }
     .gb-liste-tuiles > li::marker { content: none; }
     .gb-liste-tuiles__ligne { display: flex; flex-direction: column; gap: .25rem; padding: .5rem .5rem .25rem .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .gb-liste-tuiles__ligne { cursor: grab; }
+    .gb-liste-tuiles__ligne--glisse { opacity: .5; }
+    .gb-liste-tuiles__ligne--cible { outline: 3px dashed var(--border-action-high-blue-france); outline-offset: 2px; }
+    .gb-grille--glisser .gb-tuile { cursor: grab; }
     .gb-liste-tuiles__tete { display: flex; align-items: center; gap: .5rem; }
     .gb-liste-tuiles__tete .gb-mini__g { flex: none; width: 1.75rem; height: .875rem; margin: 0; }
     .gb-liste-tuiles__nom { flex: 1; min-width: 0; font-size: .875rem; font-weight: 700; line-height: 1.4; }
@@ -954,7 +958,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.34';
+var VERSION_WIDGET = '2.1.35';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11527,6 +11531,63 @@ function etapeListeTdb() {
     desc.addEventListener('input', function () { cfg.description = desc.value; majAttente(); });
     return creer('div', { classe: 'gb-atelier-liste' }, [choixTablePrincipale(cfg), groupeChamp('Description', desc)]);
 }
+function grilleApercuTdb(cfg, glisser) {
+    var g = grilleTuiles(cfg, null, 'wa');
+    if (glisser) {
+        g.classList.add('gb-grille--glisser');
+        Array.prototype.forEach.call(g.querySelectorAll('.gb-tuile'), function (art) { art.setAttribute('draggable', 'true'); });
+        brancherGlisserGrille(g, contexteBrouillon());
+    }
+    return g;
+}
+function brancherGlisserListe(ul, ctx) {
+    var de = -1;
+    ul.addEventListener('dragstart', function (e) {
+        var li = e.target.closest ? e.target.closest('li[data-index]') : null;
+        if (!li) {
+            return;
+        }
+        de = Number(li.getAttribute('data-index'));
+        li.classList.add('gb-liste-tuiles__ligne--glisse');
+        try {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(de));
+        }
+        catch (x) {
+            logSecurite('INFO', 'Données de glisser non posées', x);
+        }
+    });
+    ul.addEventListener('dragover', function (e) {
+        if (de < 0) {
+            return;
+        }
+        e.preventDefault();
+        ul.querySelectorAll('.gb-liste-tuiles__ligne--cible').forEach(function (n) { n.classList.remove('gb-liste-tuiles__ligne--cible'); });
+        var li = e.target.closest ? e.target.closest('li[data-index]') : null;
+        if (li) {
+            li.classList.add('gb-liste-tuiles__ligne--cible');
+        }
+    });
+    ul.addEventListener('drop', function (e) {
+        if (de < 0) {
+            return;
+        }
+        e.preventDefault();
+        var li = e.target.closest ? e.target.closest('li[data-index]') : null;
+        var vers = li ? Number(li.getAttribute('data-index')) : -1;
+        var source = de;
+        de = -1;
+        if (vers < 0 || vers === source) {
+            ul.querySelectorAll('li').forEach(function (n) { n.classList.remove('gb-liste-tuiles__ligne--glisse', 'gb-liste-tuiles__ligne--cible'); });
+            return;
+        }
+        ctx.changer(function (c) { var x = c.tuiles.splice(source, 1)[0]; c.tuiles.splice(vers, 0, x); }, 'Tuile déplacée en position ' + (vers + 1), '#wgEditer' + vers);
+    });
+    ul.addEventListener('dragend', function () {
+        de = -1;
+        ul.querySelectorAll('li').forEach(function (n) { n.classList.remove('gb-liste-tuiles__ligne--glisse', 'gb-liste-tuiles__ligne--cible'); });
+    });
+}
 function titreParametrageAtelier() {
     return creer('h3', { classe: 'gb-resultat__titre gb-titre-param', texte: 'Paramétrage' });
 }
@@ -11562,10 +11623,11 @@ function etapeTuilesListe() {
             afficherSucces('Tuile « ' + nom + ' » supprimée.', { libelle: 'Annuler la suppression', action: function () { ctx.annuler(); } });
         }, { bulle: 'Supprimer' });
         supprimer.classList.add('gb-danger');
-        ul.appendChild(creer('li', { classe: 'gb-liste-tuiles__ligne' }, [
+        ul.appendChild(creer('li', { classe: 'gb-liste-tuiles__ligne', attrs: { draggable: 'true', 'data-index': String(i) } }, [
             creer('div', { classe: 'gb-liste-tuiles__tete' }, [glypheType(categorieTuile(t) === 'croise' ? 'croise' : t.type), creer('span', { classe: 'gb-liste-tuiles__nom', texte: nom })]),
             creer('div', { classe: 'gb-liste-tuiles__outils' }, [avant, apres, taille, creer('span', { classe: 'w-pousse' }), editer, supprimer])]));
     });
+    brancherGlisserListe(ul, ctx);
     var plus = creer('button', { classe: 'gb-rang__ajout', id: 'wgAjoutTuile', attrs: { type: 'button', 'aria-label': 'Ajouter une tuile' } }, [creer('span', { classe: 'fr-icon-add-line gb-rang__plus', attrs: { 'aria-hidden': 'true' } })]);
     plus.addEventListener('click', function () { ouvrirChoixType(ctx); });
     return creer('div', { classe: 'gb-atelier-liste' }, [ul, plus,
@@ -11630,7 +11692,7 @@ function rendreAtelierTdb(zone) {
     if (!plein) {
         cols.push(creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }),
             nom === 'Affichage et filtres' ? creer('div', { classe: 'w-apercu__corps', id: 'aApercuCorps' }, [affichageApercu(b.cfg)]) : null,
-            b.cfg.tuiles.length ? creer('div', { classe: 'gb-apercu-fond' }, [grilleTuiles(b.cfg, null, 'wa')]) : etatVide('Aucune tuile', '')]));
+            b.cfg.tuiles.length ? creer('div', { classe: 'gb-apercu-fond' }, [grilleApercuTdb(b.cfg, nom === 'Les tuiles')]) : etatVide('Aucune tuile', '')]));
     }
     zone.appendChild(creer('div', { classe: 'gb-constr gb-atelier-tdb' + (etat.entreeVue ? ' gb-constr--entree' : '') }, [haut, creer('div', { classe: 'gb-constr__corps' }, cols)]));
 }
