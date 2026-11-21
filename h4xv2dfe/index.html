@@ -216,12 +216,12 @@
     @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
     .w-infobulle { position: relative; overflow: visible !important; }
-    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: auto; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
-    .w-infobulle--dessous::after { bottom: auto; top: calc(100% + .375rem); }
+    .w-infobulle--dessous::after { top: auto; bottom: calc(100% + .375rem); }
     .w-general { display: flex; flex-direction: column; }
     .w-general > .w-grille + .w-grille { padding-top: 0; }
     .w-section-page { gap: .75rem; }
@@ -561,6 +561,11 @@
     .gb-rang__ajout:hover { text-decoration: underline; }
     .gb-rang__ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .gb-rang__ajout:disabled { opacity: .5; cursor: not-allowed; }
+    .gb-barre-export { display: flex; justify-content: flex-end; gap: .25rem; margin: 0 0 .5rem; }
+    .gb-menu { position: relative; display: inline-block; }
+    .gb-menu__panneau { position: absolute; right: 0; top: calc(100% + .25rem); z-index: 20; display: flex; flex-direction: column; align-items: stretch; min-width: 15rem; padding: .25rem; background: var(--background-default-grey, #fff); border: 1px solid var(--border-default-grey); box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+    .gb-menu__panneau[hidden] { display: none; }
+    .gb-menu__panneau .fr-btn { justify-content: flex-start; width: 100%; }
     .gb-rang__plus::before { --icon-size: 3.5rem; }
     .gb-rang__ajout { flex: none; align-self: center; padding: .5rem 1rem; }
     .gb-rang__ajout:hover { text-decoration: none; background: var(--background-alt-grey); }
@@ -720,7 +725,7 @@
     @media print {
       body { height: auto; overflow: visible; display: block; background: var(--background-default-grey); color: var(--text-default-grey); }
       .w-contenu { overflow: visible; padding: 0; background: var(--background-default-grey) !important; color: var(--text-default-grey); }
-      .w-onglets, .gb-volet, .gb-basculer, .w-barre-vue__commandes, .gb-tuile__outils, .gb-edition, .gb-barre-edition, .gb-ajout, .w-toast, #skipLink, .gb-bulle, .w-panneau-aide { display: none !important; }
+      .w-onglets, .gb-volet, .gb-basculer, .w-barre-vue__commandes, .gb-tuile__outils, .gb-barre-export, .gb-edition, .gb-barre-edition, .gb-ajout, .w-toast, #skipLink, .gb-bulle, .w-panneau-aide { display: none !important; }
       .w-bandeau { border-bottom: 1px solid var(--border-default-grey); }
       .gb-disposition { display: block; }
       .gb-filtres-impression { display: block; margin: 0 0 .5rem; font-size: .8125rem; color: var(--text-default-grey); }
@@ -854,7 +859,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.5';
+var VERSION_WIDGET = '2.1.6';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9053,9 +9058,11 @@ function rendreTableau(zone) {
         etat.majA ? creer('span', { classe: 'gb-stamp fr-icon-time-line', id: 'gStamp', texte: 'Mis à jour à ' + heureCourte(etat.majA) }) : null
     ], seulAdmin ? [pagesT.length ? null : bouton('Publier', null, 'send-plane-line', publierElementExistant, { petit: true, id: 'gPublierSeul' }),
         bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
-        bouton('Ajouter un élément', 'secondaire', 'add-line', ajouterElementAuTableau, { petit: true, id: 'gAjouterSeul' }),
-        bouton('Ajouter à un tableau de bord', 'secondaire', 'layout-grid-line', ouvrirAjoutATableau, { petit: true, id: 'gAjoutTableau' }),
-        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' })].concat(outilsPageSeule(cfg), [boutonPleinEcran()]) : [].concat(cfg.seul ? outilsPageSeule(cfg) : [],[cfg.seul ? null : boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), cfg.seul ? null : boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' }), boutonPleinEcran()]));
+        menuActions('Autres actions', 'gPlus', [
+            { libelle: 'Ajouter un élément', icone: 'add-line', action: ajouterElementAuTableau, id: 'gAjouterSeul' },
+            { libelle: 'Ajouter à un tableau de bord', icone: 'layout-grid-line', action: ouvrirAjoutATableau, id: 'gAjoutTableau' },
+            { libelle: 'Supprimer', icone: 'delete-line', action: supprimerElement, id: 'gSupprimerSeul', danger: true }]),
+        boutonPleinEcran()] : [].concat(cfg.seul ? [] : [boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' })], [boutonPleinEcran()]));
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
@@ -9096,7 +9103,7 @@ function rendreTableau(zone) {
     basculer.setAttribute('aria-expanded', etat.voletOuvert ? 'true' : 'false');
     basculer.setAttribute('aria-controls', 'gVolet');
     var principal = creer('div', { classe: 'gb-principal' }, [barre, cfg.description ? creer('p', { classe: 'gb-desc', texte: cfg.description }) : null,
-        etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
+        etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), etat.edition ? null : barreExport(cfg), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
     var voletVide = !volet.childNodes.length;
     zone.appendChild(creer('div', { classe: 'gb-disposition' }, voletVide ? [principal] : [basculer, volet, poigneeVolet(volet, function () { return nbFiltresActifs(cfg); }), principal]));
 }
@@ -11778,6 +11785,41 @@ async function enregistrerElement() {
         f.focus();
     }
     afficherSucces('Enregistré.');
+}
+function barreExport(cfg) {
+    var l = outilsPageSeule(cfg);
+    return l.length ? creer('div', { classe: 'gb-barre-export', attrs: { role: 'group', 'aria-label': 'Copier, exporter et imprimer' } }, l) : null;
+}
+function menuActions(libelle, id, items) {
+    var panneau = creer('div', { classe: 'gb-menu__panneau', id: id + 'Panneau', attrs: { role: 'group', 'aria-label': libelle } });
+    panneau.hidden = true;
+    var decl = boutonIcone(libelle, 'more-line', function () { basculer(panneau.hidden); }, { id: id, variante: 'secondaire' });
+    decl.setAttribute('aria-expanded', 'false');
+    decl.setAttribute('aria-controls', id + 'Panneau');
+    var racine = creer('div', { classe: 'gb-menu' }, [decl, panneau]);
+    var fermerDehors = function (e) { if (!racine.contains(e.target)) {
+        basculer(false);
+    } };
+    var basculer = function (ouvrir) {
+        panneau.hidden = !ouvrir;
+        decl.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
+        if (ouvrir) {
+            document.addEventListener('click', fermerDehors, true);
+        }
+        else {
+            document.removeEventListener('click', fermerDehors, true);
+        }
+    };
+    items.forEach(function (it) {
+        var b = bouton(it.libelle, 'discret', it.icone, function () { basculer(false); it.action(); }, { petit: true, id: it.id, classe: it.danger ? 'gb-danger' : '' });
+        panneau.appendChild(b);
+    });
+    racine.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panneau.hidden) {
+        e.stopPropagation();
+        basculer(false);
+        decl.focus();
+    } });
+    return racine;
 }
 function outilsPageSeule(cfg) {
     var t = cfg.tuiles && cfg.tuiles[0];
