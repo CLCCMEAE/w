@@ -182,6 +182,9 @@
     .w-onglets { margin-bottom: 1rem; }
     .tab-nav.w-onglets .fr-tabs__list { display: flex; flex: 0 1 auto; min-width: 0; overflow-x: auto; flex-wrap: nowrap; list-style: none; margin: 0; padding: 0; }
     .tab-nav.w-onglets .fr-tabs__list li { flex-shrink: 0; }
+    .w-onglets--param { display: flex; align-items: flex-end; gap: 1rem; }
+    .w-onglets--param .fr-tabs__list { flex: 1 1 auto; }
+    .w-onglets__param { flex: none; margin-left: auto; }
     .w-onglet { white-space: nowrap; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; display: block; }
     .w-onglets .fr-tabs__tab.w-onglet[class*="fr-icon-"] { display: inline-flex; align-items: center; gap: .4rem; }
     .w-onglets .fr-tabs__tab.w-onglet::before { --icon-size: 1rem; flex: none; }
@@ -868,7 +871,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.12';
+var VERSION_WIDGET = '2.1.13';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8316,8 +8319,11 @@ function ongletsTableaux() {
     var creation = enCreation();
     etat.tableaux.forEach(function (t, i) {
         var actif = !creation && t.cle === etat.cleConfig;
-        var b = creer('button', { classe: 'fr-tabs__tab w-onglet', id: 'gOnglet' + i, texte: t.config.nom || 'Tableau de bord sans nom',
-            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: actif ? '0' : '-1' } });
+        var avecOeil = etat.peutParametrer && !etat.page;
+        var publieT = avecOeil && pagesDuTableau(t.cle).length > 0;
+        var nomT = t.config.nom || 'Tableau de bord sans nom';
+        var b = creer('button', { classe: 'fr-tabs__tab w-onglet' + (avecOeil ? ' fr-tabs__tab--icon-left ' + (publieT ? 'fr-icon-eye-line' : 'fr-icon-eye-off-line') : ''), id: 'gOnglet' + i, texte: nomT,
+            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: actif ? '0' : '-1', 'aria-label': avecOeil ? nomT + (publieT ? ', publié' : ', brouillon') : null } });
         onglets.push(b);
         activer.push(function () { return allerAuTableau(t.cle); });
     });
@@ -8370,7 +8376,9 @@ function ongletsTableaux() {
     setTimeout(function () { var a = document.querySelector('.w-onglet[aria-selected="true"]'); if (a && a.scrollIntoView) {
         a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } }, 0);
-    return creer('nav', { classe: 'tab-nav w-onglets', attrs: { 'aria-label': 'Navigation entre les tableaux de bord' } }, [ul]);
+    var reglages = etat.peutParametrer && !etat.page && etat.config && !enCreation() && !enParametrage()
+        ? bouton('Paramètres', 'tertiaire', 'settings-5-line', ouvrirParametrage, { petit: true, id: 'gParametresWidget', classe: 'w-onglets__param' }) : null;
+    return creer('nav', { classe: 'tab-nav w-onglets' + (reglages ? ' w-onglets--param' : ''), attrs: { 'aria-label': 'Navigation entre les tableaux de bord' } }, [ul, reglages]);
 }
 function envelopperOnglets(zone) {
     var actif = 'gOngletNouveau';
