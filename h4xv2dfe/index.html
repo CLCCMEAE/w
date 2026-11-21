@@ -253,6 +253,13 @@
     .w-infobulle.w-astuce-nom[data-infobulle]::after { left: 0; right: auto; white-space: normal !important; width: 17rem !important; }
     .gb-constr__etiquette { display: flex; align-items: center; gap: .125rem; }
     .gb-constr__etiquette .fr-btn { margin: 0; }
+    .w-reglages { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .w-reglages__nav { flex: 0 0 15rem; position: sticky; top: 0; }
+    .w-reglages__corps { flex: 1 1 0; min-width: 0; }
+    .w-reglages__nav .gb-acc__tete { width: 100%; text-align: left; }
+    .w-reglages__nav .gb-acc__tete::after { display: none !important; }
+    .w-reglages__nav .gb-acc__item--ouvert .gb-acc__resume { display: block; }
+    @media (max-width: 52em) { .w-reglages { flex-direction: column; } .w-reglages__nav { flex-basis: auto; width: 100%; position: static; } }
     .w-reglages__etat { margin: 0 0 .5rem; }
     .w-reglages__pages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-reglages__pages li { display: flex; flex-direction: column; gap: .125rem; }
@@ -881,7 +888,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.14';
+var VERSION_WIDGET = '2.1.15';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11895,28 +11902,30 @@ function rendreReglages(zone) {
         { cle: 'droits', nom: 'Les droits', resume: etat.pageProtegee ? 'Page admin cachée' : 'Page admin visible', contenu: contenuDroits },
         { cle: 'lecteurs', nom: 'Page des lecteurs', resume: n ? n + (n > 1 ? ' pages publiées' : ' page publiée') : 'Aucune page publiée', contenu: contenuReglagesLecteurs }
     ];
-    var liste = creer('div', { classe: 'gb-acc', attrs: { role: 'list' } });
+    if (!sections.some(function (g) { return g.cle === _sectionReglages; })) {
+        _sectionReglages = sections[0].cle;
+    }
+    var nav = creer('div', { classe: 'gb-acc w-reglages__nav', attrs: { role: 'list' } });
+    var corps = creer('div', { classe: 'w-reglages__corps', id: 'rCorps' });
     sections.forEach(function (g, k) {
         var ouvert = _sectionReglages === g.cle;
-        var c = creer('div', { id: 'rSecCorps-' + g.cle });
-        c.hidden = !ouvert;
         if (ouvert) {
-            c.appendChild(g.contenu());
+            corps.appendChild(g.contenu());
         }
-        var bt = creer('button', { classe: 'gb-acc__tete', id: 'rSec-' + g.cle, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'rSecCorps-' + g.cle } }, [
+        var bt = creer('button', { classe: 'gb-acc__tete', id: 'rSec-' + g.cle, attrs: { type: 'button', 'aria-current': ouvert ? 'step' : null } }, [
             creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
             creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), creer('span', { classe: 'gb-acc__resume', texte: g.resume })])]);
         bt.addEventListener('click', function () {
-            _sectionReglages = _sectionReglages === g.cle ? null : g.cle;
+            _sectionReglages = g.cle;
             afficherVue('reglages', true);
             var f = document.getElementById('rSec-' + g.cle);
             if (f) {
                 f.focus();
             }
         });
-        liste.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt, c]));
+        nav.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt]));
     });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, liste]));
+    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'w-reglages' }, [nav, corps])]));
 }
 function nomElementValide() {
     var b = etat.construction.b;
