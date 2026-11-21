@@ -174,9 +174,9 @@
     @media (max-width: 48em) { .w-accueil__menu { flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--border-default-grey); } }
     .w-carte { position: relative; display: flex; flex-direction: column; min-height: 7.5rem; box-sizing: border-box; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: var(--text-default-grey); }
     .w-carte:hover { border-color: var(--border-action-high-blue-france); }
-    .w-carte__principal, .w-carte--table, .w-carte--brouillon { flex: 1 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; width: 100%; padding: .875rem 3rem .875rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .w-carte__corps, .w-carte--table, .w-carte--brouillon { flex: 1 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; width: 100%; padding: .875rem 3rem .875rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
     .w-carte--table, .w-carte--brouillon { padding-right: 1rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
-    .w-carte__principal:focus-visible, .w-carte--table:focus-visible, .w-carte--brouillon:focus-visible, .w-carte--ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-carte--table:focus-visible, .w-carte--brouillon:focus-visible, .w-carte--ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .w-carte__titre { font-weight: 700; font-size: 1rem; color: var(--text-title-grey); overflow-wrap: anywhere; }
     .w-carte__tables { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; overflow-wrap: anywhere; }
     .w-carte__sous { font-size: .8125rem; color: var(--text-mention-grey); }
@@ -298,6 +298,11 @@
       .w-constr__resultat .csnc-preview-grille { min-height: 8rem; max-height: none; overscroll-behavior: contain; }
       .w-constr__resultat .w-feuilles { flex-shrink: 0; }
     }
+    .w-carte__corps { cursor: default; padding-bottom: .5rem; }
+    .w-carte__ligne { display: block; }
+    .w-carte__bas { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: 0 1rem .875rem; }
+    .w-carte__bas .w-carte__maj { margin: 0; padding: 0; text-align: left; align-self: center; }
+    .w-carte__bas .fr-btn { margin: 0 0 0 auto; }
 </style>
 </head>
 <body>
@@ -3597,21 +3602,24 @@ function carteModele(d, k) {
     var inf = infosModele(d);
     var nom = d.NOM || 'Modèle sans nom';
     var carte = el('div', { class: 'w-carte', role: 'listitem' });
-    var bt = el('button', { type: 'button', class: 'w-carte__principal', id: 'carteModele' + k, 'aria-label': 'Ouvrir le modèle ' + nom });
-    bt.appendChild(el('span', { class: 'w-carte__titre', text: nom }));
+    var corps = el('div', { class: 'w-carte__corps' });
+    corps.appendChild(el('span', { class: 'w-carte__titre', text: nom }));
     var tables = el('span', { class: 'w-carte__tables' });
     tables.appendChild(pictoTable());
     tables.appendChild(document.createTextNode(inf.tables.length ? inf.tables.map(libelleTable).join(', ') : 'Table non précisée'));
-    bt.appendChild(tables);
-    bt.appendChild(el('span', { class: 'w-carte__sous', text: inf.nbCol + (inf.nbCol > 1 ? ' colonnes' : ' colonne') + ', ' + (inf.nf ? inf.nf + (inf.nf > 1 ? ' filtres' : ' filtre') : 'toutes les lignes') }));
+    corps.appendChild(tables);
+    corps.appendChild(el('span', { class: 'w-carte__sous', text: inf.nbCol + (inf.nbCol > 1 ? ' colonnes' : ' colonne') + ', ' + (inf.nf ? inf.nf + (inf.nf > 1 ? ' filtres' : ' filtre') : 'toutes les lignes') }));
+    carte.appendChild(corps);
+    var bas = el('div', { class: 'w-carte__bas' });
     var date = dateCourteModele(d.DATE_MAJ || d.DATE_CREATION);
     if (date) {
-        bt.appendChild(el('span', { class: 'w-carte__maj', text: 'Mis à jour le ' + date }));
+        bas.appendChild(el('span', { class: 'w-carte__maj', text: 'Mis à jour le ' + date }));
     }
+    var bt = el('button', { type: 'button', class: 'fr-btn fr-btn--sm fr-icon-arrow-right-line fr-btn--icon-right', id: 'carteModele' + k, 'aria-label': 'Utiliser le modèle ' + nom, text: 'Utiliser ce modèle' });
     bt.addEventListener('click', function () { relayer(ouvrirModele(d.id), 'Ouverture du modèle impossible'); });
-    carte.appendChild(bt);
+    bas.appendChild(bt);
+    carte.appendChild(bas);
     carte.appendChild(menuActions('Actions sur « ' + nom + ' »', 'menuModele' + k, [
-        { libelle: 'Ouvrir', icone: 'arrow-right-line', id: 'ouvrirModele' + k, action: function () { relayer(ouvrirModele(d.id), 'Ouverture du modèle impossible'); } },
         { libelle: 'Dupliquer', icone: 'file-copy-line', id: 'dupliquerModele' + k, action: function () { relayer(dupliquerModele(d.id), 'Duplication impossible'); } },
         { libelle: 'Supprimer', icone: 'delete-line', id: 'supprimerModele' + k, action: function () { relayer(supprimerDisposition(d.id), 'Suppression impossible'); } }
     ]));

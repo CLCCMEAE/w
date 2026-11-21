@@ -291,9 +291,9 @@
     .w-accueil__vide { grid-column: 1 / -1; }
     .w-carte { position: relative; display: flex; flex-direction: column; min-height: 7.5rem; box-sizing: border-box; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: var(--text-default-grey); }
     .w-carte:hover { border-color: var(--border-action-high-blue-france); }
-    .w-carte__principal, .w-carte--table, .w-carte--brouillon { flex: 1 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; width: 100%; padding: .875rem 3rem .875rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .w-carte__corps, .w-carte--table, .w-carte--brouillon { flex: 1 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; width: 100%; padding: .875rem 3rem .875rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
     .w-carte--table, .w-carte--brouillon { padding-right: 1rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
-    .w-carte__principal:focus-visible, .w-carte--table:focus-visible, .w-carte--brouillon:focus-visible, .w-carte--ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-carte--table:focus-visible, .w-carte--brouillon:focus-visible, .w-carte--ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .w-carte__titre { font-weight: 700; font-size: 1rem; color: var(--text-title-grey); overflow-wrap: anywhere; }
     .w-carte__tables { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; overflow-wrap: anywhere; }
     .w-carte__sous { font-size: .8125rem; color: var(--text-mention-grey); }
@@ -403,6 +403,11 @@
       .w-constr__resultat { min-height: 0; overflow: hidden; }
       .w-constr__resultat .csnc-preview-grille { min-height: 8rem; max-height: none; overscroll-behavior: contain; }
     }
+    .w-carte__corps { cursor: default; padding-bottom: .5rem; }
+    .w-carte__ligne { display: block; }
+    .w-carte__bas { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: 0 1rem .875rem; }
+    .w-carte__bas .w-carte__maj { margin: 0; padding: 0; text-align: left; align-self: center; }
+    .w-carte__bas .fr-btn { margin: 0 0 0 auto; }
 </style>
 </head>
 <body>
@@ -1120,15 +1125,7 @@ function carteModeleImport(p) {
     catch (e) {
         logSecurite('AVERTISSEMENT', 'Parametrage enregistre illisible', e);
     }
-    var assocRetenues = cfg.tableAssociations || {};
-    if (Array.isArray(cfg.ongletsRetenus)) {
-        assocRetenues = {};
-        cfg.ongletsRetenus.forEach(function (f) {
-            if (cfg.tableAssociations && cfg.tableAssociations[f])
-                assocRetenues[f] = cfg.tableAssociations[f];
-        });
-    }
-    var tables = libelleTablesModele(assocRetenues);
+    var tables = libelleTablesModele(cfg.tableAssociations);
     var onglets = Array.isArray(cfg.ongletsRetenus) && cfg.ongletsRetenus.length ? cfg.ongletsRetenus : Object.keys(cfg.tableAssociations || {});
     var nbCols = 0;
     Object.keys(cfg.mappings || {}).forEach(function (f) {
@@ -1155,20 +1152,22 @@ function carteModeleImport(p) {
 }
 function carteModeleWuit(m, k) {
     var carte = el('div', { class: 'w-carte', role: 'listitem' });
-    var bt = el('button', { type: 'button', class: 'w-carte__principal', id: 'carteModele' + k, 'aria-label': 'Utiliser le modèle ' + m.nom });
-    bt.appendChild(el('span', { class: 'w-carte__titre', text: m.nom }));
-    bt.appendChild(el('span', { class: 'w-carte__tables', text: m.phrase }));
-    var sous = (m.puces || []).filter(function (t) { return t.indexOf('Fichier d') !== 0; });
-    if (sous.length) {
-        bt.appendChild(el('span', { class: 'w-carte__sous', text: sous.join(' · ') }));
-    }
+    var corps = el('div', { class: 'w-carte__corps' });
+    corps.appendChild(el('span', { class: 'w-carte__titre', text: m.nom }));
+    corps.appendChild(el('span', { class: 'w-carte__tables', text: m.phrase }));
+    var sous = el('span', { class: 'w-carte__sous' });
+    (m.puces || []).forEach(function (t) { sous.appendChild(el('span', { class: 'w-carte__ligne', text: t })); });
+    corps.appendChild(sous);
+    carte.appendChild(corps);
+    var bas = el('div', { class: 'w-carte__bas' });
     if (m.mention) {
-        bt.appendChild(el('span', { class: 'w-carte__maj', text: m.mention }));
+        bas.appendChild(el('span', { class: 'w-carte__maj', text: m.mention }));
     }
+    var bt = el('button', { type: 'button', class: 'fr-btn fr-btn--sm fr-icon-arrow-right-line fr-btn--icon-right', id: 'carteModele' + k, 'aria-label': 'Utiliser le modèle ' + m.nom, text: 'Utiliser ce modèle' });
     bt.addEventListener('click', function () { relayer(utiliserModele(m.id), 'Chargement du modèle impossible'); });
-    carte.appendChild(bt);
+    bas.appendChild(bt);
+    carte.appendChild(bas);
     carte.appendChild(menuActions('Actions sur « ' + m.nom + ' »', 'menuModele' + k, [
-        { libelle: 'Utiliser', icone: 'arrow-right-line', id: 'utiliserModele' + k, action: function () { relayer(utiliserModele(m.id), 'Chargement du modèle impossible'); } },
         { libelle: 'Renommer', icone: 'edit-line', id: 'renommerModele' + k, action: function () { relayer(renommerModele(m.id, m.nom), 'Renommage impossible'); } },
         { libelle: 'Supprimer', icone: 'delete-line', id: 'supprimerModele' + k, action: function () { relayer(supprimerModele(m.id, m.nom), 'Suppression impossible'); } }
     ]));
