@@ -598,6 +598,7 @@
     .gb-etat.gb-rang__etat--suggestion { background: var(--background-contrast-info); color: var(--text-default-info); }
     #gOngletNouveau { margin-right: .5rem; }
     .gb-rang__carte { position: relative; }
+    .gb-rang__carte .gb-rang__maj { margin: auto 0 0; padding-top: .25rem; align-self: stretch; text-align: right; }
     .gb-rang__etat { position: absolute; top: .75rem; right: .75rem; z-index: 1; }
     .gb-constr { display: flex; flex-direction: column; gap: 1rem; }
     .gb-constr__haut { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
@@ -11570,10 +11571,14 @@ function suggestionsElements() {
     return res;
 }
 function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
+    if (!etat.majA) {
+        etat.majA = new Date();
+    }
     var sug = etatTexte === 'Suggestion';
     var bt = creer('button', { classe: 'gb-rang__carte' + (sug ? ' gb-rang__carte--suggestion' : (etatTexte ? ' gb-rang__carte--cree ' + (etatTexte === 'Publié' ? 'gb-rang__carte--publie' : 'gb-rang__carte--brouillon') : '')), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
         etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : (sug ? ' gb-rang__etat--suggestion' : ' gb-rang__etat--brouillon')), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
-        creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null]);
+        creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null,
+        creer('span', { classe: 'gb-tuile__maj gb-rang__maj', texte: texteMiseAJour(), attrs: { 'aria-hidden': 'true' } })]);
     bt.addEventListener('click', function () { relayer(action(), titre); });
     return bt;
 }
