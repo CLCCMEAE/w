@@ -854,7 +854,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.4';
+var VERSION_WIDGET = '2.1.5';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2462,8 +2462,25 @@ function saisie(id, valeur, o) {
     if (o.multiligne) {
         return creer('textarea', { classe: 'fr-input', id: id, valeur: valeur || '', attrs: { rows: o.lignes || 3, placeholder: o.indice || null } });
     }
-    return creer('input', { classe: 'fr-input', id: id, valeur: valeur || '',
+    var champ = creer('input', { classe: 'fr-input', id: id, valeur: valeur || '',
         attrs: { type: o.type || 'text', placeholder: o.indice || null, inputmode: o.clavier || null } });
+    if (o.type === 'date') {
+        ouvrirCalendrier(champ);
+    }
+    return champ;
+}
+function ouvrirCalendrier(champ) {
+    champ.addEventListener('click', function () {
+        try {
+            if (champ.showPicker) {
+                champ.showPicker();
+            }
+        }
+        catch (e) {
+            logSecurite('INFO', 'Calendrier non ouvert', e);
+        }
+    });
+    return champ;
 }
 function liste(id, options, valeur, o) {
     o = o || {};
@@ -8883,6 +8900,20 @@ function memoriserFiltres() {
     }
     ecrireStockage(cleFiltres(), JSON.stringify({ periode: etat.filtres.periode, debut: etat.filtres.debut, fin: etat.filtres.fin, choix: etat.filtres.choix }));
 }
+function anneesColonne(tid, colId) {
+    if (!etat.donnees[tid]) {
+        return [];
+    }
+    var ld = lecteurDateLocale(tid, colId);
+    var vus = {};
+    for (var i = 0; i < nbLignes(tid); i++) {
+        var v = ld(i);
+        if (v !== null) {
+            vus[new Date(v * 1000).getUTCFullYear()] = true;
+        }
+    }
+    return Object.keys(vus).map(Number).sort(function (a, b) { return b - a; }).slice(0, 15);
+}
 function anneesDisponibles(cfg) {
     if (!cfg.periode || !etat.donnees[cfg.periode.table]) {
         return [];
@@ -8956,8 +8987,8 @@ function filtresVolet(cfg) {
         s.addEventListener('change', function () { etat.filtres.periode = s.value; appliquer('gfPeriode'); });
         barre.appendChild(creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', texte: 'Période', attrs: { 'for': 'gfPeriode' } }), s]));
         if (etat.filtres.periode === 'custom') {
-            var de = creer('input', { classe: 'fr-input', id: 'gfDebut', valeur: etat.filtres.debut, attrs: { type: 'date' } });
-            var a = creer('input', { classe: 'fr-input', id: 'gfFin', valeur: etat.filtres.fin, attrs: { type: 'date' } });
+            var de = ouvrirCalendrier(creer('input', { classe: 'fr-input', id: 'gfDebut', valeur: etat.filtres.debut, attrs: { type: 'date' } }));
+            var a = ouvrirCalendrier(creer('input', { classe: 'fr-input', id: 'gfFin', valeur: etat.filtres.fin, attrs: { type: 'date' } }));
             de.addEventListener('change', function () { etat.filtres.debut = de.value; appliquer('gfDebut'); });
             a.addEventListener('change', function () { etat.filtres.fin = a.value; appliquer('gfFin'); });
             barre.appendChild(creer('div', { classe: 'gb-dates' }, [
@@ -10460,6 +10491,19 @@ function champValeurCondition(tid, c, id, maj) {
     }
     if (fam === 'date') {
         if (op === 'year') {
+            var annees = anneesColonne(tid, c.col);
+            if (c.val && annees.indexOf(Number(c.val)) === -1) {
+                annees.push(Number(c.val));
+                annees.sort(function (a, b) { return b - a; });
+            }
+            if (annees.length) {
+                var ys = champListe(id, annees.map(function (a) { return { valeur: String(a), libelle: String(a) }; }), String(c.val || annees[0]), function (v) { c.val = parseInt(v, 10) || null; maj(); });
+                if (!c.val) {
+                    c.val = annees[0];
+                }
+                ys.setAttribute('aria-label', 'Année');
+                return ys;
+            }
             var y = champSaisie(id, c.val || new Date().getFullYear(), function (v) { c.val = parseInt(v, 10) || null; maj(); }, { type: 'number', clavier: 'numeric' });
             y.setAttribute('aria-label', 'Année');
             return y;
