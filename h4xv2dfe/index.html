@@ -736,6 +736,11 @@
     .gb-section__titre { margin: 0 0 .5rem; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-rangee { display: flex; gap: .75rem; flex-wrap: wrap; align-items: flex-end; }
     .gb-rangee > .fr-input-group { flex: 1 1 10rem; min-width: 0; margin-bottom: .75rem; }
+    .gb-condition > :first-child { flex: 1 1 calc(100% - 3rem); min-width: 0; order: 0; }
+    .gb-condition > .gb-outil:last-child { order: 1; }
+    .gb-condition > :not(:first-child):not(.gb-outil:last-child) { flex: 1 1 10rem; min-width: 0; order: 2; }
+    .gb-sous-titre--suggestion { margin-top: 1rem; font-weight: 500; color: var(--text-mention-grey); }
+    .gb-puces--suggestion .gb-puce { border-style: dashed; background: transparent; }
     .gb-condition { display: flex; gap: .375rem; flex-wrap: wrap; align-items: center; padding: .375rem; border-radius: 0; background: var(--background-alt-grey); margin-bottom: .375rem; color: var(--text-default-grey); }
     .gb-condition .fr-select, .gb-condition .fr-input { margin-top: 0; width: auto; flex: 1 1 8rem; min-width: 0; font-size: .875rem; padding: .25rem .5rem; }
     .gb-filtre-def { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .5rem; align-items: end; padding: .5rem; border-radius: 0; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); margin-bottom: .5rem; color: var(--text-default-grey); }
@@ -958,7 +963,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.35';
+var VERSION_WIDGET = '2.1.36';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1004,53 +1009,6 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
-}
-function colorerSelectChoix(sel, col) {
-    if (!sel || !col || !col.options || !col.options.choiceOptions) {
-        return sel;
-    }
-    Array.prototype.forEach.call(sel.options, function (o) {
-        if (o.value && styleChoixGrist(col, o.value)) {
-            styliserChoix(o, col, o.value);
-        }
-    });
-    var maj = function () {
-        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
-        sel.classList.remove('w-choix-grist');
-        styliserChoix(sel, col, sel.value);
-    };
-    sel.addEventListener('change', maj);
-    maj();
-    return sel;
-}
-function colorerCasesChoix(conteneur, col) {
-    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
-        return conteneur;
-    }
-    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
-        var t = (l.textContent || '').trim();
-        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
-            l.textContent = '';
-            l.appendChild(badgeChoixGrist(col, t));
-        }
-    });
-    return conteneur;
-}
-function valeurAvecCouleurs(col, v, texte) {
-    var t = String(col && col.type || '');
-    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
-        return badgeChoixGrist(col, v);
-    }
-    if (t === 'ChoiceList' && Array.isArray(v)) {
-        var vals = v[0] === 'L' ? v.slice(1) : v;
-        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
-            var sp = document.createElement('span');
-            sp.className = 'w-choix-liste';
-            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
-            return sp;
-        }
-    }
-    return texte;
 }
 function badgeChoixGrist(col, valeur, classe) {
     var b = document.createElement('span');
@@ -1707,21 +1665,6 @@ function tuilesPage(ed) {
         blocs.push(creer('fieldset', { classe: 'w-page-filtre', id: 'aPageTuiles' + ti }, [creer('legend', { texte: ed.tableaux.length > 1 ? 'Tuiles montrées : ' + (t.config.nom || 'Tableau de bord sans nom') : 'Tuiles montrées' }), boite]));
     });
     return blocs;
-}
-async function publierTuile(t) {
-    await ouvrirParametrage();
-    if (!etat.brouillon) {
-        return;
-    }
-    await editerPage(null, false);
-    var ed = etat.editionPage;
-    if (!ed) {
-        return;
-    }
-    ed.nom = '📊 ' + (t.titre || 'Tuile');
-    ed.titre = ed.nom;
-    ed.lecteurs[etat.cleConfig] = Object.assign(lecteursParDefaut(etat.config), { tuiles: [t.id] });
-    redessinerParam('#aPageNom');
 }
 function valeurPage(ed) {
     var lec = {};
@@ -2417,9 +2360,6 @@ function barreVue(titre, compteurs, commandes) {
         creer('div', { classe: 'w-barre-vue__commandes' }, (commandes || []).filter(Boolean))
     ]);
 }
-function sortiesVolet(liste) {
-    return creer('div', { classe: 'w-sorties', attrs: { role: 'group', 'aria-label': 'Imprimer et exporter' } }, (liste || []).filter(Boolean));
-}
 function aide(id, sujet, texte) {
     var panneau = creer('p', { classe: 'w-aide__texte', id: id + '_aide', texte: texte });
     panneau.hidden = true;
@@ -2547,9 +2487,6 @@ function majBoutonPleinEcran() {
     if (avaitFocus) {
         nb.focus();
     }
-}
-function ajoutVolet(libelle, action, id) {
-    return creer('div', { classe: 'w-ajout' }, [bouton(libelle, null, 'add-line', action, { id: id })]);
 }
 function groupeChamp(libelle, champ, aide, obligatoire) {
     var id = champ.id;
@@ -3672,16 +3609,6 @@ function signalerSaisie(message) {
     logSecurite('INFO', 'Saisie refusée : ' + message);
     toast(message, { type: 'erreur' });
 }
-function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function enteteParametrage(nom, retourLibelle, retourFn, statut) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [
-            creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
-        ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
-    ]);
-}
 function enteteCreation(titre, annulerFn) {
     return creer('div', { classe: 'w-entete-param' }, [
         creer('div', { classe: 'w-entete-param__textes' }, [titre === null ? creer('h2', { classe: 'fr-h4 fr-m-0', id: 'titreVue', texte: 'Que voulez-vous créer ?', attrs: { tabindex: '-1' } })
@@ -3701,52 +3628,6 @@ function piedEtape(precedente, suivante, actionFinale) {
         boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
     }
     return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la liste ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la liste ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et un lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne liste « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne liste, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
-function blocSupprimer(libelle, mention, fn) {
-    return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
-        creer('p', { classe: 'w-mention', texte: mention }),
-        creer('div', {}, [bouton(libelle, 'secondaire', 'delete-line', fn, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })])
-    ]);
 }
 function apercuEtape(nomEtape) {
     var a = apercuContenu(nomEtape);
@@ -4790,7 +4671,6 @@ function categoriesTriees(tid, groupes, m, tri, max, gardeVides) {
     }
     return items;
 }
-function couleurSerie(i, autre) { return autre ? COULEUR_AUTRE : PALETTE[i % PALETTE.length]; }
 function jeuCategories(t) {
     var tid = t.table;
     var idx = selection(tid, t.filtres);
@@ -5955,11 +5835,6 @@ function rendreTuile(t, o) {
         if (!o.exportPage) {
             outils.appendChild(bImg);
             outils.appendChild(bCsv);
-        }
-        if (!o.exportPage && etat.peutParametrer && etat.vue === 'tableau' && !etat.edition && !etat.page && !o.prefixe) {
-            var bPub = creer('button', { classe: 'gb-outil fr-icon-' + iconeDispo(['send-plane-line', 'external-link-line']) + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Publier cette tuile seule sur une page : ' + (t.titre || ''), 'data-infobulle': 'Publier cette tuile seule' } });
-            bPub.addEventListener('click', function () { relayer(publierTuile(t), 'Publication de la tuile'); });
-            outils.appendChild(bPub);
         }
         if (outils.childNodes.length) {
             tete.appendChild(outils);
@@ -8406,36 +8281,11 @@ function ongletsTableaux() {
     var creation = enCreation();
     etat.tableaux.forEach(function (t, i) {
         var actif = !creation && t.cle === etat.cleConfig;
-        var avecOeil = etat.peutParametrer && !etat.page;
-        var publieT = avecOeil && pagesDuTableau(t.cle).length > 0;
-        var nomT = t.config.nom || 'Tableau de bord sans nom';
-        var b = creer('button', { classe: 'fr-tabs__tab w-onglet' + (avecOeil ? ' fr-tabs__tab--icon-left ' + (publieT ? 'fr-icon-eye-line' : 'fr-icon-eye-off-line') : ''), id: 'gOnglet' + i, texte: nomT,
-            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: actif ? '0' : '-1', 'aria-label': avecOeil ? nomT + (publieT ? ', publié' : ', brouillon') : null } });
+        var b = creer('button', { classe: 'fr-tabs__tab w-onglet', id: 'gOnglet' + i, texte: t.config.nom || 'Tableau de bord sans nom',
+            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: actif ? '0' : '-1' } });
         onglets.push(b);
         activer.push(function () { return allerAuTableau(t.cle); });
     });
-    if (etat.peutParametrer) {
-        onglets.push(creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet', id: 'gOngletNouveau', texte: 'Nouveau',
-            attrs: { role: 'tab', 'aria-selected': creation ? 'true' : 'false', 'aria-controls': 'gPanneau', tabindex: creation ? '0' : '-1' } }));
-        activer.push(async function () {
-            if (enCreation()) {
-                return;
-            }
-            if (enParametrage() && !(await quitterAssistant())) {
-                return;
-            }
-            demarrerCreation();
-            var f = document.getElementById('gOngletNouveau');
-            if (f) {
-                f.focus();
-            }
-            annoncer('Nouveau tableau de bord : choisissez votre point de départ.');
-        });
-    }
-    if (etat.peutParametrer && onglets.length > 1) {
-        onglets.unshift(onglets.pop());
-        activer.unshift(activer.pop());
-    }
     onglets.forEach(function (b, i) {
         b.addEventListener('click', function () { relayer(activer[i](), 'Changement d\'onglet'); });
         b.addEventListener('keydown', function (e) {
@@ -8858,12 +8708,8 @@ function rafraichirApresDroits(focusId) {
         }
         return;
     }
-    if (etat.panneauDroitsOuvert && typeof ouvrirPanneauDroits === 'function') {
-        ouvrirPanneauDroits();
-        return;
-    }
-    if (typeof redessinerEtape === 'function' && etat.vue === 'assistant') {
-        redessinerEtape(focusId || 'aSecRegles');
+    if (etat.vue === 'assistant') {
+        redessinerParam(focusId ? '#' + focusId : null);
     }
 }
 function versAtelier(vue) {
@@ -9242,33 +9088,13 @@ function suffixeMiseAJour() {
     var p = partiesDansFuseau(Math.floor(etat.majA.getTime() / 1000), fuseauDoc());
     return '_' + p.a + pad2(p.m) + pad2(p.j) + '_' + pad2(p.h) + 'h' + pad2(p.mi);
 }
-function heureCourte(d) { var p = partiesDansFuseau(Math.floor(d.getTime() / 1000), fuseauDoc()); return heureFr(p.h, p.mi); }
 function rendreTableau(zone) {
     var cfg = etat.config;
     initialiserFiltres(cfg);
-    var seulAdmin = !!cfg.seul && etat.peutParametrer && !etat.page;
-    var pagesT = seulAdmin ? pagesDuTableau(etat.cleConfig) : [];
-    var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [
-        seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Brouillon' }) : null,
-        null
-    ], seulAdmin ? [pagesT.length ? null : bouton('Publier', null, 'send-plane-line', publierElementExistant, { petit: true, id: 'gPublierSeul' }),
-        bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
-        menuActions('Autres actions', 'gPlus', [
-            { libelle: 'Ajouter un élément', icone: 'add-line', action: ajouterElementAuTableau, id: 'gAjouterSeul' },
-            { libelle: 'Ajouter à un tableau de bord', icone: 'layout-grid-line', action: ouvrirAjoutATableau, id: 'gAjoutTableau' },
-            { libelle: 'Supprimer', icone: 'delete-line', action: supprimerElement, id: 'gSupprimerSeul', danger: true }]),
-        boutonPleinEcran()] : [menuOutilsLecteur(cfg)]);
+    var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [], [menuOutilsLecteur(cfg)]);
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
-    }
-    if (etat.peutParametrer && !cfg.seul) {
-        volet.appendChild(ajoutVolet('Ajouter une tuile', function () {
-            if (!etat.edition) {
-                commencerEdition();
-            }
-            ouvrirChoixType(contexteTableau());
-        }, 'gAjoutVolet'));
     }
     var bp = blocPageVolet();
     if (bp) {
@@ -9277,12 +9103,6 @@ function rendreTableau(zone) {
     var bf = filtresVolet(cfg);
     if (bf) {
         volet.appendChild(bf);
-    }
-    if (etat.peutParametrer && !etat.edition && !cfg.seul) {
-        volet.appendChild(creer('div', { classe: 'gb-volet__bloc' }, [
-            bouton('Modifier le tableau de bord', 'secondaire', 'edit-line', commencerEdition, { petit: true, id: 'gEditer' }),
-            bouton('Paramétrages de ce tableau de bord', 'secondaire', 'settings-5-line', ouvrirParametrage, { petit: true, id: 'gParametres' })
-        ]));
     }
     var actifs = nbFiltresActifs(cfg);
     var basculer = bouton('Filtres' + (actifs ? ' (' + actifs + ')' : ''), 'secondaire', 'filter-line', function () {
@@ -9298,7 +9118,7 @@ function rendreTableau(zone) {
     basculer.setAttribute('aria-expanded', etat.voletOuvert ? 'true' : 'false');
     basculer.setAttribute('aria-controls', 'gVolet');
     var principal = creer('div', { classe: 'gb-principal' }, [barre, cfg.description ? creer('p', { classe: 'gb-desc', texte: cfg.description }) : null,
-        etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), etat.edition || !seulAdmin ? null : barreExport(cfg), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
+        rappelFiltresImpression(cfg), bandeauCroise(), grilleTuiles(cfg, null)]);
     var voletVide = !volet.childNodes.length;
     zone.appendChild(creer('div', { classe: 'gb-disposition' }, voletVide ? [principal] : [basculer, volet, poigneeVolet(volet, function () { return nbFiltresActifs(cfg); }), principal]));
 }
@@ -9612,39 +9432,11 @@ async function initialiser() {
 }
 function cloner(o) { return JSON.parse(JSON.stringify(o)); }
 function idTuile() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 't' + Date.now().toString(36).slice(-5) + etat.uidSeq; }
-function contexteTableau() {
-    return {
-        cfg: etat.config, prefixe: '',
-        changer: function (fn, message, focus) {
-            etat.annuler.push(cloner(etat.config.tuiles));
-            if (etat.annuler.length > 40) {
-                etat.annuler.shift();
-            }
-            fn(etat.config);
-            planifierSauvegardeTableau(message);
-            nouveauCalcul();
-            afficherVue('tableau', true);
-            remettreFocus(focus);
-        }
-    };
-}
 function remettreFocus(sel) {
     var n = sel ? (typeof sel === 'string' ? document.querySelector(sel) : sel) : null;
     if (n && n.focus) {
         n.focus({ preventScroll: false });
     }
-}
-function commencerEdition() {
-    if (!etat.peutParametrer) {
-        return;
-    }
-    etat.edition = true;
-    etat.croise = null;
-    etat.annuler = [];
-    etat.statutEdition = null;
-    afficherVue('tableau', true);
-    remettreFocus('#gEditionTitre');
-    annoncer('Mode modification.');
 }
 async function terminerEdition(sansRendu) {
     if (etat.minuterieSauvegarde) {
@@ -9689,32 +9481,6 @@ async function sauverTableau() {
         statutEdition('Non enregistré', 'erreur');
         afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de modifier ce tableau de bord.' : 'Le changement n\'a pas pu être enregistré. Réessayez.', e);
     }
-}
-function barreEditionTableau() {
-    var st = etat.statutEdition || { texte: '' };
-    var annul = bouton('Annuler le dernier changement', 'secondaire', 'arrow-go-back-line', annulerChangement, { petit: true, id: 'gAnnuler', desactive: !etat.annuler.length });
-    return creer('div', { classe: 'gb-edition', attrs: { role: 'region', 'aria-label': 'Mode modification' } }, [
-        creer('h3', { classe: 'fr-sr-only', id: 'gEditionTitre', texte: 'Modification du tableau de bord', attrs: { tabindex: '-1' } }),
-        champNomTableau(),
-        creer('p', { classe: 'w-statut' + (st.genre === 'ok' ? ' w-statut--ok' : (st.genre === 'erreur' ? ' w-statut--erreur' : '')), id: 'gStatut', attrs: { role: 'status' }, texte: st.texte }),
-        creer('span', { classe: 'w-pousse' }),
-        bouton('Ajouter une tuile', 'secondaire', 'add-line', function () { ouvrirChoixType(contexteTableau()); }, { petit: true, id: 'gAjouter' }),
-        annul,
-        pagesDuTableau(etat.cleConfig).length ? bouton('Terminer', null, 'check-line', function () { return terminerEdition(); }, { petit: true, id: 'gTerminer' })
-            : bouton('Publier', null, 'send-plane-line', publierTableau, { petit: true, id: 'gPublier' })
-    ]);
-}
-function champNomTableau() {
-    var c = champSaisie('gNomTableau', etat.config.nom || '', function (v) {
-        var n = v.trim();
-        if (!n || etat.tableaux.some(function (t) { return t.cle !== etat.cleConfig && normalizer(t.config.nom) === normalizer(n); })) {
-            return;
-        }
-        etat.config.nom = n;
-        planifierSauvegardeTableau('Nom changé');
-    });
-    c.setAttribute('aria-label', 'Nom du tableau de bord');
-    return creer('div', { classe: 'gb-edition__nom' }, [c]);
 }
 function annulerChangement() {
     if (!etat.annuler.length) {
@@ -10113,7 +9879,7 @@ function libelleGenreCol(c) {
 function section(titre, enfants) { return creer('div', { classe: 'gb-section' }, [creer('h3', { classe: 'gb-section__titre', texte: titre })].concat(enfants)); }
 function rangee(enfants) { return creer('div', { classe: 'gb-rangee' }, enfants); }
 var FONDS_TUILE = [{ code: '', nom: 'Aucun' }, { code: 'bleu', nom: 'Bleu' }, { code: 'jaune', nom: 'Jaune' }, { code: 'vert', nom: 'Vert' }, { code: 'rose', nom: 'Rose' }, { code: 'gris', nom: 'Gris' }];
-var GROUPES_TUILE = [{ cle: 'sorte', nom: 'Sorte de tuile' }, { cle: 'lignes', nom: 'Lignes prises en compte' }, { cle: 'calcul', nom: 'Ce qui est calculé' },
+var GROUPES_TUILE = [{ cle: 'sorte', nom: 'Sorte de tuile' }, { cle: 'lignes', nom: 'Filtres' }, { cle: 'calcul', nom: 'Ce qui est calculé' },
     { cle: 'decoupage', nom: 'Découpage' }, { cle: 'reperes', nom: 'Repères' }, { cle: 'presentation', nom: 'Présentation' }];
 var SECTION_VERS_GROUPE = { 'Ce qui est compté': 'calcul', 'Valeur de chaque indicateur': 'calcul', 'Valeurs calculées': 'calcul', 'Valeurs': 'calcul',
     'Tendance': 'reperes', 'Objectif': 'reperes', 'Objectif et couleurs': 'reperes', 'Couleur': 'reperes',
@@ -10319,8 +10085,11 @@ function voletLignes(vl, b, redessiner, maj) {
         raccourcis.push({ id: 'eRacGarder', texte: 'Garder seulement des valeurs : ' + libCol(tid, ca), cond: { col: ca, op: 'is', val: [] } });
     }
     vl.appendChild(creer('h4', { classe: 'gb-sous-titre', texte: 'Filtres' }));
+    vl.appendChild(editeurConditions(b, 'filtres', 'eF', redessiner, maj));
+    raccourcis = raccourcis.filter(function (r) { return !conds.some(function (c) { return c && c.col === r.cond.col && c.op === r.cond.op; }); });
     if (raccourcis.length) {
-        var ul = creer('ul', { classe: 'gb-puces fr-mb-1w', attrs: { 'aria-label': 'Conditions toutes prêtes' } });
+        vl.appendChild(creer('h4', { classe: 'gb-sous-titre gb-sous-titre--suggestion', texte: 'Suggestions' }));
+        var ul = creer('ul', { classe: 'gb-puces gb-puces--suggestion fr-mb-1w', attrs: { 'aria-label': 'Suggestions de filtres' } });
         raccourcis.forEach(function (r) {
             var bt = creer('button', { classe: 'gb-puce fr-icon-add-line', texte: r.texte, attrs: { id: r.id, type: 'button' } });
             bt.addEventListener('click', function () { conds.push(cloner(r.cond)); redessiner('eFVal' + (conds.length - 1) + (r.cond.op === 'year' ? '' : '0')); });
@@ -10328,7 +10097,6 @@ function voletLignes(vl, b, redessiner, maj) {
         });
         vl.appendChild(ul);
     }
-    vl.appendChild(editeurConditions(b, 'filtres', 'eF', redessiner, maj));
 }
 function editeurMesure(b, redessiner, maj, o) {
     o = o || {};
@@ -11459,7 +11227,7 @@ function demarrerCreation(rubrique) {
         return;
     }
     etat.filtres = null;
-    etat.brouillon = { mode: 'creation', etape: 1, choix: null, cfg: null, tablesCreees: [], annuler: [], etapeMax: 1, rubrique: rubrique || (etat.tableaux.length ? 'pages' : 'kpi') };
+    etat.brouillon = { mode: 'creation', etape: 1, choix: null, cfg: null, tablesCreees: [], annuler: [], etapeMax: 1, rubrique: rubrique || (etat.tableaux.some(function (t) { return pagesDuTableau(t.cle).length > 0; }) ? 'pages' : 'kpi') };
     afficherVue('assistant');
 }
 async function allerAccueil() {
@@ -11470,18 +11238,6 @@ async function allerAccueil() {
         await terminerEdition(true);
     }
     demarrerCreation();
-}
-async function ouvrirParametrage() {
-    if (!etat.peutParametrer || !etat.config) {
-        return;
-    }
-    etat.editionPage = null;
-    await majPages();
-    var cfg = cloner(etat.config);
-    etat.filtres = null;
-    etat.edition = false;
-    etat.brouillon = { mode: 'parametrage', etape: 1, cfg: cfg, tablesCreees: [], annuler: [], etapeMax: ETAPES_PARAMETRAGE.length, initial: JSON.stringify(cfg) };
-    afficherVue('assistant');
 }
 function etapesBrouillon(b) { return b.mode === 'creation' ? ETAPES_CREATION : ETAPES_PARAMETRAGE; }
 function nomEtape(b) { return etapesBrouillon(b)[b.etape - 1]; }
@@ -11705,9 +11461,7 @@ function rendreAssistant(zone) {
     var noms = etapesBrouillon(b);
     var nom = nomEtape(b);
     var perso = b.mode === 'parametrage';
-    var entete = perso
-        ? enteteParametrage(etat.config ? etat.config.nom : '', 'Retour au tableau de bord', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation(nom === 'Point de départ' ? null : 'Nouveau', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
+    var entete = enteteCreation(nom === 'Point de départ' ? null : 'Nouveau', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
     var depart = !perso && nom === 'Point de départ';
     var bloc = creer('div', { classe: 'w-assistant' + (depart ? ' w-assistant--accueil' : '') }, [depart ? null : entete, depart ? null : stepper(b.etape, noms, function (r) {
             if (r > b.etapeMax + (perso ? 0 : 1)) {
@@ -11743,7 +11497,7 @@ function piedAssistant(b, noms) {
         } } } : null, b.mode === 'creation' ? { libelle: 'Créer mon tableau de bord', action: creerTableau, id: 'aCreer' } : null);
 }
 function contenuEtape(nom) {
-    if (nom === 'Général' && etat.brouillon && etat.brouillon.mode === 'parametrage') {
+    if (nom === 'Général') {
         return etapeListeTdb();
     }
     if (nom === 'Publication') {
@@ -11751,9 +11505,6 @@ function contenuEtape(nom) {
     }
     if (nom === 'Les tuiles' && etat.brouillon && etat.brouillon.mode === 'parametrage') {
         return etapeTuilesListe();
-    }
-    if (nom === 'Général') {
-        return etapeGeneral();
     }
     if (nom === 'Les droits') {
         return contenuDroits();
@@ -11900,11 +11651,6 @@ function carteZero(id, libelle, action, desactive, aria) {
     bt.addEventListener('click', function () { relayer(action(), libelle); });
     return bt;
 }
-function rangDepart(glyphe, titre, cartes, actions) {
-    return creer('section', { classe: 'gb-rang', attrs: { 'aria-label': titre } }, [
-        creer('div', { classe: 'gb-rang__tete' }, [glypheType(glyphe), creer('h3', { classe: 'gb-rang__nom', texte: titre })]),
-        creer('div', { classe: 'gb-rang__suggs' }, cartes.concat(actions || []))]);
-}
 function categorieTuile(t) { return t.type === 'table' && t.tableMode === 'pivot' ? 'croise' : t.type; }
 function cartesCreees(filtre, prefixe) {
     return etat.tableaux.filter(filtre).map(function (t, k) {
@@ -11976,10 +11722,10 @@ function rendreDepart(bloc) {
     var rang = RANGS_DEPART.filter(function (r) { return r.cle === b.rubrique; })[0];
     var bas = [];
     if (b.rubrique === 'pages') {
-        var toutes = charge ? cartesCreees(function () { return true; }, 'dC-') : [];
+        var toutes = charge ? cartesCreees(function (t) { return pagesDuTableau(t.cle).length > 0; }, 'dC-') : [];
         toutes.forEach(function (c) { grille.appendChild(c); });
         if (charge && !toutes.length) {
-            grille.appendChild(creer('p', { classe: 'w-mention', id: 'dAucunePage', texte: 'Aucune page' }));
+            grille.appendChild(creer('p', { classe: 'w-mention', id: 'dAucunePage', texte: 'Aucune page publiée' }));
         }
     }
     else if (rang) {
@@ -12390,10 +12136,6 @@ function menuOutilsLecteur(cfg) {
         }, id: 'gPleinEcran' });
     return menuActions('Outils', 'gOutils', items);
 }
-function barreExport(cfg) {
-    var l = outilsPageSeule(cfg);
-    return l.length ? creer('div', { classe: 'gb-barre-export', attrs: { role: 'group', 'aria-label': 'Copier, exporter et imprimer' } }, l) : null;
-}
 function menuActions(libelle, id, items) {
     var panneau = creer('div', { classe: 'gb-menu__panneau', id: id + 'Panneau', attrs: { role: 'group', 'aria-label': libelle } });
     panneau.hidden = true;
@@ -12424,35 +12166,6 @@ function menuActions(libelle, id, items) {
         decl.focus();
     } });
     return racine;
-}
-function outilsPageSeule(cfg) {
-    var t = cfg.tuiles && cfg.tuiles[0];
-    if (!cfg.seul || !t || t.type === 'text' || problemeTuile(t)) {
-        return [];
-    }
-    var d = function (lib, ico, act, id) { return boutonIcone(lib, ico, act, { id: id, variante: 'discret' }); };
-    return [d('Copier l\'image', iconeDispo(['image-line', 'file-image-line', 'file-copy-line']), function () { relayer(copierImageTuile(t, document.querySelector('.gb-tuile')), 'Copie de l\'image'); }, 'gCopieImage'),
-        d('Exporter en CSV', 'download-line', function () { exporterTuile(t); }, 'gExportCsv'),
-        d('Imprimer', 'printer-line', imprimer, 'gImprimer'),
-        d('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, 'gPdf')];
-}
-async function publierElementExistant() {
-    var cle = etat.cleConfig, cfg = etat.config;
-    if (!cle || !cfg) {
-        return;
-    }
-    await majPages();
-    var vues = etat.nomsVues || [];
-    if (vues.indexOf(cfg.nom) !== -1 || vues.indexOf(nomPageAncienPrefixe(cfg.nom)) !== -1) {
-        afficherErreur('Une page porte déjà ce nom dans le document.');
-        return;
-    }
-    var ok = await creerPageConsultation(nomPageStats(cfg.nom), valeurPageAuto(cle, cfg), cle, true);
-    memoriserTableau(cle);
-    await chargerTout();
-    if (ok) {
-        afficherSucces('Publié sur la page « ' + cfg.nom + ' » de ce document.');
-    }
 }
 async function publierElement() {
     var nom = nomElementValide();
@@ -12588,65 +12301,14 @@ async function ajouterAutresTuiles() {
         memoriserTableau(cle);
         await chargerTout();
         masquerLoader();
-        commencerEdition();
-        ouvrirChoixType(contexteTableau());
+        if (enParametrage()) {
+            ouvrirChoixType(contexteBrouillon());
+        }
     }
     catch (e) {
         masquerLoader();
         afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer un tableau de bord.' : 'Le passage en tableau de bord n\'a pas abouti. Réessayez.', e);
     }
-}
-async function ajouterElementAuTableau() {
-    etat.config.seul = false;
-    delete etat.config.seul;
-    etat.config.tuiles.forEach(function (t) { t.taille = 'L'; });
-    try {
-        await ecrireConfig(etat.config, etat.cleConfig, etat.biblioLigne);
-    }
-    catch (e) {
-        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de modifier.' : 'Le changement n\'a pas pu être enregistré.', e);
-        return;
-    }
-    commencerEdition();
-    ouvrirChoixType(contexteTableau());
-}
-function ouvrirAjoutATableau() {
-    var cibles = etat.tableaux.filter(function (t) { return t.cle !== etat.cleConfig && !t.config.seul; });
-    var choix = cibles.length ? cibles[0].cle : '';
-    var groupeR = creer('div', { classe: 'fr-fieldset', attrs: { role: 'radiogroup', 'aria-label': 'Tableau de bord' } });
-    cibles.forEach(function (t, k) {
-        var r = creer('input', { id: 'eCible' + k, attrs: { type: 'radio', name: 'eCible', value: t.cle }, coche: k === 0 });
-        r.addEventListener('change', function () { choix = t.cle; });
-        groupeR.appendChild(creer('div', { classe: 'fr-radio-group' }, [r, creer('label', { classe: 'fr-label', attrs: { 'for': 'eCible' + k } }, [t.config.nom || 'Tableau de bord sans nom', creer('span', { classe: 'fr-hint-text', texte: nombreSur(t.config.tuiles.length, 'tuile') })])]));
-    });
-    if (!cibles.length) {
-        groupeR.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun tableau de bord dans ce document.' }));
-    }
-    ouvrirModale({ titre: 'Ajouter à un tableau de bord', etroite: true, corps: [groupeR],
-        pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerModale), bouton('Ajouter', null, 'add-line', async function () {
-                var t = trouverTableau(choix);
-                if (!t) {
-                    return;
-                }
-                var cfg = cloner(t.config);
-                var tu = cloner(etat.config.tuiles[0]);
-                tu.id = idTuile();
-                tu.taille = 'L';
-                cfg.tuiles.push(tu);
-                fermerModale();
-                afficherLoader('Ajout…');
-                try {
-                    await ecrireConfig(cfg, t.cle, t.ligne);
-                    await lireTableaux();
-                    masquerLoader();
-                    await allerAuTableau(t.cle);
-                    afficherSucces('Ajouté à « ' + (cfg.nom || '') + ' ».');
-                }
-                catch (e) {
-                    masquerLoader();
-                    afficherErreur('L\'ajout n\'a pas abouti. Réessayez.', e);
-                }
-            }, { id: 'eAjouterCible', desactive: !cibles.length })] });
 }
 async function publierTableau() {
     var cfg = etat.config;
@@ -12830,64 +12492,6 @@ function vignetteReelle(cfg, prefixe, largeurScene) {
     return v;
 }
 function nombreDe(x) { return 'Nombre ' + (/^[aeiouyhàâéèêëîïôöûü]/i.test(String(x || '')) ? 'd\'' : 'de ') + x; }
-function configToutesTuiles(tid) {
-    var tuiles = [];
-    TYPES_TUILES.forEach(function (ty) {
-        if (ty.code === 'text') {
-            return;
-        }
-        var t = nouvelleTuile(ty.code, tid);
-        if (!problemeTuile(t)) {
-            tuiles.push(t);
-        }
-    });
-    return { nom: '', description: '', table: tid, periode: null, filtres: [], tuiles: tuiles, origine: 'toutes' };
-}
-function blocSuggestions() {
-    var bloc = creer('div', { classe: 'w-assistant' });
-    var sug = suggestionsDocument();
-    var grille = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    sug.forEach(function (s, i) {
-        grille.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sNom' + i } }, [
-            creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-lightbulb-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-                creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sNom' + i }, [s.nom + ' ', creer('span', { classe: 'w-mention gb-sug-nb', texte: nombreSur(nbLignes(s.table), 'ligne') })])]),
-            vignetteReelle(s, 'sv' + i + '-') || miniApercu(s.tuiles),
-            creer('p', { classe: 'fr-sr-only', texte: 'Tuiles : ' + s.tuiles.map(function (t) { return t.titre; }).join(', ') }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () { return utiliserConfig(cloner(s), 'la suggestion « ' + s.nom + ' »'); }, { petit: true, aria: 'Utiliser cette suggestion : ' + s.nom, id: 'sUtiliser' + i })])
-        ]));
-    });
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'sTitre', texte: 'Tableaux de bord suggérés d\'après vos listes', attrs: { tabindex: '-1' } }),
-        sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion pour vos listes.' })]));
-    var tables = tablesUtilisateur();
-    var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
-    var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos listes', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
-    var connecter = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sConnecter' } }, [
-        creer('div', { classe: 'w-tuile__tete w-titre-aide' }, [creer('span', { classe: 'fr-icon-table-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sConnecter', texte: 'Partir de l\'une de vos listes' }), aideConnecter.bouton, aideConnecter.panneau]),
-        groupeChamp('Liste', choixT),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de cette liste', 'secondaire', 'arrow-right-line', function () {
-                var s = suggestionTableau(choixT.value);
-                return utiliserConfig(s, 'la liste ' + libelleTable(choixT.value));
-            }, { petit: true, id: 'sConnecterBtn' })])
-    ]);
-    var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), tables[0]);
-    var vierge = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sVierge' } }, [
-        creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-add-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sVierge', texte: 'Page blanche' })]),
-        groupeChamp('Liste', choixV),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir d\'une page blanche', 'secondaire', 'arrow-right-line', function () {
-                return utiliserConfig({ nom: '', description: '', table: choixV.value, periode: null, filtres: [], tuiles: [], origine: 'blank' }, null);
-            }, { petit: true, id: 'sViergeBtn' })])
-    ]);
-    var choixTT = liste('sTableToutes', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), tables[0]);
-    var toutes = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sToutes' } }, [
-        creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-layout-grid-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sToutes', texte: 'Toutes les tuiles' })]),
-        groupeChamp('Liste', choixTT),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de toutes les tuiles', 'secondaire', 'arrow-right-line', function () {
-                return utiliserConfig(configToutesTuiles(choixTT.value), 'le modèle « Toutes les tuiles »');
-            }, { petit: true, id: 'sToutesBtn' })])
-    ]);
-    bloc.appendChild(creer('section', { attrs: { 'aria-label': 'Autres façons de commencer' } }, [creer('h3', { classe: 'fr-h6', texte: 'Ou composez-le vous-même' }), creer('div', { classe: 'w-tuiles w-tuiles--grille' }, [connecter, vierge, toutes])]));
-    return bloc;
-}
 function blocModeles() {
     var bloc = creer('section', { attrs: { 'aria-labelledby': 'mTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'mTitre', texte: 'Modèles prêts à l\'emploi', attrs: { tabindex: '-1' } })]);
     var grille = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
@@ -12948,7 +12552,6 @@ async function utiliserConfig(cfg) {
         etat.edition = false;
         await chargerTout();
         masquerLoader();
-        commencerEdition();
     }
     catch (e) {
         masquerLoader();
@@ -13000,24 +12603,6 @@ function etapeTable() {
             : creer('p', { classe: 'w-mention', texte: 'Aucune tuile pour l\'instant.' })
     ]);
     return grilleParam([[tables], [lu]], '1-1');
-}
-function etapeGeneral() {
-    var b = etat.brouillon;
-    var cfg = b.cfg;
-    var nom = saisie('wNom', cfg.nom, { indice: 'Par exemple : Suivi des demandes' });
-    nom.addEventListener('input', function () { cfg.nom = nom.value; majAttente(); });
-    var desc = saisie('wDesc', cfg.description, { multiligne: true, lignes: 2 });
-    desc.addEventListener('input', function () { cfg.description = desc.value; majAttente(); });
-    var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecTableau' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecTableau', texte: 'Le tableau de bord' })]),
-        groupeChamp('Nom du tableau de bord', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),
-        choixTablePrincipale(cfg),
-        bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(etapesBrouillon(etat.brouillon).indexOf('Les droits') + 1); }, { petit: true, id: 'aVersDroits' })
-    ]);
-    var danger = blocSupprimer('Supprimer le tableau de bord', 'Le tableau de bord disparaît des onglets. Vos listes et leurs lignes restent dans le document.', supprimerTableau);
-    var pages = sectionsPages();
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section], [pages[0], pages[1]], [danger]], '1-1-1')]);
 }
 function contexteBrouillon() {
     var b = etat.brouillon;
@@ -13383,10 +12968,6 @@ async function sauvegarderBrouillon() {
         var d = new Date();
         b.dernier = (d.getHours() < 10 ? '0' : '') + d.getHours() + ' h ' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
         statutSauvegarde('Enregistré à ' + b.dernier);
-        var t = document.getElementById('aTitrePerso');
-        if (t) {
-            t.textContent = titreParametrage(cfg.nom);
-        }
     }
     catch (e) {
         statutSauvegarde('L\'enregistrement n\'a pas abouti.', true);
