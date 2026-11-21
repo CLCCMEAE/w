@@ -640,10 +640,21 @@
     .gb-constr__nom { width: min(22rem, 100%); }
     .gb-constr__nom .fr-label { font-size: .8125rem; }
     .gb-constr__nom .fr-input { margin-top: .25rem; }
-    .gb-constr__corps { display: flex; gap: 1.5rem; align-items: flex-start; }
-    .gb-constr__etapes { flex: 0 0 min(30rem, 45%); min-width: 0; }
-    .gb-constr__resultat { flex: 1 1 0; min-width: 0; position: sticky; top: 0; display: flex; flex-direction: column; gap: .5rem; }
-    @media (max-width: 52em) { .gb-constr__corps { flex-direction: column; } .gb-constr__etapes { flex-basis: auto; width: 100%; } .gb-constr__resultat { position: static; } }
+    .gb-constr__corps { display: flex; flex-wrap: wrap; align-items: stretch; margin: 0 -1rem; border-top: 1px solid var(--border-default-grey); min-height: 30rem; }
+    .gb-constr__etapes { flex: 1 0 15.5rem; max-width: 15.5rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); }
+    .gb-constr__panneau { flex: 0 1 24rem; min-width: min(18rem, 100%); box-sizing: border-box; padding: 1rem 1.5rem 1.5rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .gb-constr .gb-constr__panneau > .gb-acc__contenu { padding: 0; }
+    .gb-panneau__suite { display: flex; justify-content: flex-end; }
+    .gb-panneau__suite .fr-btn { margin: 0; }
+    .gb-constr__resultat { flex: 999 1 24rem; min-width: 0; box-sizing: border-box; padding: 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: .5rem; }
+    .gb-etapes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .375rem; }
+    .gb-constr .gb-etapes .gb-acc__item { padding-bottom: .375rem; }
+    .gb-constr .gb-etapes .gb-acc__tete { width: 100%; text-align: left; }
+    .gb-constr .gb-etapes .gb-acc__tete::after { display: none; }
+    .gb-constr .gb-etapes .gb-acc__item--ouvert .gb-acc__tete { background: var(--background-action-low-blue-france); }
+    .gb-constr .gb-etapes .gb-acc__item--ouvert .gb-acc__nom { color: var(--text-action-high-blue-france); font-weight: 700; }
+    .gb-constr .gb-etapes .gb-acc__item--ouvert .gb-acc__resume { display: block; }
+    @media (max-width: 48em) { .gb-constr__etapes { max-width: none; border-right: 0; border-bottom: 1px solid var(--border-default-grey); } .gb-constr__panneau { border-right: 0; } }
     .gb-constr .gb-acc { gap: 0; margin: 0; }
     .gb-constr .gb-acc__item { position: relative; border: 0; background: transparent; padding-bottom: .5rem; }
     .gb-constr .gb-acc__tete { align-items: flex-start; }
@@ -910,7 +921,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.16';
+var VERSION_WIDGET = '2.1.17';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -10146,7 +10157,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
     if (!o.sansTitre) {
         form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
     }
-    var liste = creer('div', { classe: 'gb-acc', attrs: { role: 'list' } });
+    var liste = creer(o.panneau ? 'ol' : 'div', { classe: 'gb-acc' + (o.panneau ? ' gb-etapes' : ''), attrs: o.panneau ? {} : { role: 'list' } });
     var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' || (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
     visibles.forEach(function (g, k) {
         var c = contenus[g.cle];
@@ -10165,15 +10176,30 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
             presentation: function () { return o.sansTaille ? (b.fond ? 'Fond ' + minuscule(nomFond(b.fond)) : 'Par défaut') : 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
         resume = resume ? resume() : resumeDepuisChamps(c);
+        if (o.panneau && !visibles.some(function (v) { return v.cle === _sectionTuile; })) {
+            _sectionTuile = visibles[0].cle;
+        }
         var ouvert = _sectionTuile === g.cle;
-        var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
+        var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: o.panneau ? { type: 'button', 'aria-current': ouvert ? 'step' : null } : { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
             creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
             creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), resume ? creer('span', { classe: 'gb-acc__resume', texte: resume }) : null])]);
         bt.addEventListener('click', function () {
-            _sectionTuile = _sectionTuile === g.cle ? null : g.cle;
+            _sectionTuile = o.panneau ? g.cle : (_sectionTuile === g.cle ? null : g.cle);
             redessiner('eSec-' + g.cle);
         });
         c.id = 'eSecCorps-' + g.cle;
+        if (o.panneau) {
+            if (ouvert) {
+                var suivant = visibles[k + 1];
+                o.panneau.appendChild(creer('h3', { classe: 'fr-sr-only', texte: g.nom }));
+                if (suivant) {
+                    o.panneau.appendChild(creer('div', { classe: 'gb-panneau__suite' }, [bouton('Continuer : ' + suivant.nom, 'tertiaire', 'arrow-right-line', function () { _sectionTuile = suivant.cle; redessiner('eSec-' + suivant.cle); }, { id: 'eContinuer', iconeDroite: true, classe: 'gb-continuer' })]));
+                }
+                o.panneau.appendChild(c);
+            }
+            liste.appendChild(creer('li', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : '') }, [bt]));
+            return;
+        }
         c.hidden = !ouvert;
         liste.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt, c]));
     });
@@ -11612,7 +11638,7 @@ function cartesCreees(filtre, prefixe) {
         var pages = pagesDuTableau(t.cle);
         var cfgV = t.config.seul ? { tuiles: [Object.assign(cloner(t.config.tuiles[0]), { taille: 'XL' })] } : t.config;
         var vis = vignetteReelle(cfgV, prefixe + k + '-', t.config.seul ? 460 : null) || miniApercu(t.config.tuiles);
-        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', t.config.table ? etiquetteTable(t.config.table) : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Brouillon');
+        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', t.config.table ? etiquetteTable(t.config.table) : '', vis, function () { return ouvrirPage(t.cle); }, pages.length ? 'Publié' : 'Brouillon');
     });
 }
 function ouvrirConstructionAvec(t) {
@@ -11768,6 +11794,12 @@ async function ouvrirConstructionNeuve(type) {
     _sectionTuile = null;
     afficherVue('construction');
 }
+async function ouvrirPage(cle) {
+    await allerAuTableau(cle);
+    if (etat.cleConfig === cle && etat.config && etat.config.seul) {
+        ouvrirConstructionExistante();
+    }
+}
 function ouvrirConstructionExistante() {
     if (!etat.config || !etat.config.tuiles.length) {
         return;
@@ -11797,13 +11829,14 @@ function rendreConstruction(zone) {
     if (existe) {
         actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { id: 'eSupprimer', classe: 'gb-danger' }));
     }
-    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
+    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', quitterConstruction, { id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }),
                 boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des lecteurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom]),
         creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
-    var form = creer('div', { classe: 'gb-constr__etapes' });
+    var form = creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } });
+    var panneau = creer('section', { classe: 'gb-constr__panneau', attrs: { 'aria-label': 'Réglages' } });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
     var compte = creer('div', { classe: 'gb-compte-lignes', id: 'eCompte', attrs: { 'aria-live': 'polite' } });
     var majApercu = function () {
@@ -11828,8 +11861,8 @@ function rendreConstruction(zone) {
             f.focus();
         }
     };
-    construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, creer('div', { classe: 'gb-constr__resultat' }, [apercu, compte])])]));
+    construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true, panneau: panneau });
+    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, panneau, creer('div', { classe: 'gb-constr__resultat' }, [apercu, compte])])]));
     majApercu();
 }
 function majEtatConstruction() {
@@ -11900,7 +11933,7 @@ async function quitterConstruction() {
             return;
         }
         etat.construction = null;
-        await allerAuTableau(c.cle);
+        demarrerCreation();
         return;
     }
     await enregistrerBrouillon();
@@ -12150,6 +12183,9 @@ async function publierElement() {
     etat.edition = false;
     memoriserTableau(cle);
     await chargerTout();
+    if (etat.cleConfig === cle && etat.config && etat.config.seul) {
+        ouvrirConstructionExistante();
+    }
     if (ok) {
         afficherSucces('Publié sur la page « ' + nom + ' » de ce document.');
     }
@@ -12218,6 +12254,7 @@ async function supprimerElement() {
         ecrireStockage('', null);
         await chargerTout();
         masquerLoader();
+        demarrerCreation();
         afficherSucces('« ' + nom + ' » supprimé.');
     }
     catch (e) {
