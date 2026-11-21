@@ -649,6 +649,15 @@
     .gb-constr__panneau { flex: 0 1 24rem; min-width: min(18rem, 100%); box-sizing: border-box; padding: 1rem 1.5rem 1.5rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: 1rem; }
     .gb-constr .gb-constr__panneau > .gb-acc__contenu { padding: 0; }
     .gb-panneau__suite { display: flex; justify-content: flex-end; }
+    .gb-liste-tuiles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .gb-liste-tuiles > li { list-style: none; }
+    .gb-liste-tuiles > li::marker { content: none; }
+    .gb-liste-tuiles__ligne { display: flex; align-items: center; gap: .25rem; padding: .25rem .25rem .25rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .gb-liste-tuiles__ligne .gb-mini__g { flex: none; width: 1.75rem; height: .875rem; margin: 0 .25rem 0 0; }
+    .gb-liste-tuiles__nom { flex: 1; min-width: 0; font-size: .875rem; font-weight: 500; overflow-wrap: anywhere; }
+    .gb-liste-tuiles__ligne .gb-taille { width: 4.5rem; flex: none; margin: 0; }
+    .gb-atelier-liste > .gb-rang__ajout { align-self: center; }
+    .gb-constr__panneau .w-grille { display: flex; flex-direction: column; gap: 1rem; }
     .gb-sous-titre { margin: .5rem 0 .25rem; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-resultat__titre { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-constr__resultat, .gb-constr__panneau--plein { order: 0; }
@@ -942,7 +951,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.30';
+var VERSION_WIDGET = '2.1.31';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11514,6 +11523,46 @@ function etapeListeTdb() {
     desc.addEventListener('input', function () { cfg.description = desc.value; majAttente(); });
     return creer('div', { classe: 'gb-atelier-liste' }, [choixTablePrincipale(cfg), groupeChamp('Description', desc)]);
 }
+function etapeTuilesListe() {
+    var b = etat.brouillon;
+    var ctx = contexteBrouillon();
+    var n = b.cfg.tuiles.length;
+    var ul = creer('ul', { classe: 'gb-liste-tuiles' });
+    b.cfg.tuiles.forEach(function (t, i) {
+        var nom = t.titre || 'tuile ' + (i + 1);
+        var deplacer = function (d) { return function () {
+            var j = i + d;
+            if (j < 0 || j >= n) {
+                return;
+            }
+            ctx.changer(function (c) { var x = c.tuiles.splice(i, 1)[0]; c.tuiles.splice(j, 0, x); }, 'Tuile déplacée en position ' + (j + 1) + ' sur ' + n, '#w' + (d < 0 ? 'gAvant' : 'gApres') + j);
+        }; };
+        var avant = outilEdition('arrow-up-line', 'Monter : ' + nom, deplacer(-1), { bulle: 'Monter', desactive: i === 0 });
+        avant.id = 'wgAvant' + i;
+        var apres = outilEdition('arrow-down-line', 'Descendre : ' + nom, deplacer(1), { bulle: 'Descendre', desactive: i === n - 1 });
+        apres.id = 'wgApres' + i;
+        var taille = creer('select', { classe: 'fr-select gb-taille', attrs: { 'aria-label': 'Taille de ' + nom + ' (S un quart, M un tiers, L la moitié, XL toute la largeur)', id: 'wgTaille' + i } });
+        TAILLES.forEach(function (x) { taille.appendChild(creer('option', { texte: x.nom, attrs: { value: x.code } })); });
+        taille.value = t.taille || 'M';
+        taille.addEventListener('change', function () { ctx.changer(function (c) { c.tuiles[i].taille = taille.value; }, 'Taille changée', '#wgTaille' + i); });
+        var editer = outilEdition('edit-line', 'Modifier : ' + nom, function () { ouvrirEditeurTuile(ctx, i); }, { bulle: 'Modifier' });
+        editer.id = 'wgEditer' + i;
+        var supprimer = outilEdition('delete-line', 'Supprimer la tuile ' + nom, async function () {
+            if (!(await confirmerAction('Supprimer la tuile « ' + nom + ' » ?', 'Vous pourrez annuler la suppression juste après.', 'Supprimer', { danger: true }))) {
+                return;
+            }
+            ctx.changer(function (c) { c.tuiles.splice(i, 1); }, 'Tuile supprimée', n > 1 ? '#wgEditer' + Math.min(i, n - 2) : '#wgAjoutTuile');
+            afficherSucces('Tuile « ' + nom + ' » supprimée.', { libelle: 'Annuler la suppression', action: function () { ctx.annuler(); } });
+        }, { bulle: 'Supprimer' });
+        supprimer.classList.add('gb-danger');
+        ul.appendChild(creer('li', { classe: 'gb-liste-tuiles__ligne' }, [glypheType(categorieTuile(t) === 'croise' ? 'croise' : t.type),
+            creer('span', { classe: 'gb-liste-tuiles__nom', texte: nom }), avant, apres, taille, editer, supprimer]));
+    });
+    var plus = creer('button', { classe: 'gb-rang__ajout', id: 'wgAjoutTuile', attrs: { type: 'button', 'aria-label': 'Ajouter une tuile' } }, [creer('span', { classe: 'fr-icon-add-line gb-rang__plus', attrs: { 'aria-hidden': 'true' } })]);
+    plus.addEventListener('click', function () { ouvrirChoixType(ctx); });
+    return creer('div', { classe: 'gb-atelier-liste' }, [ul, plus,
+        b.annuler.length ? bouton('Annuler le dernier changement', 'tertiaire', 'arrow-go-back-line', ctx.annuler, { petit: true, id: 'wAnnulerTuile' }) : null]);
+}
 function resumeEtapeTdb(nom, b) {
     if (nom === 'Général') {
         return b.cfg.table ? libelleTable(b.cfg.table) : '';
@@ -11563,7 +11612,7 @@ function rendreAtelierTdb(zone) {
         bt.addEventListener('click', function () { relayer(allerEtape(k + 1).then(function () { remettreFocus('#aEt-' + k); }), LIBELLES_ETAPES_TDB[n]); });
         ol.appendChild(creer('li', { classe: 'gb-acc__item' + (on ? ' gb-acc__item--ouvert' : '') }, [bt]));
     });
-    var plein = nom === 'Les tuiles' || nom === 'Affichage et filtres';
+    var plein = false;
     var panneau = creer('section', { classe: 'gb-constr__panneau' + (plein ? ' gb-constr__panneau--plein' : ''), attrs: { 'aria-label': LIBELLES_ETAPES_TDB[nom] } });
     var corps = contenuEtape(nom);
     if (corps) {
@@ -11571,7 +11620,9 @@ function rendreAtelierTdb(zone) {
     }
     var cols = [creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } }, [ol]), panneau];
     if (!plein) {
-        cols.push(creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }), b.cfg.tuiles.length ? (vignetteReelle(b.cfg, 'atv-') || miniApercu(b.cfg.tuiles, true)) : etatVide('Aucune tuile', '')]));
+        cols.push(creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }),
+            nom === 'Affichage et filtres' ? creer('div', { classe: 'w-apercu__corps', id: 'aApercuCorps' }, [affichageApercu(b.cfg)]) : null,
+            b.cfg.tuiles.length ? creer('div', { classe: 'gb-apercu-fond' }, [grilleTuiles(b.cfg, null, 'wa')]) : etatVide('Aucune tuile', '')]));
     }
     zone.appendChild(creer('div', { classe: 'gb-constr gb-atelier-tdb' + (etat.entreeVue ? ' gb-constr--entree' : '') }, [haut, creer('div', { classe: 'gb-constr__corps' }, cols)]));
 }
@@ -11627,6 +11678,9 @@ function contenuEtape(nom) {
     }
     if (nom === 'Publication') {
         return sectionsPages()[1];
+    }
+    if (nom === 'Les tuiles' && etat.brouillon && etat.brouillon.mode === 'parametrage') {
+        return etapeTuilesListe();
     }
     if (nom === 'Général') {
         return etapeGeneral();
@@ -12978,7 +13032,7 @@ function etapeAffichage() {
                 redessinerParam('#wFiltre' + (cfg.filtres.length - 1));
             }, { petit: true, id: 'wFiltreAjout' })]));
     }
-    return grilleParam([colPer, colChoix], '1-1', null, apercuEtape('Affichage et filtres'));
+    return etat.brouillon && etat.brouillon.mode === 'parametrage' ? grilleParam([colPer.concat(colChoix)], '1') : grilleParam([colPer, colChoix], '1-1', null, apercuEtape('Affichage et filtres'));
 }
 function etapeRecapitulatif() {
     var b = etat.brouillon;
