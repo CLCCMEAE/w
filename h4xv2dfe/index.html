@@ -542,6 +542,31 @@
     .gb-editeur__apercu .gb-tuile__tete { display: none; }
     .gb-editeur { gap: .5rem; }
     .gb-acc__tete { padding-top: .375rem; padding-bottom: .375rem; }
+    .gb-rangs { display: flex; flex-direction: column; }
+    .gb-rang { display: flex; gap: .875rem; align-items: stretch; padding: .875rem 1rem; }
+    .gb-rang:nth-child(odd) { background: var(--background-alt-grey); }
+    .gb-rang__tete { flex: 0 0 10.5rem; display: flex; flex-direction: column; gap: .5rem; padding-top: .25rem; color: var(--text-default-grey); }
+    .gb-rang__tete .gb-mini__g { width: 3.5rem; height: 1.75rem; margin: 0; }
+    .gb-rang__nom { margin: 0; font-size: 1.0625rem; line-height: 1.4; }
+    .gb-rang__suggs { display: flex; gap: .875rem; flex: 1; min-width: 0; align-items: stretch; overflow-x: auto; }
+    .gb-rang__carte { flex: 0 0 12rem; display: flex; flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem; border: 1px solid var(--border-default-grey);
+      background: var(--background-default-grey); color: var(--text-default-grey); text-align: left; cursor: pointer; }
+    .gb-rang__carte:hover { border-color: var(--border-action-high-blue-france); }
+    .gb-rang__carte:focus-visible, .gb-rang__zero:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .gb-rang__carte .gb-vignette, .gb-rang__carte .gb-mini { max-height: 7rem; border: 0; }
+    .gb-rang__titre { font-weight: 700; font-size: .875rem; }
+    .gb-rang__sous { font-size: .75rem; color: var(--text-mention-grey); }
+    .gb-rang__ajout { display: inline-flex; align-items: center; gap: .5rem; padding: .25rem 0; border: 0; background: transparent; color: var(--text-action-high-blue-france); font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .gb-rang__ajout:hover { text-decoration: underline; }
+    .gb-rang__ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .gb-rang__ajout:disabled { opacity: .5; cursor: not-allowed; }
+    .gb-rang__plus::before { --icon-size: 2rem; }
+    .gb-rang__tete .fr-btn { align-self: flex-start; }
+    .gb-rang__carte--cree { border-color: var(--border-plain-success); }
+    .gb-rang__etat { align-self: flex-start; }
+    .gb-rang__zero { flex: 0 0 8.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .375rem; padding: .75rem; min-height: 6rem;
+      border: 1px dashed var(--border-action-high-blue-france); background: var(--background-default-grey); color: var(--text-action-high-blue-france); font-weight: 700; font-size: .875rem; cursor: pointer; text-align: center; }
+    .gb-rang__zero:disabled { opacity: .5; cursor: not-allowed; }
     .gb-departs { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
     .gb-depart { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1.25rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey);
       color: var(--text-default-grey); cursor: pointer; text-align: left; }
@@ -824,7 +849,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.0.1';
+var VERSION_WIDGET = '2.1.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3533,7 +3558,8 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
 }
 function enteteCreation(titre, annulerFn) {
     return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
+        creer('div', { classe: 'w-entete-param__textes' }, [titre === null ? creer('h2', { classe: 'fr-h4 fr-m-0', id: 'titreVue', texte: 'Que voulez-vous créer ?', attrs: { tabindex: '-1' } })
+                : creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
         annulerFn ? bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' }) : null
     ]);
 }
@@ -11195,7 +11221,7 @@ function rendreAssistant(zone) {
     var perso = b.mode === 'parametrage';
     var entete = perso
         ? enteteParametrage(etat.config ? etat.config.nom : '', 'Retour au tableau de bord', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation('Nouveau', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
+        : enteteCreation(nom === 'Point de départ' ? null : 'Nouveau', etat.tableaux.length || b.cfg ? function () { return quitterAssistant(); } : null);
     var depart = !perso && nom === 'Point de départ';
     var bloc = creer('div', { classe: 'w-assistant' }, [entete, depart ? null : stepper(b.etape, noms, function (r) {
             if (r > b.etapeMax + (perso ? 0 : 1)) {
@@ -11323,26 +11349,99 @@ function raisonNom(b) {
     var doublon = etat.tableaux.some(function (t) { return t.cle !== (b.mode === 'parametrage' ? etat.cleConfig : null) && normalizer(t.config.nom) === normalizer(b.cfg.nom); });
     return doublon ? 'Un autre tableau de bord de ce document porte déjà ce nom.' : null;
 }
-var CARTES_DEPART = [{ id: 'dChiffre', glyphe: 'kpi', titre: 'Un chiffre', type: 'kpi' }, { id: 'dGraphique', glyphe: 'bar', titre: 'Un graphique', type: 'bar' },
-    { id: 'dCroise', glyphe: 'croise', titre: 'Un tableau croisé', type: 'croise' }, { id: 'dPlanning', glyphe: 'gantt', titre: 'Un planning', type: 'gantt' }];
+var RANGS_DEPART = [{ cle: 'kpi', glyphe: 'kpi', titre: 'Un chiffre', types: ['kpi', 'gauge'], max: 4 },
+    { cle: 'bar', glyphe: 'bar', titre: 'Un graphique', types: ['bar', 'line', 'donut', 'funnel', 'histogram', 'radar'], max: 4 },
+    { cle: 'croise', glyphe: 'croise', titre: 'Un tableau croisé', types: ['croise'], max: 3 },
+    { cle: 'gantt', glyphe: 'gantt', titre: 'Un planning', types: ['gantt'], max: 2 }];
+function suggestionsElements() {
+    var tids = [];
+    suggestionsDocument().forEach(function (x) { if (tids.indexOf(x.table) === -1) {
+        tids.push(x.table);
+    } });
+    tablesUtilisateur().filter(function (t) { return nbLignes(t) > 0 && tids.indexOf(t) === -1; }).forEach(function (t) { tids.push(t); });
+    var res = { kpi: [], bar: [], croise: [], gantt: [] };
+    var vus = {};
+    tids.forEach(function (tid) {
+        var l = tuilesSuggerees(tid).slice();
+        var g = nouvelleTuile('gantt', tid);
+        if (!problemeTuile(g)) {
+            g.titre = 'Planning : ' + minuscule(nomTable(tid));
+            l.push(g);
+        }
+        l.forEach(function (t) {
+            var cle = t.type === 'table' && t.tableMode === 'pivot' ? 'croise' : (t.type === 'heatmap' ? null : t.type);
+            var rang = RANGS_DEPART.filter(function (r) { return r.types.indexOf(cle) !== -1; })[0];
+            if (!rang || problemeTuile(t) || vus[normalizer(t.titre)] || res[rang.cle].length >= rang.max * 3) {
+                return;
+            }
+            vus[normalizer(t.titre)] = true;
+            res[rang.cle].push(t);
+        });
+    });
+    RANGS_DEPART.forEach(function (r) {
+        var parTable = {}, choisis = [];
+        res[r.cle].forEach(function (t) { (parTable[t.table] = parTable[t.table] || []).push(t); });
+        var files = Object.keys(parTable).map(function (k) { return parTable[k]; });
+        while (choisis.length < r.max && files.some(function (f) { return f.length; })) {
+            files.forEach(function (f) { if (f.length && choisis.length < r.max) {
+                choisis.push(f.shift());
+            } });
+        }
+        res[r.cle] = choisis;
+    });
+    return res;
+}
+function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
+    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree' : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + sous : '') } }, [visuel,
+        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat', texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
+        creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous', texte: sous }) : null]);
+    bt.addEventListener('click', function () { relayer(action(), titre); });
+    return bt;
+}
+function carteZero(id, libelle, action, desactive, aria) {
+    var bt = creer('button', { classe: 'gb-rang__ajout', id: id, attrs: { type: 'button', 'aria-label': aria || libelle } }, [creer('span', { classe: 'fr-icon-add-line gb-rang__plus', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: libelle })]);
+    bt.disabled = !!desactive;
+    bt.addEventListener('click', function () { relayer(action(), libelle); });
+    return bt;
+}
+function rangDepart(glyphe, titre, cartes, actions) {
+    return creer('section', { classe: 'gb-rang', attrs: { 'aria-label': titre } }, [
+        creer('div', { classe: 'gb-rang__tete' }, [glypheType(glyphe), creer('h3', { classe: 'gb-rang__nom', texte: titre })].concat(actions || [])),
+        creer('div', { classe: 'gb-rang__suggs' }, cartes)]);
+}
+function categorieTuile(t) { return t.type === 'table' && t.tableMode === 'pivot' ? 'croise' : t.type; }
+function cartesCreees(filtre, prefixe) {
+    return etat.tableaux.filter(filtre).map(function (t, k) {
+        var pages = pagesDuTableau(t.cle);
+        var cfgV = t.config.seul ? { tuiles: [Object.assign(cloner(t.config.tuiles[0]), { taille: 'XL' })] } : t.config;
+        var vis = vignetteReelle(cfgV, prefixe + k + '-', t.config.seul ? 460 : null) || miniApercu(t.config.tuiles);
+        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', pages.length ? 'page ' + etat.nomsPages[pages[0]] : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Pas encore publié');
+    });
+}
+function ouvrirConstructionAvec(t) {
+    var b = cloner(t);
+    b.id = idTuile();
+    b.taille = 'XL';
+    b.titre = nomLibre(b.titre);
+    etat.construction = { b: b, cle: null, initial: JSON.stringify(b) };
+    _sectionTuile = null;
+    afficherVue('construction');
+}
 function rendreDepart(bloc) {
     var b = etat.brouillon;
     var tables = tablesUtilisateur();
     var aDesDonnees = tables.some(function (t) { return colonnesUtiles(t).length > 0; });
-    var carte = function (id, glyphe, titre, action, desactive, choisie) {
-        var bt = creer('button', { classe: 'gb-depart' + (choisie ? ' gb-depart--choisi' : ''), id: id, attrs: { type: 'button' } }, [glypheType(glyphe), creer('span', { classe: 'gb-depart__titre', texte: titre })]);
-        bt.disabled = !!desactive;
-        bt.addEventListener('click', function () { relayer(action(), titre); });
-        return bt;
-    };
-    var cartes = CARTES_DEPART.map(function (c) { return carte(c.id, c.glyphe, c.titre, function () { return ouvrirConstructionNeuve(c.type); }, !aDesDonnees); });
-    cartes.push(carte('dTableau', 'tdb', 'Un tableau de bord', function () { return choisirDepart('tdb'); }, false, b.choix === 'tdb'));
-    if (etat.reprisesPresentes) {
-        cartes.push(carte('dReprise', 'reprise', 'Reprendre mes anciens réglages', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
+    var charge = aDesDonnees && tables.every(function (t) { return etat.donnees[t] || etat.illisibles[t]; });
+    if (aDesDonnees && !charge && !b.chargementLance) {
+        b.chargementLance = true;
+        relayer(chargerListesDocument().then(majPages).then(function () { if (etat.vue === 'assistant' && etat.brouillon === b) {
+            redessinerParam();
+        } }), 'Lecture des listes');
     }
-    else if (etat.reprisesPresentes === undefined) {
+    if (etat.reprisesPresentes === undefined) {
         etat.reprisesPresentes = false;
         relayer(lireReprises().then(function (l) {
+            etat.reprises = l;
             if (l.length) {
                 etat.reprisesPresentes = true;
                 if (etat.vue === 'assistant' && etat.brouillon === b && (b.etape || 1) === 1) {
@@ -11351,12 +11450,32 @@ function rendreDepart(bloc) {
             }
         }), 'Recherche des réglages des autres widgets');
     }
-    bloc.appendChild(creer('h2', { classe: 'fr-h4 fr-mb-2w', id: 'titreVue', texte: 'Que voulez-vous créer ?', attrs: { tabindex: '-1' } }));
-    bloc.appendChild(creer('div', { classe: 'gb-departs' }, cartes));
-    if (b.choix === 'tdb') {
-        if (aDesDonnees) {
-            bloc.appendChild(blocSuggestions());
-        }
+    var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [] };
+    var rangs = creer('div', { classe: 'gb-rangs' });
+    RANGS_DEPART.forEach(function (r) {
+        var crees = charge ? cartesCreees(function (t) { return t.config.seul && t.config.tuiles[0] && r.types.indexOf(categorieTuile(t.config.tuiles[0])) !== -1; }, 'dC-' + r.cle + '-') : [];
+        var cartes = crees.concat(sugg[r.cle].map(function (t, k) {
+            var t2 = Object.assign(cloner(t), { taille: 'XL' });
+            var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + r.cle + k + '-', 460) || miniApercu([t]);
+            return carteSuggestion('dS-' + r.cle + '-' + k, t.titre, libelleTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); });
+        }));
+        rangs.appendChild(rangDepart(r.glyphe, r.titre, cartes, [carteZero('dZ-' + r.cle, 'Ajouter', function () { return ouvrirConstructionNeuve(r.cle); }, !aDesDonnees, 'Ajouter : ' + minuscule(r.titre))]));
+    });
+    var sTdb = charge ? suggestionsDocument().slice(0, 3) : [];
+    var creesTdb = charge ? cartesCreees(function (t) { return !t.config.seul; }, 'dC-tdb-') : [];
+    rangs.appendChild(rangDepart('tdb', 'Un tableau de bord', creesTdb.concat(sTdb.map(function (x, k) {
+        return carteSuggestion('dS-tdb-' + k, x.nom, libelleTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); });
+    })), [carteZero('dZ-tdb', 'Ajouter', function () {
+            return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
+        }, false, 'Ajouter : un tableau de bord'), bouton('Partir d\'un modèle', 'tertiaire', null, function () { return choisirDepart('modele'); }, { petit: true, id: 'dModele' })]));
+    if (etat.reprisesPresentes) {
+        var items = (etat.reprises || []).filter(function (it) { return !it.vide; });
+        rangs.appendChild(rangDepart('reprise', 'Reprendre mes anciens réglages', items.slice(0, 4).map(function (it, k) {
+            return carteSuggestion('dS-rep-' + k, it.nom, it.source ? it.source.nom : '', null, function () { return chargerListesDocument().then(function () { return utiliserConfig(fusionnerReprises([it])); }); });
+        }), items.length > 1 ? [bouton('En reprendre plusieurs', 'tertiaire', null, function () { return choisirDepart('reprise'); }, { petit: true, id: 'dReprise' })] : []));
+    }
+    bloc.appendChild(rangs);
+    if (b.choix === 'modele') {
         bloc.appendChild(blocModeles());
     }
     if (b.choix === 'reprise') {
@@ -11388,7 +11507,9 @@ function meilleureListe() {
 }
 async function ouvrirConstructionNeuve(type) {
     try {
-        await chargerListesDocument();
+        if (!tablesUtilisateur().every(function (t) { return etat.donnees[t] || etat.illisibles[t]; })) {
+            await chargerListesDocument();
+        }
     }
     catch (e) {
         afficherErreur('Vos listes n\'ont pas pu être lues.', e);
