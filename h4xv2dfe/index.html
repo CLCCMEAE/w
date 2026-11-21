@@ -574,7 +574,11 @@
     .w-table { display: inline-flex; align-items: baseline; gap: .25rem; }
     .w-table__ico { flex: none; }
     .gb-rang__tete .fr-btn { align-self: flex-start; }
-    .gb-rang__carte--cree { border-color: var(--border-plain-success); }
+    .gb-rang__carte--publie { border: 2px solid var(--border-plain-success); background: var(--background-contrast-success); }
+    .gb-rang__carte--brouillon { border: 2px dashed var(--border-default-grey); }
+    .gb-rang__etat--brouillon { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+    .gb-rang__sep { flex: none; align-self: stretch; width: 1px; margin: 0 .25rem; background: var(--border-default-grey); }
+    #gOngletNouveau { margin-right: .5rem; }
     .gb-rang__carte { position: relative; }
     .gb-rang__etat { position: absolute; top: .75rem; right: .75rem; z-index: 1; }
     .gb-rang__zero { flex: 0 0 8.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .375rem; padding: .75rem; min-height: 6rem;
@@ -864,7 +868,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.11';
+var VERSION_WIDGET = '2.1.12';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8335,6 +8339,10 @@ function ongletsTableaux() {
             annoncer('Nouveau tableau de bord : choisissez votre point de départ.');
         });
     }
+    if (etat.peutParametrer && onglets.length > 1) {
+        onglets.unshift(onglets.pop());
+        activer.unshift(activer.pop());
+    }
     onglets.forEach(function (b, i) {
         b.addEventListener('click', function () { relayer(activer[i](), 'Changement d\'onglet'); });
         b.addEventListener('keydown', function (e) {
@@ -9077,7 +9085,7 @@ function rendreTableau(zone) {
     var seulAdmin = !!cfg.seul && etat.peutParametrer && !etat.page;
     var pagesT = seulAdmin ? pagesDuTableau(etat.cleConfig) : [];
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [
-        seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Pas encore publié' }) : null,
+        seulAdmin ? creer('span', { classe: 'gb-etat', texte: pagesT.length ? 'Publié sur la page « ' + etat.nomsPages[pagesT[0]] + ' »' : 'Brouillon' }) : null,
         null
     ], seulAdmin ? [pagesT.length ? null : bouton('Publier', null, 'send-plane-line', publierElementExistant, { petit: true, id: 'gPublierSeul' }),
         bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
@@ -11494,8 +11502,8 @@ function suggestionsElements() {
     return res;
 }
 function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
-    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree' : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
-        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat', texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
+    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree ' + (etatTexte === 'Publié' ? 'gb-rang__carte--publie' : 'gb-rang__carte--brouillon') : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
+        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : ' gb-rang__etat--brouillon'), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
         creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null]);
     bt.addEventListener('click', function () { relayer(action(), titre); });
     return bt;
@@ -11517,7 +11525,7 @@ function cartesCreees(filtre, prefixe) {
         var pages = pagesDuTableau(t.cle);
         var cfgV = t.config.seul ? { tuiles: [Object.assign(cloner(t.config.tuiles[0]), { taille: 'XL' })] } : t.config;
         var vis = vignetteReelle(cfgV, prefixe + k + '-', t.config.seul ? 460 : null) || miniApercu(t.config.tuiles);
-        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', t.config.table ? etiquetteTable(t.config.table) : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Pas encore publié');
+        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', t.config.table ? etiquetteTable(t.config.table) : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Brouillon');
     });
 }
 function ouvrirConstructionAvec(t) {
@@ -11559,7 +11567,8 @@ function rendreDepart(bloc) {
     var rangs = creer('div', { classe: 'gb-rangs' });
     RANGS_DEPART.forEach(function (r) {
         var crees = charge ? cartesCreees(function (t) { return t.config.seul && t.config.tuiles[0] && r.types.indexOf(categorieTuile(t.config.tuiles[0])) !== -1; }, 'dC-' + r.cle + '-') : [];
-        var cartes = crees.concat(sugg[r.cle].filter(function (t) { return !dejaCree(t.titre); }).map(function (t, k) {
+        var suggs = sugg[r.cle].filter(function (t) { return !dejaCree(t.titre); });
+        var cartes = crees.concat(crees.length && suggs.length ? [creer('span', { classe: 'gb-rang__sep', attrs: { 'aria-hidden': 'true' } })] : [], suggs.map(function (t, k) {
             var t2 = Object.assign(cloner(t), { taille: 'XL' });
             var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + r.cle + k + '-', 460) || miniApercu([t]);
             return carteSuggestion('dS-' + r.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); });
@@ -11568,7 +11577,7 @@ function rendreDepart(bloc) {
     });
     var sTdb = charge ? suggestionsDocument().filter(function (x) { return !dejaCree(x.nom); }).slice(0, 3) : [];
     var creesTdb = charge ? cartesCreees(function (t) { return !t.config.seul; }, 'dC-tdb-') : [];
-    rangs.appendChild(rangDepart('tdb', 'Un tableau de bord', creesTdb.concat(sTdb.map(function (x, k) {
+    rangs.appendChild(rangDepart('tdb', 'Un tableau de bord', creesTdb.concat(creesTdb.length && sTdb.length ? [creer('span', { classe: 'gb-rang__sep', attrs: { 'aria-hidden': 'true' } })] : [], sTdb.map(function (x, k) {
         return carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); });
     })), [carteZero('dZ-tdb', 'Ajouter', function () {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
@@ -11668,7 +11677,7 @@ function rendreConstruction(zone) {
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }), nom]),
-        creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Pas encore publié' }),
+        creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var form = creer('div', { classe: 'gb-constr__etapes' });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
@@ -11708,7 +11717,7 @@ function majEtatConstruction() {
     var pub = !!c.cle && pagesDuTableau(c.cle).length > 0;
     var e = document.getElementById('eEtat');
     if (e) {
-        e.textContent = pub ? (m ? 'Modifications non publiées' : 'Publié') : 'Pas encore publié';
+        e.textContent = pub ? (m ? 'Modifications non publiées' : 'Publié') : 'Brouillon';
         e.classList.toggle('gb-etat--modifie', pub && m);
     }
     var p = document.getElementById('ePublier');
