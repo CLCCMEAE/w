@@ -937,7 +937,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.26';
+var VERSION_WIDGET = '2.1.27';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9236,7 +9236,7 @@ function rendreTableau(zone) {
             { libelle: 'Ajouter un élément', icone: 'add-line', action: ajouterElementAuTableau, id: 'gAjouterSeul' },
             { libelle: 'Ajouter à un tableau de bord', icone: 'layout-grid-line', action: ouvrirAjoutATableau, id: 'gAjoutTableau' },
             { libelle: 'Supprimer', icone: 'delete-line', action: supprimerElement, id: 'gSupprimerSeul', danger: true }]),
-        boutonPleinEcran()] : [].concat(cfg.seul ? [] : [boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' })], [boutonPleinEcran()]));
+        boutonPleinEcran()] : [menuOutilsLecteur(cfg)]);
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
@@ -9277,7 +9277,7 @@ function rendreTableau(zone) {
     basculer.setAttribute('aria-expanded', etat.voletOuvert ? 'true' : 'false');
     basculer.setAttribute('aria-controls', 'gVolet');
     var principal = creer('div', { classe: 'gb-principal' }, [barre, cfg.description ? creer('p', { classe: 'gb-desc', texte: cfg.description }) : null,
-        etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), etat.edition ? null : barreExport(cfg), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
+        etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), etat.edition || !seulAdmin ? null : barreExport(cfg), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
     var voletVide = !volet.childNodes.length;
     zone.appendChild(creer('div', { classe: 'gb-disposition' }, voletVide ? [principal] : [basculer, volet, poigneeVolet(volet, function () { return nbFiltresActifs(cfg); }), principal]));
 }
@@ -12246,6 +12246,23 @@ async function enregistrerConfigElement(nom, libelleLoader) {
         afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas d\'enregistrer.' : 'L\'enregistrement n\'a pas abouti. Réessayez.', e);
         return null;
     }
+}
+function menuOutilsLecteur(cfg) {
+    var t = cfg.tuiles && cfg.tuiles[0];
+    var items = [];
+    if (cfg.seul && t && t.type !== 'text' && !problemeTuile(t)) {
+        items.push({ libelle: 'Copier l\'image', icone: iconeDispo(['image-line', 'file-image-line', 'file-copy-line']), action: function () { relayer(copierImageTuile(t, document.querySelector('.gb-tuile')), 'Copie de l\'image'); }, id: 'gCopieImage' });
+        items.push({ libelle: 'Exporter en CSV', icone: 'download-line', action: function () { exporterTuile(t); }, id: 'gExportCsv' });
+    }
+    items.push({ libelle: 'Imprimer', icone: 'printer-line', action: imprimer, id: 'gImprimer' });
+    items.push({ libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'gPdf' });
+    items.push({ libelle: pleinEcranActif() ? 'Quitter le plein écran' : 'Plein écran', icone: iconeDispo(['fullscreen-line', 'expand-diagonal-line', 'zoom-in-line']), action: function () {
+            pleinEcran();
+            setTimeout(function () { var p = document.getElementById('gPleinEcran'); if (p) {
+                p.textContent = pleinEcranActif() ? 'Quitter le plein écran' : 'Plein écran';
+            } }, 400);
+        }, id: 'gPleinEcran' });
+    return menuActions('Outils', 'gOutils', items);
 }
 function barreExport(cfg) {
     var l = outilsPageSeule(cfg);
