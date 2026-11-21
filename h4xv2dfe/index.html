@@ -646,6 +646,7 @@
     .gb-constr__panneau { flex: 0 1 24rem; min-width: min(18rem, 100%); box-sizing: border-box; padding: 1rem 1.5rem 1.5rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: 1rem; }
     .gb-constr .gb-constr__panneau > .gb-acc__contenu { padding: 0; }
     .gb-panneau__suite { display: flex; justify-content: flex-end; }
+    .gb-sous-titre { margin: .5rem 0 .25rem; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-resultat__titre { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .gb-constr__resultat, .gb-constr__panneau--plein { order: 0; }
     .gb-constr__etapes { order: 1; border-right: 0; border-left: 1px solid var(--border-default-grey); }
@@ -938,7 +939,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.28';
+var VERSION_WIDGET = '2.1.29';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -10249,11 +10250,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         c.id = 'eSecCorps-' + g.cle;
         if (o.panneau) {
             if (ouvert) {
-                var suivant = visibles[k + 1];
                 o.panneau.appendChild(creer('h3', { classe: 'fr-sr-only', texte: g.nom }));
-                if (suivant) {
-                    o.panneau.appendChild(creer('div', { classe: 'gb-panneau__suite' }, [bouton('Continuer : ' + suivant.nom, 'tertiaire', 'arrow-right-line', function () { _sectionTuile = suivant.cle; redessiner('eSec-' + suivant.cle); }, { id: 'eContinuer', iconeDroite: true, classe: 'gb-continuer' })]));
-                }
                 o.panneau.appendChild(c);
             }
             liste.appendChild(creer('li', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : '') }, [bt]));
@@ -10298,6 +10295,7 @@ function voletLignes(vl, b, redessiner, maj) {
         raccourcis.push({ id: 'eRacExclure', texte: 'Écarter des valeurs : ' + libCol(tid, ca), cond: { col: ca, op: 'not', val: [] } });
         raccourcis.push({ id: 'eRacGarder', texte: 'Garder seulement des valeurs : ' + libCol(tid, ca), cond: { col: ca, op: 'is', val: [] } });
     }
+    vl.appendChild(creer('h4', { classe: 'gb-sous-titre', texte: 'Filtres' }));
     if (raccourcis.length) {
         var ul = creer('ul', { classe: 'gb-puces fr-mb-1w', attrs: { 'aria-label': 'Conditions toutes prêtes' } });
         raccourcis.forEach(function (r) {
@@ -11561,10 +11559,6 @@ function rendreAtelierTdb(zone) {
     });
     var plein = nom === 'Les tuiles' || nom === 'Affichage et filtres';
     var panneau = creer('section', { classe: 'gb-constr__panneau' + (plein ? ' gb-constr__panneau--plein' : ''), attrs: { 'aria-label': LIBELLES_ETAPES_TDB[nom] } });
-    var suivant = noms[b.etape];
-    if (suivant) {
-        panneau.appendChild(creer('div', { classe: 'gb-panneau__suite' }, [bouton('Continuer : ' + LIBELLES_ETAPES_TDB[suivant], 'tertiaire', 'arrow-right-line', function () { return allerEtape(b.etape + 1); }, { id: 'aContinuer', iconeDroite: true })]));
-    }
     var corps = contenuEtape(nom);
     if (corps) {
         panneau.appendChild(corps);
