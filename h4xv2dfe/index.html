@@ -937,7 +937,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.25';
+var VERSION_WIDGET = '2.1.26';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8923,7 +8923,19 @@ function afficherVue(vue, garderFocus) {
     if (_aide.ouvert) {
         panneauAide();
     }
+    ajusterHauteur();
 }
+function ajusterHauteur() {
+    var el = document.querySelector('.gb-accueil, .gb-constr__corps');
+    var z = contenu();
+    if (!el || !z) {
+        return;
+    }
+    var haut = el.getBoundingClientRect().top - z.getBoundingClientRect().top + z.scrollTop;
+    var bas = parseFloat(getComputedStyle(z).paddingBottom) || 0;
+    el.style.minHeight = Math.max(320, z.clientHeight - haut - bas) + 'px';
+}
+window.addEventListener('resize', function () { ajusterHauteur(); });
 function rendreAucun(zone) {
     if (etat.page) {
         zone.appendChild(creer('div', { classe: 'w-centre' }, [creer('span', { classe: 'fr-icon-dashboard-3-line fr-icon--lg w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), titreVue('Rien à afficher sur cette page'),
@@ -11934,7 +11946,13 @@ async function ouvrirConstructionNeuve(type) {
 }
 async function ouvrirPage(cle) {
     etat.construction = null;
-    await allerAuTableau(cle);
+    afficherLoader('Ouverture de la page…');
+    try {
+        await allerAuTableau(cle);
+    }
+    finally {
+        masquerLoader();
+    }
 }
 function ouvrirConstructionExistante() {
     if (!etat.config || !etat.config.tuiles.length) {
