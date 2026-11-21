@@ -327,7 +327,7 @@
     .gb-fond--vert { background: var(--background-contrast-green-emeraude); }
     .gb-fond--rose { background: var(--background-contrast-pink-macaron); }
     .gb-fond--gris { background: var(--background-contrast-grey); }
-    .gb-tuile__pied { margin: .5rem 0 0; font-size: .75rem; color: var(--text-mention-grey); text-align: left; }
+    .gb-tuile__maj { margin: .5rem 0 0; font-size: .75rem; color: var(--text-mention-grey); text-align: right; }
     .gb-fonds { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
     .gb-fonds label { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; }
     .gb-fonds__pastille { display: inline-block; width: 1.25rem; height: 1.25rem; border: 1px solid var(--border-default-grey); }
@@ -575,7 +575,8 @@
     .w-table__ico { flex: none; }
     .gb-rang__tete .fr-btn { align-self: flex-start; }
     .gb-rang__carte--cree { border-color: var(--border-plain-success); }
-    .gb-rang__etat { align-self: flex-start; }
+    .gb-rang__carte { position: relative; }
+    .gb-rang__etat { position: absolute; top: .75rem; right: .75rem; z-index: 1; }
     .gb-rang__zero { flex: 0 0 8.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .375rem; padding: .75rem; min-height: 6rem;
       border: 1px dashed var(--border-action-high-blue-france); background: var(--background-default-grey); color: var(--text-action-high-blue-france); font-weight: 700; font-size: .875rem; cursor: pointer; text-align: center; }
     .gb-rang__zero:disabled { opacity: .5; cursor: not-allowed; }
@@ -863,7 +864,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.10';
+var VERSION_WIDGET = '2.1.11';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1563,9 +1564,9 @@ function formulairePage() {
     }
     var cond = [creer('legend', { texte: 'Conditions fixes de la page' })];
     if (tables.length) {
-        var opts = tables.map(function (x) { return { valeur: x, libelle: libelleTable(x) }; });
+        var opts = tables.map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; });
         if (ed.table && tables.indexOf(ed.table) === -1) {
-            opts.push({ valeur: ed.table, libelle: libelleTable(ed.table) });
+            opts.push({ valeur: ed.table, libelle: libelleIcone(ed.table) });
         }
         var selT = liste('aPageTable', opts, ed.table);
         selT.addEventListener('change', function () {
@@ -5873,7 +5874,7 @@ function rendreTuile(t, o) {
     art.appendChild(tete);
     art.appendChild(corps);
     if (t.type !== 'text' && !o.sansOutils && etat.majA) {
-        art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: texteMiseAJour() }));
+        art.appendChild(creer('p', { classe: 'gb-tuile__maj', texte: texteMiseAJour() }));
     }
     if (probleme) {
         corps.appendChild(etatVide('Cette tuile ne peut pas s\'afficher', probleme, true));
@@ -8039,7 +8040,7 @@ function ouvrirLignes(t, quoi, idx) {
         corps.push(creer('p', { classe: 'w-mention', texte: 'Liste en lecture seule. Pour aller à une ligne depuis cette liste, liez ce widget à la liste ' + libelleTable(tid) + ' (réglages du widget, « Sélectionner par » sur cette liste).' }));
     }
     corps.push(ul);
-    ouvrirModale({ titre: nombreSur(idx.length, 'ligne') + ' : ' + quoi, sousTitre: (t.titre ? t.titre + ' · ' : '') + 'liste ' + libelleTable(tid), laterale: true, fermerDehors: true, corps: corps,
+    ouvrirModale({ titre: nombreSur(idx.length, 'ligne') + ' : ' + quoi, sousTitre: (t.titre ? t.titre + ' · ' : '') + 'liste ' + libelleIcone(tid), laterale: true, fermerDehors: true, corps: corps,
         pied: [creer('span', { classe: 'w-pousse' }), bouton('Exporter ces lignes (CSV)', 'secondaire', 'download-line', function () {
                 var tous = [colT].concat(cols).filter(Boolean);
                 telechargerCSV((t.titre || 'lignes') + ' ' + quoi, tous.map(function (c) { return libCol(tid, c); }), idx.map(function (i) { return tous.map(function (c) { var col = infoColonne(tid, c); var v = lecteur(tid, c)(i); return estDate(col) ? texteCellule(tid, c, i) : (Array.isArray(v) ? v.join(', ') : v); }); }));
@@ -9246,7 +9247,7 @@ async function rafraichirMaintenant() {
         var avant = etat.empreinte;
         await chargerDonnees(etat.config);
         etat.rafraichirEnAttente = false;
-        Array.prototype.forEach.call(document.querySelectorAll('.gb-tuile__pied'), function (x) { x.textContent = texteMiseAJour(); });
+        Array.prototype.forEach.call(document.querySelectorAll('.gb-tuile__maj'), function (x) { x.textContent = texteMiseAJour(); });
         if (etat.empreinte === avant && !renomme) {
             return;
         }
@@ -10012,7 +10013,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         vp.appendChild(blocFond);
     }
     else {
-        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
+        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
             neuve.taille = b.taille;
@@ -10108,7 +10109,7 @@ function resumeLignesTuile(b) {
         return '';
     }
     var conds = (b.filtres || []).filter(function (c) { return c && c.col && infoColonne(b.table, c.col) && !(Array.isArray(c.val) && !c.val.length); });
-    return libelleTable(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(', ') : 'toutes les lignes');
+    return libelleIcone(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(', ') : 'toutes les lignes');
 }
 function voletLignes(vl, b, redessiner, maj) {
     var tid = b.table;
@@ -10250,7 +10251,7 @@ function editeurCible(b, modes, redessiner, maj) {
         bloc.push(groupe('Valeur de l\'objectif', champSaisie('eCibleVal', c.valeur === null || c.valeur === undefined ? '' : nombreLocale(c.valeur, 6), function (v) { var n = lireNombreSaisi(v); c.valeur = typeof n === 'number' ? n : null; maj(); }, { clavier: 'decimal' }), 'Saisie à la française, par exemple ' + nombreLocale(12500.5, 2)));
     }
     if (c && c.mode === 'somme') {
-        bloc.push(rangee([groupe('Liste', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table || b.table, function (v) {
+        bloc.push(rangee([groupe('Liste', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table || b.table, function (v) {
                 c.table = v;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur || null;
                 relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Liste de l\'objectif');
@@ -10260,7 +10261,7 @@ function editeurCible(b, modes, redessiner, maj) {
         bloc.push(groupe('Colonne de l\'objectif', champListe('eCibleCol', optionsColonnes(b.table, estNum), c.col, function (v) { c.col = v; maj(); }), 'Additionnée pour chaque catégorie, par exemple BUDGET pour CONSOMME.'));
     }
     if (c && c.mode === 'table') {
-        bloc.push(rangee([groupe('Liste des objectifs', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), c.table, function (v) {
+        bloc.push(rangee([groupe('Liste des objectifs', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table, function (v) {
                 c.table = v;
                 c.cle = (optionsColonnes(v, estCategorie)[0] || {}).valeur;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur;
@@ -10754,6 +10755,9 @@ function iconeTable(tid) {
 }
 function nomAvecIcone(tid) {
     return String(libelleTable(tid) || '').trim().replace(/^[^0-9A-Za-zÀ-ÿ(«"]+/, '') || libelleTable(tid);
+}
+function libelleIcone(tid) {
+    return iconeTable(tid) + ' ' + nomAvecIcone(tid);
 }
 function etiquetteTable(tid) {
     return creer('span', { classe: 'w-table' }, [creer('span', { classe: 'w-table__ico', texte: iconeTable(tid), attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: nomAvecIcone(tid) })]);
@@ -11513,7 +11517,7 @@ function cartesCreees(filtre, prefixe) {
         var pages = pagesDuTableau(t.cle);
         var cfgV = t.config.seul ? { tuiles: [Object.assign(cloner(t.config.tuiles[0]), { taille: 'XL' })] } : t.config;
         var vis = vignetteReelle(cfgV, prefixe + k + '-', t.config.seul ? 460 : null) || miniApercu(t.config.tuiles);
-        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', pages.length ? 'page ' + etat.nomsPages[pages[0]] : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Pas encore publié');
+        return carteSuggestion(prefixe + k, t.config.nom || 'Sans nom', t.config.table ? etiquetteTable(t.config.table) : '', vis, function () { return allerAuTableau(t.cle); }, pages.length ? 'Publié' : 'Pas encore publié');
     });
 }
 function ouvrirConstructionAvec(t) {
@@ -12297,7 +12301,7 @@ function blocSuggestions() {
     bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sTitre' } }, [creer('h3', { classe: 'fr-h6', id: 'sTitre', texte: 'Tableaux de bord suggérés d\'après vos listes', attrs: { tabindex: '-1' } }),
         sug.length ? grille : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion pour vos listes.' })]));
     var tables = tablesUtilisateur();
-    var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
+    var choixT = liste('sTable', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) + ' (' + nombreSur(nbLignes(t), 'ligne') + ')' }; }), tables[0]);
     var aideConnecter = aide('sConnecterAide', 'Partir de l\'une de vos listes', 'WuitStats repère les colonnes utiles (montants, statuts, catégories, dates) d\'après leur type et leur nom, en français ou en anglais.');
     var connecter = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sConnecter' } }, [
         creer('div', { classe: 'w-tuile__tete w-titre-aide' }, [creer('span', { classe: 'fr-icon-table-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sConnecter', texte: 'Partir de l\'une de vos listes' }), aideConnecter.bouton, aideConnecter.panneau]),
@@ -12307,7 +12311,7 @@ function blocSuggestions() {
                 return utiliserConfig(s, 'la liste ' + libelleTable(choixT.value));
             }, { petit: true, id: 'sConnecterBtn' })])
     ]);
-    var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+    var choixV = liste('sTableVierge', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), tables[0]);
     var vierge = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sVierge' } }, [
         creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-add-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sVierge', texte: 'Page blanche' })]),
         groupeChamp('Liste', choixV),
@@ -12315,7 +12319,7 @@ function blocSuggestions() {
                 return utiliserConfig({ nom: '', description: '', table: choixV.value, periode: null, filtres: [], tuiles: [], origine: 'blank' }, null);
             }, { petit: true, id: 'sViergeBtn' })])
     ]);
-    var choixTT = liste('sTableToutes', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+    var choixTT = liste('sTableToutes', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), tables[0]);
     var toutes = creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sToutes' } }, [
         creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-layout-grid-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sToutes', texte: 'Toutes les tuiles' })]),
         groupeChamp('Liste', choixTT),
@@ -12414,13 +12418,13 @@ function confirmerAvecCase(titre, message, libelleCase, cocheParDefaut, libelleO
 function optionsColonnesDoc(filtre) {
     var res = [];
     tablesUtilisateur().forEach(function (tid) {
-        colonnesUtiles(tid).filter(filtre).forEach(function (c) { res.push({ valeur: tid + '\u0001' + c.colId, libelle: libelleTable(tid) + ' › ' + c.label }); });
+        colonnesUtiles(tid).filter(filtre).forEach(function (c) { res.push({ valeur: tid + '\u0001' + c.colId, libelle: libelleIcone(tid) + ' › ' + c.label }); });
     });
     return res;
 }
 function choixTablePrincipale(cfg) {
     var tables = tablesUtilisateur();
-    var mt = liste('wTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), cfg.table, { vide: tables.length ? undefined : 'Aucune liste' });
+    var mt = liste('wTable', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), cfg.table, { vide: tables.length ? undefined : 'Aucune liste' });
     mt.addEventListener('change', function () { cfg.table = mt.value; majAttente(); });
     return groupeChamp('Liste principale', mt, 'Utilisée par défaut pour les nouvelles tuiles. Chaque tuile peut utiliser une autre liste.');
 }
@@ -12434,7 +12438,7 @@ function etapeTable() {
     ]);
     var lu = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecLues' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecLues', texte: 'Listes lues par les tuiles' })]),
-        lues.length ? creer('ul', { classe: 'w-texte w-apercu__filtres' }, lues.map(function (tid) { return creer('li', { texte: libelleTable(tid) + ' (' + nombreSur(nbLignes(tid), 'ligne') + ')' }); }))
+        lues.length ? creer('ul', { classe: 'w-texte w-apercu__filtres' }, lues.map(function (tid) { return creer('li', { texte: libelleIcone(tid) + ' (' + nombreSur(nbLignes(tid), 'ligne') + ')' }); }))
             : creer('p', { classe: 'w-mention', texte: 'Aucune tuile pour l\'instant.' })
     ]);
     return grilleParam([[tables], [lu]], '1-1');
@@ -12555,7 +12559,7 @@ function etapeRecapitulatif() {
     var ajouter = function (etape, lignes) { var r = noms.indexOf(etape) + 1; if (r > 1) {
         groupes.push({ etape: etape, rang: r, lignes: lignes });
     } };
-    ajouter('La liste', [['Liste principale', cfg.table ? libelleTable(cfg.table) : '']]);
+    ajouter('La liste', [['Liste principale', cfg.table ? libelleIcone(cfg.table) : '']]);
     var parType = {};
     cfg.tuiles.forEach(function (t) { var n = (TYPES_TUILES.filter(function (x) { return x.code === t.type; })[0] || {}).nom; parType[n] = (parType[n] || 0) + 1; });
     ajouter('Les tuiles', [['Tuiles', nombreSur(cfg.tuiles.length, 'tuile') + (cfg.tuiles.length ? ' : ' + Object.keys(parType).map(function (k) { return parType[k] + ' ' + k; }).join(', ') : '')],
