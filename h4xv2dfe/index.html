@@ -322,6 +322,14 @@
     .gb-outil::before { --icon-size: 1.125rem; }
     .gb-outil:hover { background: var(--background-contrast-grey); color: var(--text-action-high-blue-france); }
     .gb-outil[aria-pressed="true"] { background: var(--background-action-low-blue-france); color: var(--text-active-blue-france); }
+    .gb-fond--bleu { background: var(--background-contrast-blue-france); }
+    .gb-fond--jaune { background: var(--background-contrast-yellow-tournesol); }
+    .gb-fond--vert { background: var(--background-contrast-green-emeraude); }
+    .gb-fond--rose { background: var(--background-contrast-pink-macaron); }
+    .gb-fond--gris { background: var(--background-contrast-grey); }
+    .gb-fonds { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+    .gb-fonds label { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; }
+    .gb-fonds__pastille { display: inline-block; width: 1.25rem; height: 1.25rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .gb-tuile__corps { flex: 1 1 auto; min-width: 0; position: relative; display: flex; flex-direction: column; }
     .gb-tuile__pied { margin: 0; font-size: .75rem; color: var(--text-mention-grey); }
     .gb-tuile--texte-titre { background: transparent; border-color: transparent; box-shadow: none; padding: .5rem .25rem 0; justify-content: flex-end; color: var(--text-default-grey); }
@@ -766,7 +774,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.6.1';
+var VERSION_WIDGET = '1.7.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5697,6 +5705,9 @@ function rendreTuile(t, o) {
     if (t.type === 'text') {
         classes += t.style === 'titre' ? ' gb-tuile--texte-titre' : ' gb-tuile--texte-note';
     }
+    if (t.fond && FONDS_TUILE.some(function (f) { return f.code === t.fond; })) {
+        classes += ' gb-fond gb-fond--' + t.fond;
+    }
     var art = creer('article', { classe: classes, attrs: { 'data-id': t.id, 'aria-labelledby': 'tt-' + (o.prefixe || '') + t.id } });
     if (o.barreEdition) {
         art.appendChild(o.barreEdition);
@@ -9769,6 +9780,7 @@ function libelleGenreCol(c) {
 function section(titre, enfants) { return creer('div', { classe: 'gb-section' }, [creer('h3', { classe: 'gb-section__titre', texte: titre })].concat(enfants)); }
 function rangee(enfants) { return creer('div', { classe: 'gb-rangee' }, enfants); }
 var SECTIONS_PRESENTATION = ['Couleurs', 'Couleur', 'Valeurs et légende', 'Affichage', 'Une copie par valeur', 'Valeurs sans ligne'];
+var FONDS_TUILE = [{ code: '', nom: 'Aucun' }, { code: 'bleu', nom: 'Bleu' }, { code: 'jaune', nom: 'Jaune' }, { code: 'vert', nom: 'Vert' }, { code: 'rose', nom: 'Rose' }, { code: 'gris', nom: 'Gris' }];
 var ONGLETS_TUILE = [{ cle: 'calcul', libelle: 'Ce qui est calculé' }, { cle: 'lignes', libelle: 'Lignes prises en compte' }, { cle: 'presentation', libelle: 'Présentation' }];
 var _ongletTuile = 'calcul';
 function construireFormulaire(form, b, redessiner, majApercu) {
@@ -9844,6 +9856,13 @@ function construireFormulaire(form, b, redessiner, majApercu) {
     }
     vp.appendChild(groupe('Note sous le titre', champSaisie('eSous', b.sousTitre || '', function (v) { b.sousTitre = v; maj(); }), 'Laissée vide, la tuile rappelle ses conditions.'));
     vp.appendChild(blocTaille);
+    var fonds = creer('div', { classe: 'gb-fonds', attrs: { role: 'radiogroup', 'aria-labelledby': 'eFondLeg' } });
+    FONDS_TUILE.forEach(function (f) {
+        var r = creer('input', { id: 'eFond' + (f.code || 'aucun'), attrs: { type: 'radio', name: 'eFond', value: f.code }, coche: (b.fond || '') === f.code });
+        r.addEventListener('change', function () { b.fond = f.code; maj(); });
+        fonds.appendChild(creer('label', { attrs: { 'for': 'eFond' + (f.code || 'aucun') } }, [r, creer('span', { classe: 'gb-fonds__pastille gb-fond--' + (f.code || 'aucun'), attrs: { 'aria-hidden': 'true' } }), f.nom]));
+    });
+    vp.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('p', { classe: 'fr-label', id: 'eFondLeg', texte: 'Couleur de fond' }), fonds]));
     if (!tid) {
         vl.appendChild(creer('p', { classe: 'w-mention', texte: 'Choisissez d\'abord une liste.' }));
         return;
