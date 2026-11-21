@@ -646,6 +646,9 @@
     .gb-constr__panneau { flex: 0 1 24rem; min-width: min(18rem, 100%); box-sizing: border-box; padding: 1rem 1.5rem 1.5rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: 1rem; }
     .gb-constr .gb-constr__panneau > .gb-acc__contenu { padding: 0; }
     .gb-panneau__suite { display: flex; justify-content: flex-end; }
+    .gb-constr__panneau--plein { flex: 999 1 30rem; border-right: 0; }
+    .gb-atelier-liste { display: flex; flex-direction: column; gap: 1rem; }
+    .gb-etat.gb-etat--brouillon { background: var(--background-contrast-warning); color: var(--text-default-warning); }
     .gb-panneau__suite .fr-btn { margin: 0; }
     .gb-constr__resultat { flex: 999 1 24rem; min-width: 0; box-sizing: border-box; padding: 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: .5rem; }
     .gb-etapes, .gb-etapes > li { list-style: none; margin: 0; padding: 0; }
@@ -926,7 +929,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.23';
+var VERSION_WIDGET = '2.1.24';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8834,7 +8837,34 @@ function rafraichirApresDroits(focusId) {
         redessinerEtape(focusId || 'aSecRegles');
     }
 }
+function versAtelier(vue) {
+    if (vue !== 'tableau' || !etat.peutParametrer || etat.page || !etat.config) {
+        return vue;
+    }
+    if (etat.config.seul) {
+        if (!etat.config.tuiles.length) {
+            return vue;
+        }
+        if (!(etat.construction && etat.construction.cle === etat.cleConfig)) {
+            var t = cloner(etat.config.tuiles[0]);
+            t.titre = etat.config.nom;
+            etat.construction = { b: t, cle: etat.cleConfig, initial: JSON.stringify(t) };
+            _sectionTuile = null;
+        }
+        return 'construction';
+    }
+    var bb = etat.brouillon;
+    if (!(bb && bb.mode === 'parametrage' && bb.cle === etat.cleConfig)) {
+        etat.editionPage = null;
+        etat.filtres = null;
+        etat.edition = false;
+        var cfg = cloner(etat.config);
+        etat.brouillon = { mode: 'parametrage', cle: etat.cleConfig, etape: 2, cfg: cfg, tablesCreees: [], annuler: [], etapeMax: ETAPES_PARAMETRAGE.length, initial: JSON.stringify(cfg) };
+    }
+    return 'assistant';
+}
 function afficherVue(vue, garderFocus) {
+    vue = versAtelier(vue);
     majBandeauRole();
     oublierObservations();
     cacherBulle();
@@ -11377,7 +11407,8 @@ function configDepuisModele(m, T) {
     return cfg;
 }
 var ETAPES_CREATION = ['Point de départ', 'La liste', 'Les tuiles', 'Affichage et filtres', 'Récapitulatif'];
-var ETAPES_PARAMETRAGE = ['Général', 'Les tuiles', 'Affichage et filtres', 'Les droits'];
+var ETAPES_PARAMETRAGE = ['Général', 'Les tuiles', 'Affichage et filtres', 'Publication'];
+var LIBELLES_ETAPES_TDB = { 'Général': 'La liste', 'Les tuiles': 'Les tuiles', 'Affichage et filtres': 'Les filtres', 'Publication': 'Publication' };
 function demarrerCreation(rubrique) {
     if (!etat.peutParametrer) {
         return;
@@ -11387,6 +11418,9 @@ function demarrerCreation(rubrique) {
     afficherVue('assistant');
 }
 async function allerAccueil() {
+    if (enParametrage() && !(await sortirParametrages(false))) {
+        return;
+    }
     if (etat.edition) {
         await terminerEdition(true);
     }
@@ -11446,8 +11480,83 @@ async function quitterAssistant(versAutre) {
     }
     return true;
 }
+function etapeListeTdb() {
+    var cfg = etat.brouillon.cfg;
+    var desc = saisie('wDesc', cfg.description, { multiligne: true, lignes: 2 });
+    desc.addEventListener('input', function () { cfg.description = desc.value; majAttente(); });
+    return creer('div', { classe: 'gb-atelier-liste' }, [choixTablePrincipale(cfg), groupeChamp('Description', desc)]);
+}
+function resumeEtapeTdb(nom, b) {
+    if (nom === 'Général') {
+        return b.cfg.table ? libelleTable(b.cfg.table) : '';
+    }
+    if (nom === 'Les tuiles') {
+        return nombreSur(b.cfg.tuiles.length, 'tuile');
+    }
+    if (nom === 'Affichage et filtres') {
+        var n = (b.cfg.periode ? 1 : 0) + (b.cfg.filtres || []).length;
+        return n ? nombreSur(n, 'filtre') : 'Aucun filtre';
+    }
+    var p = pagesDuTableau(etat.cleConfig).length;
+    return p ? nombreSur(p, 'page') : 'Aucune page';
+}
+async function publierTdbAtelier() {
+    var b = etat.brouillon;
+    if (b) {
+        clearTimeout(b.minuterie);
+        await sauvegarderBrouillon();
+    }
+    await publierTableau();
+}
+function rendreAtelierTdb(zone) {
+    var b = etat.brouillon;
+    var noms = ETAPES_PARAMETRAGE;
+    var nom = nomEtape(b);
+    var publie = pagesDuTableau(etat.cleConfig).length > 0;
+    var nomChamp = saisie('wNom', b.cfg.nom, {});
+    nomChamp.addEventListener('input', function () { b.cfg.nom = nomChamp.value; majAttente(); });
+    var actions = [];
+    if (!publie) {
+        actions.push(bouton('Publier', null, 'send-plane-line', publierTdbAtelier, { id: 'aPublier' }));
+    }
+    actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerTableau, { id: 'aSupprimer', classe: 'gb-danger' }));
+    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', allerAccueil, { id: 'aRetour' }),
+        creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: 'Modifier « ' + (b.cfg.nom || '') + ' »', attrs: { tabindex: '-1' } }),
+        creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'wNom' }, texte: 'Nom de la page' }),
+                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des lecteurs.', 'information-line', function () { }, { variante: 'discret', id: 'aAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nomChamp]),
+        creer('span', { classe: 'gb-etat' + (publie ? '' : ' gb-etat--brouillon'), id: 'aEtat', texte: publie ? 'Publié' : 'Brouillon' }),
+        creer('span', { classe: 'w-pousse' })].concat(actions));
+    var ol = creer('ol', { classe: 'gb-acc gb-etapes' });
+    noms.forEach(function (n, k) {
+        var on = k === b.etape - 1;
+        var bt = creer('button', { classe: 'gb-acc__tete', id: 'aEt-' + k, attrs: { type: 'button', 'aria-current': on ? 'step' : null } }, [
+            creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
+            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: LIBELLES_ETAPES_TDB[n] }), creer('span', { classe: 'gb-acc__resume', texte: resumeEtapeTdb(n, b) })])]);
+        bt.addEventListener('click', function () { relayer(allerEtape(k + 1).then(function () { remettreFocus('#aEt-' + k); }), LIBELLES_ETAPES_TDB[n]); });
+        ol.appendChild(creer('li', { classe: 'gb-acc__item' + (on ? ' gb-acc__item--ouvert' : '') }, [bt]));
+    });
+    var plein = nom === 'Les tuiles' || nom === 'Affichage et filtres';
+    var panneau = creer('section', { classe: 'gb-constr__panneau' + (plein ? ' gb-constr__panneau--plein' : ''), attrs: { 'aria-label': LIBELLES_ETAPES_TDB[nom] } });
+    var suivant = noms[b.etape];
+    if (suivant) {
+        panneau.appendChild(creer('div', { classe: 'gb-panneau__suite' }, [bouton('Continuer : ' + LIBELLES_ETAPES_TDB[suivant], 'tertiaire', 'arrow-right-line', function () { return allerEtape(b.etape + 1); }, { id: 'aContinuer', iconeDroite: true })]));
+    }
+    var corps = contenuEtape(nom);
+    if (corps) {
+        panneau.appendChild(corps);
+    }
+    var cols = [creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } }, [ol]), panneau];
+    if (!plein) {
+        cols.push(creer('div', { classe: 'gb-constr__resultat' }, [b.cfg.tuiles.length ? (vignetteReelle(b.cfg, 'atv-') || miniApercu(b.cfg.tuiles, true)) : etatVide('Aucune tuile', '')]));
+    }
+    zone.appendChild(creer('div', { classe: 'gb-constr gb-atelier-tdb' }, [haut, creer('div', { classe: 'gb-constr__corps' }, cols)]));
+}
 function rendreAssistant(zone) {
     var b = etat.brouillon;
+    if (b.mode === 'parametrage') {
+        rendreAtelierTdb(zone);
+        return;
+    }
     var noms = etapesBrouillon(b);
     var nom = nomEtape(b);
     var perso = b.mode === 'parametrage';
@@ -11489,6 +11598,12 @@ function piedAssistant(b, noms) {
         } } } : null, b.mode === 'creation' ? { libelle: 'Créer mon tableau de bord', action: creerTableau, id: 'aCreer' } : null);
 }
 function contenuEtape(nom) {
+    if (nom === 'Général' && etat.brouillon && etat.brouillon.mode === 'parametrage') {
+        return etapeListeTdb();
+    }
+    if (nom === 'Publication') {
+        return sectionsPages()[1];
+    }
     if (nom === 'Général') {
         return etapeGeneral();
     }
@@ -11807,10 +11922,8 @@ async function ouvrirConstructionNeuve(type) {
     afficherVue('construction');
 }
 async function ouvrirPage(cle) {
+    etat.construction = null;
     await allerAuTableau(cle);
-    if (etat.cleConfig === cle && etat.config && etat.config.seul) {
-        ouvrirConstructionExistante();
-    }
 }
 function ouvrirConstructionExistante() {
     if (!etat.config || !etat.config.tuiles.length) {
@@ -13167,6 +13280,7 @@ async function supprimerTableau() {
         ecrireStockage('', null);
         await chargerTout();
         masquerLoader();
+        demarrerCreation();
         afficherSucces('Tableau de bord « ' + nom + ' » supprimé.');
     }
     catch (e) {
