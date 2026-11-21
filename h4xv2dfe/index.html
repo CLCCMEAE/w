@@ -560,7 +560,11 @@
     .gb-rang__ajout:hover { text-decoration: underline; }
     .gb-rang__ajout:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .gb-rang__ajout:disabled { opacity: .5; cursor: not-allowed; }
-    .gb-rang__plus::before { --icon-size: 2rem; }
+    .gb-rang__plus::before { --icon-size: 3.5rem; }
+    .gb-rang__ajout { flex: none; align-self: center; padding: .5rem 1rem; }
+    .gb-rang__ajout:hover { text-decoration: none; background: var(--background-alt-grey); }
+    .w-table { display: inline-flex; align-items: baseline; gap: .25rem; }
+    .w-table__ico { flex: none; }
     .gb-rang__tete .fr-btn { align-self: flex-start; }
     .gb-rang__carte--cree { border-color: var(--border-plain-success); }
     .gb-rang__etat { align-self: flex-start; }
@@ -849,7 +853,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.0';
+var VERSION_WIDGET = '2.1.1';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5825,6 +5829,10 @@ function rendreTuile(t, o) {
         bImg.addEventListener('click', function () { relayer(copierImageTuile(t, art), 'Copie de l\'image'); });
         outils.appendChild(bImg);
         outils.appendChild(bCsv);
+        if (o.exportPage) {
+            outils.appendChild(boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer', variante: 'tertiaire', classe: 'gb-outil-page' }));
+            outils.appendChild(boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf', variante: 'tertiaire', classe: 'gb-outil-page' }));
+        }
         if (etat.peutParametrer && etat.vue === 'tableau' && !etat.edition && !etat.page && !o.prefixe) {
             var bPub = creer('button', { classe: 'gb-outil fr-icon-' + iconeDispo(['send-plane-line', 'external-link-line']) + ' w-infobulle w-infobulle--dessous', attrs: { type: 'button', 'aria-label': 'Publier cette tuile seule sur une page : ' + (t.titre || ''), 'data-infobulle': 'Publier cette tuile seule' } });
             bPub.addEventListener('click', function () { relayer(publierTuile(t), 'Publication de la tuile'); });
@@ -9011,7 +9019,7 @@ function rendreTableau(zone) {
     ], seulAdmin ? [bouton('Modifier', 'secondaire', 'edit-line', ouvrirConstructionExistante, { petit: true, id: 'gModifierSeul' }),
         bouton('Ajouter un élément', 'secondaire', 'add-line', ajouterElementAuTableau, { petit: true, id: 'gAjouterSeul' }),
         bouton('Ajouter à un tableau de bord', 'secondaire', 'layout-grid-line', ouvrirAjoutATableau, { petit: true, id: 'gAjoutTableau' }),
-        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' }), boutonPleinEcran()] : [boutonPleinEcran()]);
+        bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { petit: true, id: 'gSupprimerSeul', classe: 'gb-danger' }), boutonPleinEcran()] : [cfg.seul ? null : boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }), cfg.seul ? null : boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' }), boutonPleinEcran()]);
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
     if (!etat.voletOuvert) {
         volet.setAttribute('hidden', '');
@@ -9038,10 +9046,6 @@ function rendreTableau(zone) {
             bouton('Paramétrages de ce tableau de bord', 'secondaire', 'settings-5-line', ouvrirParametrage, { petit: true, id: 'gParametres' })
         ]));
     }
-    volet.appendChild(sortiesVolet([
-        boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'gImprimer' }),
-        boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'gPdf' })
-    ]));
     var actifs = nbFiltresActifs(cfg);
     var basculer = bouton('Filtres' + (actifs ? ' (' + actifs + ')' : ''), 'secondaire', 'filter-line', function () {
         etat.voletOuvert = !etat.voletOuvert;
@@ -9057,7 +9061,8 @@ function rendreTableau(zone) {
     basculer.setAttribute('aria-controls', 'gVolet');
     var principal = creer('div', { classe: 'gb-principal' }, [barre, cfg.description ? creer('p', { classe: 'gb-desc', texte: cfg.description }) : null,
         etat.edition ? barreEditionTableau() : null, rappelFiltresImpression(cfg), etat.edition ? null : bandeauCroise(), grilleTuiles(cfg, etat.edition ? contexteTableau() : null)]);
-    zone.appendChild(creer('div', { classe: 'gb-disposition' }, [basculer, volet, poigneeVolet(volet, function () { return nbFiltresActifs(cfg); }), principal]));
+    var voletVide = !volet.childNodes.length;
+    zone.appendChild(creer('div', { classe: 'gb-disposition' }, voletVide ? [principal] : [basculer, volet, poigneeVolet(volet, function () { return nbFiltresActifs(cfg); }), principal]));
 }
 var CLE_VOLET = NOM_WIDGET.toLowerCase() + ':voletReplie';
 var _voletReplie = null;
@@ -9099,7 +9104,7 @@ function poigneeVolet(volet, compte) {
 function grilleTuiles(cfg, ctx, prefixe) {
     var grille = creer('div', { classe: 'gb-grille' + (ctx ? ' gb-grille--edition' : ''), attrs: { 'aria-label': 'Tuiles' } });
     (cfg.tuiles || []).forEach(function (t, i) {
-        grille.appendChild(rendreTuile(cfg.seul ? Object.assign({}, t, { taille: 'XL' }) : t, { prefixe: prefixe || '', barreEdition: ctx ? barreEditionTuile(ctx, t, i) : null }));
+        grille.appendChild(rendreTuile(cfg.seul ? Object.assign({}, t, { taille: 'XL' }) : t, { prefixe: prefixe || '', exportPage: !!cfg.seul && !prefixe, barreEdition: ctx ? barreEditionTuile(ctx, t, i) : null }));
     });
     if (ctx) {
         var aj = creer('button', { classe: 'gb-ajout fr-icon-add-line', id: (prefixe || '') + 'gAjoutTuile' }, [creer('span', { texte: 'Ajouter une tuile' })]);
@@ -9725,7 +9730,7 @@ function ouvrirChoixType(ctx) {
             bt.addEventListener('click', function () { fermerModale(); ouvrirEditeurTuile(ctx, null, s); });
             grilleS.appendChild(bt);
         });
-        corps.push(creer('div', { classe: 'gb-section' }, [creer('h3', { classe: 'gb-section__titre', texte: 'Tuiles prêtes, calculées sur ' + libelleTable(tid) }), grilleS]));
+        corps.push(creer('div', { classe: 'gb-section' }, [creer('h3', { classe: 'gb-section__titre' }, [document.createTextNode('Tuiles prêtes, calculées sur '), etiquetteTable(tid)]), grilleS]));
     }
     var grille = creer('div', { classe: 'gb-types' });
     TYPES_TUILES.forEach(function (ty) {
@@ -10660,6 +10665,17 @@ function minuscule(s) {
 }
 function majuscule(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 function sansEmoji(s) { return String(s || '').replace(/^[^0-9A-Za-zÀ-ÿ(«"]+/, ''); }
+var ICONE_TABLE_DEFAUT = '\uD83D\uDCCB';
+function iconeTable(tid) {
+    var m = /^[^0-9A-Za-zÀ-ÿ(«"\s]+/.exec(String(libelleTable(tid) || '').trim());
+    return m ? m[0] : ICONE_TABLE_DEFAUT;
+}
+function nomAvecIcone(tid) {
+    return String(libelleTable(tid) || '').trim().replace(/^[^0-9A-Za-zÀ-ÿ(«"]+/, '') || libelleTable(tid);
+}
+function etiquetteTable(tid) {
+    return creer('span', { classe: 'w-table' }, [creer('span', { classe: 'w-table__ico', texte: iconeTable(tid), attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: nomAvecIcone(tid) })]);
+}
 function nomTable(tid) {
     var lib = libelleTable(tid), n = sansEmoji(lib) || lib;
     if (/\u26A1\uFE0F?$/.test(n)) {
@@ -11392,22 +11408,22 @@ function suggestionsElements() {
     return res;
 }
 function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
-    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree' : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + sous : '') } }, [visuel,
+    var bt = creer('button', { classe: 'gb-rang__carte' + (etatTexte ? ' gb-rang__carte--cree' : ''), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
         etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat', texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
-        creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous', texte: sous }) : null]);
+        creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null]);
     bt.addEventListener('click', function () { relayer(action(), titre); });
     return bt;
 }
 function carteZero(id, libelle, action, desactive, aria) {
-    var bt = creer('button', { classe: 'gb-rang__ajout', id: id, attrs: { type: 'button', 'aria-label': aria || libelle } }, [creer('span', { classe: 'fr-icon-add-line gb-rang__plus', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: libelle })]);
+    var bt = creer('button', { classe: 'gb-rang__ajout', id: id, attrs: { type: 'button', 'aria-label': aria || libelle } }, [creer('span', { classe: 'fr-icon-add-line gb-rang__plus', attrs: { 'aria-hidden': 'true' } })]);
     bt.disabled = !!desactive;
     bt.addEventListener('click', function () { relayer(action(), libelle); });
     return bt;
 }
 function rangDepart(glyphe, titre, cartes, actions) {
     return creer('section', { classe: 'gb-rang', attrs: { 'aria-label': titre } }, [
-        creer('div', { classe: 'gb-rang__tete' }, [glypheType(glyphe), creer('h3', { classe: 'gb-rang__nom', texte: titre })].concat(actions || [])),
-        creer('div', { classe: 'gb-rang__suggs' }, cartes)]);
+        creer('div', { classe: 'gb-rang__tete' }, [glypheType(glyphe), creer('h3', { classe: 'gb-rang__nom', texte: titre })]),
+        creer('div', { classe: 'gb-rang__suggs' }, cartes.concat(actions || []))]);
 }
 function categorieTuile(t) { return t.type === 'table' && t.tableMode === 'pivot' ? 'croise' : t.type; }
 function cartesCreees(filtre, prefixe) {
@@ -11457,14 +11473,14 @@ function rendreDepart(bloc) {
         var cartes = crees.concat(sugg[r.cle].map(function (t, k) {
             var t2 = Object.assign(cloner(t), { taille: 'XL' });
             var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + r.cle + k + '-', 460) || miniApercu([t]);
-            return carteSuggestion('dS-' + r.cle + '-' + k, t.titre, libelleTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); });
+            return carteSuggestion('dS-' + r.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); });
         }));
         rangs.appendChild(rangDepart(r.glyphe, r.titre, cartes, [carteZero('dZ-' + r.cle, 'Ajouter', function () { return ouvrirConstructionNeuve(r.cle); }, !aDesDonnees, 'Ajouter : ' + minuscule(r.titre))]));
     });
     var sTdb = charge ? suggestionsDocument().slice(0, 3) : [];
     var creesTdb = charge ? cartesCreees(function (t) { return !t.config.seul; }, 'dC-tdb-') : [];
     rangs.appendChild(rangDepart('tdb', 'Un tableau de bord', creesTdb.concat(sTdb.map(function (x, k) {
-        return carteSuggestion('dS-tdb-' + k, x.nom, libelleTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); });
+        return carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); });
     })), [carteZero('dZ-tdb', 'Ajouter', function () {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
         }, false, 'Ajouter : un tableau de bord'), bouton('Partir d\'un modèle', 'tertiaire', null, function () { return choisirDepart('modele'); }, { petit: true, id: 'dModele' })]));
@@ -11545,20 +11561,26 @@ function constructionModifiee() { var c = etat.construction; return !!c && JSON.
 function rendreConstruction(zone) {
     var c = etat.construction;
     var b = c.b;
-    var publie = !!c.cle;
+    var existe = !!c.cle;
+    var publie = existe && pagesDuTableau(c.cle).length > 0;
     var modifie = constructionModifiee();
     var nom = champSaisie('eNomElement', b.titre || '', function (v) { b.titre = v; majEtatConstruction(); majApercu(); });
     nom.setAttribute('aria-label', 'Nom de la page');
-    var actions = [bouton('Ajouter d\'autres tuiles', 'secondaire', 'add-line', ajouterAutresTuiles, { id: 'eAutres' }),
-        publie ? bouton('Publier les modifications', null, 'send-plane-line', publierModifications, { id: 'ePublier', desactive: !modifie })
-            : bouton('Publier', null, 'send-plane-line', publierElement, { id: 'ePublier' })];
-    if (publie) {
+    var actions = [bouton('Ajouter d\'autres tuiles', 'secondaire', 'add-line', ajouterAutresTuiles, { id: 'eAutres' })];
+    if (!publie) {
+        actions.push(bouton('Enregistrer', 'secondaire', 'save-line', enregistrerElement, { id: 'eEnregistrer', desactive: existe && !modifie }));
+        actions.push(bouton('Publier', null, 'send-plane-line', publierElement, { id: 'ePublier' }));
+    }
+    else {
+        actions.push(bouton('Publier les modifications', null, 'send-plane-line', publierModifications, { id: 'ePublier', desactive: !modifie }));
+    }
+    if (existe) {
         actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { id: 'eSupprimer', classe: 'gb-danger' }));
     }
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Retour', 'tertiaire', 'arrow-left-line', quitterConstruction, { petit: true, id: 'eRetour' }),
-        creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: publie ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
+        creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }), nom]),
-        publie ? creer('span', { classe: 'gb-etat' + (modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: modifie ? 'Modifications non publiées' : 'Publié' }) : null,
+        existe ? creer('span', { classe: 'gb-etat' + (modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: modifie ? (publie ? 'Modifications non publiées' : 'Modifications non enregistrées') : (publie ? 'Publié' : 'Enregistré, pas encore publié') }) : null,
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var form = creer('div', { classe: 'gb-constr__etapes' });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
@@ -11595,14 +11617,19 @@ function majEtatConstruction() {
         return;
     }
     var m = constructionModifiee();
+    var pub = pagesDuTableau(c.cle).length > 0;
     var e = document.getElementById('eEtat');
     if (e) {
-        e.textContent = m ? 'Modifications non publiées' : 'Publié';
+        e.textContent = m ? (pub ? 'Modifications non publiées' : 'Modifications non enregistrées') : (pub ? 'Publié' : 'Enregistré, pas encore publié');
         e.classList.toggle('gb-etat--modifie', m);
     }
     var p = document.getElementById('ePublier');
-    if (p) {
+    if (p && pub) {
         p.disabled = !m;
+    }
+    var en = document.getElementById('eEnregistrer');
+    if (en) {
+        en.disabled = !m;
     }
 }
 async function quitterConstruction() {
@@ -11632,10 +11659,68 @@ function nomElementValide() {
     }
     return nom;
 }
+function nomPageStats(nom) {
+    return '\uD83D\uDCCA ' + nom;
+}
 function valeurPageAuto(cle, cfg) {
     var lec = {};
     lec[cle] = lecteursParDefaut(cfg);
     return JSON.stringify({ consultation: true, tableaux: [cle], titre: '', table: '', conditions: [], lecteurs: lecteursValides(lec) });
+}
+function configElementConstruit(nom) {
+    var t = cloner(etat.construction.b);
+    t.titre = nom;
+    t.taille = 'XL';
+    return { nom: nom, description: '', table: t.table, periode: null, filtres: [], tuiles: [t], seul: true };
+}
+function nomElementPris(nom) {
+    var cle = etat.construction.cle;
+    var vues = etat.nomsVues || [];
+    return vues.indexOf(nom) !== -1 || vues.indexOf(nomPageStats(nom)) !== -1
+        || etat.tableaux.some(function (t) { return t.cle !== cle && normalizer(t.config.nom) === normalizer(nom); });
+}
+async function enregistrerConfigElement(nom, libelleLoader) {
+    var c = etat.construction;
+    var cfg = configElementConstruit(nom);
+    afficherLoader(libelleLoader);
+    try {
+        await assurerBibliotheque();
+        await lireTableaux();
+        await determinerDroits();
+        var t = c.cle ? trouverTableau(c.cle) : null;
+        var cle = t ? c.cle : nouvelleCleConfig();
+        await ecrireConfig(cfg, cle, t ? t.ligne : null);
+        await lireTableaux();
+        return { cle: cle, cfg: cfg };
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas d\'enregistrer.' : 'L\'enregistrement n\'a pas abouti. Réessayez.', e);
+        return null;
+    }
+}
+async function enregistrerElement() {
+    var nom = nomElementValide();
+    if (!nom) {
+        return;
+    }
+    await majPages();
+    if (nomElementPris(nom)) {
+        marquerInvalide('eNomElement', 'Un élément ou une page porte déjà ce nom.');
+        return;
+    }
+    var r = await enregistrerConfigElement(nom, 'Enregistrement…');
+    if (!r) {
+        return;
+    }
+    etat.construction = null;
+    etat.brouillon = null;
+    etat.filtres = null;
+    etat.edition = false;
+    await chargerTout();
+    masquerLoader();
+    demarrerCreation();
+    afficherSucces('« ' + nom + ' » est enregistré, pas encore publié.');
 }
 async function publierElement() {
     var nom = nomElementValide();
@@ -11643,30 +11728,16 @@ async function publierElement() {
         return;
     }
     await majPages();
-    if ((etat.nomsVues || []).indexOf(nom) !== -1 || etat.tableaux.some(function (t) { return normalizer(t.config.nom) === normalizer(nom); })) {
+    if (nomElementPris(nom)) {
         marquerInvalide('eNomElement', 'Une page porte déjà ce nom dans le document.');
         return;
     }
-    var t = cloner(etat.construction.b);
-    t.titre = nom;
-    t.taille = 'XL';
-    var cfg = { nom: nom, description: '', table: t.table, periode: null, filtres: [], tuiles: [t], seul: true };
-    afficherLoader('Publication…');
-    var cle = null;
-    try {
-        await assurerBibliotheque();
-        await lireTableaux();
-        await determinerDroits();
-        cle = nouvelleCleConfig();
-        await ecrireConfig(cfg, cle, null);
-        await lireTableaux();
-    }
-    catch (e) {
-        masquerLoader();
-        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de publier.' : 'La publication n\'a pas abouti. Réessayez.', e);
+    var r = await enregistrerConfigElement(nom, 'Publication…');
+    if (!r) {
         return;
     }
-    var ok = await creerPageConsultation(nom, valeurPageAuto(cle, cfg), cle, true);
+    var cle = r.cle;
+    var ok = await creerPageConsultation(nomPageStats(nom), valeurPageAuto(cle, r.cfg), cle, true);
     etat.construction = null;
     etat.brouillon = null;
     etat.filtres = null;
@@ -11841,7 +11912,7 @@ async function publierTableau() {
     var cfg = etat.config;
     var nom = String(cfg.nom || '').trim();
     await majPages();
-    if ((etat.nomsVues || []).indexOf(nom) !== -1) {
+    if ((etat.nomsVues || []).indexOf(nom) !== -1 || (etat.nomsVues || []).indexOf(nomPageStats(nom)) !== -1) {
         signalerSaisie('Une page porte déjà ce nom dans le document : changez le nom du tableau de bord.');
         return;
     }
@@ -11850,7 +11921,7 @@ async function publierTableau() {
         etat.minuterieSauvegarde = null;
         await sauverTableau();
     }
-    var ok = await creerPageConsultation(nom, valeurPageAuto(etat.cleConfig, cfg), etat.cleConfig, true);
+    var ok = await creerPageConsultation(nomPageStats(nom), valeurPageAuto(etat.cleConfig, cfg), etat.cleConfig, true);
     if (ok) {
         await majPages();
         etat.edition = false;
