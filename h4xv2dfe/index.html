@@ -735,7 +735,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11007,9 +11007,23 @@ function rendreDepart(bloc) {
     if (!aDesDonnees) {
         tDonnees.querySelector('button').disabled = true;
     }
-    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, [tDonnees,
-        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele'),
-        option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'J\'ai déjà des graphiques', 'Reprenez des tableaux de bord WuitBoard, des graphiques WuitGraphiques ou des tableaux croisés WuitPivot de ce document. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise')]));
+    var cartes = [tDonnees,
+        option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele')];
+    if (etat.reprisesPresentes) {
+        cartes.push(option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'Reprendre mes anciens réglages', 'Ce document contient des réglages de WuitBoard, WuitGraphiques ou WuitPivot : reprenez-les ici. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise'));
+    }
+    else if (etat.reprisesPresentes === undefined) {
+        etat.reprisesPresentes = false;
+        relayer(lireReprises().then(function (l) {
+            if (l.length) {
+                etat.reprisesPresentes = true;
+                if (etat.vue === 'assistant' && etat.brouillon === b && (b.etape || 1) === 1) {
+                    redessinerParam();
+                }
+            }
+        }), 'Recherche des réglages des autres widgets');
+    }
+    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, cartes));
     if (b.choix === 'donnees') {
         bloc.appendChild(blocSuggestions());
     }
@@ -11541,7 +11555,7 @@ var AIDE = {
         { q: 'Pourquoi une tuile indique-t-elle qu\'elle n\'est pas filtrée ?', r: 'Sa table n\'a pas la colonne du filtre. Les filtres du volet ne s\'appliquent qu\'aux tuiles dont la table a une colonne de même identifiant.' },
         { q: 'Que se passe-t-il quand je clique sur une barre ou une part ?', r: 'Tout le tableau de bord se filtre sur cette valeur : les autres tuiles dont la liste a la même colonne ne montrent plus que ces lignes. Un bandeau au-dessus des tuiles rappelle le filtre, avec « Voir les lignes » et « Retirer ce filtre ». Un second clic sur la même valeur retire aussi le filtre.' },
         { q: 'Comment voir le détail d\'une courbe ?', r: 'Cliquez sur un point : une année montre ses trimestres, un trimestre ses mois, un mois ses jours. Le chemin au-dessus de la courbe permet de remonter. Ce détail se coupe dans les réglages de la courbe, « Détail au clic ».' },
-        { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : « Nouveau tableau de bord », puis « J\'ai déjà des graphiques ». WuitStats en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
+        { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : si le document en contient, « Nouveau tableau de bord » propose la carte « Reprendre mes anciens réglages ». WuitStats en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
         { q: 'Comment publier un seul graphique ?', r: 'Sur la tuile, le bouton « Publier cette tuile seule » prépare une page de consultation qui ne montre qu\'elle. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
         { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos tables seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
         { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos tables et leurs lignes restent dans le document.' },
