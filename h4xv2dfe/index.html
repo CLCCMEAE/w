@@ -168,6 +168,9 @@
     .w-tiroir.actif { display: flex; }
     .w-tiroir--etroit { --w-tiroir-l: 26rem; }
     .w-tiroir--large { --w-tiroir-l: 40rem; }
+    .w-tiroir--atelier { --w-tiroir-l: 70rem; flex-basis: min(var(--w-tiroir-l), 88vw); width: min(var(--w-tiroir-l), 88vw); }
+    .gb-constr--tiroir .gb-constr__corps { margin: .75rem 0 0; min-height: 0; }
+    .gb-constr--tiroir .gb-constr__etapes { flex-basis: 13rem; max-width: 13rem; }
     .w-tiroir > .w-dialogue { max-width: none; width: 100%; height: 100%; max-height: 100%; animation: wGlisse .2s ease-out; }
     @media (prefers-reduced-motion: reduce) { .w-tiroir > .w-dialogue { animation: none; } }
     @media (max-width: 48em) { .w-tiroir.actif { position: fixed; inset: 0; z-index: 9990; width: auto; } }
@@ -651,7 +654,7 @@
     .gb-constr__resultat, .gb-constr__panneau--plein { order: 0; }
     .gb-constr__etapes { order: 1; border-right: 0; border-left: 1px solid var(--border-default-grey); }
     .gb-constr__panneau { order: 2; border-right: 0; border-left: 1px solid var(--border-default-grey); }
-    .gb-constr__panneau--plein { border-left: 0; }
+    .gb-constr__panneau.gb-constr__panneau--plein { order: 0; border-left: 0; }
     @keyframes gb-entree-droite { from { transform: translateX(3rem); opacity: 0; } to { transform: none; opacity: 1; } }
     .gb-constr--entree .gb-constr__etapes, .gb-constr--entree .gb-constr__panneau:not(.gb-constr__panneau--plein) { animation: gb-entree-droite .25s ease-out; }
     @media (prefers-reduced-motion: reduce) { .gb-constr--entree .gb-constr__etapes, .gb-constr--entree .gb-constr__panneau { animation: none; } }
@@ -939,7 +942,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '2.1.29';
+var VERSION_WIDGET = '2.1.30';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -8928,8 +8931,8 @@ function afficherVue(vue, garderFocus) {
     ajusterHauteur();
 }
 function ajusterHauteur() {
-    var el = document.querySelector('.gb-accueil, .gb-constr__corps');
     var z = contenu();
+    var el = z ? z.querySelector('.gb-accueil, .gb-constr__corps') : null;
     if (!el || !z) {
         return;
     }
@@ -9972,10 +9975,12 @@ function ouvrirChoixType(ctx) {
 function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
     var nouvelle = index === null || index === undefined;
     var b = nouvelle ? cloner(tuileNeuve) : cloner(ctx.cfg.tuiles[index]);
-    var form = creer('div', { classe: 'gb-editeur__form' });
+    var form = creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } });
+    var panneau = creer('section', { classe: 'gb-constr__panneau', attrs: { 'aria-label': 'Réglages' } });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
     var compte = creer('div', { classe: 'gb-compte-lignes', id: 'eCompte', attrs: { 'aria-live': 'polite' } });
-    var zoneApercu = creer('div', { classe: 'gb-editeur__apercu' }, [apercu, compte]);
+    var zoneApercu = creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }), apercu, compte]);
+    var titreChamp = champSaisie('eTitre', b.titre || '', function (v) { b.titre = v; majApercu(); });
     var majApercu = function () {
         oublierApercu(apercu);
         vider(apercu);
@@ -9992,7 +9997,8 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
     var redessiner = function (focusId) {
         var actif = focusId || (document.activeElement && document.activeElement.id);
         vider(form);
-        construireFormulaire(form, b, redessiner, majApercu);
+        vider(panneau);
+        construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, panneau: panneau });
         majApercu();
         var f = actif ? document.getElementById(actif) : null;
         if (f) {
@@ -10000,7 +10006,7 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
         }
     };
     ouvrirModale({ titre: titreEditeurTuile(b, nouvelle),
-        corps: [creer('div', { classe: 'gb-editeur' }, [form, zoneApercu])],
+        corps: [groupe('Titre de la tuile', titreChamp), creer('div', { classe: 'gb-constr gb-constr--tiroir' }, [creer('div', { classe: 'gb-constr__corps' }, [zoneApercu, form, panneau])])],
         pied: [bouton('Annuler', 'secondaire', null, fermerModale), creer('span', { classe: 'w-pousse' }),
             bouton(nouvelle ? 'Ajouter la tuile' : 'Appliquer', null, 'check-line', function () {
                 var err = validerTuile(b);
@@ -10020,7 +10026,7 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
                     c.tuiles[index] = b;
                 } }, nouvelle ? 'Tuile ajoutée' : 'Tuile modifiée', '#' + (ctx.prefixe || '') + 'gEditer' + (nouvelle ? ctx.cfg.tuiles.length : index));
             }, { id: 'gAppliquer' })], focus: 'eTitre' });
-    document.getElementById('wModale').classList.add('w-tiroir--large');
+    document.getElementById('wModale').classList.add('w-tiroir--large', 'w-tiroir--atelier');
     _sectionTuile = null;
     redessiner('eTitre');
 }
