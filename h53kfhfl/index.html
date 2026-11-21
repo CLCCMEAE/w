@@ -188,7 +188,7 @@
     .w-carte__tables { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; overflow-wrap: anywhere; }
     .w-carte__sous { font-size: .8125rem; color: var(--text-mention-grey); }
     .w-carte__maj { align-self: stretch; margin-top: auto; padding-top: .25rem; font-size: .75rem; color: var(--text-mention-grey); text-align: right; }
-    .w-carte__etat { align-self: flex-start; }
+    .w-carte__etat { align-self: flex-start; text-transform: none; }
     .w-carte > .w-menu { position: absolute; top: .375rem; right: .375rem; }
     .w-carte--ajout { align-items: center; justify-content: center; flex-direction: row; gap: .5rem; border-style: dashed; border-color: var(--border-plain-grey); background: transparent; color: var(--text-action-high-blue-france); font: inherit; font-weight: 700; cursor: pointer; }
     .w-menu { position: relative; display: inline-block; }
@@ -203,10 +203,10 @@
     .w-constr__nom .fr-input { margin-top: .25rem; }
     .w-constr__corps { flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap; align-items: stretch; }
     .w-constr__resultat { flex: 999 1 26rem; min-width: 0; box-sizing: border-box; padding: 1rem 1.25rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: .5rem; }
-    .w-constr__panneau { flex: 0 1 27rem; min-width: min(19rem, 100%); box-sizing: border-box; padding: 1rem 1.25rem 1.25rem; border-left: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; animation: wEntreeDroite .25s ease-out; }
-    @keyframes wEntreeDroite { from { transform: translateX(3rem); opacity: 0; } to { transform: none; opacity: 1; } }
+    .w-constr__panneau { order: -1; flex: 0 1 27rem; min-width: min(19rem, 100%); box-sizing: border-box; padding: 1rem 1.25rem 1.25rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; animation: wEntreeGauche .25s ease-out; }
+    @keyframes wEntreeGauche { from { transform: translateX(-3rem); opacity: 0; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .w-constr__panneau { animation: none; } }
-    @media (max-width: 48em) { .w-constr__panneau { border-left: 0; border-top: 1px solid var(--border-default-grey); } }
+    @media (max-width: 48em) { .w-constr__panneau { order: 0; border-right: 0; border-top: 1px solid var(--border-default-grey); } }
     .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; color: #161616; background: #fff200; }
     .w-constr__resultat .csnc-preview-grille { flex: 1 1 auto; min-height: 16rem; max-height: calc(100vh - 16rem); background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
     .w-constr__resultat .csnc-filtres-barre { border: 0; background: transparent; padding: 0; min-height: 0; }
@@ -312,7 +312,7 @@
     <div class="w-accueil" id="vueAccueil">
       <nav class="w-accueil__menu" aria-label="Rubriques">
         <button type="button" class="w-accueil__item" id="rubModeles" aria-current="page"><span class="fr-icon-bookmark-line w-accueil__ico" aria-hidden="true"></span>Mes modèles</button>
-        <button type="button" class="w-accueil__item" id="rubTables"><span class="w-accueil__ico" data-picto="table" aria-hidden="true"></span>Exporter une table</button>
+        <button type="button" class="w-accueil__item" id="rubTables"><span class="fr-icon-add-line w-accueil__ico" aria-hidden="true"></span>Nouvel export</button>
       </nav>
       <section class="w-accueil__scene" aria-labelledby="accueilTitre">
         <h2 class="w-accueil__titre" id="accueilTitre" tabindex="-1">Mes modèles</h2>
@@ -447,13 +447,12 @@ var SOCLE = {
                 "titre": "à l'accueil, choisissez d'où partir.",
                 "points": [
                     "« Mes modèles » : vos exports enregistrés ; un clic sur une carte l'ouvre, le bouton « … » la duplique ou la supprime.",
-                    "« Exporter une table » : une carte par table ; un clic ouvre l'export avec toutes ses colonnes.",
-                    "« Nouvel export » part d'un fichier vide."
+                    "« Nouvel export » : une carte par table ; un clic ouvre l'export avec toutes ses colonnes, et l'étape 1 permet d'ajouter d'autres tables au même fichier."
                 ]
             },
             {
                 "nom": "Les feuilles",
-                "titre": "étape 1 : cochez les tables à mettre dans le fichier.",
+                "titre": "étape 1, à gauche : cochez les tables à mettre dans le fichier.",
                 "points": [
                     "Chaque table cochée devient une feuille du fichier Excel.",
                     "Sous l'aperçu, cliquez sur une feuille pour régler ses colonnes et ses lignes."
@@ -3450,13 +3449,6 @@ function carteModele(d, k) {
     ]));
     return carte;
 }
-function carteAjout(id, libelle, action) {
-    var bt = el('button', { type: 'button', class: 'w-carte w-carte--ajout', id: id, role: 'listitem' });
-    bt.appendChild(el('span', { class: 'fr-icon-add-line', 'aria-hidden': 'true' }));
-    bt.appendChild(el('span', { text: libelle }));
-    bt.addEventListener('click', action);
-    return bt;
-}
 function rendreAccueil() {
     var grille = document.getElementById('accueilGrille');
     var titre = document.getElementById('accueilTitre');
@@ -3475,7 +3467,7 @@ function rendreAccueil() {
     });
     viderElement(grille);
     if (_vue.rubrique === 'tables') {
-        titre.textContent = 'Exporter une table';
+        titre.textContent = 'Quelle table exporter ?';
         if (!etat.basesDisponibles.length) {
             grille.appendChild(el('p', { class: 'w-mention', text: 'Aucune table dans ce document.' }));
             return;
@@ -3494,7 +3486,6 @@ function rendreAccueil() {
         return;
     }
     titre.textContent = 'Mes modèles';
-    grille.appendChild(carteAjout('carteNouvelExport', 'Nouvel export', function () { relayer(nouvelExport(null), 'Ouverture impossible'); }));
     if (_vue.brouillon && etat.tablesAExporter.length) {
         var bb = el('button', { type: 'button', class: 'w-carte w-carte--brouillon', id: 'carteBrouillon', role: 'listitem', 'aria-label': 'Reprendre l\'export en cours' });
         bb.appendChild(el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--yellow-tournesol w-carte__etat', text: 'Brouillon' }));
@@ -3511,7 +3502,7 @@ function rendreAccueil() {
     }
     etat.dispositions.forEach(function (d, k) { grille.appendChild(carteModele(d, k)); });
     if (!etat.dispositions.length) {
-        grille.appendChild(el('p', { class: 'w-mention w-accueil__vide', text: 'Aucun modèle enregistré. Un modèle garde les feuilles, les colonnes et les filtres pour refaire le même export en un clic.' }));
+        grille.appendChild(el('p', { class: 'w-mention w-accueil__vide', text: 'Aucun modèle enregistré. Commencez par « Nouvel export » : une fois l\'export réglé, « Enregistrer le modèle » garde les feuilles, les colonnes et les filtres pour le refaire en un clic.' }));
     }
 }
 function reinitialiserExport() {
@@ -3542,18 +3533,9 @@ async function nouvelExport(tableId) {
     _vue.modele = null;
     _vue.brouillon = true;
     document.getElementById('nomModele').value = '';
-    if (tableId) {
-        etat.tablesAExporter = [tableId];
-        await selectionnerTable(tableId);
-        _vue.etape = 'colonnes';
-    }
-    else {
-        afficherBarreTables();
-        afficherSidebar();
-        afficherFiltres();
-        rafraichirPreview();
-        _vue.etape = 'feuilles';
-    }
+    etat.tablesAExporter = [tableId];
+    await selectionnerTable(tableId);
+    _vue.etape = 'colonnes';
     afficherVue('atelier');
 }
 async function ouvrirModele(id) {
@@ -4108,9 +4090,7 @@ function brancherEvenements() {
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape__tete'), function (b) {
         b.addEventListener('click', function () { ouvrirEtape(b.parentNode.getAttribute('data-etape')); });
     });
-    var picto = document.querySelector('[data-picto="table"]');
-    if (picto)
-        picto.appendChild(pictoTable());
+
 }
 var _brouillonRowId = null;
 var _brouillonTimer = null;
@@ -4226,6 +4206,8 @@ async function initialiser() {
         if (!brouillonRestaure)
             afficherEtatVide();
         _vue.brouillon = brouillonRestaure;
+        if (!etat.dispositions.length && !(brouillonRestaure && etat.tablesAExporter.length))
+            _vue.rubrique = 'tables';
         afficherVue('accueil');
         relayer(chargerLogoDepuisBiblio(), 'Chargement du logo impossible');
         logSecurite('INFO', 'Widget WuitExport v' + VERSION_WIDGET + ' - initialisation terminée', { tables: etat.basesDisponibles.length });
