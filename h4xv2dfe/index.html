@@ -564,9 +564,12 @@
     .gb-mini__t { grid-column: span 4; min-height: 2.75rem; border-radius: 0; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: .25rem .375rem; display: flex; flex-direction: column;
       gap: .125rem; min-width: 0; color: var(--text-action-high-blue-france); overflow: hidden; }
     .gb-mini__t--S { grid-column: span 3; min-height: 2.25rem; } .gb-mini__t--M { grid-column: span 4; } .gb-mini__t--L { grid-column: span 6; } .gb-mini__t--XL { grid-column: span 12; min-height: 2.25rem; }
-    .gb-mini__t::before { --icon-size: .875rem; }
+    .gb-mini__g { display: block; width: 100%; height: 1.5rem; margin-top: auto; color: var(--text-action-high-blue-france); }
     .gb-mini__nom { font-size: .75rem; line-height: 1rem; color: var(--text-default-grey); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-    .gb-mini--grand .gb-mini__t { min-height: 3.5rem; }
+    .gb-vignette { position: relative; overflow: hidden; height: 9rem; max-height: 22rem; background: var(--background-alt-grey); border: 1px solid var(--border-default-grey); pointer-events: none; user-select: none; }
+    .gb-vignette__scene { position: absolute; top: 0; left: 0; width: 800px; padding: 16px; box-sizing: border-box; transform-origin: 0 0; }
+    .gb-vignette .gb-tuile { box-shadow: none; }
+    .gb-mini--grand .gb-mini__t { min-height: 3.5rem; } .gb-mini--grand .gb-mini__g { height: 2rem; }
     @media (max-width: 48em) {
       .w-contenu { padding: .75rem 1rem 1.5rem; }
       .w-overlay { padding: 0; align-items: stretch; }
@@ -732,7 +735,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.3.0';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11006,7 +11009,7 @@ function rendreDepart(bloc) {
     }
     bloc.appendChild(creer('div', { classe: 'w-tuiles' }, [tDonnees,
         option('dModele', 'sparkling-2-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des six modèles prêts à l\'emploi : le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez, et un tableau de bord prêt.', 'Partir d\'un modèle', function () { return choisirDepart('modele'); }, !aDesDonnees, b.choix === 'modele'),
-        option('dReprise', 'repeat-line', 'J\'ai déjà des graphiques', 'Reprenez des tableaux de bord WuitBoard, des graphiques WuitGraphiques ou des tableaux croisés WuitPivot de ce document. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise')]));
+        option('dReprise', iconeDispo(['repeat-line', 'refresh-line', 'arrow-go-back-line']), 'J\'ai déjà des graphiques', 'Reprenez des tableaux de bord WuitBoard, des graphiques WuitGraphiques ou des tableaux croisés WuitPivot de ce document. Les originaux restent tels quels.', 'Reprendre', function () { return choisirDepart('reprise'); }, false, b.choix === 'reprise')]));
     if (b.choix === 'donnees') {
         bloc.appendChild(blocSuggestions());
     }
@@ -11062,14 +11065,113 @@ async function choisirDepart(choix) {
         t.focus();
     }
 }
+var GLYPHES = {
+    kpi: [['rect', { x: 0, y: 5, width: 32, height: 13 }], ['rect', { x: 0, y: 22, width: 20, height: 3, o: .35 }]],
+    kpigrid: [['rect', { x: 0, y: 3, width: 18, height: 24, o: .2 }], ['rect', { x: 21, y: 3, width: 18, height: 24, o: .2 }], ['rect', { x: 42, y: 3, width: 18, height: 24, o: .2 }],
+        ['rect', { x: 3, y: 9, width: 10, height: 6 }], ['rect', { x: 24, y: 9, width: 12, height: 6 }], ['rect', { x: 45, y: 9, width: 8, height: 6 }]],
+    bar: [['rect', { x: 2, y: 16, width: 8, height: 12 }], ['rect', { x: 14, y: 6, width: 8, height: 22 }], ['rect', { x: 26, y: 18, width: 8, height: 10 }], ['rect', { x: 38, y: 2, width: 8, height: 26 }], ['rect', { x: 50, y: 11, width: 8, height: 17 }]],
+    line: [['polyline', { points: '0,24 12,17 24,20 36,9 48,13 60,3', fill: 'none', 'stroke-width': 2.5 }], ['line', { x1: 0, y1: 28.5, x2: 60, y2: 28.5, 'stroke-width': 1, o: .35 }]],
+    donut: [['circle', { cx: 30, cy: 15, r: 11, fill: 'none', 'stroke-width': 7, o: .25 }], ['circle', { cx: 30, cy: 15, r: 11, fill: 'none', 'stroke-width': 7, 'stroke-dasharray': '38 100', transform: 'rotate(-90 30 15)' }]],
+    radar: [['polygon', { points: '30,2 53,13 44,28 16,28 7,13', o: .18 }], ['polygon', { points: '30,8 46,14 39,24 21,23 14,14', o: .75 }]],
+    table: [['rect', { x: 0, y: 2, width: 60, height: 5 }], ['rect', { x: 0, y: 10, width: 36, height: 3, o: .4 }], ['rect', { x: 44, y: 10, width: 16, height: 3, o: .4 }],
+        ['rect', { x: 0, y: 17, width: 30, height: 3, o: .4 }], ['rect', { x: 44, y: 17, width: 16, height: 3, o: .4 }], ['rect', { x: 0, y: 24, width: 40, height: 3, o: .4 }], ['rect', { x: 44, y: 24, width: 16, height: 3, o: .4 }]],
+    gauge: [['path', { d: 'M8,27 A22,22 0 0 1 52,27', fill: 'none', 'stroke-width': 6, o: .22 }], ['path', { d: 'M8,27 A22,22 0 0 1 36.8,6.1', fill: 'none', 'stroke-width': 6 }]],
+    histogram: [['rect', { x: 0, y: 21, width: 9, height: 7 }], ['rect', { x: 10, y: 13, width: 9, height: 15 }], ['rect', { x: 20, y: 3, width: 9, height: 25 }], ['rect', { x: 30, y: 8, width: 9, height: 20 }], ['rect', { x: 40, y: 17, width: 9, height: 11 }], ['rect', { x: 50, y: 23, width: 9, height: 5 }]],
+    funnel: [['rect', { x: 2, y: 2, width: 56, height: 5 }], ['rect', { x: 9, y: 9, width: 42, height: 5, o: .8 }], ['rect', { x: 16, y: 16, width: 28, height: 5, o: .6 }], ['rect', { x: 23, y: 23, width: 14, height: 5, o: .45 }]],
+    heatmap: [],
+    gantt: [['rect', { x: 0, y: 3, width: 22, height: 5 }], ['rect', { x: 14, y: 12, width: 28, height: 5, o: .7 }], ['rect', { x: 34, y: 21, width: 24, height: 5, o: .5 }], ['line', { x1: 38, y1: 0, x2: 38, y2: 30, 'stroke-width': 1, o: .6 }]],
+    progress: [['rect', { x: 0, y: 3, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 3, width: 48, height: 5 }], ['rect', { x: 0, y: 13, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 13, width: 28, height: 5 }],
+        ['rect', { x: 0, y: 23, width: 60, height: 5, o: .2 }], ['rect', { x: 0, y: 23, width: 40, height: 5 }]],
+    latest: [['rect', { x: 0, y: 2, width: 12, height: 4, o: .5 }], ['rect', { x: 16, y: 2, width: 44, height: 4 }], ['rect', { x: 0, y: 13, width: 12, height: 4, o: .5 }], ['rect', { x: 16, y: 13, width: 36, height: 4 }],
+        ['rect', { x: 0, y: 24, width: 12, height: 4, o: .5 }], ['rect', { x: 16, y: 24, width: 40, height: 4 }]],
+    text: [['rect', { x: 0, y: 4, width: 44, height: 6 }], ['rect', { x: 0, y: 16, width: 60, height: 3, o: .4 }], ['rect', { x: 0, y: 23, width: 50, height: 3, o: .4 }]]
+};
+(function () {
+    var o = [.2, .5, .85, .35, .65, .25, .7, .3, .55, .9, .4, .2, .45, .8, .3, .6, .25, .75];
+    for (var k = 0; k < 18; k++) {
+        GLYPHES.heatmap.push(['rect', { x: (k % 6) * 10, y: Math.floor(k / 6) * 10, width: 9, height: 9, o: o[k] }]);
+    }
+})();
+function glypheType(code) {
+    var g = svg('svg', { viewBox: '0 0 60 30', class: 'gb-mini__g', focusable: 'false', 'aria-hidden': 'true' });
+    (GLYPHES[code] || GLYPHES.kpi).forEach(function (f) {
+        var a = Object.assign({}, f[1]);
+        var op = a.o;
+        delete a.o;
+        if (a.fill === 'none') {
+            a.stroke = 'currentColor';
+        }
+        else {
+            a.fill = 'currentColor';
+            if (a.points && f[0] === 'polygon') {
+                a.stroke = 'currentColor';
+            }
+        }
+        if (op !== undefined) {
+            a.opacity = op;
+        }
+        g.appendChild(svg(f[0], a));
+    });
+    return g;
+}
 function miniApercu(tuiles, grand) {
-    resoudreIconesTypes();
     var d = creer('div', { classe: 'gb-mini' + (grand ? ' gb-mini--grand' : ''), attrs: { 'aria-hidden': 'true' } });
     tuiles.forEach(function (t) {
-        var ty = TYPES_TUILES.filter(function (x) { return x.code === t.type; })[0] || TYPES_TUILES[0];
-        d.appendChild(creer('div', { classe: 'gb-mini__t gb-mini__t--' + (t.taille || 'M') + ' fr-icon-' + ty.icone }, [creer('span', { classe: 'gb-mini__nom', texte: t.titre })]));
+        d.appendChild(creer('div', { classe: 'gb-mini__t gb-mini__t--' + (t.taille || 'M') }, [creer('span', { classe: 'gb-mini__nom', texte: t.titre }), glypheType(t.type)]));
     });
     return d;
+}
+var LARGEUR_VIGNETTE = 800;
+function vignetteReelle(cfg, prefixe) {
+    var tuiles = (cfg && cfg.tuiles) || [];
+    if (!tuiles.length || tuiles.some(function (t) { return t.table && !etat.donnees[t.table]; }) || typeof ResizeObserver === 'undefined') {
+        return null;
+    }
+    var grille = creer('div', { classe: 'gb-grille' });
+    var avant = { config: etat.config, filtres: etat.filtres, croise: etat.croise };
+    etat.config = cfg;
+    etat.filtres = null;
+    etat.croise = null;
+    try {
+        tuiles.forEach(function (t) { grille.appendChild(rendreTuile(t, { prefixe: prefixe, sansOutils: true })); });
+    }
+    catch (e) {
+        logSecurite('ERREUR', 'Aperçu non dessiné', e);
+        return null;
+    }
+    finally {
+        etat.config = avant.config;
+        etat.filtres = avant.filtres;
+        etat.croise = avant.croise;
+    }
+    var scene = creer('div', { classe: 'gb-vignette__scene' }, [grille]);
+    var v = creer('div', { classe: 'gb-vignette', attrs: { 'aria-hidden': 'true', inert: '' } }, [scene]);
+    var attente = 0;
+    var ajuster = function () {
+        attente = 0;
+        var w = v.clientWidth;
+        if (!w) {
+            return;
+        }
+        var e = w / LARGEUR_VIGNETTE;
+        scene.style.transform = 'scale(' + e + ')';
+        var h = Math.ceil(scene.offsetHeight * e) + 'px';
+        if (v.style.height !== h) {
+            v.style.height = h;
+        }
+    };
+    var ro = new ResizeObserver(function () {
+        if (!v.isConnected) {
+            ro.disconnect();
+            return;
+        }
+        if (!attente) {
+            attente = requestAnimationFrame(ajuster);
+        }
+    });
+    ro.observe(v);
+    ro.observe(scene);
+    return v;
 }
 function nombreDe(x) { return 'Nombre ' + (/^[aeiouyhàâéèêëîïôöûü]/i.test(String(x || '')) ? 'd\'' : 'de ') + x; }
 function configToutesTuiles(tid) {
@@ -11094,7 +11196,7 @@ function blocSuggestions() {
             creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'fr-icon-lightbulb-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
                 creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sNom' + i, texte: s.nom + ' : ' + nombreSur(s.tuiles.length, 'tuile') })]),
             creer('p', { classe: 'w-mention fr-m-0', texte: 'D\'après la table ' + libelleTable(s.table) + ' (' + nombreSur(nbLignes(s.table), 'ligne') + ')' }),
-            miniApercu(s.tuiles),
+            vignetteReelle(s, 'sv' + i + '-') || miniApercu(s.tuiles),
             creer('p', { classe: 'fr-sr-only', texte: 'Tuiles : ' + s.tuiles.map(function (t) { return t.titre; }).join(', ') }),
             creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () { return utiliserConfig(cloner(s), 'la suggestion « ' + s.nom + ' »'); }, { petit: true, aria: 'Utiliser cette suggestion : ' + s.nom, id: 'sUtiliser' + i })])
         ]));
@@ -11472,7 +11574,7 @@ function apercuContenu(nom) {
         return { contenu: affichageApercu(b.cfg), note: 'Le volet et les tuiles à l\'ouverture, avec vos données.' };
     }
     if (nom === 'Récapitulatif') {
-        return b.cfg.tuiles.length ? { contenu: miniApercu(b.cfg.tuiles, true), note: 'Votre tableau de bord, tuile par tuile.' } : null;
+        return b.cfg.tuiles.length ? { contenu: vignetteReelle(b.cfg, 'rv-') || miniApercu(b.cfg.tuiles, true), note: 'Votre tableau de bord, avec vos données.' } : null;
     }
     return null;
 }
