@@ -35,24 +35,22 @@ main {padding:0}
 .tableWrap {overflow-x:auto;overflow-y:auto;max-height:65vh;border:1px solid var(--border-default-grey);border-radius:0;margin-top:0}
 table.utable {border-collapse:collapse;font-size:.875rem;width:max-content;min-width:100%}
 .utable th {position:sticky;top:0;background:var(--background-contrast-blue-france);border-bottom:2px solid var(--border-default-grey);padding:.45rem .6rem;text-align:left;white-space:nowrap;z-index:2;font-size:.8125rem;color:var(--text-default-grey)}
-.utable th:first-child,.utable th:nth-child(2),.utable th:nth-child(3),.utable th:nth-child(4) {position:sticky;z-index:3;background:var(--background-contrast-blue-france)}
+.utable th:first-child,.utable th:nth-child(2),.utable th:nth-child(3) {position:sticky;z-index:3;background:var(--background-contrast-blue-france)}
 .utable th:first-child {left:0;width:32px}
 .utable th:nth-child(2) {left:32px;width:42px}
 .utable th:nth-child(3) {left:74px;text-align:center}
-.utable th:nth-child(4) {min-width:180px}
 .utable td {padding:.35rem .5rem;border-bottom:1px solid var(--border-default-grey);white-space:nowrap;vertical-align:middle}
 .utable td:first-child {position:sticky;left:0;z-index:1;background:var(--background-default-grey);width:32px;text-align:center;color:var(--text-default-grey)}
 .utable td:nth-child(2) {position:sticky;left:32px;z-index:1;background:var(--background-default-grey);width:42px;text-align:center;color:var(--text-default-grey)}
 .utable td:nth-child(3) {position:sticky;left:74px;z-index:1;background:var(--background-default-grey);text-align:center;color:var(--text-default-grey)}
-.utable td:nth-child(4) {position:sticky;z-index:1;background:var(--background-default-grey);min-width:180px;font-weight:500;color:var(--text-default-grey)}
 .utable tbody tr:hover td {background:var(--background-alt-blue-france)}
-.utable tbody tr:hover td:first-child,.utable tbody tr:hover td:nth-child(2),.utable tbody tr:hover td:nth-child(3),.utable tbody tr:hover td:nth-child(4) {background:var(--background-alt-blue-france)}
+.utable tbody tr:hover td:first-child,.utable tbody tr:hover td:nth-child(2),.utable tbody tr:hover td:nth-child(3) {background:var(--background-alt-blue-france)}
 .utable tr.row-active td:nth-child(4) {border-left:3px solid var(--border-plain-success)}
 .utable tr.row-pending {background:var(--background-contrast-warning);color:var(--text-default-warning)}
-.utable tr.row-pending td:first-child,.utable tr.row-pending td:nth-child(2),.utable tr.row-pending td:nth-child(3),.utable tr.row-pending td:nth-child(4) {background:var(--background-contrast-warning);color:var(--text-default-grey)}
+.utable tr.row-pending td:first-child,.utable tr.row-pending td:nth-child(2),.utable tr.row-pending td:nth-child(3) {background:var(--background-contrast-warning);color:var(--text-default-grey)}
 .utable tr.row-pending td:nth-child(4) {border-left:3px solid var(--border-plain-warning)}
 .utable tr.row-inactive {background:var(--background-contrast-error);color:var(--text-default-error)}
-.utable tr.row-inactive td:first-child,.utable tr.row-inactive td:nth-child(2),.utable tr.row-inactive td:nth-child(3),.utable tr.row-inactive td:nth-child(4) {background:var(--background-contrast-error);color:var(--text-default-grey)}
+.utable tr.row-inactive td:first-child,.utable tr.row-inactive td:nth-child(2),.utable tr.row-inactive td:nth-child(3) {background:var(--background-contrast-error);color:var(--text-default-grey)}
 .utable tr.row-inactive td:nth-child(4) {border-left:3px solid var(--border-plain-error)}
 .th-new-col {min-width:220px;padding:.3rem .4rem;vertical-align:top;background:var(--background-contrast-blue-france);color:var(--text-default-grey)}
 .th-new-col-inner {display:flex;flex-direction:column;gap:.3rem}
@@ -391,6 +389,7 @@ h2.w-section__title {margin:0}
 .w-tri:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
 .w-tri__fleche { font-size: .75rem; color: var(--text-mention-grey); }
 .w-tri__fleche--active { color: var(--text-action-high-blue-france); }
+.w-non-invite { display: flex; width: fit-content; margin: .25rem 0 0; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -517,6 +516,8 @@ h2.w-section__title {margin:0}
           <span class="muted" style="font-size:.8125rem">À coller dans « Invitation multiple »</span>
           <button type="button" class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-clipboard-line fr-btn--icon-left" id="btnCopierEmails">Copier les emails actifs</button>
         </div>
+      <p class="w-mention" id="noteInvitations" hidden>Sur cette instance, le widget ne peut pas lire la liste des personnes invitées : vérifiez-la dans la fenêtre « Inviter des personnes ».</p>
+      <div><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-refresh-line fr-btn--icon-left" id="btnVerifierInvitations">Vérifier les invitations</button></div>
       <div id="rolesAcces"></div>
      </div>
     </li>
@@ -1267,6 +1268,14 @@ ETAPES_UT.forEach(function (c) {
     ecouter('etape-' + c + '-tete', 'click', function () { ouvrirEtape(c); });
 });
 ecouter('btnAjouterColonne', 'click', function () { ouvrirFormulaireColonne(); });
+ecouter('btnVerifierInvitations', 'click', function () { relayer(lireInvitations().then(function () { annoncerVerif(); }), 'Lecture des invitations'); });
+function annoncerVerif() {
+    if (!_invitations.lu) {
+        return;
+    }
+    var n = actifsNonInvites().length;
+    toast(n ? (n > 1 ? n + ' personnes actives ne figurent pas encore dans « Inviter des personnes ».' : '1 personne active ne figure pas encore dans « Inviter des personnes ».') : 'Toutes les personnes actives figurent dans « Inviter des personnes ».', { type: n ? 'avertissement' : 'succes' });
+}
 (function () {
     var z = $('rolesAcces');
     if (z) {
@@ -2734,6 +2743,7 @@ async function refreshUsers(silent) {
         }
         majAlerteModeAdmin();
         renderAll();
+        relayer(lireInvitations(), 'Lecture des invitations');
     }
     catch (e) {
         if (!silent)
@@ -2757,18 +2767,17 @@ function ajusterColonnesFigees() {
     if (!premiereLigne)
         return;
     var entetes = premiereLigne.children;
-    if (entetes.length < 4)
+    if (entetes.length < 3)
         return;
     var largeur1 = entetes[0].getBoundingClientRect().width;
     var largeur2 = entetes[1].getBoundingClientRect().width;
-    var largeur3 = entetes[2].getBoundingClientRect().width;
-    if (!largeur1 || !largeur2 || !largeur3)
+    if (!largeur1 || !largeur2)
         return;
-    var decalages = [0, largeur1, largeur1 + largeur2, largeur1 + largeur2 + largeur3];
+    var decalages = [0, largeur1, largeur1 + largeur2];
     var lignes = table.querySelectorAll('thead tr, tbody tr');
     for (var i = 0; i < lignes.length; i++) {
         var cellules = lignes[i].children;
-        for (var c = 0; c < 4 && c < cellules.length; c++) {
+        for (var c = 0; c < 3 && c < cellules.length; c++) {
             cellules[c].style.left = decalages[c] + 'px';
         }
     }
@@ -2839,6 +2848,7 @@ function renderTableHeader() {
     thDel.setAttribute('scope', 'col');
     thDel.style.width = '32px';
     tr.appendChild(thDel);
+    ordonnerCellules(tr);
     thead.appendChild(tr);
 }
 var _urlDocPromesse = null;
@@ -3069,6 +3079,91 @@ function createCellControl(f, val, rowId, colId) {
         el: inp4
     };
 }
+var _invitations = { lu: false, echec: false, emails: {} };
+var _derniereLectureInvitations = 0;
+async function lireInvitations() {
+    _derniereLectureInvitations = Date.now();
+    try {
+        var r = await gristRestApi('GET', '/access');
+        var herite = r && r.maxInheritedRole !== undefined ? !!r.maxInheritedRole : true;
+        var emails = {};
+        (r && Array.isArray(r.users) ? r.users : []).forEach(function (u) {
+            if (!u || !u.email) {
+                return;
+            }
+            if (u.access || (herite && u.parentAccess)) {
+                emails[String(u.email).toLowerCase()] = true;
+            }
+        });
+        _invitations = { lu: true, echec: false, emails: emails };
+    }
+    catch (e) {
+        _invitations = { lu: false, echec: true, emails: {} };
+        logSecurite('INFO', 'Liste des personnes invitées illisible depuis le widget', e);
+    }
+    marquerInvitations();
+    majResumesUt();
+}
+function estInvite(rec) {
+    return !!(rec && rec.EMAIL && _invitations.emails[String(rec.EMAIL).toLowerCase()]);
+}
+function actifsNonInvites() {
+    return utilisateursDuRegistre().filter(function (r) { return !!r.ACTIF && !estInvite(r); });
+}
+function marquerInvitations() {
+    document.querySelectorAll('#tbody .w-non-invite').forEach(function (b) { b.remove(); });
+    if (!_invitations.lu) {
+        return;
+    }
+    document.querySelectorAll('#tbody tr[data-id]').forEach(function (tr) {
+        var rec = records.find(function (r) { return String(r.id) === String(tr.dataset.id); });
+        if (!rec || !rec.ACTIF || estInvite(rec)) {
+            return;
+        }
+        var td = tr.querySelector('td[data-col="EMAIL"]');
+        if (!td) {
+            return;
+        }
+        var b = document.createElement('span');
+        b.className = 'fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon w-non-invite';
+        b.textContent = 'Pas encore invitée';
+        b.title = 'Cette personne est active dans le registre mais ne figure pas dans « Inviter des personnes » : elle ne peut pas ouvrir le document.';
+        td.appendChild(b);
+    });
+}
+window.addEventListener('focus', function () {
+    if (Date.now() - _derniereLectureInvitations > 10000 && records.length) {
+        relayer(lireInvitations(), 'Lecture des invitations');
+    }
+});
+var ORDRE_COLONNES = ['OEIL', 'ACTIF', 'MODE_ADMIN', 'ROLE_GRIST', 'STATUT', 'EMAIL', 'PRENOM', 'NOM'];
+function ordonnerCellules(tr) {
+    var cellules = Array.prototype.slice.call(tr.children);
+    if (cellules.length < 2) {
+        return;
+    }
+    if (!cellules[0].dataset.col) {
+        cellules[0].dataset.col = 'OEIL';
+    }
+    var fin = cellules[cellules.length - 1];
+    if (!fin.dataset.col) {
+        fin.dataset.col = 'SUPPR';
+    }
+    var rang = function (c, i) {
+        var k = ORDRE_COLONNES.indexOf(c.dataset.col);
+        if (k !== -1) {
+            return k;
+        }
+        if (c.dataset.col === 'SUPPR') {
+            return 10000;
+        }
+        if (c.dataset.col === 'MODIFIE_LE') {
+            return 9999;
+        }
+        return 100 + i;
+    };
+    cellules.map(function (c, i) { return { c: c, r: rang(c, i) }; }).sort(function (a, b) { return a.r - b.r; }).forEach(function (x) { tr.appendChild(x.c); });
+}
 var _tri = { col: null, sens: 1 };
 function valeurTri(r, col) {
     var v = r[col];
@@ -3104,6 +3199,7 @@ function enTeteTriable(th, col, libelle) {
     while (th.firstChild)
         th.removeChild(th.firstChild);
     var actif = _tri.col === col;
+    th.dataset.col = col;
     th.setAttribute('aria-sort', actif ? (_tri.sens > 0 ? 'ascending' : 'descending') : 'none');
     var b = document.createElement('button');
     b.type = 'button';
@@ -3136,6 +3232,7 @@ function renderTableBody() {
     var tbody = $('tbody');
     while (tbody.firstChild)
         tbody.removeChild(tbody.firstChild);
+    setTimeout(marquerInvitations, 0);
     (_tri.col ? records.slice().sort(comparerPourTri) : records).forEach(function (r) {
         if (r.EMAIL === '__PARAM__')
             return;
@@ -3180,6 +3277,7 @@ function renderTableBody() {
         lblSwitch.appendChild(cbACTIF);
         lblSwitch.appendChild(spanSlider);
         tdActif.appendChild(lblSwitch);
+        tdActif.dataset.col = 'ACTIF';
         tr.appendChild(tdActif);
         rowCtrls.ACTIF = cbACTIF;
         var tdPRENOM = document.createElement('td');
@@ -3189,6 +3287,7 @@ function renderTableBody() {
             tdPRENOM.appendChild(ctrlP.el);
             rowCtrls.PRENOM = ctrlP.el;
         }
+        tdPRENOM.dataset.col = 'PRENOM';
         tr.appendChild(tdPRENOM);
         var tdNOM = document.createElement('td');
         var fNom = getFieldDef('NOM');
@@ -3197,6 +3296,7 @@ function renderTableBody() {
             tdNOM.appendChild(ctrlN.el);
             rowCtrls.NOM = ctrlN.el;
         }
+        tdNOM.dataset.col = 'NOM';
         tr.appendChild(tdNOM);
         var tdRole = document.createElement('td');
         var fRole = getFieldDef('ROLE_GRIST');
@@ -3205,6 +3305,7 @@ function renderTableBody() {
             tdRole.appendChild(ctrlRole.el);
             rowCtrls.ROLE_GRIST = ctrlRole.el;
         }
+        tdRole.dataset.col = 'ROLE_GRIST';
         tr.appendChild(tdRole);
         var tdAdmin = document.createElement('td');
         tdAdmin.style.textAlign = 'center';
@@ -3254,11 +3355,13 @@ function renderTableBody() {
             tdAdmin.textContent = '-';
             tdAdmin.style.color = 'var(--text-mention-grey)';
         }
+        tdAdmin.dataset.col = 'MODE_ADMIN';
         tr.insertBefore(tdAdmin, tdPRENOM);
         getTableCols().forEach(function (colId) {
             if (colId === 'PRENOM' || colId === 'NOM')
                 return;
             var td = document.createElement('td');
+            td.dataset.col = colId;
             var f = getFieldDef(colId);
             var val = r[colId];
             if (colId === 'STATUT') {
@@ -3364,6 +3467,7 @@ function renderTableBody() {
         if (mLe)
             metaTexte = 'Modifié le ' + mLe;
         tdMeta.textContent = metaTexte;
+        tdMeta.dataset.col = 'MODIFIE_LE';
         tr.appendChild(tdMeta);
         var tdDel = document.createElement('td');
         tdDel.style.textAlign = 'center';
@@ -3395,6 +3499,7 @@ function renderTableBody() {
         });
         tdDel.appendChild(btnD);
         tr.appendChild(tdDel);
+        ordonnerCellules(tr);
         tbody.appendChild(tr);
     });
     appliquerRecherche();
@@ -5421,6 +5526,16 @@ function produireRegles(sortie, lecture, valeurs) {
 ecouter('btnCopierEmails', 'click', function () {
     var candidats = records.filter(function (r) { return r.EMAIL && r.EMAIL !== '__PARAM__'; });
     var actifs = candidats.filter(function (r) { return r.ACTIF === true || r.ACTIF === 1; });
+    if (_invitations.lu) {
+        var aInviter = actifs.filter(function (r) { return !estInvite(r); });
+        if (actifs.length && !aInviter.length) {
+            toast('Toutes les personnes actives figurent déjà dans « Inviter des personnes ».', { type: 'succes' });
+            return;
+        }
+        if (aInviter.length) {
+            actifs = aInviter;
+        }
+    }
     var nonActifs = candidats.length - actifs.length;
     var emails = actifs.map(function (r) { return r.EMAIL; });
     if (!emails.length) {
@@ -5503,7 +5618,29 @@ function majResumesUt() {
     var tous = utilisateursDuRegistre();
     var actifs = tous.filter(function (r) { return !!r.ACTIF; }).length;
     texteAvecPicto($('etape-ajout-resume'), 'ligne', pluriel(tous.length, 'utilisateur dans le registre', 'utilisateurs dans le registre'));
-    texteAvecPicto($('etape-acces-resume'), null, actifs ? (actifs > 1 ? actifs + ' personnes actives : chacune doit figurer dans « Inviter des personnes »' : '1 personne active : elle doit figurer dans « Inviter des personnes »') : 'Aucune personne active pour l’instant');
+    var manquants = _invitations.lu ? actifsNonInvites().length : 0;
+    var texteAcces;
+    if (!actifs) {
+        texteAcces = 'Aucune personne active pour l’instant';
+    }
+    else if (!_invitations.lu) {
+        texteAcces = actifs > 1 ? actifs + ' personnes actives : chacune doit figurer dans « Inviter des personnes »' : '1 personne active : elle doit figurer dans « Inviter des personnes »';
+    }
+    else if (manquants) {
+        texteAcces = manquants > 1 ? manquants + ' personnes actives ne figurent pas encore dans « Inviter des personnes »' : '1 personne active ne figure pas encore dans « Inviter des personnes »';
+    }
+    else {
+        texteAcces = actifs > 1 ? 'Les ' + actifs + ' personnes actives figurent dans « Inviter des personnes »' : 'La personne active figure dans « Inviter des personnes »';
+    }
+    texteAvecPicto($('etape-acces-resume'), null, texteAcces);
+    var bCop = $('btnCopierEmails');
+    if (bCop) {
+        bCop.textContent = _invitations.lu ? (manquants ? 'Copier les adresses à inviter (' + manquants + ')' : 'Copier les emails actifs') : 'Copier les emails actifs';
+    }
+    var noteInv = $('noteInvitations');
+    if (noteInv) {
+        noteInv.hidden = !_invitations.echec;
+    }
     texteAvecPicto($('etape-droits-resume'), null, 'Règles d’accès et mode structure');
     var perso = getTableCols().filter(function (c) { return !CORE_FIELDS.some(function (cf) { return cf.id === c; }); }).map(function (c) { var f = getFieldDef(c); return { id: c, label: f ? f.label : c }; });
     texteAvecPicto($('etape-colonnes-resume'), 'colonne', perso.length ? pluriel(perso.length, 'colonne en plus', 'colonnes en plus') + ' : ' + perso.map(function (f) { return f.label; }).join(', ') : 'Aucune colonne en plus');
