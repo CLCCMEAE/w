@@ -89,11 +89,12 @@
   .w-criterion__name-meta { font-size: .75rem; color: var(--text-mention-grey); overflow-wrap: anywhere; }
   .w-criterion__type-badge { flex-shrink: 0; }
   .w-criterion__remove { flex-shrink: 0; margin: 0; }
-  .w-criterion__modes { display: grid; grid-template-columns: 1fr 1fr; }
+  .w-criterion__modes { display: grid; grid-template-columns: 1fr 1fr 1fr; }
   .w-criterion__mode-btn { padding: .375rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-mention-grey); font-family: inherit; font-size: .8125rem; font-weight: 600; border-radius: 0; cursor: pointer; text-align: center; }
   .w-criterion__mode-btn + .w-criterion__mode-btn { border-left: 0; }
   .w-criterion__mode-btn:hover { color: var(--text-action-high-blue-france); }
   .w-criterion__mode-btn:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+  .w-criterion__mode-btn.active.strict { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); border-color: var(--background-action-high-blue-france); }
   .w-criterion__mode-btn.active.exact { background: var(--background-action-high-success); color: var(--text-inverted-success); border-color: var(--background-action-high-success); }
   .w-criterion__mode-btn.active.similar { background: var(--background-action-high-warning); color: var(--text-inverted-warning); border-color: var(--background-action-high-warning); }
   .w-config__actions {
@@ -815,8 +816,19 @@
   .w-criteria-legende { margin-top: .75rem; padding: .5rem .75rem; background: var(--background-alt-grey); }
   .w-criteria-legende p { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
   .w-criteria-legende p + p { margin-top: .25rem; }
-  .w-criteria-casse { margin-top: .75rem; }
   .w-etape__facultatif { font-weight: 400; color: var(--text-mention-grey); }
+  .w-dbl--bilan #resolveRecap, .w-dbl--bilan .w-resolve__toolbar, .w-dbl--bilan .w-resolve__main, .w-dbl--bilan .w-resolve__footer, .w-dbl--bilan .w-raccourcis, .w-dbl--attente .w-raccourcis { display: none; }
+  .w-bilan { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; }
+  .w-bilan__total { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
+  .w-bilan__liste { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: .25rem; }
+  .w-bilan__groupe { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .5rem .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); font: inherit; text-align: left; cursor: pointer; }
+  .w-bilan__groupe:hover { background: var(--background-default-grey-hover); }
+  .w-bilan__groupe:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+  .w-bilan__nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .w-bilan__nb { flex: none; font-size: .8125rem; color: var(--text-mention-grey); }
+  .w-raccourcis { margin: .5rem 0 0; font-size: .75rem; }
+  .w-picto { display: inline-flex; flex: none; vertical-align: -.2em; margin-right: .25rem; color: var(--text-mention-grey); }
+  .w-picto svg { width: 1em; height: 1em; }
 </style>
 </head>
 <body>
@@ -852,8 +864,10 @@
 
         <div id="alert3" role="status"></div>
         <p class="fr-text--sm" id="resolveRecap" style="margin:0 0 0.75rem;color:var(--text-action-high-blue-france);background:var(--background-alt-blue-france);padding:0.75rem 1rem;text-align:center"></p>
+        <div class="w-bilan" id="bilanDoublons" hidden></div>
         <div class="w-resolve__toolbar">
           <div class="w-resolve__toolbar-left">
+            <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-list-unordered" id="btnBilan">Bilan</button>
             <div class="w-nav-group">
               <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-arrow-left-s-line w-infobulle w-infobulle--gauche" id="navPrev" aria-label="Groupe précédent" data-infobulle="Groupe précédent"></button>
               <span class="w-nav-counter" id="navCounter">1 / 1</span>
@@ -862,7 +876,7 @@
             <span class="w-toolbar-sep" aria-hidden="true"></span>
             <div class="fr-checkbox-group fr-checkbox-group--sm">
               <input type="checkbox" id="hideIdenticalCheck" autocomplete="off" />
-              <label class="fr-label" for="hideIdenticalCheck">Masquer les colonnes identiques</label>
+              <label class="fr-label" for="hideIdenticalCheck">Masquer les colonnes identiques ou vides</label>
             </div>
             <div class="fr-checkbox-group fr-checkbox-group--sm">
               <input type="checkbox" id="hideFormulasCheck" autocomplete="off" checked />
@@ -891,11 +905,13 @@
           </div>
           <div class="w-resolve__cards" id="resolveCards" style="display:none;"></div>
         </div>
+        <p class="w-mention w-raccourcis" id="raccourcisClavier">Clavier : 1 à 9 garde la ligne n°, Maj + chiffre l'exclut, ← → change de groupe, Ctrl + Entrée fusionne.</p>
         <div class="w-resolve__footer">
           <div class="w-resolve__footer-info" id="footerInfo">
             <span>Sélectionnez la ligne à conserver pour chaque groupe.</span>
           </div>
           <div style="display:flex;gap:0.5rem;">
+            <button type="button" class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-refresh-line" id="resetBtn">Remettre à zéro</button>
             <button type="button" class="fr-btn fr-btn--tertiary" id="skipBtn">Ignorer ce groupe</button>
             <button type="button" class="fr-btn fr-btn--icon-left fr-icon-git-merge-line" id="mergeBtn">
               Fusionner et supprimer&nbsp;<span id="mergeBtnCount">0</span>&nbsp;ligne(s)
@@ -933,14 +949,10 @@
         <p class="w-mention w-criteria-intro">Deux lignes sont des doublons quand elles se ressemblent sur <strong>toutes</strong> les colonnes choisies. Exemple : avec Nom et Prénom, Jean Dupont et Marie Dupont ne sont pas confondus.</p>
         <div class="w-criteria" id="criteriaList" aria-live="polite"></div>
         <button type="button" class="fr-btn fr-btn--tertiary fr-btn--sm fr-icon-add-line fr-btn--icon-left w-criteria-ajout" id="btnAjouterCritere">Ajouter une colonne pour comparer</button>
-        <div class="fr-checkbox-group fr-checkbox-group--sm w-criteria-casse">
-          <input type="checkbox" id="casseCheck" autocomplete="off">
-          <label class="fr-label" for="casseCheck">Tenir compte des majuscules et minuscules</label>
-        </div>
         <div class="w-criteria-legende">
-          <p><strong>Identique</strong> : la même valeur, sans tenir compte des accents ni des espaces en trop (« Hélène » et « Helene »).</p>
-          <p><strong>Approchant</strong> : des valeurs proches, qui tolèrent aussi les fautes de frappe (« Dupont » et « Dupond »).</p>
-          <p id="casseLegende">Les majuscules ne comptent pas : « Dupont » et « DUPONT » sont des doublons.</p>
+          <p><strong>Exact</strong> : exactement la même valeur, majuscules et accents compris (« Dupont » et « Dupont »).</p>
+          <p><strong>Semblable</strong> : sans tenir compte des majuscules, des accents, de la ponctuation, des espaces ni de l'ordre des mots (« Jean-Hélène Dupont » et « dupont jean helene »).</p>
+          <p><strong>Approchant</strong> : tolère en plus les fautes de frappe (« Dupont » et « Dupond »). À vérifier de près : il trouve parfois de faux doublons.</p>
         </div>
         
             </div>
@@ -1373,7 +1385,6 @@ const S = {
     hideIdentical: false,
     hideFormulas: true,
     sortMode: 'default',
-    respecterCasse: false,
     currentStep: 1,
     mergeCount: 0,
     mergeErrors: 0,
@@ -2100,12 +2111,12 @@ function majRecap(nGroups, nDoublons) {
     var criteres = S.selectedFields.map(function (f) {
         var col = S.allColumns.find(function (c) { return c.id === f.fieldId; });
         var nom = col ? col.label : f.fieldId;
-        var mode = f.mode === 'exact' ? 'identique' : 'approchant';
+        var mode = libelleModeCourt(f.mode);
         return echapperHTML(nom) + ' (' + mode + ')';
     });
     var txt = 'Étude de ' + nDoublons + ' doublon' + (nDoublons > 1 ? 's' : '') +
         ' en ' + nGroups + ' groupe' + (nGroups > 1 ? 's' : '') +
-        ' dans la table <strong>' + table + '</strong>' +
+        ' dans la table ' + htmlPicto('table') + '<strong>' + table + '</strong>' +
         ' en comparant ' + (criteres.length > 1 ? 'les colonnes ' : 'la colonne ') +
         criteres.join(', ');
     $('resolveRecap').innerHTML = txt;
@@ -2124,6 +2135,13 @@ function resetScan() {
     $('alert2').innerHTML = '';
     if (S.currentStep === 3)
         S.currentStep = 2;
+    S.enBilan = false;
+    var zb = $('zoneDoublons');
+    if (zb)
+        zb.classList.remove('w-dbl--bilan');
+    var bb = $('bilanDoublons');
+    if (bb)
+        bb.hidden = true;
     zoneEnAttente(true);
     majResumes();
 }
@@ -2156,7 +2174,9 @@ function ligneCritere(k, fid, mode, surColonne, surMode, surRetrait) {
     const row = creerEl('div', 'w-criterion');
     const info = creerEl('div', 'w-criterion__info');
     const grp = creerEl('div', 'fr-select-group w-criterion__choix');
-    const lab = creerEl('label', 'fr-label', 'Colonne à comparer', { for: 'crit-col-' + k });
+    const lab = creerEl('label', 'fr-label', null, { for: 'crit-col-' + k });
+    lab.appendChild(picto('colonne'));
+    lab.appendChild(document.createTextNode('Colonne à comparer'));
     const sel = creerEl('select', 'fr-select', null, { id: 'crit-col-' + k, autocomplete: 'off' });
     sel.appendChild(creerEl('option', null, 'Choisir une colonne…', { value: '' }));
     colonnesComparables(fid).forEach(c => {
@@ -2176,7 +2196,7 @@ function ligneCritere(k, fid, mode, surColonne, surMode, surRetrait) {
     info.appendChild(sup);
     row.appendChild(info);
     const modes = creerEl('div', 'w-criterion__modes', null, { role: 'radiogroup', 'aria-label': 'Ressemblance attendue' });
-    [['exact', 'Identique'], ['similar', 'Approchant']].forEach(m => {
+    [['strict', 'Exact'], ['exact', 'Semblable'], ['similar', 'Approchant']].forEach(m => {
         const b = creerEl('button', 'w-criterion__mode-btn' + (mode === m[0] ? ' active ' + m[0] : ''), m[1], { type: 'button', role: 'radio', 'aria-checked': String(mode === m[0]), id: 'crit-mode-' + k + '-' + m[0] });
         b.addEventListener('click', () => surMode(m[0]));
         modes.appendChild(b);
@@ -2275,16 +2295,39 @@ function lev(a, b) {
     }
     return m[b.length][a.length];
 }
-function normaliserComparaison(v) {
-    if (!S.respecterCasse)
-        return normalize(v);
-    return valStr(v)
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[\s\u00a0\u202f]+/g, ' ')
-        .trim();
+var PICTOS_DONNEES = {
+    table: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6h13M1.5 9.5h13M6 6v7.5M10.5 6v7.5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>',
+    colonne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="2.5" width="4.5" height="11" fill="currentColor"/></svg>',
+    ligne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="6" width="13" height="3.5" fill="currentColor"/></svg>'
+};
+function htmlPicto(type) {
+    return '<span class="w-picto w-picto--' + type + '" aria-hidden="true">' + (PICTOS_DONNEES[type] || '') + '</span>';
+}
+function picto(type) {
+    var sp = document.createElement('span');
+    sp.className = 'w-picto w-picto--' + type;
+    sp.setAttribute('aria-hidden', 'true');
+    sp.innerHTML = PICTOS_DONNEES[type] || '';
+    return sp;
+}
+var MODES_COMPARAISON = {
+    strict: { libelle: 'Exact', court: 'exact' },
+    exact: { libelle: 'Semblable', court: 'semblable' },
+    similar: { libelle: 'Approchant', court: 'approchant' }
+};
+function libelleModeCourt(mode) {
+    return (MODES_COMPARAISON[mode] || MODES_COMPARAISON.exact).court;
+}
+function normaliserSelonMode(mode, v) {
+    if (mode === 'strict')
+        return valStr(v).trim();
+    if (mode === 'exact') {
+        return normalize(v).replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter(Boolean).sort().join(' ');
+    }
+    return normalize(v);
 }
 function levSim(a, b) {
-    const na = normaliserComparaison(a), nb = normaliserComparaison(b);
+    const na = normalize(a), nb = normalize(b);
     if (na === nb)
         return 100;
     if (!na.length || !nb.length)
@@ -2292,8 +2335,8 @@ function levSim(a, b) {
     return Math.round((1 - lev(na, nb) / Math.max(na.length, nb.length)) * 100);
 }
 function fScore(va, vb, mode) {
-    if (mode === 'exact')
-        return normaliserComparaison(va) === normaliserComparaison(vb) ? 100 : 0;
+    if (mode !== 'similar')
+        return normaliserSelonMode(mode, va) === normaliserSelonMode(mode, vb) ? 100 : 0;
     return levSim(va, vb);
 }
 async function startScan() {
@@ -2320,7 +2363,7 @@ async function startScan() {
     S.mergeCount = 0;
     S.mergeErrors = 0;
     const recs = lignesPourRecherche(), n = recs.length, used = new Set(), CHUNK = 50;
-    const exacts = S.selectedFields.filter(sf => sf.mode === 'exact');
+    const exacts = S.selectedFields.filter(sf => sf.mode !== 'similar');
     let paquets;
     if (exacts.length) {
         const parCle = new Map();
@@ -2332,7 +2375,7 @@ async function startScan() {
                     ecartee = true;
                     break;
                 }
-                const v = normaliserComparaison(displayValue(sf.fieldId, brut));
+                const v = normaliserSelonMode(sf.mode, displayValue(sf.fieldId, brut));
                 if (!v) {
                     ecartee = true;
                     break;
@@ -2384,7 +2427,7 @@ async function startScan() {
                                 break;
                             }
                             const sc = fScore(va, vb, sf.mode);
-                            if (sc < (sf.mode === 'exact' ? 100 : sf.threshold)) {
+                            if (sc < (sf.mode !== 'similar' ? 100 : sf.threshold)) {
                                 ok = false;
                                 break;
                             }
@@ -2445,7 +2488,7 @@ async function startScan() {
         showToast('Recherche terminée', ng + ' groupe(s), ' + nd + ' lignes concernées.', 'success', 2);
         majRecap(ng, nd);
         goToStep(3);
-        renderGroup();
+        afficherBilan();
     }
     majScanBtn();
 }
@@ -2514,7 +2557,7 @@ function renderGroup() {
         $('skipBtn').disabled = false;
         $('mergeAllBtn').disabled = false;
         $('footerInfo').textContent = actRecs.length + ' ' + (actRecs.length <= 1 ? 'ligne active' : 'lignes actives') +
-            ' · Ligne #' + S.keepRecordChoices[gi] + ' sera conservée';
+            ' · La ligne n° ' + S.keepRecordChoices[gi] + ' sera conservée';
     }
     catch (e) {
         logSecurite('ERREUR', 'Rendu du groupe ' + gi + ' échoué', e);
@@ -2553,8 +2596,8 @@ function buildRecordCard(gi, rec, cols, actRecs, isExcluded) {
     }
     const labelField = S.selectedFields[0]?.fieldId;
     const fieldValue = labelField ? displayValue(labelField, rec[labelField]) : '';
-    const titleText = (fieldValue && fieldValue.trim()) ? fieldValue : ('Ligne #' + rec.id);
-    const recIdTag = 'Rec #' + rec.id;
+    const titleText = (fieldValue && fieldValue.trim()) ? fieldValue : ('Ligne n° ' + rec.id);
+    const recIdTag = htmlPicto('ligne') + 'Ligne n° ' + rec.id;
     const actionsHtml = '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline w-rec-card__menu-btn" ' +
         'data-menu-toggle="1" data-r="' + rec.id + '" ' +
         'aria-label="Actions sur cette ligne" aria-haspopup="menu" aria-expanded="false" ' +
@@ -2575,7 +2618,7 @@ function buildRecordCard(gi, rec, cols, actRecs, isExcluded) {
             '</div>' +
             '<div class="w-rec-card__head-foot">' +
             '<span class="w-rec-card__state-label ' + stateLabelClass + '">' + stateLabelText + '</span>' +
-            '<span class="w-rec-card__rec-id">' + echapperHTML(recIdTag) + '</span>' +
+            '<span class="w-rec-card__rec-id">' + recIdTag + '</span>' +
             '</div>';
     card.appendChild(head);
     const body = document.createElement('div');
@@ -2621,10 +2664,10 @@ function buildRecordCard(gi, rec, cols, actRecs, isExcluded) {
         }
         const labelHtml = '<div class="w-rec-field__label">' +
             formulaTag +
-            '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
+            htmlPicto('colonne') + '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
             (cat ? '<span class="w-rec-field__label-mode" style="background:var(--background-alt-grey);color:var(--text-mention-grey)">' + echapperHTML(typeCategoryShort(cat)) + '</span>' : '') +
             (fConf ? '<span class="w-rec-field__label-mode w-rec-field__label-mode--' + fConf.mode + '">' +
-                (fConf.mode === 'exact' ? 'Exact' : 'Similaire') +
+                (MODES_COMPARAISON[fConf.mode] || MODES_COMPARAISON.exact).libelle +
                 '</span>' : '') +
             '</div>';
         const raw = rec[col.id];
@@ -2824,7 +2867,7 @@ function buildPreviewCard(gi, cols, actRecs) {
         const fld = document.createElement('div');
         fld.className = 'w-rec-field';
         const labelHtml = '<div class="w-rec-field__label">' +
-            '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
+            htmlPicto('colonne') + '<span class="w-truncate">' + echapperHTML(col.label || col.id) + '</span>' +
             (cat ? '<span class="w-rec-field__label-mode" style="background:var(--background-alt-grey);color:var(--text-mention-grey)">' + echapperHTML(typeCategoryShort(cat)) + '</span>' : '') +
             '</div>';
         let valueHtml;
@@ -3217,7 +3260,7 @@ async function mergeGroup(gi, dejaConfirme) {
             masquerLoader();
             S.mergeCount++;
             logSecurite('INFO', 'Fusion reussie', { keepId, delIds, champsModifies: Object.keys(merged).length });
-            showToast('Fusion réussie', 'Ligne #' + keepId + ' conservée, ' + delIds.length + ' ligne(s) supprimée(s)' + (planRefs.total ? ', ' + resumePlanRefs(planRefs) + ' redirigée(s)' : '') + '.', 'success', 3);
+            showToast('Fusion réussie', 'Ligne n° ' + keepId + ' conservée, ' + delIds.length + ' ligne(s) supprimée(s)' + (planRefs.total ? ', ' + resumePlanRefs(planRefs) + ' redirigée(s)' : '') + '.', 'success', 3);
         }
         catch (e) {
             masquerLoader();
@@ -3454,6 +3497,75 @@ function showToast(title, detail, type, sectionNum) {
         }, 6000);
     }
 }
+function reinitialiserGroupe(gi) {
+    const g = S.duplicateGroups[gi];
+    if (!g)
+        return;
+    S.mergeSelections[gi] = {};
+    S.cumulateSelections[gi] = {};
+    S.keepRecordChoices[gi] = g.records[0].id;
+    S.excludedRecords[gi] = new Set();
+    S.allColumns.forEach(col => {
+        S.mergeSelections[gi][col.id] = choisirSourceParDefaut(g.records, col.id);
+        S.cumulateSelections[gi][col.id] = new Set();
+    });
+    renderGroup();
+}
+function resumeGroupe(g) {
+    const r = g.records[0];
+    const vals = S.selectedFields.map(f => displayValue(f.fieldId, r[f.fieldId])).filter(Boolean);
+    return vals.length ? vals.join(' · ') : 'Ligne ' + r.id;
+}
+function afficherBilan() {
+    const z = $('zoneDoublons');
+    const b = $('bilanDoublons');
+    if (!z || !b)
+        return;
+    S.enBilan = true;
+    z.classList.add('w-dbl--bilan');
+    b.hidden = false;
+    viderEl(b);
+    const ng = S.duplicateGroups.length;
+    const nd = S.duplicateGroups.reduce((t, g) => t + g.records.length, 0);
+    const tot = creerEl('p', 'w-bilan__total', ng + (ng > 1 ? ' groupes de doublons' : ' groupe de doublons') + ' · ');
+    tot.appendChild(picto('ligne'));
+    tot.appendChild(document.createTextNode(nd + (nd > 1 ? ' lignes concernées' : ' ligne concernée')));
+    b.appendChild(tot);
+    if (ng) {
+        const go = creerEl('button', 'fr-btn fr-btn--icon-right fr-icon-arrow-right-line', 'Examiner les doublons', { type: 'button', id: 'btnExaminer' });
+        go.addEventListener('click', () => quitterBilan(0));
+        b.appendChild(go);
+        const ol = creerEl('ol', 'w-bilan__liste');
+        S.duplicateGroups.forEach((g, gi) => {
+            const bt = creerEl('button', 'w-bilan__groupe', null, { type: 'button', id: 'bilanGroupe' + gi });
+            bt.appendChild(creerEl('span', 'w-bilan__nom', resumeGroupe(g)));
+            const nb = creerEl('span', 'w-bilan__nb');
+            nb.appendChild(picto('ligne'));
+            nb.appendChild(document.createTextNode(g.records.length + ' lignes'));
+            bt.appendChild(nb);
+            bt.addEventListener('click', () => quitterBilan(gi));
+            const li = creerEl('li');
+            li.appendChild(bt);
+            ol.appendChild(li);
+        });
+        b.appendChild(ol);
+    }
+}
+function quitterBilan(gi) {
+    S.enBilan = false;
+    const z = $('zoneDoublons');
+    if (z)
+        z.classList.remove('w-dbl--bilan');
+    const b = $('bilanDoublons');
+    if (b)
+        b.hidden = true;
+    if (typeof gi === 'number')
+        S.currentGroupIndex = Math.max(0, Math.min(gi, S.duplicateGroups.length - 1));
+    renderGroup();
+    const t = $('navCounter');
+    if (t)
+        t.scrollIntoView({ block: 'nearest' });
+}
 function setEmpty(icon, title, desc) {
     const el = $('emptyState');
     el.querySelector('.w-empty__icon').textContent = icon;
@@ -3496,6 +3608,8 @@ function bindGlobal() {
     ecouter('navPrev', 'click', () => navGroup(-1));
     ecouter('navNext', 'click', () => navGroup(1));
     ecouter('skipBtn', 'click', () => skipGroup());
+    ecouter('resetBtn', 'click', () => reinitialiserGroupe(S.currentGroupIndex));
+    ecouter('btnBilan', 'click', () => afficherBilan());
     ecouter('mergeBtn', 'click', () => relayer(mergeGroup(S.currentGroupIndex), 'Fusion impossible'));
     ecouter('mergeAllBtn', 'click', () => relayer(mergeAll(), 'Fusion globale impossible'));
     ecouter('hideIdenticalCheck', 'change', () => {
@@ -3517,12 +3631,28 @@ function bindGlobal() {
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')
             return;
-        if (S.currentStep !== 3 || !S.duplicateGroups.length)
+        if (S.currentStep !== 3 || !S.duplicateGroups.length || S.enBilan)
             return;
         if (e.key === 'ArrowLeft')
             navGroup(-1);
         if (e.key === 'ArrowRight')
             navGroup(1);
+        const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code || '');
+        if (m && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const gi = S.currentGroupIndex;
+            const grp = S.duplicateGroups[gi];
+            const excl = S.excludedRecords[gi] || new Set();
+            const actifs = sortRecords(grp.records.filter(r => !excl.has(r.id)));
+            const cible = actifs[Number(m[1]) - 1];
+            if (cible) {
+                e.preventDefault();
+                handleCardAction(gi, cible.id, e.shiftKey ? 'exclude' : 'primary');
+            }
+        }
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            relayer(mergeGroup(S.currentGroupIndex), 'Fusion impossible');
+        }
     });
 }
 function creerEl(tag, classe, texte, attrs, enfants) {
@@ -4960,29 +5090,33 @@ function ouvrirEtape(cle, sansFocus) {
     }
 }
 function majResumes() {
-    var r = function (cle, t) {
+    var r = function (cle, t, type) {
         var x = document.getElementById('etape-' + cle + '-resume');
-        if (x)
-            x.textContent = t;
+        if (!x)
+            return;
+        viderElement(x);
+        if (t && type)
+            x.appendChild(picto(type));
+        x.appendChild(document.createTextNode(t || ''));
     };
     majVerrousEtapes();
-    r('table', S.selectedTable ? libelleTable(S.selectedTable) : '');
+    r('table', S.selectedTable ? libelleTable(S.selectedTable) : '', 'table');
     var noms = (S.selectedFields || []).map(function (f) {
         var col = (S.allColumns || []).find(function (c) { return c.id === f.fieldId; });
-        return (col ? col.label : f.fieldId) + (f.mode === 'exact' ? ' (identique)' : ' (approchant)');
+        return (col ? col.label : f.fieldId) + ' (' + libelleModeCourt(f.mode) + ')';
     });
-    r('colonnes', !S.selectedTable ? 'Choisissez d\u2019abord une table' : (noms.length ? noms.join(', ') : 'Aucune colonne'));
+    r('colonnes', !S.selectedTable ? 'Choisissez d\u2019abord une table' : (noms.length ? noms.join(', ') : 'Aucune colonne'), noms.length ? 'colonne' : '');
     var nf = nbConditionsFiltres();
     if (!S.selectedTable) {
         r('lignes', 'Choisissez d\u2019abord une table');
     }
     else if (!nf) {
-        r('lignes', 'Toutes les lignes');
+        r('lignes', 'Toutes les lignes', 'ligne');
     }
     else {
         var total = (S.allRecords || []).length;
         var garde = lignesPourRecherche().length;
-        r('lignes', nf + (nf > 1 ? ' filtres' : ' filtre') + ' · ' + garde.toLocaleString('fr-FR') + ' ligne' + (garde > 1 ? 's' : '') + ' sur ' + total.toLocaleString('fr-FR'));
+        r('lignes', nf + (nf > 1 ? ' filtres' : ' filtre') + ' · ' + garde.toLocaleString('fr-FR') + ' ligne' + (garde > 1 ? 's' : '') + ' sur ' + total.toLocaleString('fr-FR'), 'ligne');
     }
 }
 function zoneEnAttente(attente) {
@@ -5001,16 +5135,6 @@ function zoneEnAttente(attente) {
         setEmpty('🔎', 'Pas encore de recherche', '');
     }
 }
-(function brancherCasse() {
-    var c = document.getElementById('casseCheck');
-    c.addEventListener('change', function () {
-        S.respecterCasse = c.checked;
-        document.getElementById('casseLegende').textContent = c.checked
-            ? 'Les majuscules comptent : « Dupont » et « DUPONT » ne sont pas des doublons.'
-            : 'Les majuscules ne comptent pas : « Dupont » et « DUPONT » sont des doublons.';
-        resetScan();
-    });
-})();
 (function brancherCriteres() {
     document.getElementById('btnAjouterCritere').addEventListener('click', function () {
         _criteresVides.push({ mode: 'exact' });
