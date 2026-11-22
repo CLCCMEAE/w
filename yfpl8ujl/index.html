@@ -411,6 +411,21 @@
     .w-constr__resultat .w-fil { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .25rem .75rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
     .w-constr__resultat .w-attente { padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
     .w-constr__resultat .w-attente .w-apercu__titre { margin: .75rem 0 .25rem; font-size: .9rem; }
+    .w-cadre-journal { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-cadre-filtres { display: flex; flex-wrap: wrap; gap: .5rem .75rem; align-items: flex-end; }
+    .w-cadre-filtres > .w-outils__champ { flex: 1 1 7.5rem; min-width: 0; margin: 0; }
+    .w-cadre-filtres > .w-cadre-filtres__recherche { flex: 1.5 1 11rem; }
+    .w-cadre-filtres .fr-label { font-size: .8125rem; }
+    .w-cadre-filtres .fr-select, .w-cadre-filtres .fr-input { margin-top: .25rem; padding-top: .375rem; padding-bottom: .375rem; font-size: .875rem; }
+    .w-cadre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+    .w-cadre-outils .fr-btn { margin: 0; }
+    .w-cadre-outils .w-barre-vue__compteurs { margin: 0; }
+    @media print {
+      .w-contenu--cadre { overflow: visible; display: block; }
+      .w-constr__panneau, .w-cadre-filtres, .w-cadre-outils .fr-btn, .w-cadre-outils .w-nouv { display: none !important; }
+      .w-constr, .w-constr__corps { display: block !important; overflow: visible !important; }
+      .w-constr__resultat, .w-constr__resultat .w-fil { overflow: visible !important; background: none; border: 0; }
+    }
     .w-picto { display: inline-flex; flex: none; vertical-align: -.2em; margin-right: .25rem; color: var(--text-mention-grey); }
     .w-picto svg { width: 1em; height: 1em; }
     @media (min-width: 48.01em) {
@@ -2359,7 +2374,7 @@ function afficherVue(vue, garderFocus) {
         preparerDepart();
     }
     if (vue === 'parametrage' && etat.vue !== 'parametrage') {
-        etat.etapeParam = 'tables';
+        etat.etapeParam = null;
     }
     etat.vue = vue;
     majBandeauRole();
@@ -2505,7 +2520,7 @@ function ouvrirEtapeParam(cle) {
 function rendreCadre(zone, depart) {
     zone.classList.add('w-contenu--cadre');
     if (etat.etapeParam === undefined) {
-        etat.etapeParam = 'tables';
+        etat.etapeParam = depart ? 'tables' : null;
     }
     if (etat.etapeParam && !etapeParamAccessible(etat.etapeParam)) {
         etat.etapeParam = 'tables';
@@ -2528,8 +2543,7 @@ function rendreCadre(zone, depart) {
     var actions = depart
         ? [bouton('Créer mon historique', null, 'check-line', function () { return creerHistorique(tablesDepart()); }, { id: 'dCreer' })]
         : [creer('p', { classe: 'w-mention', id: 'aStatut', attrs: { 'aria-live': 'polite' }, texte: '' }),
-            bouton('Supprimer l\'historique', 'tertiaire', 'delete-line', supprimerHistorique, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' }),
-            bouton('Retour à l\'historique', null, 'arrow-go-back-line', function () { return revenirAuJournal(); }, { id: 'aRetour' })];
+            bouton('Supprimer l\'historique', 'tertiaire', 'delete-line', supprimerHistorique, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })];
     var panneau = creer('section', { classe: 'w-constr__panneau' + (etat.etapeParam === 'droits' ? ' w-constr__panneau--large' : ''), attrs: { 'aria-labelledby': 'titreVue' } }, [
         creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Paramétrage', attrs: { tabindex: '-1' } }),
         depart ? creer('p', { classe: 'w-mention', texte: 'Rien n\'est écrit dans le document avant « Créer mon historique ».' }) : null,
@@ -2551,6 +2565,7 @@ function rendreCadre(zone, depart) {
         ]));
     }
     else {
+        resultat.appendChild(barreJournalCadre());
         var note = notesReleve();
         if (note) {
             resultat.appendChild(note);
@@ -2560,22 +2575,40 @@ function rendreCadre(zone, depart) {
     zone.appendChild(creer('div', { classe: 'w-constr' }, [creer('div', { classe: 'w-constr__corps' }, [panneau, resultat])]));
     majResumesParam();
     if (!depart) {
-        redessinerFilComplet();
-    }
-}
-function redessinerFilComplet() {
-    var f = etat.filtres, r = etat.recherche, n = etat.nouveautesSeules;
-    etat.filtres = { type: '', table: '', qui: '', periode: '' };
-    etat.recherche = '';
-    etat.nouveautesSeules = false;
-    try {
         redessinerFil();
     }
-    finally {
-        etat.filtres = f;
-        etat.recherche = r;
-        etat.nouveautesSeules = n;
-    }
+}
+function barreJournalCadre() {
+    var rech = saisie('tRecherche', etat.recherche, { type: 'search', indice: 'Ligne, colonne, valeur, personne…' });
+    rech.addEventListener('input', function () { etat.recherche = rech.value; redessinerFil(); });
+    var filtres = creer('div', { classe: 'w-cadre-filtres', attrs: { role: 'group', 'aria-label': 'Filtres du journal' } }, [
+        creer('div', { classe: 'w-outils__champ w-cadre-filtres__recherche' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'tRecherche' }, texte: 'Rechercher' }), rech])
+    ]);
+    ajouterChampsFiltres(filtres);
+    return creer('div', { classe: 'w-cadre-journal' }, [
+        filtres,
+        creer('div', { classe: 'w-cadre-outils' }, [
+            creer('p', { classe: 'w-barre-vue__compteurs', id: 'wCompteurs' }),
+            creer('p', { classe: 'fr-sr-only', id: 'tFiltresCompte', attrs: { 'aria-live': 'polite' } }),
+            bouton('Effacer les filtres', 'discret', null, function () {
+                etat.filtres = { type: '', table: '', qui: '', periode: '' };
+                etat.recherche = '';
+                etat.nouveautesSeules = false;
+                afficherVue(vueJournal(), true);
+                annoncer('Filtres effacés : tous les mouvements sont affichés.');
+                var f = document.getElementById('tRecherche');
+                if (f) {
+                    f.focus();
+                }
+            }, { petit: true, id: 'tEffacer' }),
+            creer('span', { classe: 'w-pousse' }),
+            creer('div', { classe: 'w-nouv', id: 'tNouv', attrs: { role: 'group', 'aria-label': 'Nouveautés', hidden: true } }),
+            boutonIcone('Actualiser', 'refresh-line', actualiserJournal, { id: 'tActualiser' }),
+            boutonIcone('Imprimer', 'printer-line', imprimerVue, { id: 'tImprimer' }),
+            boutonIcone('Enregistrer en PDF', 'file-pdf-line', imprimerPdf, { id: 'tPdf' }),
+            boutonIcone('Exporter en CSV', 'download-line', exporterCsv, { id: 'tCsv' })
+        ])
+    ]);
 }
 function rendreDepart(zone) {
     rendreCadre(zone, true);
@@ -2665,7 +2698,7 @@ async function creerHistorique(tables) {
         await chargerJournal();
         preparerVu();
         masquerLoader();
-        afficherVue('journal');
+        afficherVue(vueJournal());
         afficherSucces('Votre historique est prêt.');
     }
     catch (e) {
@@ -2696,29 +2729,14 @@ function rendreJournal(zone) {
         creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'tRecherche' }, texte: 'Rechercher dans le journal' }), rech])
     ]));
     var filtres = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'tVoletFil' } }, [titreVolet('filter-line', 'Filtres', 'tVoletFil')]);
-    var champFiltre = function (id, libelle, options, cle) {
-        var s = liste(id, options, etat.filtres[cle]);
-        s.addEventListener('change', function () { etat.filtres[cle] = s.value; redessinerFil(); });
-        filtres.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [].concat(libelle)), s]));
-    };
-    champFiltre('tFType', 'Sorte de mouvement', [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(TYPES_EVT).map(function (k) { return { valeur: k, libelle: TYPES_EVT[k].filtre }; })), 'type');
-    var tabs = {};
-    etat.evenements.forEach(function (e) { if (e.table && etat.meta.tables[e.table]) {
-        tabs[e.table] = true;
-    } });
-    ((etat.config && etat.config.tables) || []).forEach(function (t) { if (etat.meta.tables[t]) {
-        tabs[t] = true;
-    } });
-    champFiltre('tFTable', [picto('table'), 'Table'], [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(tabs).sort(function (a, b) { return comparerNomsTables(libelleTable(a), libelleTable(b)); }).map(function (t) { return { valeur: t, libelle: libelleTable(t) }; })), 'table');
-    champFiltre('tFQui', 'Personne', [{ valeur: '', libelle: 'Toutes' }].concat(personnes()), 'qui');
-    champFiltre('tFPeriode', 'Période', PERIODES, 'periode');
+    ajouterChampsFiltres(filtres);
     filtres.appendChild(creer('div', { classe: 'w-filtres__pied' }, [
         creer('p', { classe: 'w-mention', id: 'tFiltresCompte' }),
         bouton('Effacer les filtres', 'discret', null, function () {
             etat.filtres = { type: '', table: '', qui: '', periode: '' };
             etat.recherche = '';
             etat.nouveautesSeules = false;
-            afficherVue('journal', true);
+            afficherVue(vueJournal(), true);
             annoncer('Filtres effacés : tous les mouvements sont affichés.');
             var f = document.getElementById('tRecherche');
             if (f) {
@@ -2751,6 +2769,27 @@ function rendreJournal(zone) {
     zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
     redessinerFil();
 }
+function ajouterChampsFiltres(filtres) {
+    var champFiltre = function (id, libelle, options, cle) {
+        var s = liste(id, options, etat.filtres[cle]);
+        s.addEventListener('change', function () { etat.filtres[cle] = s.value; redessinerFil(); });
+        filtres.appendChild(creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id } }, [].concat(libelle)), s]));
+    };
+    champFiltre('tFType', 'Sorte de mouvement', [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(TYPES_EVT).map(function (k) { return { valeur: k, libelle: TYPES_EVT[k].filtre }; })), 'type');
+    var tabs = {};
+    etat.evenements.forEach(function (e) { if (e.table && etat.meta.tables[e.table]) {
+        tabs[e.table] = true;
+    } });
+    ((etat.config && etat.config.tables) || []).forEach(function (t) { if (etat.meta.tables[t]) {
+        tabs[t] = true;
+    } });
+    champFiltre('tFTable', [picto('table'), 'Table'], [{ valeur: '', libelle: 'Toutes' }].concat(Object.keys(tabs).sort(function (a, b) { return comparerNomsTables(libelleTable(a), libelleTable(b)); }).map(function (t) { return { valeur: t, libelle: libelleTable(t) }; })), 'table');
+    champFiltre('tFQui', 'Personne', [{ valeur: '', libelle: 'Toutes' }].concat(personnes()), 'qui');
+    champFiltre('tFPeriode', 'Période', PERIODES, 'periode');
+}
+function vueJournal() {
+    return etat.proprietaire && etat.config ? 'parametrage' : 'journal';
+}
 function alertesJournal() {
     return [];
 }
@@ -2762,7 +2801,7 @@ async function protegerMaintenant() {
         }
         await releverSilencieux();
         masquerLoader();
-        afficherVue('journal', true);
+        afficherVue(vueJournal(), true);
         var f = document.getElementById('titreVue');
         if (f) {
             f.focus();
@@ -2938,7 +2977,7 @@ async function apresAction(tid, rid) {
     await lireHisto();
     await chargerJournal();
     fermerModale();
-    afficherVue('journal', true);
+    afficherVue(vueJournal(), true);
     if (tid && rid) {
         ouvrirLigne(tid, rid);
     }
@@ -3055,7 +3094,7 @@ function majNouveautes() {
     var texte = nbre(n, 'nouveauté', 'nouveautés');
     z.appendChild(bouton(texte, etat.nouveautesSeules ? null : 'secondaire', 'notification-3-line', function () {
         etat.nouveautesSeules = !etat.nouveautesSeules;
-        afficherVue('journal', true);
+        afficherVue(vueJournal(), true);
         var b = document.getElementById('tNouvBtn');
         if (b) {
             b.focus();
@@ -3072,7 +3111,7 @@ function majNouveautes() {
         catch (e) {
             logSecurite('INFO', 'Date du dernier passage non mémorisée', e);
         }
-        afficherVue('journal', true);
+        afficherVue(vueJournal(), true);
         var t = document.getElementById('titreVue');
         if (t) {
             t.focus();
@@ -3162,7 +3201,7 @@ function basculerVolet(replier) {
     catch (e) {
         logSecurite('INFO', 'Choix du panneau non mémorisé', e);
     }
-    afficherVue('journal', true);
+    afficherVue(vueJournal(), true);
     var f = document.getElementById('tVoletPoignee');
     if (f) {
         f.focus();
@@ -3171,7 +3210,7 @@ function basculerVolet(replier) {
 }
 function ouvrirVoletMobile(ouvrir) {
     etat.voletMobile = ouvrir;
-    afficherVue('journal', true);
+    afficherVue(vueJournal(), true);
     var f = document.getElementById(ouvrir ? 'tRecherche' : 'tVoletMobile');
     if (f) {
         f.focus();
@@ -3187,21 +3226,10 @@ function statut(texte, erreur) {
         z.classList.toggle('w-statut--erreur', !!erreur);
     }
 }
-async function revenirAuJournal() {
-    afficherLoader('Mise à jour du journal…');
-    try {
-        await chargerJournal();
-    }
-    catch (e) {
-        logSecurite('AVERTISSEMENT', 'Journal non relu', e);
-    }
-    masquerLoader();
-    afficherVue('journal');
-}
 function redessinerParametrage(focusId) {
     afficherVue('parametrage', true);
     relayer(chargerJournal().then(function () { if (etat.vue === 'parametrage') {
-        redessinerFilComplet();
+        redessinerFil();
     } }), 'Mise à jour du journal');
     var f = focusId ? document.getElementById(focusId) : null;
     if (f) {
@@ -3606,7 +3634,7 @@ async function initialiser() {
         await chargerJournal();
         preparerVu();
         masquerLoader();
-        afficherVue('journal');
+        afficherVue(vueJournal());
         demarrerReleves();
     }
     catch (e) {
@@ -3638,7 +3666,7 @@ async function actualiserJournal() {
         await lireHisto();
     }
     await chargerJournal();
-    afficherVue('journal', true);
+    afficherVue(vueJournal(), true);
     var b = document.getElementById('tActualiser');
     if (b) {
         b.focus();
