@@ -389,7 +389,6 @@ h2.w-section__title {margin:0}
 .w-tri:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
 .w-tri__fleche { font-size: .75rem; color: var(--text-mention-grey); }
 .w-tri__fleche--active { color: var(--text-action-high-blue-france); }
-.w-acces-cellule { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -486,7 +485,7 @@ h2.w-section__title {margin:0}
      <button type="button" class="w-etape__tete" id="etape-colonnes-tete" aria-expanded="false" aria-controls="etape-colonnes-corps"><span class="w-etape__num" aria-hidden="true">2</span><span class="w-etape__textes"><span class="w-etape__nom" id="etape-colonnes-nom">Les colonnes du registre</span><span class="w-etape__resume" id="etape-colonnes-resume"></span></span></button>
      <div class="w-etape__corps" id="etape-colonnes-corps" hidden>
       <div class="w-colonnes-aide">
-       <p><strong>Autorisé</strong> : le registre autorise la personne. Cela ne suffit pas pour entrer : elle doit aussi être invitée dans le document (étape 3). La colonne « Accès au document » montre le résultat des deux. Retirer l’autorisation bloque aussitôt son accès, si la règle d’or est posée (étape 4) : c’est le geste à faire en urgence.</p>
+       <p><strong>Autorisé</strong> : le registre autorise la personne. Cela ne suffit pas pour entrer : elle doit aussi être invitée dans le document (étape 3). L’œil « Voir en tant que » permet de vérifier ce que voit la personne. Retirer l’autorisation bloque aussitôt son accès, si la règle d’or est posée (étape 4) : c’est le geste à faire en urgence.</p>
        <p><strong>Mode structure</strong> : pour un propriétaire seulement, autorise à modifier la structure du document (tables, colonnes, formules, pages). Il se referme seul après 2 heures, si les règles de structure sont posées (étape 4).</p>
        <p><strong>Des colonnes en plus</strong> : pour décrire chaque personne et affiner ses droits. Exemple : une colonne « Zone géographique autorisée » (Europe, Afrique, Asie…) ; une règle d’accès peut alors ne montrer à chacun que les lignes de sa zone.</p>
       </div>
@@ -516,8 +515,6 @@ h2.w-section__title {margin:0}
           <span class="muted" style="font-size:.8125rem">À coller dans « Invitation multiple »</span>
           <button type="button" class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-clipboard-line fr-btn--icon-left" id="btnCopierEmails">Copier les adresses autorisées</button>
         </div>
-      <p class="w-mention" id="noteInvitations" hidden>Sur cette instance, le widget ne peut pas lire la liste des personnes invitées : vérifiez-la dans la fenêtre « Inviter des personnes ».</p>
-      <div><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-refresh-line fr-btn--icon-left" id="btnVerifierInvitations">Vérifier les invitations</button></div>
       <div id="rolesAcces"></div>
      </div>
     </li>
@@ -1268,14 +1265,6 @@ ETAPES_UT.forEach(function (c) {
     ecouter('etape-' + c + '-tete', 'click', function () { ouvrirEtape(c); });
 });
 ecouter('btnAjouterColonne', 'click', function () { ouvrirFormulaireColonne(); });
-ecouter('btnVerifierInvitations', 'click', function () { relayer(lireInvitations().then(function () { annoncerVerif(); }), 'Lecture des invitations'); });
-function annoncerVerif() {
-    if (!_invitations.lu) {
-        return;
-    }
-    var n = actifsNonInvites().length;
-    toast(n ? (n > 1 ? n + ' personnes autorisées ne figurent pas encore dans « Inviter des personnes ».' : '1 personne autorisée ne figure pas encore dans « Inviter des personnes ».') : 'Toutes les personnes autorisées figurent dans « Inviter des personnes ».', { type: n ? 'avertissement' : 'succes' });
-}
 (function () {
     var z = $('rolesAcces');
     if (z) {
@@ -2744,7 +2733,6 @@ async function refreshUsers(silent) {
         await migrerStatutAutorise();
         majAlerteModeAdmin();
         renderAll();
-        relayer(lireInvitations(), 'Lecture des invitations');
     }
     catch (e) {
         if (!silent)
@@ -2849,11 +2837,6 @@ function renderTableHeader() {
     thDel.setAttribute('scope', 'col');
     thDel.style.width = '32px';
     tr.appendChild(thDel);
-    var thAcces = document.createElement('th');
-    thAcces.setAttribute('scope', 'col');
-    enTeteTriable(thAcces, 'ACCES', 'ACCÈS AU DOCUMENT');
-    thAcces.title = 'Ouvert seulement si la personne est à la fois autorisée par le registre et invitée dans le document.';
-    tr.insertBefore(thAcces, tr.lastChild);
     ordonnerCellules(tr);
     thead.appendChild(tr);
 }
@@ -3104,85 +3087,7 @@ async function migrerStatutAutorise() {
         logSecurite('AVERTISSEMENT', 'Statut « ACTIF » non renommé', e);
     }
 }
-var _invitations = { lu: false, echec: false, emails: {} };
-var _derniereLectureInvitations = 0;
-async function lireInvitations() {
-    _derniereLectureInvitations = Date.now();
-    try {
-        var r = await gristRestApi('GET', '/access');
-        var herite = r && r.maxInheritedRole !== undefined ? !!r.maxInheritedRole : true;
-        var emails = {};
-        (r && Array.isArray(r.users) ? r.users : []).forEach(function (u) {
-            if (!u || !u.email) {
-                return;
-            }
-            if (u.access || (herite && u.parentAccess)) {
-                emails[String(u.email).toLowerCase()] = true;
-            }
-        });
-        _invitations = { lu: true, echec: false, emails: emails };
-    }
-    catch (e) {
-        _invitations = { lu: false, echec: true, emails: {} };
-        logSecurite('INFO', 'Liste des personnes invitées illisible depuis le widget', e);
-    }
-    marquerInvitations();
-    majResumesUt();
-}
-function estInvite(rec) {
-    return !!(rec && rec.EMAIL && _invitations.emails[String(rec.EMAIL).toLowerCase()]);
-}
-function actifsNonInvites() {
-    return utilisateursDuRegistre().filter(function (r) { return !!r.ACTIF && !estInvite(r); });
-}
-var ACCES = {
-    ouvert: { texte: 'Ouvert', classe: 'fr-badge--success', rang: 1, aide: 'Autorisée par le registre et invitée dans le document.' },
-    invitation: { texte: 'Pas encore invitée', classe: 'fr-badge--warning', rang: 2, aide: 'Autorisée par le registre, mais absente de « Inviter des personnes » : elle ne peut pas ouvrir le document.' },
-    bloque: { texte: 'Bloqué par le registre', classe: 'fr-badge--error', rang: 3, aide: 'Invitée dans le document, mais pas autorisée par le registre : les règles d’accès la bloquent.' },
-    aucun: { texte: 'Aucun', classe: '', rang: 4, aide: 'Ni autorisée par le registre, ni invitée dans le document.' },
-    inconnu: { texte: 'À vérifier', classe: 'fr-badge--info', rang: 5, aide: 'Le widget ne peut pas lire la liste des personnes invitées : vérifiez dans « Inviter des personnes ».' }
-};
-function etatAcces(rec) {
-    if (!_invitations.lu) {
-        return 'inconnu';
-    }
-    var autorise = !!rec.ACTIF, invite = estInvite(rec);
-    if (autorise && invite) {
-        return 'ouvert';
-    }
-    if (autorise) {
-        return 'invitation';
-    }
-    return invite ? 'bloque' : 'aucun';
-}
-function marquerInvitations() {
-    document.querySelectorAll('#tbody tr[data-id]').forEach(function (tr) {
-        var td = tr.querySelector('td[data-col="ACCES"]');
-        var rec = records.find(function (r) { return String(r.id) === String(tr.dataset.id); });
-        if (!td || !rec) {
-            return;
-        }
-        while (td.firstChild) {
-            td.removeChild(td.firstChild);
-        }
-        if (!_invitations.lu && !_invitations.echec) {
-            td.textContent = '…';
-            return;
-        }
-        var e = ACCES[etatAcces(rec)];
-        var b = document.createElement('span');
-        b.className = 'fr-badge fr-badge--sm fr-badge--no-icon ' + e.classe;
-        b.textContent = e.texte;
-        b.title = e.aide;
-        td.appendChild(b);
-    });
-}
-window.addEventListener('focus', function () {
-    if (Date.now() - _derniereLectureInvitations > 10000 && records.length) {
-        relayer(lireInvitations(), 'Lecture des invitations');
-    }
-});
-var ORDRE_COLONNES = ['OEIL', 'ACTIF', 'MODE_ADMIN', 'ACCES', 'ROLE_GRIST', 'STATUT', 'EMAIL', 'PRENOM', 'NOM'];
+var ORDRE_COLONNES = ['OEIL', 'ACTIF', 'MODE_ADMIN', 'ROLE_GRIST', 'STATUT', 'EMAIL', 'PRENOM', 'NOM'];
 function ordonnerCellules(tr) {
     var cellules = Array.prototype.slice.call(tr.children);
     if (cellules.length < 2) {
@@ -3217,9 +3122,6 @@ function valeurTri(r, col) {
     var t = f ? String(f.type || '') : '';
     if (col === 'MODE_ADMIN') {
         return modeAdminEnVigueur(r) ? 1 : 0;
-    }
-    if (col === 'ACCES') {
-        return ACCES[etatAcces(r)].rang;
     }
     if (typeof v === 'boolean') {
         return v ? 1 : 0;
@@ -3281,7 +3183,6 @@ function renderTableBody() {
     var tbody = $('tbody');
     while (tbody.firstChild)
         tbody.removeChild(tbody.firstChild);
-    setTimeout(marquerInvitations, 0);
     (_tri.col ? records.slice().sort(comparerPourTri) : records).forEach(function (r) {
         if (r.EMAIL === '__PARAM__')
             return;
@@ -3548,10 +3449,6 @@ function renderTableBody() {
         });
         tdDel.appendChild(btnD);
         tr.appendChild(tdDel);
-        var tdAcces = document.createElement('td');
-        tdAcces.dataset.col = 'ACCES';
-        tdAcces.className = 'w-acces-cellule';
-        tr.insertBefore(tdAcces, tr.lastChild);
         ordonnerCellules(tr);
         tbody.appendChild(tr);
     });
@@ -5579,16 +5476,6 @@ function produireRegles(sortie, lecture, valeurs) {
 ecouter('btnCopierEmails', 'click', function () {
     var candidats = records.filter(function (r) { return r.EMAIL && r.EMAIL !== '__PARAM__'; });
     var actifs = candidats.filter(function (r) { return r.ACTIF === true || r.ACTIF === 1; });
-    if (_invitations.lu) {
-        var aInviter = actifs.filter(function (r) { return !estInvite(r); });
-        if (actifs.length && !aInviter.length) {
-            toast('Toutes les personnes autorisées figurent déjà dans « Inviter des personnes ».', { type: 'succes' });
-            return;
-        }
-        if (aInviter.length) {
-            actifs = aInviter;
-        }
-    }
     var nonActifs = candidats.length - actifs.length;
     var emails = actifs.map(function (r) { return r.EMAIL; });
     if (!emails.length) {
@@ -5671,29 +5558,8 @@ function majResumesUt() {
     var tous = utilisateursDuRegistre();
     var actifs = tous.filter(function (r) { return !!r.ACTIF; }).length;
     texteAvecPicto($('etape-ajout-resume'), 'ligne', pluriel(tous.length, 'utilisateur dans le registre', 'utilisateurs dans le registre'));
-    var manquants = _invitations.lu ? actifsNonInvites().length : 0;
-    var texteAcces;
-    if (!actifs) {
-        texteAcces = 'Aucune personne autorisée pour l’instant';
-    }
-    else if (!_invitations.lu) {
-        texteAcces = actifs > 1 ? actifs + ' personnes autorisées : chacune doit aussi figurer dans « Inviter des personnes »' : '1 personne autorisée : elle doit aussi figurer dans « Inviter des personnes »';
-    }
-    else if (manquants) {
-        texteAcces = manquants > 1 ? manquants + ' personnes autorisées ne figurent pas encore dans « Inviter des personnes »' : '1 personne autorisée ne figure pas encore dans « Inviter des personnes »';
-    }
-    else {
-        texteAcces = actifs > 1 ? 'Les ' + actifs + ' personnes autorisées figurent dans « Inviter des personnes »' : 'La personne autorisée figure dans « Inviter des personnes »';
-    }
+    var texteAcces = !actifs ? 'Aucune personne autorisée pour l’instant' : (actifs > 1 ? actifs + ' personnes autorisées : chacune doit aussi figurer dans « Inviter des personnes »' : '1 personne autorisée : elle doit aussi figurer dans « Inviter des personnes »');
     texteAvecPicto($('etape-acces-resume'), null, texteAcces);
-    var bCop = $('btnCopierEmails');
-    if (bCop) {
-        bCop.textContent = _invitations.lu && manquants ? 'Copier les adresses à inviter (' + manquants + ')' : 'Copier les adresses autorisées';
-    }
-    var noteInv = $('noteInvitations');
-    if (noteInv) {
-        noteInv.hidden = !_invitations.echec;
-    }
     texteAvecPicto($('etape-droits-resume'), null, 'Règles d’accès et mode structure');
     var perso = getTableCols().filter(function (c) { return !CORE_FIELDS.some(function (cf) { return cf.id === c; }); }).map(function (c) { var f = getFieldDef(c); return { id: c, label: f ? f.label : c }; });
     texteAvecPicto($('etape-colonnes-resume'), 'colonne', perso.length ? pluriel(perso.length, 'colonne en plus', 'colonnes en plus') + ' : ' + perso.map(function (f) { return f.label; }).join(', ') : 'Aucune colonne en plus');
@@ -5727,8 +5593,7 @@ function majResumesUt() {
         });
         ul.hidden = !perso.length;
     }
-    var ouverts = tous.filter(function (r) { return etatAcces(r) === 'ouvert'; }).length;
-    texteAvecPicto($('countActifs'), null, _invitations.lu ? pluriel(ouverts, 'accès ouvert', 'accès ouverts') : pluriel(actifs, 'autorisé', 'autorisés'));
+    texteAvecPicto($('countActifs'), null, pluriel(actifs, 'autorisé', 'autorisés'));
 }
 function appliquerRecherche() {
     remplirFiltres();
@@ -6103,19 +5968,19 @@ function brancherAide() {
 }
 var AIDE = {
     resume: 'WuitUtilisateurs tient le registre des personnes qui utilisent ce document : qui est actif, avec quel rôle et quels champs propres (zone, domaine...). Il prépare aussi les règles d\'accès qui s\'appuient sur ce registre.',
-    fonctions: ['Ajouter des personnes par leur adresse, une ou plusieurs à la fois', 'Autoriser ou non une personne, choisir son rôle et son statut, et voir si son accès au document est vraiment ouvert', 'Ajouter des champs propres au registre (zone géographique, domaine...)', 'Voir les règles d\'accès du document et préparer celles qui manquent', 'Copier les adresses autorisées pour les inviter'],
+    fonctions: ['Ajouter des personnes par leur adresse, une ou plusieurs à la fois', 'Autoriser ou non une personne, choisir son rôle et son statut', 'Ajouter des champs propres au registre (zone géographique, domaine...)', 'Voir les règles d\'accès du document et préparer celles qui manquent', 'Copier les adresses autorisées pour les inviter'],
     avant: ['Le registre ne donne aucun accès à lui seul : chaque personne doit aussi être invitée dans « Gérer les utilisateurs » (icône de partage en haut à droite du document).', 'Les règles d\'accès se posent par un propriétaire, dans « Permissions avancées » (panneau de gauche du document, rubrique « Outils »).'],
     etapes: {
         'Ajouter des utilisateurs': { titre: 'les adresses des personnes.', points: ['Collez une ou plusieurs adresses, séparées comme vous voulez, puis « Ajouter ».', 'Chaque personne arrive en « Demande à étudier », sans accès : choisissez son rôle et autorisez-la dans le tableau, à droite, puis invitez-la (étape 3).'] },
         'Les colonnes du registre': { titre: 'des colonnes en plus pour chaque personne.', points: ['« Ajouter une colonne » : son nom, son type (texte, choix, date, référence…), puis « Valider ».', 'Pour renommer ou supprimer une colonne, utilisez le crayon et la corbeille à côté de son nom, dans cette étape.'] },
-        'Ouvrir l’accès au document': { titre: 'étape obligatoire.', points: ['« Copier les adresses autorisées » (ou seulement celles qui manquent).', 'Icône de partage en haut à droite, menu « Gérer les utilisateurs » : la fenêtre « Inviter des personnes » s\'ouvre. « Invitation multiple », collez les adresses, choisissez l\'accès, puis « Confirmer ».'] },
+        'Ouvrir l’accès au document': { titre: 'étape obligatoire.', points: ['« Copier les adresses autorisées ».', 'Icône de partage en haut à droite, menu « Gérer les utilisateurs » : la fenêtre « Inviter des personnes » s\'ouvre. « Invitation multiple », collez les adresses, choisissez l\'accès, puis « Confirmer ».'] },
         'Poser les règles d’accès': { titre: 'les règles qui lisent le registre.', points: ['L\'assistant indique ce qui manque et prépare les conditions à copier.', 'Un propriétaire les saisit dans « Permissions avancées ».'] },
         'Les utilisateurs': { titre: 'le registre, à droite.', points: ['Recherchez et filtrez par statut, rôle, type ou actif.', 'Chaque case se modifie directement dans le tableau.'] }
     },
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est à l\'étape « Ouvrir l’accès au document ».' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès de l\'étape « Poser les règles d’accès », cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
-        { q: 'Pourquoi une personne du registre ne voit-elle pas le document ?', r: 'Elle n\'a pas encore été invitée dans « Gérer les utilisateurs », ou elle n\'est pas autorisée par le registre alors que les règles d\'accès s\'appuient sur lui. La colonne « Accès au document » dit lequel des deux manque.' },
+        { q: 'Pourquoi une personne du registre ne voit-elle pas le document ?', r: 'Elle n\'a pas encore été invitée dans « Gérer les utilisateurs », ou elle n\'est pas autorisée par le registre alors que les règles d\'accès s\'appuient sur lui. L\'œil « Voir en tant que » montre ce qu\'elle voit.' },
         { q: 'Comment retirer un accès en urgence ?', r: 'Retirez l\'autorisation (interrupteur « Autorisé ») : l\'accès est bloqué aussitôt si la règle d\'or est en place (étape « Poser les règles d’accès »). Retirez aussi l\'invitation dans « Gérer les utilisateurs ».' },
         { q: 'À quoi sert le mode structure ?', r: 'C\'est un verrou contre les modifications de structure accidentelles par un propriétaire. Il n\'agit que si les règles de structure sont posées, et se referme seul après 2 heures.' }
     ]
