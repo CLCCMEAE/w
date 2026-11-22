@@ -1016,7 +1016,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 10;
+var ESSAI_WIDGET = 11;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -6765,7 +6765,22 @@ function listeEtapesAtelier(items, ouverte, aller, idBase) {
       creer('span', { classe: 'w-atl-etape__textes' }, [creer('span', { classe: 'w-atl-etape__nom', texte: it.nom }), it.resume ? creer('span', { classe: 'w-atl-etape__resume', texte: it.resume }) : null])]);
     tete.addEventListener('click', function () { if (it.verrou) { if (it.message) { signalerSaisie(it.message); } return; } if (!on) { aller(it.cle); } });
     var li = creer('li', { classe: 'w-atl-etape' + (on ? ' w-atl-etape--ouverte' : '') + (it.verrou ? ' w-atl-etape--verrouillee' : '') + (it.separe ? ' w-atl-etape--separee' : '') }, [tete]);
-    if (on && it.corps) { li.appendChild(creer('div', { classe: 'w-atl-etape__corps' }, [it.corps()])); }
+    if (on && it.corps) {
+      var c = it.corps();
+      var h = c && c.querySelector ? c.querySelector('.w-titre-colonne') : null;
+      if (h && h.textContent.replace(/^\d+/, '').trim() === it.nom) {
+        var ligne = h.closest('.w-titre-colonne-ligne') || h;
+        ligne.parentNode.removeChild(ligne);
+      }
+      if (c && c.querySelectorAll) {
+        Array.prototype.forEach.call(c.querySelectorAll('.w-section'), function (sec) {
+          var t2 = sec.querySelector('.w-titre-colonne');
+          if (t2 && /Les droits$/.test(t2.textContent.trim())) { sec.parentNode.removeChild(sec); }
+        });
+        Array.prototype.forEach.call(c.querySelectorAll('.w-num'), function (n, k) { n.textContent = String(k + 1); });
+      }
+      li.appendChild(creer('div', { classe: 'w-atl-etape__corps' }, [c]));
+    }
     ol.appendChild(li);
   });
   return ol;
@@ -6803,11 +6818,10 @@ function rendreParametrage() {
   var aller = function (i) { p.etape = i; if (i !== 5) { etat.editionPage = null; } rendreParametrage(); var h = document.getElementById('pEtape' + i); if (h) { h.focus(); } majAideEtape(); };
   var publie = pagesDuTableau(t.id).length > 0;
   var tete = [
-    creer('div', { classe: 'w-atl-tete' }, [boutonAccueil('pAccueil')]),
     creer('div', { classe: 'w-atl-tete' }, [
       creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Paramétrage du tableau blanc', attrs: { tabindex: '-1' } }),
       creer('span', { classe: 'w-pousse' }),
-      bouton('Masquer le paramétrage', 'secondaire', 'arrow-right-line', quitterParametrage, { petit: true, id: 'pFermer', iconeDroite: true })]),
+      bouton('Fermer le paramétrage', 'discret', 'close-line', quitterParametrage, { petit: true, iconeSeule: true, id: 'pFermer', bulle: 'Fermer' })]),
     creer('div', { classe: 'w-atl-ident' }, [
       creer('span', { classe: 'w-atl-ident__nom', id: 'pTitre', texte: t.nom }),
       badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
