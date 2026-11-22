@@ -353,6 +353,7 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
   <label class="fr-label fr-sr-only" for="adminStatut">Statut</label><select id="adminStatut" class="fr-select" autocomplete="off"><option value="">Tous les statuts</option><option value="En attente">En attente</option><option value="Publiée">Publiée</option><option value="Brouillon">Brouillon</option></select>
   <label class="fr-label fr-sr-only" for="adminCat">Catégorie</label><select id="adminCat" class="fr-select" autocomplete="off"><option value="">Toutes les catégories</option></select>
 </div>
+<div class="toggle-row w-alerte-page"><label class="toggle-switch" for="toggleAlerte"><input type="checkbox" id="toggleAlerte" autocomplete="off" aria-label="Signaler les questions en attente dans le nom de cette page"><span class="slider"></span></label><span style="font-size:.8125rem">Signaler les questions en attente dans le nom de cette page (🔔 après l'emoji de la page)</span></div>
 <div id="adminList" tabindex="-1"></div>
 </div>
 </div>
@@ -427,8 +428,8 @@ var CATEGORIES_PAR_DEFAUT = [
     'Signaler un problème technique',
     'Suggérer une nouvelle fonctionnalité'
 ];
-var records = [], currentUserEmail = '', knownCategories = [], metaCategories = [], allowPoser = true, showPending = true;
-var PARAM_KEYS = ['allowPoser', 'showPending', 'categoriesOrder', 'accesAdmin'];
+var records = [], currentUserEmail = '', knownCategories = [], metaCategories = [], allowPoser = true, showPending = true, alertePage = false;
+var PARAM_KEYS = ['allowPoser', 'showPending', 'categoriesOrder', 'accesAdmin', 'alertePage'];
 function creer(tag, o, enfants) {
     var n = document.createElement(tag);
     o = o || {};
@@ -2527,10 +2528,18 @@ async function refreshFaq(silent) {
             if (bascPending)
                 bascPending.checked = showPending;
         }
+        var paramAlerte = records.find(function (r) { return r.STATUT === 'PARAM' && r.QUESTION === 'alertePage'; });
+        alertePage = !!paramAlerte && paramAlerte.REPONSE === 'true';
+        var bascAlerte = $('toggleAlerte');
+        if (bascAlerte)
+            bascAlerte.checked = alertePage;
         appliquerAccesAdmin();
         appliquerModePage();
         renderConsultation();
         _faqChargee = true;
+        if (alertePage) {
+            relayer(majAlertePage(), 'Alerte dans le nom de la page');
+        }
     }
     catch (e) {
         if (!silent)
@@ -2936,6 +2945,69 @@ ecouter('togglePending', 'change', function () {
         }
     })();
 });
+ecouter('toggleAlerte', 'change', function () {
+    alertePage = this.checked;
+    (async function () {
+        try {
+            var param = records.find(function (r) { return r.STATUT === 'PARAM' && r.QUESTION === 'alertePage'; });
+            if (param) {
+                await apiUpdate(param.id, { REPONSE: alertePage ? 'true' : 'false' });
+            }
+            else {
+                await apiAdd({ STATUT: 'PARAM', QUESTION: 'alertePage', REPONSE: alertePage ? 'true' : 'false' });
+            }
+            _alerteRefusee = false;
+            await majAlertePage(true);
+            await refreshFaq(true);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Sauvegarde paramètre impossible', e);
+        }
+    })();
+});
+var EMOJI_ALERTE = '🔔', _alerteRefusee = false, _alerteEnCours = false;
+function nomAvecAlerte(nom, actif) {
+    var n = String(nom || '').split(EMOJI_ALERTE + '\uFE0F').join('').split(EMOJI_ALERTE).join('').replace(/\s{2,}/g, ' ').trim();
+    if (!actif) {
+        return n;
+    }
+    var m = n.match(/^(?:\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})*(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})*)*)/u);
+    if (m) {
+        return m[0] + ' ' + EMOJI_ALERTE + ' ' + n.slice(m[0].length).trim();
+    }
+    return EMOJI_ALERTE + ' ' + n;
+}
+async function majAlertePage(force) {
+    if (_alerteEnCours || (_alerteRefusee && !force) || (!alertePage && !force)) {
+        return;
+    }
+    _alerteEnCours = true;
+    try {
+        var attente = records.filter(function (r) { return r.STATUT === 'En attente' && PARAM_KEYS.indexOf(r.QUESTION) === -1; }).length;
+        var d = await grist.docApi.fetchTable('_grist_Views_section');
+        var vue = vueDeCetteConsole(d);
+        if (!vue) {
+            return;
+        }
+        var v = await grist.docApi.fetchTable('_grist_Views');
+        var k = v.id.indexOf(vue);
+        if (k === -1) {
+            return;
+        }
+        var nom = String((v.name || [])[k] || '');
+        var voulu = nomAvecAlerte(nom, alertePage && attente > 0);
+        if (voulu && voulu !== nom) {
+            await ecrireDocument([['UpdateRecord', '_grist_Views', vue, { name: voulu }]]);
+        }
+    }
+    catch (e) {
+        _alerteRefusee = true;
+        logSecurite('INFO', 'Nom de la page admin non modifié (droits ou page introuvable)', e);
+    }
+    finally {
+        _alerteEnCours = false;
+    }
+}
 var _saisieAdmin = false, _focusAvantSaisie = null;
 function ouvrirSaisieQuestion(admin) {
     _saisieAdmin = admin === true;
@@ -3694,7 +3766,8 @@ var AIDE = {
                 'L\'étiquette « Admin » et cet écran n\'apparaissent qu\'aux personnes autorisées à gérer la FAQ.'] },
         'Répondre et publier': { titre: 'rubrique « Répondre aux questions », une question à la fois.', points: ['Ouvrez une question de la liste et rédigez la réponse : elle est gardée dès que vous quittez le champ.',
                 '« Publier » la rend visible des utilisateurs, avec le badge « Nouvelle réponse » pendant 7 jours.', '« Dépublier pour corriger » la retire de la consultation le temps de la reprendre.',
-                'Cochez « Épinglée » pour placer une question en tête de sa catégorie.'] },
+                'Cochez « Épinglée » pour placer une question en tête de sa catégorie.',
+                '« Signaler les questions en attente dans le nom de cette page » ajoute 🔔 au nom de la page admin, après son emoji, tant qu\'une question attend une réponse. Le nom ne change que lorsqu\'une personne autorisée à modifier la structure du document a une page de la FAQ ouverte : ce n\'est pas une notification.'] },
         'Catégories et utilisateurs': { titre: 'rubrique « Catégories et utilisateurs ».', points: ['« Autoriser les utilisateurs à poser des questions » affiche ou masque le bouton « Poser une question ».',
                 '« Afficher les questions en attente » montre aux utilisateurs les questions encore sans réponse, ce qui évite qu\'elles soient posées deux fois.',
                 'Ajoutez une catégorie dans « Ajouter ». Faites glisser une catégorie par sa poignée pour changer l\'ordre d\'affichage.',
@@ -3769,7 +3842,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
