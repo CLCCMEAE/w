@@ -3837,7 +3837,14 @@ function normaliserNoeudFiltres(n, niveau) {
     })
   };
 }
+function racineFiltres(f) {
+  if (!f.racine || !Array.isArray(f.racine.items)) {
+    f.racine = { conj: f.mode === "ou" ? "ou" : "et", items: Array.isArray(f.conditions) ? f.conditions : [] };
+  }
+  return f.racine;
+}
 function feuillesFiltres(f) {
+  racineFiltres(f);
   var l = [];
   (function parcourir(n) {
     n.items.forEach(function(x) {
@@ -3862,7 +3869,7 @@ function nettoyerNoeudFiltres(n) {
 function synchroFiltresAnciens(f) {
   // ancien format { mode, conditions } : exact sans groupe ; avec groupes, « tous les filtres »,
   // qui ne désigne jamais plus de dossiers que les groupes (filtres et / ou sans négation de groupe).
-  var simple = f.racine.items.every(function(x) {
+  var simple = racineFiltres(f).items.every(function(x) {
     return !x.groupe;
   });
   f.mode = simple ? f.racine.conj : "et";
@@ -4064,7 +4071,7 @@ function evaluerNoeud(r, n, d, i, maintenant) {
   return n.conj === "ou" ? n.items.some(t) : n.items.every(t);
 }
 function evaluerRegle(r, d, i, maintenant) {
-  return evaluerNoeud(r, r.filtres.racine, d, i, maintenant);
+  return evaluerNoeud(r, racineFiltres(r.filtres), d, i, maintenant);
 }
 function echeanceDossier(r, d, i, reference) {
   var noeud = function(n) {
@@ -4096,7 +4103,7 @@ function echeanceDossier(r, d, i, reference) {
     }
     return Math.max.apply(null, l);
   };
-  return noeud(r.filtres.racine);
+  return noeud(racineFiltres(r.filtres));
 }
 function dateCourte(iso) {
   if (!isoValide(iso)) {
@@ -4158,7 +4165,7 @@ function libelleCritere(r) {
   if (!feuillesFiltres(r.filtres).length) {
     return "aucun filtre";
   }
-  return "les dossiers dont " + phraseNoeudFiltres(r.table, r.filtres.racine, 0);
+  return "les dossiers dont " + phraseNoeudFiltres(r.table, racineFiltres(r.filtres), 0);
 }
 function colonnesDesFiltres(r) {
   var vus = {};
