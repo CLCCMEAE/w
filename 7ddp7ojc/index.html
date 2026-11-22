@@ -1003,7 +1003,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 6;
+var ESSAI_WIDGET = 7;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1517,6 +1517,7 @@ function blocPageVolet() {
     etat.page.orpheline ? creer('p', { classe: 'w-mention', texte: 'Le réglage de cette page est introuvable : elle montre tous les tableaux blancs, en consultation seule.' }) : null]);
 }
 function redessinerParam(sel) {
+  if (etat.vue === 'accueil' || !etat.param) { rendreAccueil(); return; }
   rendreParametrage();
   var n = sel ? document.querySelector(sel) : null;
   if (n && n.focus) { n.focus(); }
@@ -6615,12 +6616,17 @@ function rendreAccueil(rubrique) {
   var rub = etat.rubriqueAccueil;
   var item = function (cle, texte, icone) {
     var b = creer('button', { classe: 'w-acc__item' + (rub === cle ? ' w-acc__item--actif' : ''), id: 'aRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [creer('span', { classe: 'fr-icon-' + icone + ' w-acc__ico', attrs: { 'aria-hidden': 'true' } }), texte]);
-    b.addEventListener('click', function () { if (rub !== cle) { rendreAccueil(cle); var f = document.getElementById('aRub_' + cle); if (f) { f.focus(); } } });
+    b.addEventListener('click', function () {
+      if (rub === cle) { return; }
+      var suite = function () { rendreAccueil(cle); var f = document.getElementById('aRub_' + cle); if (f) { f.focus(); } };
+      if (cle === 'pages') { relayer(majPages().then(suite), 'Pages publiées'); } else { suite(); }
+    });
     return b;
   };
   var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [
     creer('h2', { classe: 'w-titre-fluo', texte: 'Paramétrage' }),
     item('tableaux', 'Mes tableaux blancs', 'git-merge-line'),
+    item('pages', 'Mes pages publiées', 'pages-line'),
     creer('div', { classe: 'w-acc__creer' }, [bouton('Créer un nouveau tableau blanc', null, 'add-line', ouvrirCreation, { petit: true, id: 'aCreer' })]),
     creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }),
     item('droits', 'Les droits', 'lock-line')]);
@@ -6628,6 +6634,27 @@ function rendreAccueil(rubrique) {
   if (rub === 'droits') {
     scene.appendChild(creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Les droits', attrs: { tabindex: '-1' } }));
     scene.appendChild(contenuDroits());
+  } else if (rub === 'pages') {
+    scene.appendChild(creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Mes pages publiées', attrs: { tabindex: '-1' } }));
+    var pages = Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.nomsPages && etat.nomsPages[x]; });
+    if (!pages.length) {
+      scene.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune page publiée pour l’instant. Ouvrez un tableau blanc, puis « Publier ».' }));
+    } else {
+      var ulp = creer('ul', { classe: 'w-pages-liste w-acc__pages' });
+      pages.forEach(function (x, k) {
+        var nom = etat.nomsPages[x];
+        var premier = (etat.copies[x].tableaux || [])[0];
+        ulp.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
+          creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
+          bouton('Modifier « ' + nom + ' »', 'discret', 'edit-line', function () {
+            if (premier) { choisirTableau(premier); }
+            etat.signature = '';
+            relayer(chargerDonnees().then(function () { return ouvrirParametrage(5); }).then(function () { editerPage(x, false); }), 'Ouverture de la page');
+          }, { petit: true, iconeSeule: true, id: 'aPageModif' + k, classe: 'w-bulle--dessus' }),
+          bouton('Supprimer « ' + nom + ' »', 'discret', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, iconeSeule: true, id: 'aPageSuppr' + k, classe: 'w-bulle--dessus w-bulle--droite' })]));
+      });
+      scene.appendChild(ulp);
+    }
   } else {
     scene.appendChild(creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Mes tableaux blancs', attrs: { tabindex: '-1' } }));
     var l = tableaux();
