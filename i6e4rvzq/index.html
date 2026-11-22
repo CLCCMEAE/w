@@ -1683,7 +1683,6 @@ async function fetchColMeta(tableName) {
                 isFormula: isFormulaFlag,
                 hasFormula: hasFormula,
                 formulaKind: formulaKind,
-                formula: String(formulaText || ''),
                 _order: i
             };
         }
@@ -1838,13 +1837,6 @@ function resetScan() {
     zoneEnAttente(true);
     majResumes();
 }
-function estColonneAutomatique(c) {
-    const cle = cleTriNom(c.label || c.id).replace(/_/g, ' ').replace(/\s+/g, ' ');
-    if (/^(cree|modifie)e? (le|par)$/.test(cle))
-        return true;
-    const m = S.colMeta[c.id];
-    return !!(m && m.formulaKind === 'default' && /\buser\b|\bNOW\s*\(/i.test(m.formula || ''));
-}
 function alerteDistinction(fid, mode) {
     const recs = S.allRecords || [];
     if (recs.length < 3)
@@ -1868,7 +1860,7 @@ function alerteDistinction(fid, mode) {
 }
 function colonnesComparables(fidCourant) {
     const prises = new Set(S.selectedFields.map(f => f.fieldId).filter(id => id !== fidCourant));
-    let pool = S.allColumns.filter(c => !prises.has(c.id) && !isHelper(c.id) && (c.id === fidCourant || !estColonneAutomatique(c)));
+    let pool = S.allColumns.filter(c => !prises.has(c.id) && !isHelper(c.id));
     if (S.hideFormulas)
         pool = pool.filter(c => c.id === fidCourant || !isPureFormula(c.id));
     return pool.sort((a, b) => comparerNomsTables(a.label || a.id, b.label || b.id));
