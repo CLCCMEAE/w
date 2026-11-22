@@ -1016,7 +1016,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 9;
+var ESSAI_WIDGET = 10;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -6637,6 +6637,34 @@ function sorteDuTableau(t) {
   var m = MODELES.filter(function (x) { return x.cle === t.modele; })[0];
   return m ? m.groupe : 'schema';
 }
+function vignetteTableau(t) {
+  var els = etat.elements.filter(function (e) { return e.tableau === t.id && isFinite(e.x) && isFinite(e.y); });
+  if (!els.length) { return vignetteModele('vierge'); }
+  var parId = {};
+  els.forEach(function (e) { parId[e.id] = e; });
+  var liens = etat.liens.filter(function (l) { return l.tableau === t.id && parId[l.de] && parId[l.vers]; });
+  var v = creer('span', { classe: 'w-modele__vignette', attrs: { 'aria-hidden': 'true' } });
+  var ns = 'http://www.w3.org/2000/svg';
+  var el = function (nom, at, parent) { var n = document.createElementNS(ns, nom); Object.keys(at).forEach(function (k) { n.setAttribute(k, at[k]); }); parent.appendChild(n); return n; };
+  var b = boiteDe(els.map(function (e) { return { x: e.x, y: e.y, w: e.w || 120, h: e.h || 60 }; }));
+  var marge = Math.max(b.x2 - b.x1, b.y2 - b.y1) * 0.04 + 10;
+  var x0 = b.x1 - marge, y0 = b.y1 - marge, L = b.x2 - b.x1 + 2 * marge, H = b.y2 - b.y1 + 2 * marge;
+  var svg = el('svg', { viewBox: x0 + ' ' + y0 + ' ' + L + ' ' + H, preserveAspectRatio: 'xMidYMid meet', width: '100%', height: '100%', focusable: 'false' }, v);
+  var trait = Math.max(L, H) / 200;
+  els.filter(function (e) { return e.type === 'Section'; }).forEach(function (e) {
+    el('rect', { x: e.x, y: e.y, width: e.w || 120, height: e.h || 60, style: 'fill:var(--background-alt-blue-france);stroke:var(--border-default-blue-france);stroke-width:' + trait }, svg);
+  });
+  liens.forEach(function (l) {
+    var a = parId[l.de], c = parId[l.vers];
+    el('line', { x1: a.x + (a.w || 120) / 2, y1: a.y + (a.h || 60) / 2, x2: c.x + (c.w || 120) / 2, y2: c.y + (c.h || 60) / 2, style: 'stroke:var(--text-mention-grey);stroke-width:' + trait }, svg);
+  });
+  els.filter(function (e) { return e.type !== 'Section'; }).forEach(function (e) {
+    var w = e.w || 120, h = e.h || 60;
+    var fond = /losange|decision|décision/i.test(String(e.forme || '')) ? 'var(--background-contrast-yellow-tournesol)' : 'var(--background-default-grey)';
+    el('rect', { x: e.x, y: e.y, width: w, height: h, rx: Math.min(w, h) / 6, style: 'fill:' + fond + ';stroke:var(--border-default-grey);stroke-width:' + trait }, svg);
+  });
+  return v;
+}
 function rendreAccueil(rubrique) {
   etat.vue = 'accueil';
   etat.param = null;
@@ -6699,7 +6727,7 @@ function rendreAccueil(rubrique) {
       var ouvrir = function () { choisirTableau(t.id); etat.signature = ''; relayer(chargerDonnees().then(function () { return ouvrirParametrage(0); }), 'Ouverture du tableau blanc'); };
       var b = bouton('Ouvrir', 'secondaire', 'arrow-right-line', ouvrir, { petit: true, id: 'aOuvrir' + k, iconeDroite: true });
       var vig;
-      try { vig = vignetteModele(t.modele && t.modele !== 'donnees' ? t.modele : 'vierge'); } catch (e) { vig = creer('span'); }
+      try { vig = vignetteTableau(t); } catch (e) { vig = creer('span'); }
       var carte = creer('div', { classe: 'w-acc__carte' }, [vig,
         creer('div', { classe: 'w-acc__carte-texte' }, [
           badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
