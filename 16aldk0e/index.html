@@ -77,7 +77,6 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .w-panneau-fiche__corps {flex:1;min-height:0;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem}
 .w-panneau-fiche__corps .fr-input-group,.w-panneau-fiche__corps .fr-select-group {margin:0}
 .w-panneau-fiche__corps textarea {min-height:6rem;resize:vertical}
-.w-panneau-fiche__corps #poserReponse {min-height:10rem}
 #ficheCorps textarea {min-height:4rem;resize:vertical;overflow:auto}
 .w-liens-ed {display:flex;flex-direction:column;gap:.5rem}
 .w-liens-ed__titre {margin:0;font-size:.8125rem;font-weight:600;color:var(--text-title-grey)}
@@ -98,6 +97,12 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .admin-accordion__btn--courant {background:var(--background-action-low-blue-france);box-shadow:inset 4px 0 0 var(--border-active-blue-france)}
 .w-panneau-fiche__actions {display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.5rem;padding:.75rem 1rem;border-top:1px solid var(--border-default-grey)}
 .w-panneau-fiche__actions .fr-btn {margin:0}
+.w-panneau-fiche__meta {margin:0;padding:.5rem 1rem;border-top:1px solid var(--border-default-grey);font-size:.75rem;color:var(--text-mention-grey)}
+.w-panneau-fiche__meta[hidden] {display:none}
+.w-pousse {flex:1 1 auto}
+.w-fiche-ligne {display:flex;align-items:flex-end;flex-wrap:wrap;gap:1rem}
+.w-fiche-ligne__statut {flex:1 1 12rem;margin:0}
+.w-fiche-ligne__epingle {margin:0 0 .5rem}
 .addMsg:not(:empty) {min-height:1.1em}
 .md-bar {display:flex;gap:2px;margin-bottom:3px}
 .md-bar button {border:1px solid var(--border-default-grey);background:var(--background-default-grey);color:var(--text-default-grey);font-family:inherit;font-size:.8125rem;padding:.15rem .4rem;cursor:pointer;line-height:1.2;transition:background .1s}
@@ -394,26 +399,21 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
       <select class="fr-select" id="poserCat" autocomplete="off"></select>
     </div>
     <div class="fr-input-group">
-      <label class="fr-label" for="poserQuestion" id="poserQuestionLabel">Votre question</label>
+      <label class="fr-label" for="poserQuestion">Votre question</label>
       <textarea id="poserQuestion" class="fr-input" placeholder="Décrivez votre question…" autocomplete="off" maxlength="1000" aria-required="true" ></textarea>
       <p class="fr-hint-text" id="poserCompteur">0 / 1000 caractères</p>
-    </div>
-    <div class="fr-input-group" id="poserReponseBloc" hidden>
-      <label class="fr-label" for="poserReponse">Réponse</label>
-      <textarea id="poserReponse" class="fr-input" autocomplete="off"></textarea>
-      <div id="poserLiens" class="fr-mt-2w"></div>
     </div>
     <span class="addMsg" id="poserMsg" role="alert"></span>
   </div>
   <div class="w-panneau-fiche__actions">
     <button class="fr-btn fr-btn--tertiary" id="btnAnnulerQ" type="button">Annuler</button>
-    <button class="fr-btn fr-btn--secondary" id="btnBrouillonQ" type="button" hidden>Enregistrer sans publier</button>
     <button class="fr-btn" id="btnEnvoyerQ" type="button">Envoyer</button>
   </div>
 </aside>
 <aside class="w-panneau-fiche" id="ficheQuestion" role="region" aria-labelledby="ficheTitre" hidden>
   <div class="w-panneau-fiche__tete"><h2 class="w-panneau-fiche__titre" id="ficheTitre" tabindex="-1">Modifier la question</h2><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="btnFermerFiche" aria-label="Fermer" data-infobulle="Fermer"><span class="fr-sr-only">Fermer</span></button></div>
   <div class="w-panneau-fiche__corps" id="ficheCorps"></div>
+  <p class="w-panneau-fiche__meta" id="ficheMeta" hidden></p>
   <div class="w-panneau-fiche__actions" id="ficheActions"></div>
 </aside>
 <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
@@ -3378,25 +3378,14 @@ async function majAlertePage(force) {
         _alerteEnCours = false;
     }
 }
-var _saisieAdmin = false, _focusAvantSaisie = null, _liensSaisie = [];
-function ouvrirSaisieQuestion(admin) {
-    _saisieAdmin = admin === true;
+var _focusAvantSaisie = null;
+function ouvrirSaisieQuestion() {
     var msg = $('poserMsg');
     if (msg)
         msg.textContent = '';
     var cpt = $('poserCompteur');
     if (cpt && !$('poserQuestion').value)
         cpt.textContent = '0 / 1000 caractères';
-    $('poserTitre').textContent = _saisieAdmin ? 'Ajouter une question' : 'Poser une question';
-    $('poserQuestionLabel').textContent = _saisieAdmin ? 'Question' : 'Votre question';
-    $('poserReponseBloc').hidden = !_saisieAdmin;
-    if (_saisieAdmin) {
-        var zl = $('poserLiens');
-        vider(zl);
-        zl.appendChild(editeurLiens(_liensSaisie, function () {}, 'pl'));
-    }
-    $('btnBrouillonQ').hidden = !_saisieAdmin;
-    $('btnEnvoyerQ').textContent = _saisieAdmin ? 'Publier' : 'Envoyer';
     if (!$('ficheQuestion').hidden) {
         fermerFicheQuestion(true);
     }
@@ -3415,16 +3404,15 @@ function fermerSaisieQuestion() {
         prec.focus();
     }
 }
-ecouter('btnPoser', 'click', function () { ouvrirSaisieQuestion(false); });
-ecouter('btnAdminAjouterQ', 'click', function () { ouvrirSaisieQuestion(true); });
+ecouter('btnPoser', 'click', ouvrirSaisieQuestion);
+ecouter('btnAdminAjouterQ', 'click', function () { ouvrirFicheQuestion('nouveau'); });
 ecouter('btnAnnulerQ', 'click', fermerSaisieQuestion);
 ecouter('btnFermerQ', 'click', fermerSaisieQuestion);
 var _envoyerEnCours = false;
-async function envoyerQUESTION(publier) {
+async function envoyerQUESTION() {
     if (_envoyerEnCours)
         return;
     var cat = $('poserCat').value, question = $('poserQuestion').value.trim(), msg = $('poserMsg');
-    var reponse = _saisieAdmin ? $('poserReponse').value : '';
     if (!question) {
         msg.textContent = 'Veuillez saisir votre question.';
         msg.className = 'addMsg fr-error-text';
@@ -3440,48 +3428,18 @@ async function envoyerQUESTION(publier) {
         msg.className = 'addMsg fr-error-text';
         return;
     }
-    if (_saisieAdmin && publier && !reponse.trim()) {
-        msg.textContent = 'Rédigez la réponse avant de publier.';
-        msg.className = 'addMsg fr-error-text';
-        $('poserReponse').focus();
-        return;
-    }
     _envoyerEnCours = true;
     $('btnEnvoyerQ').disabled = true;
-    $('btnBrouillonQ').disabled = true;
     try {
         msg.textContent = '';
         var data = {
             CATEGORIE: cat, QUESTION: question, REPONSE: '', STATUT: 'En attente', EPINGLEE: false, POSEE_PAR: currentUserEmail
         };
-        if (_saisieAdmin && _liensSaisie.length) {
-            Object.assign(data, valeursLiens(_liensSaisie));
-        }
-        if (_saisieAdmin && reponse.trim()) {
-            data.REPONSE = reponse;
-            data.REPONDUE_PAR = currentUserEmail;
-            data.STATUT = publier ? 'Publiée' : 'Brouillon';
-            if (publier) {
-                data.PUBLIEE_LE = horodatagePublication();
-            }
-        }
-        try {
-            await apiAdd(data);
-        }
-        catch (eA) {
-            if (!data.PUBLIEE_LE) {
-                throw eA;
-            }
-            logSecurite('AVERTISSEMENT', 'Publication refusée avec la date de mise à disposition, nouvelle tentative sans ce champ', eA);
-            delete data.PUBLIEE_LE;
-            await apiAdd(data);
-        }
+        await apiAdd(data);
         $('poserQuestion').value = '';
-        $('poserReponse').value = '';
-        _liensSaisie = [];
         $('poserCat').selectedIndex = 0;
         fermerSaisieQuestion();
-        toast(data.STATUT === 'Publiée' ? 'Question publiée.' : _saisieAdmin ? 'Question enregistrée sans être publiée.' : 'Question envoyée.', { type: 'succes' });
+        toast('Question envoyée.', { type: 'succes' });
         await refreshFaq(true);
         renderAdminList();
     }
@@ -3493,19 +3451,12 @@ async function envoyerQUESTION(publier) {
     finally {
         _envoyerEnCours = false;
         $('btnEnvoyerQ').disabled = false;
-        $('btnBrouillonQ').disabled = false;
     }
 }
 ecouter('btnEnvoyerQ', 'click', function (e) {
     e.preventDefault();
-    envoyerQUESTION(true).catch(function (err) {
+    envoyerQUESTION().catch(function (err) {
         logSecurite('ERREUR', 'Envoi de la question impossible', err);
-    });
-});
-ecouter('btnBrouillonQ', 'click', function (e) {
-    e.preventDefault();
-    envoyerQUESTION(false).catch(function (err) {
-        logSecurite('ERREUR', 'Enregistrement de la question impossible', err);
     });
 });
 ecouter('btnInfoAcl', 'click', function () {
@@ -3614,6 +3565,10 @@ function ouvrirFicheQuestion(id) {
     if (p.hidden) {
         _focusAvantFiche = document.activeElement;
     }
+    if (_ficheId !== id) {
+        _liensFiche = null;
+        vider($('ficheCorps'));
+    }
     _ficheId = id;
     p.hidden = false;
     rendreFicheQuestion();
@@ -3627,7 +3582,7 @@ function ouvrirFicheQuestion(id) {
             b.removeAttribute('aria-current');
         }
     });
-    var q = $('admQuestion_' + id);
+    var q = $(id === 'nouveau' ? 'adminCat-nouv' : 'admQuestion_' + id);
     if (q) {
         q.focus();
     }
@@ -3639,6 +3594,7 @@ function fermerFicheQuestion(sansFocus) {
     $('ficheQuestion').hidden = true;
     vider($('ficheCorps'));
     vider($('ficheActions'));
+    $('ficheMeta').hidden = true;
     Array.prototype.forEach.call(document.querySelectorAll('.admin-accordion__btn--courant'), function (b) {
         b.classList.remove('admin-accordion__btn--courant');
         b.removeAttribute('aria-current');
@@ -3658,8 +3614,9 @@ function fermerFicheQuestion(sansFocus) {
 }
 function rendreFicheQuestion() {
     var z = $('ficheCorps');
-    var r = records.find(function (x) { return x.id === _ficheId; });
-    if (!r) {
+    var nouveau = _ficheId === 'nouveau';
+    var r = nouveau ? null : records.find(function (x) { return x.id === _ficheId; });
+    if (!nouveau && !r) {
         fermerFicheQuestion(true);
         return;
     }
@@ -3669,25 +3626,18 @@ function rendreFicheQuestion() {
     var idActif = actif ? actif.id : null, debut = actif && 'selectionStart' in actif ? actif.selectionStart : null, fin = actif && 'selectionEnd' in actif ? actif.selectionEnd : null;
     vider(z);
     vider($('ficheActions'));
-    construireFicheQuestion(r, z);
-    var bSup = $('ficheSupprimer'), bPub = $('fichePublier');
-    if (bSup && bPub) {
-        bSup.className = 'fr-btn fr-btn--tertiary fr-icon-delete-line fr-btn--icon-left';
-        bPub.className = 'fr-btn' + (r.STATUT === 'Publiée' ? ' fr-btn--secondary' : '');
-        bPub.style.cssText = '';
-        var pousse = document.createElement('span');
-        pousse.style.flex = '1 1 auto';
-        $('ficheActions').appendChild(bSup);
-        $('ficheActions').appendChild(pousse);
-        $('ficheActions').appendChild(bPub);
+    $('ficheTitre').textContent = nouveau ? 'Ajouter une question' : 'Modifier la question';
+    construireFicheQuestion(r, z, $('ficheActions'), $('ficheMeta'));
+    if (nouveau) {
+        $('ficheMeta').hidden = true;
     }
-    Array.prototype.forEach.call(z.querySelectorAll('textarea'), function (t) { autoResize(t); });
     Object.keys(valeurs).forEach(function (k) {
         var t = $(k);
         if (t && t.value !== valeurs[k]) {
             t.value = valeurs[k];
         }
     });
+    Array.prototype.forEach.call(z.querySelectorAll('textarea'), function (t) { autoResize(t); });
     if (idActif && $(idActif)) {
         $(idActif).focus();
         if (debut !== null) {
@@ -3701,136 +3651,203 @@ function rendreFicheQuestion() {
     }
 }
 ecouter('btnFermerFiche', 'click', function () { fermerFicheQuestion(); });
-function construireFicheQuestion(r, panel) {
-    if (r.STATUT === 'Brouillon') {
+function dateLisible(v) {
+    if (typeof v !== 'number' || !v) {
+        return '';
+    }
+    var d = new Date(v * 1000);
+    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function groupeFiche(libelle, idChamp, champ) {
+    var g = document.createElement('div');
+    g.className = 'fr-input-group';
+    var l = document.createElement('label');
+    l.className = 'fr-label';
+    l.setAttribute('for', idChamp);
+    l.textContent = libelle;
+    g.appendChild(l);
+    if (Array.isArray(champ)) {
+        champ.forEach(function (c) { g.appendChild(c); });
+    }
+    else {
+        g.appendChild(champ);
+    }
+    return g;
+}
+function construireFicheQuestion(r, panel, actions, metaZone) {
+    var nouveau = !r;
+    var cle = nouveau ? 'nouv' : String(r.id);
+    var donnee = r || { CATEGORIE: '', QUESTION: '', REPONSE: '', STATUT: 'En attente', EPINGLEE: false };
+    if (!nouveau && r.STATUT === 'Brouillon') {
         var avert = document.createElement('p');
         avert.className = 'admin-accordion__avert fr-alert fr-alert--warning fr-alert--sm';
         avert.textContent = 'Correction en cours : cette question n’est pas visible des utilisateurs. Utilisez Publier pour la remettre en ligne.';
         panel.appendChild(avert);
     }
-    var lQ = document.createElement('label');
-    lQ.textContent = 'Question';
-    lQ.style.cssText = 'font-size:.8125rem;font-weight:600;color:var(--text-title-grey);display:block;margin-bottom:.25rem';
-    panel.appendChild(lQ);
-    var idQ = 'admQuestion_' + r.id;
-    lQ.setAttribute('for', idQ);
-    var taQ = document.createElement('textarea');
-    taQ.className = 'fr-input';
-    taQ.id = idQ;
-    taQ.value = r.QUESTION || '';
-    taQ.rows = 1;
-    taQ.autocomplete = 'off';
-    taQ.placeholder = 'Question…';
-    taQ.style.cssText = 'margin-bottom:.5rem';
-    taQ.addEventListener('change', function () { saveField(r.id, 'QUESTION', this.value, this); });
-    taQ.addEventListener('input', function () { autoResize(this); });
-    panel.appendChild(taQ);
-    var lR = document.createElement('label');
-    lR.textContent = 'Réponse';
-    lR.style.cssText = 'font-size:.8125rem;font-weight:600;color:var(--text-title-grey);display:block;margin-bottom:.25rem';
-    panel.appendChild(lR);
-    var idR = 'admReponse_' + r.id;
-    lR.setAttribute('for', idR);
-    var taR = document.createElement('textarea');
-    taR.className = 'fr-input';
-    taR.id = idR;
-    taR.value = r.REPONSE || '';
-    taR.rows = 2;
-    taR.autocomplete = 'off';
-    taR.placeholder = 'Rédigez la réponse…';
-    taR.addEventListener('change', function () {
-        saveField(r.id, 'REPONSE', this.value, this);
-        if (this.value.trim()) {
-            apiUpdate(r.id, { REPONDUE_PAR: currentUserEmail }).catch(function (e) { logSecurite('AVERTISSEMENT', 'Enregistrement de l’auteur de la reponse impossible', e); });
-        }
-    });
-    taR.addEventListener('input', function () { autoResize(this); });
-    panel.appendChild(creerBarreMarkdown(taR));
-    panel.appendChild(taR);
-    var itemsLiens = _liensFiche && _liensFiche.id === r.id ? _liensFiche.items : lireLiens(r);
-    _liensFiche = { id: r.id, items: itemsLiens };
-    panel.appendChild(editeurLiens(itemsLiens, function (items) {
-        apiUpdate(r.id, valeursLiens(items)).then(function () {
-            return refreshFaq(true);
-        }).then(function () { renderAdminList(); }).catch(function (e) { afficherErreur('Les liens et pièces jointes n\'ont pas pu être enregistrés.', e); });
-    }, 'fl' + r.id + '_'));
-    var row = document.createElement('div');
-    row.className = 'admin-accordion__row';
-    var idCat = 'adminCat-' + r.id;
-    var lCat = document.createElement('label');
-    lCat.textContent = 'Catégorie';
-    lCat.setAttribute('for', idCat);
-    row.appendChild(lCat);
+    var idCat = 'adminCat-' + cle;
     var sCat = document.createElement('select');
     sCat.className = 'fr-select';
     sCat.id = idCat;
     sCat.autocomplete = 'off';
     var oCatVide = document.createElement('option');
     oCatVide.value = '';
-    oCatVide.textContent = '-';
+    oCatVide.textContent = 'Choisir une catégorie';
     sCat.appendChild(oCatVide);
     knownCategories.forEach(function (c) {
         var o = document.createElement('option');
         o.value = c;
         o.textContent = c;
-        if (r.CATEGORIE === c)
+        if (donnee.CATEGORIE === c)
             o.selected = true;
         sCat.appendChild(o);
     });
-    if (r.CATEGORIE && knownCategories.indexOf(r.CATEGORIE) === -1) {
+    if (donnee.CATEGORIE && knownCategories.indexOf(donnee.CATEGORIE) === -1) {
         var oOld = document.createElement('option');
-        oOld.value = r.CATEGORIE;
-        oOld.textContent = r.CATEGORIE;
+        oOld.value = donnee.CATEGORIE;
+        oOld.textContent = donnee.CATEGORIE;
         oOld.selected = true;
         sCat.appendChild(oOld);
     }
-    sCat.addEventListener('change', function () { saveField(r.id, 'CATEGORIE', this.value, this); });
-    row.appendChild(sCat);
-    var idSt = 'adminStatut-' + r.id;
-    var lSt = document.createElement('label');
-    lSt.textContent = 'Statut';
-    lSt.setAttribute('for', idSt);
-    row.appendChild(lSt);
+    if (!nouveau) {
+        sCat.addEventListener('change', function () { saveField(r.id, 'CATEGORIE', this.value, this); });
+    }
+    var gCat = groupeFiche('Catégorie', idCat, sCat);
+    gCat.className = 'fr-select-group';
+    panel.appendChild(gCat);
+    var idQ = 'admQuestion_' + cle;
+    var taQ = document.createElement('textarea');
+    taQ.className = 'fr-input';
+    taQ.id = idQ;
+    taQ.value = donnee.QUESTION || '';
+    taQ.rows = 2;
+    taQ.autocomplete = 'off';
+    taQ.maxLength = 1000;
+    if (!nouveau) {
+        taQ.addEventListener('change', function () { saveField(r.id, 'QUESTION', this.value, this); });
+    }
+    taQ.addEventListener('input', function () { autoResize(this); });
+    panel.appendChild(groupeFiche('Question', idQ, taQ));
+    var idR = 'admReponse_' + cle;
+    var taR = document.createElement('textarea');
+    taR.className = 'fr-input';
+    taR.id = idR;
+    taR.value = donnee.REPONSE || '';
+    taR.rows = 4;
+    taR.autocomplete = 'off';
+    taR.placeholder = 'Rédigez la réponse…';
+    if (!nouveau) {
+        taR.addEventListener('change', function () {
+            saveField(r.id, 'REPONSE', this.value, this);
+            if (this.value.trim()) {
+                apiUpdate(r.id, { REPONDUE_PAR: currentUserEmail }).catch(function (e) { logSecurite('AVERTISSEMENT', 'Enregistrement de l’auteur de la reponse impossible', e); });
+            }
+        });
+    }
+    taR.addEventListener('input', function () { autoResize(this); });
+    panel.appendChild(groupeFiche('Réponse', idR, [creerBarreMarkdown(taR), taR]));
+    var itemsLiens = _liensFiche && _liensFiche.id === cle ? _liensFiche.items : (nouveau ? [] : lireLiens(r));
+    _liensFiche = { id: cle, items: itemsLiens };
+    panel.appendChild(editeurLiens(itemsLiens, function (items) {
+        if (nouveau) {
+            return;
+        }
+        apiUpdate(r.id, valeursLiens(items)).then(function () {
+            return refreshFaq(true);
+        }).then(function () { renderAdminList(); }).catch(function (e) { afficherErreur('Les liens et pièces jointes n\'ont pas pu être enregistrés.', e); });
+    }, 'fl' + cle + '_'));
+    var ligne = document.createElement('div');
+    ligne.className = 'w-fiche-ligne';
+    var idSt = 'adminStatut-' + cle;
     var sStatut = document.createElement('select');
     sStatut.className = 'fr-select';
     sStatut.id = idSt;
     sStatut.autocomplete = 'off';
-    STATUT_CHOICES.forEach(function (s) {
+    STATUT_CHOICES.forEach(function (st) {
         var o = document.createElement('option');
-        o.value = s;
-        o.textContent = s;
-        if (r.STATUT === s)
+        o.value = st;
+        o.textContent = st;
+        if (donnee.STATUT === st)
             o.selected = true;
         sStatut.appendChild(o);
     });
-    sStatut.addEventListener('change', function () {
-        var sel = this, v = sel.value;
-        if (v === 'Publiée' && r.STATUT !== 'Publiée') {
-            sel.value = r.STATUT || '';
-            publierReponse(r, sel, sel);
-            return;
-        }
-        if (r.STATUT === 'Publiée' && v !== 'Publiée') {
-            confirmerAction('Retirer cette question de la consultation ? Les utilisateurs ne la verront plus tant qu’elle n’est pas republiée.')
-                .then(function (ok) { if (ok) {
-                saveField(r.id, 'STATUT', v, sel);
+    if (!nouveau) {
+        sStatut.addEventListener('change', function () {
+            var sel = this, v = sel.value;
+            if (v === 'Publiée' && r.STATUT !== 'Publiée') {
+                sel.value = r.STATUT || '';
+                publierReponse(r, sel, sel);
+                return;
             }
-            else {
-                sel.value = 'Publiée';
-            } });
-            return;
-        }
-        saveField(r.id, 'STATUT', v, sel);
-    });
-    row.appendChild(sStatut);
+            if (r.STATUT === 'Publiée' && v !== 'Publiée') {
+                confirmerAction('Retirer cette question de la consultation ? Les utilisateurs ne la verront plus tant qu’elle n’est pas republiée.')
+                    .then(function (ok) { if (ok) {
+                    saveField(r.id, 'STATUT', v, sel);
+                }
+                else {
+                    sel.value = 'Publiée';
+                } });
+                return;
+            }
+            saveField(r.id, 'STATUT', v, sel);
+        });
+    }
+    var gSt = groupeFiche('Statut', idSt, sStatut);
+    gSt.className = 'fr-select-group w-fiche-ligne__statut';
+    ligne.appendChild(gSt);
+    var idEp = 'adminEpingle-' + cle;
+    var cbEp = document.createElement('input');
+    cbEp.id = idEp;
+    cbEp.type = 'checkbox';
+    cbEp.autocomplete = 'off';
+    cbEp.checked = (donnee.EPINGLEE === true || donnee.EPINGLEE === 1);
+    if (!nouveau) {
+        cbEp.addEventListener('change', function () { saveField(r.id, 'EPINGLEE', this.checked, this); });
+    }
+    var lEp = document.createElement('label');
+    lEp.className = 'fr-label';
+    lEp.setAttribute('for', idEp);
+    lEp.textContent = '📌 Épinglée';
+    var gEp = document.createElement('div');
+    gEp.className = 'fr-checkbox-group fr-checkbox-group--sm w-fiche-ligne__epingle';
+    gEp.appendChild(cbEp);
+    gEp.appendChild(lEp);
+    ligne.appendChild(gEp);
+    panel.appendChild(ligne);
+    var msg = document.createElement('p');
+    msg.className = 'fr-error-text fr-m-0';
+    msg.id = 'ficheMsg';
+    msg.setAttribute('role', 'alert');
+    msg.hidden = true;
+    panel.appendChild(msg);
+    if (nouveau) {
+        var bAnn = document.createElement('button');
+        bAnn.type = 'button';
+        bAnn.className = 'fr-btn fr-btn--tertiary';
+        bAnn.textContent = 'Annuler';
+        bAnn.addEventListener('click', function () { fermerFicheQuestion(); });
+        var bEnr = document.createElement('button');
+        bEnr.type = 'button';
+        bEnr.className = 'fr-btn fr-btn--secondary';
+        bEnr.id = 'ficheEnregistrer';
+        bEnr.textContent = 'Ajouter la question';
+        bEnr.addEventListener('click', function () { relayer(ajouterQuestionAdmin(false), 'Ajout de la question'); });
+        var bPubN = document.createElement('button');
+        bPubN.type = 'button';
+        bPubN.className = 'fr-btn';
+        bPubN.id = 'fichePublier';
+        bPubN.textContent = 'Publier';
+        bPubN.addEventListener('click', function () { relayer(ajouterQuestionAdmin(true), 'Publication de la question'); });
+        actions.appendChild(bAnn);
+        actions.appendChild(creerPousse());
+        actions.appendChild(bEnr);
+        actions.appendChild(bPubN);
+        return;
+    }
     var estPublieeAdm = (r.STATUT === 'Publiée');
     var btnPub = document.createElement('button');
     btnPub.type = 'button';
-    btnPub.className = 'fr-btn fr-btn--sm' + (estPublieeAdm ? ' fr-btn--secondary' : '');
+    btnPub.className = 'fr-btn' + (estPublieeAdm ? ' fr-btn--secondary' : '');
     btnPub.textContent = estPublieeAdm ? 'Dépublier pour corriger' : 'Publier';
-    btnPub.style.cssText = estPublieeAdm
-        ? 'padding:.2rem .75rem;font-size:.75rem'
-        : 'padding:.2rem .75rem;font-size:.75rem;background:var(--background-action-high-success);color:var(--text-inverted-success)';
     btnPub.id = 'fichePublier';
     btnPub.addEventListener('click', function () {
         if (estPublieeAdm)
@@ -3838,38 +3855,9 @@ function construireFicheQuestion(r, panel) {
         else
             publierReponse(r, btnPub, sStatut);
     });
-    row.appendChild(btnPub);
-    var idEp = 'adminEpingle-' + r.id;
-    var lEp = document.createElement('label');
-    lEp.textContent = 'Épinglée';
-    lEp.className = 'clickable';
-    lEp.setAttribute('for', idEp);
-    row.appendChild(lEp);
-    var cbEp = document.createElement('input');
-    cbEp.id = idEp;
-    cbEp.type = 'checkbox';
-    cbEp.autocomplete = 'off';
-    cbEp.checked = (r.EPINGLEE === true || r.EPINGLEE === 1);
-    cbEp.addEventListener('change', function () { saveField(r.id, 'EPINGLEE', this.checked, this); });
-    row.appendChild(cbEp);
-    var meta = [];
-    if (r.POSEE_PAR)
-        meta.push('par ' + r.POSEE_PAR);
-    if (r.CREE_LE)
-        meta.push('le ' + formaterDate(r.CREE_LE));
-    if (r.REPONDUE_PAR)
-        meta.push('répondu par ' + r.REPONDUE_PAR);
-    if (r.MODIFIE_LE)
-        meta.push('modifié le ' + formaterDate(r.MODIFIE_LE));
-    if (meta.length > 0) {
-        var mSpan = document.createElement('span');
-        mSpan.className = 'admin-accordion__meta';
-        mSpan.textContent = meta.join(' · ');
-        row.appendChild(mSpan);
-    }
     var btnDel = document.createElement('button');
     btnDel.type = 'button';
-    btnDel.className = 'fr-btn fr-btn--sm fr-btn--secondary';
+    btnDel.className = 'fr-btn fr-btn--tertiary fr-icon-delete-line fr-btn--icon-left';
     btnDel.textContent = 'Supprimer la question';
     btnDel.id = 'ficheSupprimer';
     btnDel.addEventListener('click', async function () {
@@ -3884,8 +3872,85 @@ function construireFicheQuestion(r, panel) {
             toast('Question supprimée.', { type: 'succes' });
         }).catch(function (e) { afficherErreur('Erreur.', e); });
     });
-    row.appendChild(btnDel);
-    panel.appendChild(row);
+    actions.appendChild(btnDel);
+    actions.appendChild(creerPousse());
+    actions.appendChild(btnPub);
+    var cree = dateLisible(r.CREE_LE), modif = dateLisible(r.MODIFIE_LE);
+    var parC = r.CREE_PAR || r.POSEE_PAR || '';
+    var parM = r.MODIFIE_PAR || '';
+    var morceaux = [];
+    if (cree) {
+        morceaux.push('Créé le ' + cree + (parC ? ' par ' + parC : ''));
+    }
+    if (modif) {
+        morceaux.push('Modifié le ' + modif + (parM ? ' par ' + parM : ''));
+    }
+    metaZone.textContent = morceaux.join(' · ');
+    metaZone.hidden = !morceaux.length;
+}
+function creerPousse() {
+    var p = document.createElement('span');
+    p.className = 'w-pousse';
+    return p;
+}
+async function ajouterQuestionAdmin(publier) {
+    if (_envoyerEnCours) {
+        return;
+    }
+    var msg = $('ficheMsg');
+    var dire = function (t, idFocus) {
+        msg.textContent = t;
+        msg.hidden = false;
+        if (idFocus && $(idFocus)) {
+            $(idFocus).focus();
+        }
+    };
+    var cat = $('adminCat-nouv').value, question = $('admQuestion_nouv').value.trim(), reponse = $('admReponse_nouv').value;
+    var statut = publier ? 'Publiée' : $('adminStatut-nouv').value;
+    if (!question) {
+        dire('Saisissez la question.', 'admQuestion_nouv');
+        return;
+    }
+    if (statut === 'Publiée' && !reponse.trim()) {
+        dire('Rédigez la réponse avant de publier.', 'admReponse_nouv');
+        return;
+    }
+    msg.hidden = true;
+    var data = { CATEGORIE: cat, QUESTION: question, REPONSE: reponse, STATUT: statut, EPINGLEE: $('adminEpingle-nouv').checked, POSEE_PAR: currentUserEmail };
+    if (reponse.trim()) {
+        data.REPONDUE_PAR = currentUserEmail;
+    }
+    if (statut === 'Publiée') {
+        data.PUBLIEE_LE = horodatagePublication();
+    }
+    if (_liensFiche && _liensFiche.id === 'nouv' && _liensFiche.items.length) {
+        Object.assign(data, valeursLiens(_liensFiche.items));
+    }
+    _envoyerEnCours = true;
+    try {
+        try {
+            await apiAdd(data);
+        }
+        catch (eA) {
+            if (!data.PUBLIEE_LE) {
+                throw eA;
+            }
+            logSecurite('AVERTISSEMENT', 'Publication refusée avec la date de mise à disposition, nouvelle tentative sans ce champ', eA);
+            delete data.PUBLIEE_LE;
+            await apiAdd(data);
+        }
+        fermerFicheQuestion();
+        toast(statut === 'Publiée' ? 'Question publiée.' : 'Question ajoutée.', { type: 'succes' });
+        await refreshFaq(true);
+        renderAdminList();
+    }
+    catch (e) {
+        logSecurite('ERREUR', 'Ajout de la question impossible', e);
+        dire(estRefusDroits(e) ? 'Vos droits ne permettent pas d\'ajouter une question.' : 'La question n\'a pas pu être ajoutée. Réessayez.');
+    }
+    finally {
+        _envoyerEnCours = false;
+    }
 }
 function renderAdminList() {
     var textFilter = ($('adminSearch').value || '').toLowerCase().trim();
@@ -4230,7 +4295,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 4;
+var ESSAI_WIDGET = 5;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
