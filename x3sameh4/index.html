@@ -1687,7 +1687,7 @@ function formulairePage() {
         actions,
         casePage('aPageExporter', 'Exporter en CSV et en .ics', ed.exporter, function (v) { ed.exporter = v; }),
         creer('p', { classe: 'w-mention', texte: 'Ces choix ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
-    noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' }),
+    noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux utilisateurs' }),
         creer('p', { classe: 'w-mention', texte: 'Un élément coché reste dans le panneau de gauche de la page ; décoché, il disparaît.' })].concat(blocsLecteursPage(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
         bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerEtape('aPageConsultation'); }, { petit: true, id: 'aPageAnnuler' }),
@@ -1741,7 +1741,7 @@ async function enregistrerPage() {
         await majPages();
         etat.editionPage = null;
         masquerLoader();
-        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses lecteurs verront le changement à la prochaine ouverture.');
+        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses utilisateurs verront le changement à la prochaine ouverture.');
         redessinerEtape('aPageConsultation');
     }
     catch (e) {
@@ -1832,13 +1832,13 @@ async function supprimerPageConsultation(badge) {
 }
 function sectionsPages() {
     var centrale = etat.biblioCentrale || !etat.biblio;
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages des utilisateurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var admin = sectionPage('aSecAdmin', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les plannings et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la table « ' + titreOwner() + ' ».' : 'Cette page montre tous les plannings et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
-    var ic = aide('aAideConsult', 'Où les lecteurs la voient', 'Chaque page montre un ou plusieurs plannings, sans aide, sans onglet « Nouveau planning » et sans paramétrages. Vous choisissez la vue à l\'ouverture, les dates et les réservations montrées, ce que les personnes peuvent y faire et les filtres laissés dans le panneau. Ce ne sont pas des droits : une personne qui a accès à la table par ailleurs voit tous les réservations, et une personne en lecture seule ne modifie jamais rien.');
+    var ic = aide('aAideConsult', 'Page des utilisateurs', 'Chaque page montre un ou plusieurs plannings, sans aide, sans onglet « Nouveau planning » et sans paramétrages. Vous choisissez la vue à l\'ouverture, les dates et les réservations montrées, ce que les personnes peuvent y faire et les filtres laissés dans le panneau. Ce ne sont pas des droits : une personne qui a accès à la table par ailleurs voit tous les réservations, et une personne en lecture seule ne modifie jamais rien.');
     if (etat.editionPage) {
-        return [admin, sectionPage('aSecConsult', 'Où les lecteurs la voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null)];
+        return [admin, sectionPage('aSecConsult', 'Page des utilisateurs', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null)];
     }
     var lst = creer('ul', { classe: 'w-pages-liste' });
     pagesDuPlan(etat.cleConfig).forEach(function (x, k) {
@@ -1850,7 +1850,7 @@ function sectionsPages() {
             boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
         ]));
     });
-    var consult = sectionPage('aSecConsult', 'Où les lecteurs la voient', [
+    var consult = sectionPage('aSecConsult', 'Page des utilisateurs', [
         creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce planning sans paramétrages, avec leurs propres réglages. ', ic.bouton]), ic.panneau,
         lst.childNodes.length ? lst : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce planning n\'est montré sur aucune page du document.' })
     ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { return editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
@@ -4494,7 +4494,7 @@ function brancherAide() {
 }
 var TEXTES_DROITS = {
     usages: 'Les agents, en Éditeur, réservent, modifient et annulent leurs réservations. Les lecteurs consultent seulement. Seuls les propriétaires paramètrent, une fois les règles d\'accès posées.',
-    figer: 'Figer les plannings pour les lecteurs',
+    figer: 'Figer les plannings pour les utilisateurs',
     pluriel: 'les plannings'
 };
 var AIDE = {
@@ -4511,13 +4511,14 @@ var AIDE = {
         'Imprimer, enregistrer en PDF, exporter en CSV ou en fichier .ics pour votre agenda, en bas du panneau de gauche.'
     ],
     avant: [
-        'Rien : « Commencer : créer mes salles » crée la table des salles et la table des réservations, avec une première salle.',
+        'Rien : « Commencer : créer mes salles » crée la table des salles et la table des réservations, une première salle et la page « Réserver une salle », puis ouvre la console de paramétrage.',
         'Créer ou paramétrer un planning demande le droit de modifier le document.',
         'Pour que les agents réservent, ils doivent pouvoir modifier le document (rôle Éditeur) : voir « Quels droits donner aux agents et aux gestionnaires ? » dans les questions.'
     ],
     etapes: {
         'Point de départ': { titre: 'créez vos tables en un clic.', points: [
-                '« Commencer : créer mes salles » : après confirmation, le widget crée les deux tables et une salle « Salle 1 » à renommer.'
+                '« Commencer : créer mes salles » : après confirmation, le widget crée les deux tables, une salle « Salle 1 » à renommer et la page « Réserver une salle ».',
+                'Vous arrivez ensuite dans la console : « Mes salles » pour décrire vos salles, « Pour toutes les salles » pour les règles et le formulaire.'
             ] },
         'La table': { titre: 'la table des réservations.', points: [
                 'Choisissez la table qui contient les réservations : elle doit avoir des colonnes de date et heure.',
@@ -4530,7 +4531,7 @@ var AIDE = {
                 '« Demandeur » : rempli automatiquement par la table, ou saisi quand on réserve pour quelqu\'un d\'autre.'
             ] },
         'Les salles': { titre: 'vos salles, une par une.', points: [
-                'Cliquez sur une salle à gauche : sa fiche s\'ouvre à droite et s\'enregistre toute seule.',
+                'Cliquez sur une salle dans « Mes salles », à gauche : sa fiche s\'ouvre à droite et s\'enregistre toute seule.',
                 '« Bâtiment » : choisissez-le, ou « Nouveau bâtiment… » pour l\'ajouter à la liste.',
                 '« Lien de visioconférence » : si la salle est équipée, la personne qui réserve reçoit ce lien.',
                 '« Règles propres à cette salle » : des horaires, une durée ou un délai différents de la règle commune.',
@@ -4538,6 +4539,7 @@ var AIDE = {
                 '« Désactiver » : la salle n\'est plus proposée, son historique reste. « Supprimer » n\'est possible que sans réservation.'
             ] },
         'Les règles': { titre: 'quand et comment on réserve dans votre poste.', points: [
+                'En haut de « Règles communes » : le nom du planning et la cloche, qui signale dans le nom de la page les demandes à traiter.',
                 'Commencez par le choix de départ : Libre service, Avec validation, ou Validation pour certaines salles.',
                 'Les jours se cochent un par un ; les raccourcis remplissent la semaine en un clic.',
                 '« Réglages avancés » : chaque ligne montre la valeur en vigueur. « Modifié » signale ce qui diffère du choix de départ.',
@@ -4563,24 +4565,41 @@ var AIDE = {
                 '« Nom » : affiché sur son onglet.',
                 '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
                 '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ », repliée en haut ; la règle d\'accès de l\'étape « Les droits » la cache à tous sauf aux propriétaires.',
-                '« Où les lecteurs la voient » : « Publier sur une nouvelle page » crée une page sans paramétrages, par exemple pour les agents.'
+                '« Page des utilisateurs » : « Publier sur une nouvelle page » crée une page sans paramétrages, par exemple pour les agents.'
+            ] },
+        'Publier': { titre: 'les pages des agents.', points: [
+                'La page « Réserver une salle » est créée dès le départ.',
+                '« Publier sur une nouvelle page » crée une autre page sans paramétrages : son nom, ce qu\'on y voit et ce qu\'on peut y faire.',
+                'Chaque page se modifie, se duplique ou se retire depuis la liste.'
             ] }
     },
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner aux agents et aux gestionnaires ?', r: 'Dans « Partager » (en haut à droite du document) : les agents en Éditeur, car réserver écrit une ligne dans le document ; Lecteur ne suffit pas. Les gestionnaires des salles aussi en Éditeur. La ou les personnes qui paramètrent en Propriétaire. Ensuite, dans « Permissions avancées », posez les règles conseillées de la question suivante. Vérifiez le résultat avec « Voir en tant que ».' },
-        { q: 'Quelles règles d\'accès poser ?', r: 'La marche à suivre complète, avec les conditions à copier, est dans Paramétrage, étape « Les droits ». En résumé : 1. décocher « Autoriser les Éditeurs à modifier la structure » ; 2. table ❌ ADMIN ONLY : tout refuser aux non-propriétaires (cache la page Admin) ; 3. réglages du widget : lecture du témoin et écriture refusées aux non-propriétaires ; 4. table des salles : lecture seule pour les agents ; 5. table des réservations : chacun crée, ne modifie que les siennes (CRÉÉ PAR = son courriel), ne supprime rien ; 6. colonne du statut : un agent peut seulement annuler ; 7. vérifier avec « Voir en tant que ».' },
+        { q: 'Quelles règles d\'accès poser ?', r: 'La marche à suivre complète, avec les conditions à copier, est dans la console, « Réglages », « Les droits ». En résumé : 1. décocher « Autoriser les Éditeurs à modifier la structure » ; 2. table ❌ ADMIN ONLY : tout refuser aux non-propriétaires (cache la page Admin) ; 3. réglages du widget : lecture du témoin et écriture refusées aux non-propriétaires ; 4. table des salles : lecture seule pour les agents ; 5. table des réservations : chacun crée, ne modifie que les siennes (CRÉÉ PAR = son courriel), ne supprime rien ; 6. colonne du statut : un agent peut seulement annuler ; 7. vérifier avec « Voir en tant que ».' },
         { q: 'Que veulent dire les icônes ?', r: 'Personnes : nombre de places. Repère : bâtiment et emplacement. Caméra : la salle a un lien de visio. Les autres icônes montrent les équipements (écran, vidéoprojecteur, tableau blanc, accès en fauteuil roulant, café…). Cadenas : réservation à faire valider. Survolez une icône pour lire son sens.' },
         { q: 'Où trouver le lien de visio ?', r: 'Juste après la réservation, avec « Copier le lien » pour le donner à vos invités ; puis dans la fiche de la réservation, avec « Rejoindre la visio ». Le lien se règle dans la fiche de la salle.' },
         { q: 'Pourquoi une salle n\'est-elle pas proposée ?', r: 'Elle est déjà prise sur ce créneau (ou sur une des dates d\'une réservation répétée), fermée ce jour-là, ses règles propres ne le permettent pas, ou elle est trop petite alors que les règles refusent les salles trop petites. La raison est écrite sous la salle.' },
         { q: 'Une réservation annulée bloque-t-elle la salle ?', r: 'Non. Refusée ou annulée, une réservation libère la salle : elle reste dans la table, avec son statut, pour l\'historique.' },
         { q: 'Pourquoi ne puis-je plus annuler ma réservation ?', r: 'Les règles du poste fixent un délai : passé ce délai, prévenez un gestionnaire, qui peut changer le statut.' },
-        { q: 'Comment montrer le planning sans les paramétrages ?', r: 'La page « Réserver une salle » est créée avec le planning si la case du récapitulatif est cochée. Sinon : « Paramétrages de ce planning », étape « Général », « Publier sur une nouvelle page ».' },
+        { q: 'Comment montrer le planning sans les paramétrages ?', r: 'La page « Réserver une salle » est créée avec le planning. Pour une autre page : dans la console, « Pour toutes les salles », « Publier », puis « Publier sur une nouvelle page ».' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du panneau de gauche : l\'affichage en cours, avec son titre et la légende. Dans « Statistiques », « Imprimer ou enregistrer en PDF ».' }
     ]
 };
 function contexteAide() {
     var b = etat.brouillon;
+    if (estConsoleAdmin()) {
+        var lc = ETAPES.param.filter(function (n) { return n !== 'Général'; });
+        if (etat.config && etat.config.depuisDonnees) {
+            lc = ['Les colonnes'].concat(lc);
+        }
+        var nc = b && b.mode === 'parametrage' ? nomsEtapes(b)[b.etape] : null;
+        return { etapes: lc, courante: nc ? lc.indexOf(nc) : -1, repere: 'Tout se règle dans le menu de gauche : « Mes salles », « Pour toutes les salles » et « Réglages ».' };
+    }
+    if (etat.vue === 'assistant' && b && b.mode === 'creation' && nomsEtapes(b)[b.etape] === 'Point de départ') {
+        return { etapes: ['Point de départ', 'Les salles', 'Les règles', 'Le formulaire', 'Publier', 'Les droits'], courante: 0,
+            repere: 'Les tables ne sont créées qu\'après votre confirmation. Ensuite, tout se règle dans la console.' };
+    }
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: nomsEtapes(b), courante: b.etape,
@@ -10697,7 +10716,7 @@ function etapeGeneral(partie) {
         creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm fr-mt-2w' }, [cloche, creer('label', { classe: 'fr-label', attrs: { 'for': 'aClochePage' } }, ['Signaler les demandes en attente dans le nom des pages (🔔 après l\'emoji de la page)',
             creer('span', { classe: 'fr-hint-text', texte: 'Réservations à valider et demandes spéciales à venir. La cloche s\'ajoute au nom de cette page et des pages des gestionnaires, et disparaît quand tout est traité. Le nom change quand un propriétaire du document ouvre cette page.' })])])
     ]);
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages des utilisateurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var col2 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecAdmin' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecAdmin', texte: 'Cette page de paramétrage' })]),
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Elle est cachée aux agents et aux gestionnaires : seuls les propriétaires la voient.' : 'Elle est visible par tous les membres du document.', ' ', r.bouton]), r.panneau,

@@ -1587,7 +1587,7 @@ function formulairePage() {
         radioPage('aPageDroits', 'aPageEcriture', 'Selon les droits du document', !ed.lectureSeule, function () { ed.lectureSeule = false; actions.hidden = false; }, 'Les personnes autorisées sur le document peuvent :'),
         actions,
         creer('p', { classe: 'w-mention', texte: 'Ces choix ne donnent aucun droit : une personne en lecture seule sur le document ne modifie jamais rien.' })]));
-    noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' }),
+    noeuds.push(creer('div', { classe: 'w-page-bloc' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux utilisateurs' }),
         creer('p', { classe: 'w-mention', texte: 'Un élément coché reste dans le panneau de gauche de la page ; décoché, il disparaît.' })].concat(blocsLecteursPage(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
         bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerEtape('aPageConsultation'); }, { petit: true, id: 'aPageAnnuler' }),
@@ -1646,7 +1646,7 @@ async function enregistrerPage() {
         await majPages();
         etat.editionPage = null;
         masquerLoader();
-        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses lecteurs verront le changement à la prochaine ouverture.');
+        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses utilisateurs verront le changement à la prochaine ouverture.');
         redessinerEtape('aPageConsultation');
     }
     catch (e) {
@@ -1737,7 +1737,7 @@ function sectionPage(id, titre, noeuds, action) {
 }
 function sectionsPages() {
     var centrale = etat.biblioCentrale || !etat.biblio;
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages des utilisateurs créées avec « Publier la page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var admin = sectionPage('aSecAdmin', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les Kanbans et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la table « ' + titreOwner() + ' ».' : 'Cette page montre tous les Kanbans et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
@@ -7859,12 +7859,12 @@ var AIDE = {
         'Imprimer ou enregistrer en PDF la vue affichée, en bas du panneau de gauche.',
         'Repérer les cartes ajoutées ou modifiées depuis votre dernier passage : bouton « nouveautés » en haut du Kanban, étiquettes « Nouvelle » et « Modifiée » sur les cartes.',
         'Préparer un courriel depuis la fiche d\'une carte, si le Kanban le propose : votre messagerie s\'ouvre avec le message déjà rempli.',
-        'Tenir plusieurs Kanbans dans le même document, chacun dans son onglet.',
-        'Publier un ou plusieurs Kanbans sur une page pour les lecteurs, sans paramétrages, avec son titre de bandeau, ses colonnes, ses cartes et ce que les personnes peuvent y faire.'
+        'Tenir plusieurs Kanbans dans le même document : l\'accueil du paramétrage les montre tous, avec leur état Brouillon ou Publié.',
+        'Publier un Kanban sur une page des utilisateurs, sans paramétrages, avec son titre de bandeau, ses colonnes, ses cartes et ce que les personnes peuvent y faire.'
     ],
     avant: [
-        'Pas encore de données ? « Partir d\'un modèle » crée la table et les colonnes pour vous.',
-        'Vos cartes sont déjà dans une table ? Il faut une colonne qui donne l\'étape de chaque ligne, de préférence une liste de choix, et une colonne de texte pour le titre.',
+        'Pas encore de données ? Dans l\'accueil, « Utiliser ce modèle » ou le « + » créent le Kanban, sa table et ses colonnes, puis ouvrent son paramétrage.',
+        'Vos cartes sont déjà dans une table ? Dans « À partir de mes données », « Utiliser cette suggestion » ou le « + » branchent le Kanban sur votre table. Il faut une colonne qui donne l\'étape de chaque ligne, de préférence une liste de choix, et une colonne de texte pour le titre.',
         'Seuls les utilisateurs autorisés peuvent ajouter et modifier des cartes, créer et paramétrer des Kanbans.'
     ],
     etapes: {
@@ -7896,13 +7896,15 @@ var AIDE = {
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
                 '« Imprimer la marche à suivre » : pour l\'avoir sous les yeux pendant le réglage.'
             ] },
-        'Général': { titre: 'le nom, l\'explication, les droits, les pages des lecteurs et la suppression.', points: [
-                '« Nom du Kanban » : affiché en tête du Kanban et dans son onglet.',
+        'Général': { titre: 'le nom et l\'explication.', points: [
+                '« Nom du Kanban » : affiché en tête du Kanban.',
                 '« Explication pour les utilisateurs » : affichée sous le nom.',
-                '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
-                'Dans les paramétrages, « Supprimer le Kanban » : il disparaît des onglets, après confirmation.',
-                'Dans les paramétrages, « Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.',
-                'Dans les paramétrages, « Où les lecteurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les Kanbans, colonnes et cartes montrés, ce que les personnes peuvent y faire et les filtres laissés dans le panneau.'
+                '« Supprimer le Kanban », tout en bas du panneau : il disparaît, après confirmation.'
+            ] },
+        'Publier': { titre: 'la page des utilisateurs.', points: [
+                '« Publier la page » crée une page qui montre ce Kanban sans les paramétrages : son nom, le titre du bandeau, les colonnes et cartes montrées, ce que les personnes peuvent y faire et les filtres laissés dans le panneau.',
+                'Chaque page se modifie, se duplique ou se retire depuis la liste.',
+                'Le badge Brouillon ou Publié, à côté du nom du Kanban, ouvre cette étape.'
             ] },
         'Les colonnes': { titre: 'les étapes du travail, de gauche à droite.', points: [
                 'Renommez une colonne directement dans la liste ; changez l\'ordre par la poignée ou avec les flèches.',
@@ -7934,7 +7936,7 @@ var AIDE = {
             ] },
         'Récapitulatif': { titre: 'vérifiez, puis créez.', points: [
                 '« Modifier » ramène à l\'étape concernée.',
-                '« Créer mon Kanban » enregistre le Kanban ; tout reste modifiable ensuite dans « Paramétrages de ce Kanban ».'
+                '« Créer mon Kanban » enregistre le Kanban ; tout reste modifiable ensuite depuis l\'accueil, en ouvrant le Kanban.'
             ] }
     },
     questions: [
@@ -7946,14 +7948,21 @@ var AIDE = {
         { q: 'Pourquoi ne puis-je pas renommer les colonnes du Kanban ?', r: 'Elles viennent des valeurs d\'une colonne de texte libre ou d\'une autre table. Pour les gérer depuis le Kanban, transformez la colonne d\'étape en liste de choix dans votre table.' },
         { q: 'Une carte est dans « Non classé » : que faire ?', r: 'Son étape ne correspond à aucune colonne du Kanban. Ouvrez sa fiche et choisissez sa colonne, ou glissez-la dans la bonne colonne.' },
         { q: 'Supprimer un Kanban supprime-t-il mes données ?', r: 'Un Kanban qui affiche une de vos tables disparaît des onglets ; sa table et ses lignes restent dans le document. Un Kanban créé par le widget dans sa table commune perd ses cartes ; les autres Kanbans ne sont pas touchés.' },
-        { q: 'Comment montrer un Kanban sans les paramétrages ?', r: 'Dans « Paramétrages de ce Kanban », étape « Général », « Où les lecteurs la voient », puis « Publier sur une nouvelle page ». La page montre le Kanban sans aide ni paramétrages, avec son titre de bandeau, les colonnes et les cartes choisies, et seulement ce que vous permettez : ajouter des cartes, les déplacer et les modifier, ou seulement les consulter.' },
-        { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de ce Kanban », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les Kanbans : la page disparaît de leur liste des pages.' },
+        { q: 'Comment montrer un Kanban sans les paramétrages ?', r: 'Accueil, ouvrez le Kanban, étape « Publier », puis « Publier la page ». La page montre le Kanban sans aide ni paramétrages, avec son titre de bandeau, les colonnes et les cartes choisies, et seulement ce que vous permettez : ajouter des cartes, les déplacer et les modifier, ou seulement les consulter.' },
+        { q: 'Comment cacher la page des paramétrages ?', r: 'Accueil, « Les droits », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les Kanbans : la page disparaît de leur liste des pages.' },
         { q: 'Une page de consultation protège-t-elle les cartes ?', r: 'Non : elle règle ce que la page montre et permet. Une personne qui a accès à la table des cartes par ailleurs voit toutes les cartes. Pour une vraie confidentialité, posez des règles d\'accès sur la table.' },
         { q: 'Comment imprimer ?', r: 'Avec l\'icône d\'imprimante en bas du panneau de gauche : la vue affichée, filtres compris, en paysage. L\'icône voisine enregistre en PDF.' }
     ]
 };
 function contexteAide() {
     var creation = 'Rien n\'est enregistré avant « Créer mon Kanban ».';
+    if (pageAdminKb()) {
+        var bp = etat.brouillon;
+        if (bp && bp.mode === 'personnalisation') {
+            return { etapes: ETAPES_PANNEAU_KB, courante: bp.etape - 1, repere: '' };
+        }
+        return { etapes: ETAPES_PANNEAU_KB, courante: -1, repere: 'Pour changer ces réglages : ouvrez un Kanban depuis l\'accueil, son paramétrage s\'affiche à droite.' };
+    }
     if (etat.vue === 'branchement' && etat.assistant) {
         return { etapes: PARCOURS.donnees, courante: etat.assistant.etape + 1, repere: creation };
     }
