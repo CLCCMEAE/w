@@ -1429,6 +1429,10 @@ function valeurPage(ed, nom) {
         filtreCategorie: !!ed.filtreCategorie, poser: !!ed.poser, attente: !!ed.attente });
 }
 async function creerPageConsultation(ed, nom) {
+    if (pagesUtilisateursExistantes().length) {
+        afficherErreur('La page des utilisateurs existe déjà : modifiez-la plutôt que d\'en créer une autre.');
+        return;
+    }
     var badge = nouveauBadge();
     var ligne = null, vue = null;
     afficherLoader('Création de la page…');
@@ -1684,30 +1688,33 @@ function retourPagesLecteurs() {
     afficherVueFaq('reglages');
     focaliserConteneur('rCorps');
 }
+function pagesUtilisateursExistantes() {
+    return Object.keys(_pages).filter(function (x) { return _pages[x].consultation && _nomsPages[x]; });
+}
 function renderPagesZone() {
     var z = $('pagesZone');
     if (!z) {
         return;
     }
     vider(z);
-    var ic = aide('aideConsult', 'Page des utilisateurs', 'Chaque page des utilisateurs montre la FAQ publiée, sans aide et sans administration, limitée aux catégories choisies, avec son propre titre de bandeau. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
+    var ic = aide('aideConsult', 'Page des utilisateurs', 'La page des utilisateurs montre la FAQ publiée, sans aide et sans administration, limitée aux catégories choisies, avec son propre titre de bandeau. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
     var liste = creer('ul', { classe: 'w-pages-liste' });
-    Object.keys(_pages).filter(function (x) { return _pages[x].consultation && _nomsPages[x]; }).forEach(function (x, k) {
+    var existantes = pagesUtilisateursExistantes();
+    existantes.forEach(function (x, k) {
         var nom = _nomsPages[x];
         liste.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
             creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
             menuActions('Actions sur « ' + nom + ' »', 'pageMenu' + k, [
                 { libelle: 'Modifier', icone: 'edit-line', id: 'pageModif' + k, action: function () { editerPage(x, false); } },
-                { libelle: 'Dupliquer', icone: 'file-add-line', id: 'pageDupl' + k, action: function () { editerPage(x, true); } },
                 { libelle: 'Supprimer', icone: 'delete-line', id: 'pageSuppr' + k, action: function () { return supprimerPageConsultation(x); } }
             ])
         ]));
     });
     z.appendChild(creer('div', { classe: 'w-bloc-reglage__haut' }, [
-        creer('h3', { classe: 'faq-section-titre', id: 'secPagesConsult', attrs: { tabindex: '-1' } }, ['Pages des utilisateurs ', ic.bouton]),
-        bouton('Publier la FAQ sur une page', null, 'upload-2-line', function () { editerPage(null, false); }, { petit: true, id: 'btnCreerPage' })]));
+        creer('h3', { classe: 'faq-section-titre', id: 'secPagesConsult', attrs: { tabindex: '-1' } }, ['Page des utilisateurs ', ic.bouton]),
+        existantes.length ? null : bouton('Publier la FAQ sur une page', null, 'upload-2-line', function () { editerPage(null, false); }, { petit: true, id: 'btnCreerPage' })]));
     z.appendChild(ic.panneau);
-    z.appendChild(liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'La FAQ n\'est publiée sur aucune page. Chaque page publiée montre aux utilisateurs la même FAQ, sans l\'administration.' }));
+    z.appendChild(liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'La FAQ n\'est pas encore publiée. La page des utilisateurs montre la même FAQ, sans l\'administration.' }));
 }
 var _iconesVues = {};
 var _vueFaq = 'lecture', _adminFaq = false, _sectionReglages = 'droits';
@@ -1793,7 +1800,7 @@ function rendreReglages(zone) {
     var sections = [
         { cle: 'reponses', nom: 'Répondre aux questions', resume: nbAttente ? nbAttente + ' en attente de réponse' : records.length + (records.length > 1 ? ' questions' : ' question'), bloc: 'carteQuestions', rendre: renderAdminList },
         { cle: 'droits', nom: 'Les droits', resume: _pageProtegee ? 'Page admin cachée' : 'Page admin visible', bloc: 'ongletDroits', rendre: renderDroitsFaq },
-        { cle: 'lecteurs', nom: 'Page des utilisateurs', resume: nbPages ? nbPages + (nbPages > 1 ? ' pages publiées' : ' page publiée') : 'Aucune page publiée', bloc: 'pagesZone', rendre: renderPagesZone },
+        { cle: 'lecteurs', nom: 'Page des utilisateurs', resume: nbPages ? (nbPages > 1 ? nbPages + ' pages publiées' : 'Page publiée') : 'À faire : page non publiée', bloc: 'pagesZone', rendre: renderPagesZone },
         { cle: 'questions', nom: 'Catégories et utilisateurs', resume: knownCategories.length + (knownCategories.length > 1 ? ' catégories' : ' catégorie'), bloc: 'blocQuestions', rendre: function () {
                 renderCatGrid().catch(function (e) { logSecurite('AVERTISSEMENT', 'Affichage des catégories impossible', e); });
             } }
@@ -4262,7 +4269,7 @@ var AIDE = {
     resume: 'WuitFAQ rassemble les questions fréquentes de votre équipe et leurs réponses. Chacun consulte les réponses publiées et peut poser sa propre question ; les personnes qui gèrent la FAQ y répondent, puis publient la réponse.',
     fonctions: ['Chercher une question par mot-clé ou par catégorie', 'Poser une question, qui reste en attente jusqu\'à sa réponse',
         'Répondre, publier, épingler une question en tête de sa catégorie', 'Classer les questions par catégorie, dans l\'ordre de votre choix',
-        'Publier la FAQ sur des pages pour les utilisateurs, sans administration, limitées à certaines catégories, avec leur titre de bandeau'],
+        'Publier la FAQ sur une page des utilisateurs, sans administration, limitée si besoin à certaines catégories, avec son titre de bandeau'],
     avant: ['Rien à préparer : le widget crée lui-même ce dont il a besoin dans le document.',
         'Pour réserver l\'administration aux propriétaires du document, suivez la rubrique « Les droits ».'],
     etapes: {
@@ -4280,11 +4287,11 @@ var AIDE = {
                 'La croix supprime une catégorie ; ses questions passent dans « Autre ».'] },
         'Page des utilisateurs': { titre: 'rubrique « Page des utilisateurs » : montrer la FAQ sans l\'administration.', points: ['« Publier la FAQ sur une page » ajoute au document une page qui montre cette même FAQ aux utilisateurs, sans administration ni aide : ce n\'est pas une nouvelle FAQ.',
                 'À gauche, l\'aperçu montre la page telle que les utilisateurs la verront ; à droite, le paramétrage : nom, titre de bandeau, catégories et ce que les utilisateurs peuvent faire.',
-                'Le bouton « … » d\'une page la modifie, la duplique ou la supprime.',
-                'Créez toujours les pages des utilisateurs avec « Publier la FAQ sur une page » : un widget installé à la main sur une autre page empêche le widget de savoir quelle page cacher.'] },
+                'Le bouton « … » de la page la modifie ou la supprime. Une FAQ n\'a qu\'une page des utilisateurs : une fois publiée, on la modifie, on ne la crée pas une deuxième fois.',
+                'Créez toujours la page des utilisateurs avec « Publier la FAQ sur une page » : un widget installé à la main sur une autre page empêche le widget de savoir quelle page cacher.'] },
         'Les droits': { titre: 'rubrique « Les droits » : inviter les personnes, poser les règles d\'accès, cacher cette page.', points: ['« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
-                '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '. Les pages des utilisateurs ne sont pas touchées.',
+                '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '. La page des utilisateurs n\'est pas touchée.',
                 '« Imprimer la marche à suivre » : pour l\'avoir sous les yeux pendant le réglage.'] }
     },
     questions: [
@@ -4348,7 +4355,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 6;
+var ESSAI_WIDGET = 7;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
