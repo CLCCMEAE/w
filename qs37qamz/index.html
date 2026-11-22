@@ -1067,6 +1067,10 @@
     .s-aval__puce--choisie { border-left-color: var(--s-aval-teinte); background: var(--background-alt-blue-france); }
     .s-aval__puce strong { color: var(--text-title-grey); }
     .s-aval__salle-nom { display: inline-flex; align-items: center; gap: .375rem; color: var(--text-default-grey); }
+    .s-acc-pastille { flex: none; width: .75rem; height: .75rem; border-radius: 50%; margin: 0 .5rem 0 .25rem; }
+    .s-acc-ajout { padding: .5rem .75rem .25rem; }
+    .s-acc-ajout .fr-btn { margin: 0; }
+    .w-acc__scene .s-fiche-salle__tete { display: none; }
 </style>
 </head>
 <body>
@@ -1122,7 +1126,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9371,6 +9375,13 @@ function ouvrirParametrage(i) {
             cfg.details = (cfg.details || []).filter(function (x) { return !!infoColonne(cfg.table, x); });
         }
         etat.brouillon = { mode: 'parametrage', etape: i || 0, etapeMax: ETAPES.param.length - 1, ecran: 'table', cfg: cfg, initial: JSON.stringify(cfg), statut: null };
+        if (etat.salleVoulue) {
+            etat.brouillon.ajoutSalle = etat.salleVoulue === '__nouvelle__';
+            if (!etat.brouillon.ajoutSalle) {
+                etat.brouillon.salleOuverte = etat.salleVoulue;
+            }
+            etat.salleVoulue = null;
+        }
         afficherVue('assistant');
     })(), 'Ouverture des paramètres');
 }
@@ -9524,7 +9535,7 @@ function rendreAssistant(zone) {
         bloc.appendChild(alerte('info', null, 'Prérempli d\'après ' + b.origine + '. Vérifiez chaque étape (tout peut être changé), ou passez directement au récapitulatif par la barre des étapes.'));
     }
     bloc.appendChild(contenuEtape(nom));
-    if (!(nom === 'Point de départ' && !b.cfg)) {
+    if (!(nom === 'Point de départ' && !b.cfg) && !(perso && estConsoleAdmin())) {
         bloc.appendChild(piedAssistant(b, noms));
     }
     zone.appendChild(bloc);
@@ -9547,6 +9558,9 @@ function contenuEtape(nom) {
     }
     if (nom === 'Récapitulatif') {
         return etapeRecapitulatif();
+    }
+    if (nom === 'Les règles' && estConsoleAdmin()) {
+        return creer('div', {}, [etapeGeneral('general'), grilleParam([], '1-1', [etapeRegles()], apercuEtape(nom))]);
     }
     var corps = { 'Les colonnes': etapeColonnes, 'Les salles': etapeSallesListe, 'Les règles': etapeRegles, 'Le formulaire': etapeFormulaire, 'Affichage et filtres': etapeFiltres }[nom]();
     return grilleParam([], nom === 'Les salles' ? '2-1' : '1-1', [corps], apercuEtape(nom));
@@ -12657,6 +12671,13 @@ function etapeSallesListe() {
     else {
         fiche.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucune salle pour l\'instant : ajoutez la première.' }));
     }
+    if (estConsoleAdmin()) {
+        if (b.ajoutSalle) {
+            vider(fiche);
+            fiche.appendChild(blocNouvelleSalle(salles));
+        }
+        return creer('div', { classe: 's-etape' }, [fiche]);
+    }
     var corps = [creer('div', { classe: 's-salles-grille' }, [colonneListe, fiche])];
     if (c.depuisDonnees) {
         corps.push(blocAvance('Fermés par défaut.', [accordeon(b, 'colsSalles', 'Où sont rangées les informations des salles', 'Table ' + libelleTable(ts), false, function (z) { z.appendChild(etapeSalles()); })]));
@@ -15551,51 +15572,73 @@ async function majClocheSalles() {
 function envelopperConsoleSl(zone) {
     var courant = ongletAdminCourant();
     var b = etat.brouillon;
-    var noms = enParametrage() ? nomsEtapes(b) : nomsEtapes({ mode: 'parametrage', cfg: etat.config });
-    var etapeOuverte = enParametrage() ? noms[b.etape] : null;
+    var param = enParametrage();
+    var noms = param ? nomsEtapes(b) : nomsEtapes({ mode: 'parametrage', cfg: etat.config });
+    var etapeOuverte = param ? noms[b.etape] : null;
     var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
-    var item = function (id, texte, icone, actif, action, extra, classe) {
-        var bt = creer('button', { classe: 'w-acc__item' + (classe ? ' ' + classe : ''), id: id, attrs: { type: 'button', 'aria-current': actif ? 'page' : null } }, [
-            icone ? creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }) : null, creer('span', { texte: texte }), extra || null]);
+    var item = function (id, texte, icone, actif, action, extra, pastille) {
+        var bt = creer('button', { classe: 'w-acc__item', id: id, attrs: { type: 'button', 'aria-current': actif ? 'page' : null } }, [
+            pastille || (icone ? creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }) : null), creer('span', { classe: 's-acc-nom', texte: texte }), extra || null]);
         bt.addEventListener('click', action);
         menu.appendChild(bt);
     };
-    var nbT = elementsATraiter().length;
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Au quotidien' }));
-    [['reservations', 'Les réservations', 'calendar-2-line'], ['atraiter', 'Validations et demandes spéciales', 'checkbox-circle-line'], ['statistiques', 'Statistiques', 'bar-chart-box-line']].forEach(function (d) {
-        item('pAdmin_' + d[0], d[1], d[2], !enParametrage() && courant === d[0], function () { relayer(allerOngletAdmin(d[0]), d[1]); },
-            d[0] === 'atraiter' && nbT ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new s-acc-nb', texte: String(nbT) }) : null);
-    });
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Le planning' }));
-    var numerotees = noms.filter(function (n) { return n !== 'Les droits'; });
-    numerotees.forEach(function (n, k) {
-        var rang = noms.indexOf(n);
-        item('pParam_' + rang, n, null, etapeOuverte === n, function () {
-            if (enParametrage()) {
-                if (rang > b.etape && !validerEtape(noms[b.etape])) {
-                    return;
+    var allerA = function (nomEtape, salle) {
+        var rang = noms.indexOf(nomEtape);
+        if (param) {
+            if (salle !== undefined) {
+                b.ajoutSalle = salle === '__nouvelle__';
+                if (!b.ajoutSalle) {
+                    b.salleOuverte = salle;
                 }
-                allerEtape(rang);
             }
-            else {
-                ouvrirParametrage(rang);
-            }
-        }, null, 's-acc-etape' + (k === numerotees.length - 1 ? ' s-acc-etape--derniere' : ''));
-        var dernier = menu.lastChild;
-        dernier.insertBefore(creer('span', { classe: 's-acc-num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }), dernier.firstChild);
-    });
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
-    var rangDroits = noms.indexOf('Les droits');
-    item('pParam_' + rangDroits, 'Les droits', 'lock-line', etapeOuverte === 'Les droits', function () {
-        if (enParametrage()) {
-            allerEtape(rangDroits);
+            allerEtape(rang);
         }
         else {
-            ouvrirParametrage(rangDroits);
+            etat.salleVoulue = salle || null;
+            ouvrirParametrage(rang);
         }
+    };
+    var nbT = elementsATraiter().length;
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Au quotidien' }));
+    [['reservations', 'Calendrier partagé', 'calendar-2-line'], ['atraiter', 'Validations et demandes spéciales', 'checkbox-circle-line'], ['statistiques', 'Statistiques', 'bar-chart-box-line']].forEach(function (d) {
+        item('pAdmin_' + d[0], d[1], d[2], !param && courant === d[0], function () { relayer(allerOngletAdmin(d[0]), d[1]); },
+            d[0] === 'atraiter' && nbT ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new s-acc-nb', texte: String(nbT) }) : null);
     });
-    var titres = { reservations: 'Les réservations', atraiter: 'Validations et demandes spéciales', statistiques: 'Statistiques' };
-    var titre = etapeOuverte || titres[courant] || '';
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Mes salles' }));
+    var salles = [];
+    try {
+        salles = param ? sallesBrouillon() : toutesLesSalles();
+    }
+    catch (e) {
+        logSecurite('INFO', 'Salles non lues pour le menu', e);
+    }
+    var ouvertSalles = etapeOuverte === 'Les salles';
+    salles.forEach(function (sl) {
+        var pastille = teinterSalle(creer('span', { classe: 's-pastille s-acc-pastille', attrs: { 'aria-hidden': 'true' } }), sl.cle);
+        item('pSalle_' + sl.cle, sl.nom + (sl.active === false ? ' (inactive)' : ''), null, ouvertSalles && !b.ajoutSalle && b.salleOuverte === sl.cle, function () { allerA('Les salles', sl.cle); }, null, pastille);
+    });
+    var ajout = bouton('Ajouter une salle', 'secondaire', 'add-line', function () { allerA('Les salles', '__nouvelle__'); }, { petit: true, id: 'pAjouterSalle' });
+    menu.appendChild(creer('div', { classe: 's-acc-ajout' }, [ajout]));
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Pour toutes les salles' }));
+    var communs = [['Les règles', 'Règles communes', 'settings-5-line'], ['Les colonnes', 'Les colonnes', 'table-line'], ['Le formulaire', 'Le formulaire', 'file-text-line'], ['Publier', 'Publier', 'send-plane-line'], ['Les droits', 'Les droits', 'lock-line']];
+    communs.forEach(function (d) {
+        if (noms.indexOf(d[0]) === -1) {
+            return;
+        }
+        item('pParam_' + noms.indexOf(d[0]), d[1], d[2], etapeOuverte === d[0] || (d[0] === 'Les règles' && etapeOuverte === 'Général'), function () { allerA(d[0]); });
+    });
+    var titres = { reservations: 'Calendrier partagé', atraiter: 'Validations et demandes spéciales', statistiques: 'Statistiques' };
+    var titre;
+    if (ouvertSalles) {
+        var so = salles.filter(function (x) { return x.cle === b.salleOuverte; })[0];
+        titre = b.ajoutSalle ? 'Nouvelle salle' : (so ? so.nom : 'Mes salles');
+    }
+    else if (etapeOuverte) {
+        titre = { 'Les règles': 'Règles communes', 'Général': 'Règles communes' }[etapeOuverte] || etapeOuverte;
+    }
+    else {
+        titre = titres[courant] || '';
+    }
     var scene = creer('div', { classe: 'w-acc__scene' }, [creer('h2', { classe: 'w-titre-fluo', texte: titre })]);
     var nav = zone.querySelector(':scope > .w-onglets');
     var enfants = Array.prototype.slice.call(zone.childNodes).filter(function (n) { return n !== nav; });
