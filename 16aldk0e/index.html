@@ -100,6 +100,8 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .w-panneau-fiche__meta {margin:0;padding:.5rem 1rem;border-top:1px solid var(--border-default-grey);font-size:.75rem;color:var(--text-mention-grey)}
 .w-panneau-fiche__meta[hidden] {display:none}
 .w-pousse {flex:1 1 auto}
+.w-alerte-etat {flex-basis:100%;font-size:.75rem;color:var(--text-mention-grey)}
+.w-alerte-etat--erreur {color:var(--text-default-error)}
 .w-fiche-ligne {display:flex;align-items:flex-end;flex-wrap:wrap;gap:1rem}
 .w-fiche-ligne__statut {flex:1 1 12rem;margin:0}
 .w-fiche-ligne__epingle {margin:0 0 .5rem}
@@ -372,7 +374,7 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
   <label class="fr-label fr-sr-only" for="adminStatut">Statut</label><select id="adminStatut" class="fr-select" autocomplete="off"><option value="">Tous les statuts</option><option value="En attente">En attente</option><option value="Publiée">Publiée</option><option value="Brouillon">Brouillon</option></select>
   <label class="fr-label fr-sr-only" for="adminCat">Catégorie</label><select id="adminCat" class="fr-select" autocomplete="off"><option value="">Toutes les catégories</option></select>
 </div>
-<div class="toggle-row w-alerte-page"><label class="toggle-switch" for="toggleAlerte"><input type="checkbox" id="toggleAlerte" autocomplete="off" aria-label="Signaler les questions en attente dans le nom de cette page"><span class="slider"></span></label><span style="font-size:.8125rem">Signaler les questions en attente dans le nom de cette page (🔔 après l'emoji de la page)</span></div>
+<div class="toggle-row w-alerte-page"><label class="toggle-switch" for="toggleAlerte"><input type="checkbox" id="toggleAlerte" autocomplete="off" aria-label="Signaler les questions en attente dans le nom de cette page"><span class="slider"></span></label><span style="font-size:.8125rem">Signaler les questions en attente dans le nom de cette page (🔔 après l'emoji de la page)</span><span class="w-alerte-etat" id="alerteEtat" role="status"></span></div>
 <div id="adminList" tabindex="-1"></div>
 </div>
 </div>
@@ -3335,7 +3337,7 @@ ecouter('toggleAlerte', 'change', function () {
         }
     })();
 });
-var EMOJI_ALERTE = '🔔', _alerteRefusee = false, _alerteEnCours = false;
+var EMOJI_ALERTE = '🔔', _alerteRefusee = false, _alerteEnCours = false, _alerteRelancer = false;
 function nomAvecAlerte(nom, actif) {
     var n = String(nom || '').split(EMOJI_ALERTE + '\uFE0F').join('').split(EMOJI_ALERTE).join('').replace(/\s{2,}/g, ' ').trim();
     if (!actif) {
@@ -3347,35 +3349,86 @@ function nomAvecAlerte(nom, actif) {
     }
     return EMOJI_ALERTE + ' ' + n;
 }
+function etatAlerte(texte, erreur) {
+    var z = $('alerteEtat');
+    if (z) {
+        z.textContent = texte || '';
+        z.classList.toggle('w-alerte-etat--erreur', !!erreur);
+    }
+}
+function vueAdminFaq(d) {
+    var v = vueDeCetteConsole(d);
+    if (v) {
+        return { vue: v, nb: 1 };
+    }
+    var morceaux = location.pathname.split('/').filter(Boolean).filter(function (x) { return !/^index\.html?$/.test(x); });
+    var code = morceaux.length ? morceaux[morceaux.length - 1] : '';
+    var badges = Object.keys(_pages || {});
+    var vues = [];
+    for (var i = 0; i < d.id.length; i++) {
+        var opt = String((d.options || [])[i] || '');
+        var vue = (d.parentId || [])[i];
+        if (!vue || (d.parentKey && d.parentKey[i] !== 'custom') || opt.indexOf('customView') === -1) {
+            continue;
+        }
+        if (badges.some(function (b) { return opt.indexOf(b) !== -1; })) {
+            continue;
+        }
+        if ((code && opt.indexOf(code) !== -1) || /wuitfaq|diplofaq/i.test(opt)) {
+            if (vues.indexOf(vue) === -1) {
+                vues.push(vue);
+            }
+        }
+    }
+    return { vue: vues.length === 1 ? vues[0] : null, nb: vues.length };
+}
 async function majAlertePage(force) {
-    if (_alerteEnCours || (_alerteRefusee && !force) || (!alertePage && !force)) {
+    if (!alertePage && !force) {
+        etatAlerte('');
+        return;
+    }
+    if (_alerteEnCours) {
+        _alerteRelancer = true;
+        return;
+    }
+    if (_alerteRefusee && !force) {
         return;
     }
     _alerteEnCours = true;
     try {
         var attente = records.filter(function (r) { return r.STATUT === 'En attente' && PARAM_KEYS.indexOf(r.QUESTION) === -1; }).length;
         var d = await grist.docApi.fetchTable('_grist_Views_section');
-        var vue = vueDeCetteConsole(d);
-        if (!vue) {
+        var trouve = vueAdminFaq(d);
+        if (!trouve.vue) {
+            logSecurite('AVERTISSEMENT', 'Page admin de la FAQ introuvable pour l\'alerte : ' + trouve.nb + ' page(s) candidate(s)');
+            etatAlerte(trouve.nb ? 'Le widget est installé sur plusieurs pages : il ne sait pas laquelle renommer.' : 'La page admin n\'a pas été retrouvée : le nom ne peut pas changer.', true);
             return;
         }
         var v = await grist.docApi.fetchTable('_grist_Views');
-        var k = v.id.indexOf(vue);
+        var k = v.id.indexOf(trouve.vue);
         if (k === -1) {
+            etatAlerte('La page admin n\'a pas été retrouvée : le nom ne peut pas changer.', true);
             return;
         }
         var nom = String((v.name || [])[k] || '');
         var voulu = nomAvecAlerte(nom, alertePage && attente > 0);
         if (voulu && voulu !== nom) {
-            await ecrireDocument([['UpdateRecord', '_grist_Views', vue, { name: voulu }]]);
+            await ecrireDocument([['UpdateRecord', '_grist_Views', trouve.vue, { name: voulu }]]);
         }
+        _alerteRefusee = false;
+        etatAlerte(alertePage ? 'Nom de la page : ' + (voulu || nom) : '');
     }
     catch (e) {
         _alerteRefusee = true;
-        logSecurite('INFO', 'Nom de la page admin non modifié (droits ou page introuvable)', e);
+        logSecurite('INFO', 'Nom de la page admin non modifié', e);
+        etatAlerte(estRefusDroits(e) ? 'Vos droits ne permettent pas de renommer la page : seul un propriétaire du document peut le faire.' : 'Le nom de la page n\'a pas pu être modifié.', true);
     }
     finally {
         _alerteEnCours = false;
+        if (_alerteRelancer) {
+            _alerteRelancer = false;
+            relayer(majAlertePage(), 'Alerte dans le nom de la page');
+        }
     }
 }
 var _focusAvantSaisie = null;
@@ -4295,7 +4348,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 5;
+var ESSAI_WIDGET = 6;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
