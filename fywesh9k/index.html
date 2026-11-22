@@ -1211,6 +1211,38 @@ nav[hidden],
 .w-constr__resultat .w-carte-table { background: var(--background-default-grey); }
 .w-bouton-nouvelle { margin: 0; }
 .w-bloc-regles { display: flex; flex-direction: column; gap: .5rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
+.w-carte-param { display: flex; flex-direction: column; gap: .75rem; padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+.w-carte-param__titre { margin: 0; font-size: 1rem; line-height: 1.5rem; }
+.w-carte-param__sous { margin: 0; font-size: .875rem; font-weight: 700; }
+.w-carte-param .fr-select-group, .w-carte-param .fr-input-group, .w-carte-param .fr-fieldset { margin-bottom: 0; }
+#cTable, .w-carte-param .fr-input, .w-carte-param > .fr-select-group .fr-select { max-width: 32rem; }
+.w-table-choisie { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; }
+.w-filtres__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.w-filtres__liste > li::marker { content: none; }
+.w-filtres__ligne { display: grid; grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 2rem; gap: .375rem; align-items: start; }
+.w-filtres__ligne > .fr-select-group { margin: 0; min-width: 0; }
+.w-filtres__ligne > .fr-select-group > .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.w-filtres__ligne .fr-select, .w-filtres__ligne .fr-input { width: 100%; margin-top: 0; padding-top: .375rem; padding-bottom: .375rem; font-size: .875rem; }
+.w-filtres__ligne > .fr-btn { margin: 0; }
+.w-filtres__conj { font-size: .875rem; color: var(--text-mention-grey); padding: .375rem 0 0 .25rem; }
+.w-filtres__conj-choix { width: 100%; margin: 0; padding: .375rem 1.25rem .375rem .5rem; font-size: .875rem; background-position: calc(100% - .25rem) 50%; }
+.w-filtres__ligne .w-condition__valeurs { min-width: 0; display: flex; flex-direction: column; gap: .25rem; }
+.w-filtres__ligne .w-condition__valeurs .fr-label { font-size: .75rem; }
+.w-filtres__ligne .w-condition__valeurs .fr-input-group, .w-filtres__ligne .w-condition__valeurs .fr-select-group { margin: 0; }
+.w-filtres__ligne .w-condition__erreur:empty { display: none; }
+.w-filtres__phrase { margin: 0; padding-top: .5rem; border-top: 1px solid var(--border-default-grey); }
+.w-filtres__phrase[hidden] { display: none; }
+.w-tag-sugg { margin-left: .5rem; }
+.w-champs-vider[hidden] { display: none; }
+.w-cases .fr-checkbox-group[hidden] { display: none; }
+.w-actions-droite { display: flex; justify-content: flex-end; }
+.w-pied-regle { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-top: .75rem; border-top: 1px solid var(--border-default-grey); }
+.w-pied-regle__compte { margin: 0; }
+.w-pied-regle .fr-btn { margin: 0; }
+.w-pied-regle .fr-btn[hidden] { display: none; }
+.w-apercu-filtres[hidden] { display: none; }
+.w-apercu-filtres { padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+.w-regle__table { display: block; font-size: .75rem; color: var(--text-mention-grey); }
 </style>
 </head>
 <body>
@@ -1257,7 +1289,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 3;
+var ESSAI_WIDGET = 5;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3759,6 +3791,9 @@ function problemeCondition(tid, k) {
   })) {
     return "choisissez la comparaison";
   }
+  if (k.op === "plusde" && !(k.n > 0)) {
+    return "indiquez la durée";
+  }
   var g = genreColonne(col);
   if ((k.op === "parmi" || k.op === "horsde") && !k.valeurs.length) {
     return "cochez au moins une valeur";
@@ -4682,7 +4717,7 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
   var cols = colonnesFiltrables(c.table);
   var selCol = liste(id + "Col", cols.map(function(x) {
     return { valeur: x.colId, libelle: x.label };
-  }), k.colonne, { vide: "Choisir une colonne" });
+  }), k.colonne, { vide: "- Choisir -" });
   selCol.addEventListener("change", function() {
     k.colonne = selCol.value;
     k.op = opDefaut(infoCol(c.table, k.colonne));
@@ -4692,28 +4727,46 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
     refocaliser(id + "Op");
   });
   var col = infoCol(c.table, k.colonne);
-  var corps = [creer("div", { classe: "w-condition__tete" }, [
-    creer("span", { classe: "w-condition__num", texte: n === 0 ? "Si" : c.filtres.mode === "ou" ? "ou" : "et" }),
+  var pref;
+  if (n === 0) {
+    pref = creer("span", { classe: "w-filtres__conj", texte: "Où" });
+  } else if (n === 1) {
+    pref = liste(idBase + "Conj", [{ valeur: "et", libelle: "et" }, { valeur: "ou", libelle: "ou" }], c.filtres.mode === "ou" ? "ou" : "et");
+    pref.classList.add("w-filtres__conj-choix");
+    pref.setAttribute("aria-label", "Lien entre les filtres");
+    pref.addEventListener("change", function() {
+      c.filtres.mode = pref.value;
+      apres();
+      redessiner();
+      refocaliser(idBase + "Conj");
+    });
+  } else {
+    pref = creer("span", { classe: "w-filtres__conj", texte: c.filtres.mode === "ou" ? "ou" : "et" });
+  }
+  var selOp = null;
+  if (col) {
+    selOp = liste(id + "Op", opsDe(col).map(function(o) {
+      return { valeur: o[0], libelle: o[1] };
+    }), k.op);
+    selOp.addEventListener("change", function() {
+      k.op = selOp.value;
+      apres();
+      redessiner();
+      refocaliser(id + "Op");
+    });
+  }
+  var corps = [
+    pref,
     groupeListe("Colonne", selCol),
-    col ? (function() {
-      var selOp = liste(id + "Op", opsDe(col).map(function(o) {
-        return { valeur: o[0], libelle: o[1] };
-      }), k.op);
-      selOp.addEventListener("change", function() {
-        k.op = selOp.value;
-        apres();
-        redessiner();
-        refocaliser(id + "Op");
-      });
-      return groupeListe("Comparaison", selOp);
-    })() : null,
-    bouton("Retirer ce filtre", "tertiaire", "delete-line", function() {
+    selOp ? groupeListe("Filtre", selOp) : creer("span"),
+    null,
+    bouton("Supprimer ce filtre", "discret", "delete-line", function() {
       c.filtres.conditions.splice(n, 1);
       apres();
       redessiner();
       refocaliser(idBase + "Ajouter");
-    }, { petit: true, iconeSeule: true, id: id + "Retirer" })
-  ])];
+    }, { petit: true, iconeSeule: true, id: id + "Retirer", bulle: "Supprimer" })
+  ];
   var g = genreColonne(col);
   var valeurs = creer("div", { classe: "w-condition__valeurs" });
   if (col && (k.op === "parmi" || k.op === "horsde")) {
@@ -4735,15 +4788,13 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
     }
   }
   if (k.op === "plusde") {
-    var nb = saisie(id + "N", String(k.n), { type: "number" });
+    var nb = saisie(id + "N", k.n > 0 ? String(k.n) : "", { type: "number" });
     nb.setAttribute("min", "0");
     nb.setAttribute("max", "1200");
     nb.addEventListener("input", function() {
       var v = parseInt(nb.value, 10);
-      if (isFinite(v) && v >= 0) {
-        k.n = Math.min(1200, v);
-        maj();
-      }
+      k.n = isFinite(v) && v > 0 ? Math.min(1200, v) : 0;
+      maj();
     });
     var un = liste(id + "U", UNITES, k.unite);
     un.addEventListener("change", function() {
@@ -4751,7 +4802,7 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
       maj();
     });
     valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("Durée", nb), groupeListe("Unité", un)]));
-    valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Par rapport à la date du jour : la liste se met à jour toute seule." }));
+    valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Par rapport à aujourd'hui." }));
   }
   if (g === "date" && k.op === "entre") {
     valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("Du (inclus)", champDate(id + "Du", k.du, function(v) {
@@ -4797,9 +4848,9 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
       maj();
     }))]));
   }
-  corps.push(valeurs);
-  corps.push(creer("p", { classe: "fr-error-text w-condition__erreur", id: id + "Err", attrs: { "aria-live": "polite" } }));
-  return creer("li", { classe: "w-condition", id }, corps);
+  valeurs.appendChild(creer("p", { classe: "fr-error-text w-condition__erreur", id: id + "Err", attrs: { "aria-live": "polite" } }));
+  corps[3] = valeurs;
+  return creer("li", { classe: "w-filtres__ligne", id }, corps);
 }
 function apercuFiltres(c) {
   var d = donneesDe(c);
@@ -4819,7 +4870,8 @@ function apercuFiltres(c) {
 function majApercuFiltres(c, idBase) {
   var phrase = document.getElementById(idBase + "Phrase");
   if (phrase) {
-    phrase.textContent = "À archiver : " + libelleCritere(c) + ".";
+    phrase.textContent = c.filtres.conditions.length ? "Se lit : " + libelleCritere(c) + "." : "";
+    phrase.hidden = !c.filtres.conditions.length;
   }
   c.filtres.conditions.forEach(function(k, n) {
     var e = document.getElementById(idBase + "F" + n + "Err");
@@ -4829,17 +4881,28 @@ function majApercuFiltres(c, idBase) {
     }
   });
   var z = document.getElementById(idBase + "Apercu");
+  var compte = document.getElementById(idBase + "Compte");
+  var voir = document.getElementById(idBase + "Voir");
   if (!z) {
     return;
   }
   vider(z);
   var a = apercuFiltres(c);
+  if (compte) {
+    vider(compte);
+    if (a.probleme) {
+      compte.appendChild(creer("span", { classe: "w-mention", texte: c.filtres.conditions.length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les dossiers concernés" }));
+    } else {
+      compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "dossier concerné", "dossiers concernés") }));
+      compte.appendChild(document.createTextNode(" aujourd'hui sur " + a.total));
+    }
+  }
+  if (voir) {
+    voir.hidden = !!a.probleme || !a.liste.length;
+  }
   if (a.probleme) {
-    z.appendChild(alerte("info", null, a.probleme));
     return;
   }
-  var pct = a.total ? Math.round(a.liste.length * 100 / a.total) : 0;
-  z.appendChild(creer("p", { classe: "w-apercu-filtres__nombre", attrs: { role: "status" } }, [creer("strong", { texte: pluriel(a.liste.length, "dossier", "dossiers") + " à archiver aujourd'hui" }), " sur " + a.total + " (" + pct + " %)"]));
   if (aDuree(c)) {
     z.appendChild(creer("p", { classe: "w-mention", texte: pluriel(a.bientot, "autre dossier", "autres dossiers") + " dans les 3 prochains mois." }));
   }
@@ -4865,74 +4928,6 @@ function majApercuFiltres(c, idBase) {
     }
   }
 }
-function editeurRegle(c, apres, idBase, redessiner) {
-  var blocs = [];
-  var maj = function() {
-    apres();
-    majApercuFiltres(c, idBase);
-  };
-  var f = c.filtres;
-  var colF = [];
-  if (f.conditions.length > 1) {
-    colF.push(radios(idBase + "Mode", "Archiver les dossiers qui remplissent :", [{ valeur: "et", libelle: "tous les filtres" }, { valeur: "ou", libelle: "au moins un des filtres" }], f.mode, function(v) {
-      f.mode = v;
-      apres();
-      redessiner();
-      refocaliser(idBase + "Mode_" + v);
-    }));
-  }
-  var ol = creer("ol", { classe: "w-conditions", attrs: { "aria-label": "Filtres" } });
-  f.conditions.forEach(function(k, n) {
-    ol.appendChild(ligneCondition(c, k, n, idBase, apres, redessiner, maj));
-  });
-  colF.push(ol);
-  colF.push(creer("div", {}, [bouton("Ajouter un filtre", "secondaire", "add-line", function() {
-    f.conditions.push(normaliserCondition({}));
-    apres();
-    redessiner();
-    refocaliser(idBase + "F" + (f.conditions.length - 1) + "Col");
-  }, { petit: true, id: idBase + "Ajouter" })]));
-  colF.push(creer("p", { classe: "w-phrase-filtres", id: idBase + "Phrase" }));
-  blocs.push(creer("div", { classe: "w-colonne w-filtres" }, colF));
-  var affichables = colonnesDonnees(c.table);
-  blocs.push(creer("div", { classe: "w-colonne" }, [
-    titreColonne("Colonnes affichées dans la liste", idBase + "TitreAff", null),
-    creer("p", { classe: "w-mention", texte: "La première sert de nom au dossier. Les colonnes des filtres sont toujours affichées." }),
-    casesColonnes(idBase + "Aff", affichables, c.affichees, function() {
-      apres();
-      majApercuFiltres(c, idBase);
-    })
-  ]));
-  setTimeout(function() {
-    majApercuFiltres(c, idBase);
-  }, 0);
-  return creer("div", { classe: "w-grille-param" }, blocs);
-}
-function editeurTraitements(c, apres, idBase) {
-  var eff = colonnesEffacables(c.table).filter(function(x) {
-    return !/^Ref/.test(x.type);
-  });
-  var col1 = [
-    titreColonne("Anonymisation : champs à vider", idBase + "TitreAnon", null),
-    creer("p", { classe: "w-mention", texte: "Traitement proposé en premier. Les champs cochés sont vidés ; la ligne reste, avec ses dates, statuts et montants, pour les statistiques. Les colonnes calculées ne sont pas proposées." }),
-    casesColonnes(idBase + "Ch", eff, c.champs, apres)
-  ];
-  var col2 = [
-    titreColonne("Traitements proposés", idBase + "TitreSuppr", null),
-    radios(idBase + "Trait", "Pour les dossiers de cette règle :", [
-      { valeur: "les2", libelle: "Anonymisation, et suppression définitive en second choix" },
-      { valeur: "anonymiser", libelle: "Anonymisation seulement" },
-      { valeur: "supprimer", libelle: "Suppression définitive seulement", aide: "La ligne et, selon l'étape Tables liées, ses lignes liées disparaissent du document." }
-    ], c.traitements, function(v) {
-      c.traitements = v;
-      c.suppressionPermise = v !== "anonymiser";
-      c.anonymisationPermise = v !== "supprimer";
-      apres();
-    }),
-    creer("p", { classe: "w-mention fr-mt-2w", texte: "Dans les deux cas, une archive Excel complète est téléchargée avant le traitement, pour le service des archives." })
-  ];
-  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col1), creer("div", { classe: "w-colonne" }, col2)]);
-}
 function synchroniserLiees(c) {
   var det = tablesLiees(c.table);
   c.liees = det.map(function(d) {
@@ -4942,48 +4937,9 @@ function synchroniserLiees(c) {
     if (ex) {
       return ex;
     }
-    var ch = champsSuggeres(d.table, d.colonne);
-    return { table: d.table, colonne: d.colonne, anonymiser: ch.length > 0, champs: ch, suppression: "detacher" };
+    return { table: d.table, colonne: d.colonne, anonymiser: false, champs: [], suppression: "detacher" };
   });
   return det;
-}
-function editeurLiees(c, apres, idBase) {
-  var det = synchroniserLiees(c);
-  var col = [titreColonne("Tables qui pointent vers les dossiers", idBase + "TitreLiees", null)];
-  if (!det.length) {
-    col.push(creer("p", { classe: "w-texte", texte: "Aucune table du document ne pointe vers « " + libelleTable(c.table) + " ». Seuls les dossiers sont archivés." }));
-    return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col)]);
-  }
-  col.push(creer("p", { classe: "w-mention", texte: "Leurs lignes liées aux dossiers traités sont toujours ajoutées à l'archive." }));
-  det.forEach(function(d, k) {
-    var l = c.liees[k];
-    var colRef = infoCol(d.table, d.colonne);
-    var bloc = creer("div", { classe: "w-liee" }, [creer("p", { classe: "w-texte" }, [creer("strong", {}, [nomTable(d.table)]), " par la colonne « " + (colRef ? colRef.label : d.colonne) + " »"])]);
-    var zoneChamps = creer("div", { classe: "fr-ml-4w" });
-    var champs = colonnesEffacables(d.table).filter(function(x) {
-      return x.colId !== d.colonne && !/^Ref/.test(x.type);
-    });
-    zoneChamps.appendChild(casesColonnes(idBase + "L" + k, champs, l.champs, apres));
-    zoneChamps.hidden = !l.anonymiser;
-    bloc.appendChild(caseACocher(idBase + "LAnon" + k, "Anonymiser aussi ces lignes", l.anonymiser, function(v) {
-      l.anonymiser = v;
-      zoneChamps.hidden = !v;
-      apres();
-    }));
-    bloc.appendChild(zoneChamps);
-    if (!d.liste) {
-      var sel = liste(idBase + "LSup" + k, [{ valeur: "supprimer", libelle: "Supprimer ces lignes" }, { valeur: "detacher", libelle: "Les garder, sans lien vers le dossier" }], l.suppression);
-      sel.addEventListener("change", function() {
-        l.suppression = sel.value;
-        apres();
-      });
-      bloc.appendChild(groupeListe("En cas de suppression définitive", sel));
-    } else {
-      bloc.appendChild(creer("p", { classe: "w-mention", texte: "En cas de suppression définitive : ces lignes sont gardées, le dossier est retiré de leur liste." }));
-    }
-    col.push(bloc);
-  });
-  return creer("div", { classe: "w-grille-param" }, [creer("div", { classe: "w-colonne" }, col)]);
 }
 function nouvelleRegle() {
   return normaliserRegle({ id: "x", nom: "", table: "", delai: 2, unite: "ans" });
@@ -5065,13 +5021,13 @@ async function choisirTableDossiers(c, tid) {
   } else if (statut.length) {
     conds.push({ colonne: (prefS || statut[0]).colId, op: "parmi", valeurs: [] });
   }
-  c.filtres = { mode: "et", conditions: conds.map(normaliserCondition) };
+  c.filtres = { mode: "et", conditions: [] };
   c.affichees = colonnesDonnees(tid).filter(function(x) {
     return /^(Text|Choice$|Ref:)/.test(x.type);
   }).slice(0, 3).map(function(x) {
     return x.colId;
   });
-  c.champs = champsSuggeres(tid, "");
+  c.champs = [];
   c.liees = [];
   synchroniserLiees(c);
 }
@@ -5138,12 +5094,57 @@ function majSyntheseRegle(c) {
     z.appendChild(creer("p", { classe: "w-mention", texte: "Première règle du document : l'historique des opérations sera rangé dans une table créée pour lui." }));
   }
 }
+function casesColonnesSuggerees(idBase, cols, suggerees, choisies, surChange) {
+  var tri = cols.slice().sort(function(a, b) {
+    return (suggerees.indexOf(b.colId) !== -1) - (suggerees.indexOf(a.colId) !== -1);
+  });
+  var g = creer("div", { classe: "w-cases", attrs: { role: "group" } });
+  var autres = [];
+  tri.forEach(function(col) {
+    var sugg = suggerees.indexOf(col.colId) !== -1;
+    var id = idBase + "_" + col.colId;
+    var cb = creer("input", { attrs: { type: "checkbox", id }, coche: choisies.indexOf(col.colId) !== -1 });
+    cb.addEventListener("change", function() {
+      var k = choisies.indexOf(col.colId);
+      if (cb.checked && k === -1) {
+        choisies.push(col.colId);
+      }
+      if (!cb.checked && k !== -1) {
+        choisies.splice(k, 1);
+      }
+      surChange();
+    });
+    var ligne = creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [cb, creer("label", { classe: "fr-label", attrs: { "for": id } }, [picto("colonne"), col.label, sugg ? creer("span", { classe: "fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine w-tag-sugg", texte: "Suggestion" }) : null])]);
+    if (!sugg && choisies.indexOf(col.colId) === -1 && suggerees.length) {
+      ligne.hidden = true;
+      autres.push(ligne);
+    }
+    g.appendChild(ligne);
+  });
+  if (autres.length) {
+    var b = bouton("Voir les " + autres.length + " autres colonnes", "discret", "arrow-down-s-line", function() {
+      autres.forEach(function(x) {
+        x.hidden = false;
+      });
+      b.hidden = true;
+    }, { petit: true, id: idBase + "Autres" });
+    g.appendChild(b);
+  }
+  return g;
+}
+function carteParam(titre, id, enfants) {
+  return creer("section", { classe: "w-carte-param", attrs: { "aria-labelledby": id } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(enfants));
+}
 function rendreEditeur(c, idBase) {
   majBandeauRole();
   var zone = contenu();
+  var ancien = zone.querySelector(".w-resultat-defile");
+  var cleVue = idBase + (idBase === "c" ? "" : String(etat.regleId) + String(etat.param && etat.param.etape));
+  var defilAvant = ancien && zone.getAttribute("data-vue") === cleVue ? ancien.scrollTop : 0;
+  zone.setAttribute("data-vue", cleVue);
   vider(zone);
   var creation = idBase === "c";
-  var etape = creation ? c.etape : etat.param.etape;
+  var etape = creation ? 0 : etat.param.etape;
   var apres = creation ? majResumesRegle : function() {
     enregistrerReglages();
     majResumesRegle();
@@ -5152,91 +5153,22 @@ function rendreEditeur(c, idBase) {
     rendreEditeur(creation ? etat.creation : regleCourante(), idBase);
   };
   var aller = function(i) {
-    if (creation) {
-      if (i > 0 && !c.table) {
-        signalerSaisie("Choisissez d'abord la table des dossiers.");
-        return;
-      }
-      if (i > 1 && !String(c.nom || "").trim()) {
-        demanderNom();
-        return;
-      }
-      if (i > 2 && problemeFiltres(c)) {
-        if (c.etape !== 2) {
-          c.etape = 2;
-          redessiner();
-        }
-        signalerSaisie(problemeFiltres(c));
-        return;
-      }
-      c.etape = i;
-    } else {
-      etat.param.etape = i;
-    }
+    etat.param.etape = i;
     if (i === "pages") {
       relayer(lireVuesPages().then(function() {
         redessiner();
-        refocaliser("ePages");
+        refocaliser("titreVue");
         majAideEtape();
       }), "Pages des utilisateurs");
       return;
     }
     redessiner();
-    refocaliser(typeof i === "number" ? "eTete" + i : i === "droits" ? "eDroits" : "titreVue");
+    refocaliser("titreVue");
     majAideEtape();
   };
   var cd = cadre(zone);
   var pan = cd.panneau;
-  pan.appendChild(listeReglesAdmin(creation));
-  pan.appendChild(creer("p", { classe: "w-titre-fluo", texte: creation ? "Paramétrage de la nouvelle règle" : "Paramétrage de la règle" }));
-  var tableOk = !!(c.table && etat.meta.tables[c.table]);
-  var resumes = resumesRegle(c);
-  var ol = creer("ol", { classe: "w-etapes", attrs: { "aria-label": "Étapes de la règle" } });
-  ETAPES_REGLE.forEach(function(nom, i) {
-    var ouverte = i === etape;
-    var verrou = creation && i > 0 && !c.table;
-    var tete = creer("button", { classe: "w-etape__tete", id: "eTete" + i, attrs: { type: "button", "aria-expanded": ouverte ? "true" : "false", "aria-controls": "eCorps" + i, "aria-disabled": verrou ? "true" : null } }, [
-      creer("span", { classe: "w-etape__num", attrs: { "aria-hidden": "true" }, texte: String(i + 1) }),
-      creer("span", { classe: "w-etape__textes" }, [
-        creer("span", { classe: "w-etape__nom", texte: nom }),
-        i === 0 && c.table ? creer("span", { classe: "w-etape__resume", id: "eResume0" }, [nomTable(c.table)]) : creer("span", { classe: "w-etape__resume", id: "eResume" + i, texte: resumes[i] })
-      ])
-    ]);
-    tete.addEventListener("click", function() {
-      if (i !== etape) {
-        aller(i);
-      }
-    });
-    var li = creer("li", { classe: "w-etape" + (ouverte ? " w-etape--ouverte" : "") + (verrou ? " w-etape--verrouillee" : "") }, [tete]);
-    if (ouverte) {
-      var corps = creer("div", { classe: "w-etape__corps", id: "eCorps" + i });
-      if (i === 0) {
-        corpsEtapeTable(c, idBase, corps, redessiner);
-      } else if (i === 1) {
-        corpsEtapeNom(c, idBase, corps, apres);
-      } else if (!tableOk) {
-        corps.appendChild(alerte("error", null, "La table « " + c.table + " » n'existe plus dans le document. Supprimez cette règle à l'étape « Le nom » et créez-en une nouvelle."));
-      } else if (i === 2) {
-        corps.appendChild(editeurRegle(c, apres, idBase, redessiner));
-      } else if (i === 3) {
-        corps.appendChild(editeurTraitements(c, apres, idBase));
-      } else {
-        var avant = JSON.stringify(c.liees);
-        corps.appendChild(editeurLiees(c, apres, idBase));
-        if (!creation && JSON.stringify(c.liees) !== avant) {
-          enregistrerReglages();
-        }
-      }
-      if (i < ETAPES_REGLE.length - 1 && (i > 0 || c.table)) {
-        corps.appendChild(creer("div", { classe: "w-etape__suite" }, [bouton("Continuer : " + ETAPES_REGLE[i + 1], "secondaire", "arrow-down-line", function() {
-          aller(i + 1);
-        }, { petit: true, id: "eSuite" + i })]));
-      }
-      li.appendChild(corps);
-    }
-    ol.appendChild(li);
-  });
-  pan.appendChild(ol);
+  pan.appendChild(listeReglesAdmin(creation, etape));
   if (!creation) {
     var nbPages = Object.keys(pagesUtilisateurs()).length;
     pan.appendChild(creer("div", { classe: "w-panneau-bas" }, [
@@ -5248,17 +5180,6 @@ function rendreEditeur(c, idBase) {
       }, "eDroits")
     ]));
   }
-  pan.appendChild(creer("div", { classe: "w-panneau-bas w-panneau-bas--actions" }, creation ? [
-    bouton("Annuler", "tertiaire", "close-line", function() {
-      return annulerCreation();
-    }, { petit: true, id: "cAnnuler" }),
-    creer("span", { classe: "w-pousse" }),
-    bouton("Créer la règle", null, "check-line", function() {
-      return lancerCreation();
-    }, { petit: true, id: "cCreer" })
-  ] : [
-    creer("p", { classe: "w-mention w-statut", id: "pStatut", attrs: { role: "status" }, texte: etat.param.statut })
-  ]));
   var res = cd.resultat;
   if (etape === "droits") {
     res.appendChild(creer("h2", { classe: "w-titre-fluo", id: "titreVue", texte: "Les droits", attrs: { tabindex: "-1" } }));
@@ -5270,53 +5191,218 @@ function rendreEditeur(c, idBase) {
     res.appendChild(creer("div", { classe: "w-resultat-defile", id: "ePagesZone" }, [contenuPages()]));
     return;
   }
-  res.appendChild(creer("h2", { classe: "w-titre-fluo", id: "titreVue", texte: "Ce que la règle archive aujourd'hui", attrs: { tabindex: "-1" } }));
+  res.appendChild(creer("h2", { classe: "w-titre-fluo", id: "titreVue", texte: creation ? "Nouvelle règle" : "Paramétrage de la règle", attrs: { tabindex: "-1" } }));
   var defile = creer("div", { classe: "w-resultat-defile" });
   res.appendChild(defile);
-  if (!c.table) {
-    res.querySelector("#titreVue").textContent = "Quelle table archiver ?";
-    defile.appendChild(choixTableDossiers(c, aller));
-    return;
+  var tableOk = !!(c.table && etat.meta.tables[c.table]);
+  var num = 0;
+  var titreNum = function(t) {
+    num += 1;
+    return num + ". " + t;
+  };
+  // 1. La table
+  var corpsTable = [];
+  if (creation) {
+    var groupes = tablesAvecDates();
+    var sel = creer("select", { classe: "fr-select", id: "cTable" });
+    sel.appendChild(creer("option", { texte: "- Choisir -", attrs: { value: "" } }));
+    [["Tables du document", groupes.miennes], ["Tables créées par les widgets", groupes.widgets]].forEach(function(g) {
+      if (!g[1].length) {
+        return;
+      }
+      var og = creer("optgroup", { attrs: { label: g[0] } });
+      g[1].forEach(function(t) {
+        var o = creer("option", { texte: libelleTable(t), attrs: { value: t } });
+        if (t === c.table) {
+          o.selected = true;
+        }
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    sel.addEventListener("change", async function() {
+      if (!sel.value) {
+        return;
+      }
+      await choisirTableDossiers(c, sel.value);
+      redessiner();
+      refocaliser("cTable");
+    });
+    corpsTable.push(groupeListe("Table", sel));
+    if (!groupes.miennes.length && !groupes.widgets.length) {
+      corpsTable.push(alerte("info", null, "Aucune table de ce document n'a de colonne de date ou de choix."));
+    }
   }
-  if (!tableOk) {
+  if (c.table && !creation) {
+    var perso = tableOk ? champsPersonnelsForts(c.table) : [];
+    corpsTable.push(creer("p", { classe: "w-table-choisie" }, [nomTable(c.table), perso.length ? creer("span", { classe: "fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine", texte: "Données personnelles" }) : null]));
+  }
+  defile.appendChild(carteParam(titreNum("Dans quelle table ?"), "eCarteTable", corpsTable));
+  if (c.table && !tableOk) {
     defile.appendChild(alerte("error", null, "La table « " + c.table + " » n'existe plus dans le document."));
-    return;
   }
-  defile.appendChild(creer("div", { id: idBase + "Apercu", classe: "w-apercu-filtres" }));
-  defile.appendChild(creer("div", { id: "eSynthese", classe: "w-synthese" }));
-  majSyntheseRegle(c);
-  setTimeout(function() {
-    majApercuFiltres(c, idBase);
-  }, 0);
+  if (tableOk) {
+    // 2. Les filtres
+    var maj = function() {
+      apres();
+      majApercuFiltres(c, idBase);
+    };
+    var ol = creer("ol", { classe: "w-filtres__liste", attrs: { "aria-label": "Filtres" } });
+    c.filtres.conditions.forEach(function(k, n) {
+      ol.appendChild(ligneCondition(c, k, n, idBase, apres, redessiner, maj));
+    });
+    defile.appendChild(carteParam(titreNum("Quels dossiers archiver ?"), "eCarteFiltres", [
+      ol,
+      creer("div", {}, [bouton("Ajouter un filtre", "secondaire", "add-line", function() {
+        c.filtres.conditions.push(normaliserCondition({}));
+        apres();
+        redessiner();
+        refocaliser(idBase + "F" + (c.filtres.conditions.length - 1) + "Col");
+      }, { petit: true, id: idBase + "Ajouter" })]),
+      creer("p", { classe: "w-filtres__phrase w-mention", id: idBase + "Phrase" })
+    ]));
+    // 3. Traitements
+    var eff = colonnesEffacables(c.table).filter(function(x) {
+      return !/^Ref/.test(x.type);
+    });
+    var zoneChamps = creer("div", { classe: "w-champs-vider" }, [
+      creer("p", { classe: "w-carte-param__sous", texte: "Colonnes à vider" }),
+      casesColonnesSuggerees(idBase + "Ch", eff, champsSuggeres(c.table, ""), c.champs, apres)
+    ]);
+    zoneChamps.hidden = c.traitements === "supprimer";
+    defile.appendChild(carteParam(titreNum("Que faire de ces dossiers ?"), "eCarteTrait", [
+      radios(idBase + "Trait", "Traitement", [
+        { valeur: "les2", libelle: "Vider les données personnelles, et supprimer en second choix" },
+        { valeur: "anonymiser", libelle: "Vider les données personnelles seulement" },
+        { valeur: "supprimer", libelle: "Supprimer seulement" }
+      ], c.traitements, function(v) {
+        c.traitements = v;
+        c.suppressionPermise = v !== "anonymiser";
+        c.anonymisationPermise = v !== "supprimer";
+        zoneChamps.hidden = v === "supprimer";
+        apres();
+      }),
+      zoneChamps
+    ]));
+    // 4. Tables liées (seulement s'il y en a)
+    var avant = JSON.stringify(c.liees);
+    var det = synchroniserLiees(c);
+    if (!creation && JSON.stringify(c.liees) !== avant) {
+      enregistrerReglages();
+    }
+    if (det.length) {
+      defile.appendChild(carteParam(titreNum("Et les tables liées ?"), "eCarteLiees", det.map(function(d, k) {
+        var l = c.liees[k];
+        var colRef = infoCol(d.table, d.colonne);
+        var champs = colonnesEffacables(d.table).filter(function(x) {
+          return x.colId !== d.colonne && !/^Ref/.test(x.type);
+        });
+        var zc = creer("div", { classe: "w-champs-vider" }, [casesColonnesSuggerees(idBase + "L" + k, champs, champsSuggeres(d.table, d.colonne), l.champs, apres)]);
+        zc.hidden = !l.anonymiser;
+        var bloc = creer("div", { classe: "w-liee" }, [
+          creer("p", { classe: "w-table-choisie" }, [nomTable(d.table), creer("span", { classe: "w-mention", texte: "par" }), picto("colonne"), colRef ? colRef.label : d.colonne]),
+          caseACocher(idBase + "LAnon" + k, "Vider aussi des colonnes de ces lignes", l.anonymiser, function(v) {
+            l.anonymiser = v;
+            zc.hidden = !v;
+            apres();
+          }),
+          zc
+        ]);
+        if (!d.liste) {
+          var sl = liste(idBase + "LSup" + k, [{ valeur: "detacher", libelle: "Les garder, sans lien vers le dossier" }, { valeur: "supprimer", libelle: "Les supprimer" }], l.suppression);
+          sl.addEventListener("change", function() {
+            l.suppression = sl.value;
+            apres();
+          });
+          bloc.appendChild(groupeListe("Si le dossier est supprimé", sl));
+        }
+        return bloc;
+      })));
+    }
+    // dernière carte : le nom
+    var nom = saisie(idBase + "Nom", c.nom, { indice: libelleTable(c.table) });
+    nom.addEventListener("input", function() {
+      if (!creation && !nom.value.trim()) {
+        statutParam("Le nom ne peut pas être vide.", true);
+        return;
+      }
+      c.nom = creation ? nom.value : nom.value.trim();
+      apres();
+    });
+    var desc = saisie(idBase + "Description", c.description, { multiligne: true, lignes: 2 });
+    desc.addEventListener("input", function() {
+      c.description = desc.value;
+      apres();
+    });
+    var corpsNom = [groupeChamp("Nom", nom, null, true), groupeChamp("Description", desc, "Par exemple la référence du texte qui fixe la durée.")];
+    if (!creation) {
+      corpsNom.push(creer("div", { classe: "w-actions-droite" }, [bouton("Supprimer cette règle", "tertiaire", "delete-line", function() {
+        return supprimerRegle(c);
+      }, { petit: true, id: "pSupprimer" })]));
+    }
+    defile.appendChild(carteParam(titreNum("Nom de la règle"), "eCarteNom", corpsNom));
+    defile.appendChild(creer("div", { id: idBase + "Apercu", classe: "w-apercu-filtres", hidden: true }));
+  }
+  var pied = creer("div", { classe: "w-pied-regle" }, [
+    creer("p", { classe: "w-pied-regle__compte", id: idBase + "Compte", attrs: { role: "status" } }),
+    tableOk ? bouton("Voir la liste", "discret", "eye-line", function() {
+      var z = document.getElementById(idBase + "Apercu");
+      var b = document.getElementById(idBase + "Voir");
+      z.hidden = !z.hidden;
+      b.setAttribute("aria-expanded", z.hidden ? "false" : "true");
+      b.textContent = z.hidden ? "Voir la liste" : "Masquer la liste";
+      if (!z.hidden && z.scrollIntoView) {
+        z.scrollIntoView({ block: "start" });
+      }
+    }, { petit: true, id: idBase + "Voir", attrs: { "aria-expanded": "false", "aria-controls": idBase + "Apercu" } }) : null,
+    creer("span", { classe: "w-pousse" })
+  ].concat(creation ? [
+    bouton("Annuler", "tertiaire", "close-line", function() {
+      return annulerCreation();
+    }, { petit: true, id: "cAnnuler" }),
+    bouton("Créer la règle", null, "check-line", function() {
+      return lancerCreation();
+    }, { petit: true, id: "cCreer" })
+  ] : []));
+  res.appendChild(pied);
+  defile.scrollTop = defilAvant;
+  if (tableOk) {
+    setTimeout(function() {
+      majApercuFiltres(c, idBase);
+    }, 0);
+  }
 }
-function listeReglesAdmin(creation) {
+function listeReglesAdmin(creation, etape) {
   var l = regles();
   var ul = creer("ul", { classe: "w-regles", attrs: { "aria-labelledby": "eTitreRegles" } });
   l.forEach(function(r, i) {
-    var actif = !creation && r.id === etat.regleId;
-    var b = creer("button", { classe: "w-regle" + (actif ? " w-regle--active" : ""), id: "eRegle" + i, attrs: { type: "button", "aria-current": actif ? "page" : null } }, [creer("span", { classe: "w-regle__nom", id: actif ? "pTitre" : null, texte: r.nom })]);
+    var actif = !creation && r.id === etat.regleId && typeof etape !== "string";
+    var b = creer("button", { classe: "w-regle" + (actif ? " w-regle--active" : ""), id: "eRegle" + i, attrs: { type: "button", "aria-current": actif ? "page" : null } }, [
+      creer("span", { classe: "w-regle__nom", texte: r.nom }),
+      r.table ? creer("span", { classe: "w-regle__table" }, [nomTable(r.table)]) : null
+    ]);
     b.addEventListener("click", function() {
       if (actif) {
         return;
       }
       etat.creation = null;
-      var etape = etat.param && typeof etat.param.etape === "string" ? etat.param.etape : 0;
       choisirRegle(r.id);
       relayer(chargerDonnees().then(function() {
-        ouvrirParametrage(etape);
+        ouvrirParametrage(0);
         refocaliser("eRegle" + i);
       }), "Changement de règle");
     });
     ul.appendChild(creer("li", {}, [b]));
   });
   var bloc = creer("section", { classe: "w-volet__bloc w-bloc-regles", attrs: { "aria-labelledby": "eTitreRegles" } }, [creer("h2", { classe: "w-titre-fluo", id: "eTitreRegles", texte: "Les règles" })]);
-  bloc.appendChild(l.length ? ul : creer("p", { classe: "w-mention", id: "eAucuneRegle", texte: "Aucune règle pour l'instant." }));
-  var bNouv = bouton("Nouvelle règle", creation ? null : "secondaire", "add-line", function() {
-    if (!creation) {
-      ouvrirCreation();
-    }
-  }, { petit: true, id: "eNouvelle", classe: "w-bouton-nouvelle", attrs: { "aria-expanded": creation ? "true" : "false" } });
-  bloc.appendChild(creer("div", {}, [bNouv]));
+  if (l.length) {
+    bloc.appendChild(ul);
+  }
+  if (creation) {
+    bloc.appendChild(creer("p", { classe: "w-regle w-regle--active w-regle--nouvelle", attrs: { "aria-current": "page" } }, [creer("span", { classe: "w-regle__nom", texte: "Nouvelle règle" })]));
+  } else {
+    bloc.appendChild(creer("div", {}, [bouton("Nouvelle règle", null, "add-line", ouvrirCreation, { petit: true, id: "eNouvelle" })]));
+  }
   return bloc;
 }
 async function lireVuesPages() {
@@ -5555,148 +5641,6 @@ async function supprimerPageUtil(b) {
     erreurEcriture(e, "La page n'a pas été supprimée. Réessayez.");
   }
 }
-function corpsEtapeTable(c, idBase, corps, redessiner) {
-  var creation = idBase === "c";
-  if (!c.table) {
-    corps.appendChild(creer("p", { classe: "w-texte", texte: "Choisissez à droite la table des dossiers à archiver." }));
-    return;
-  }
-  if (creation) {
-    corps.appendChild(creer("p", { classe: "w-texte w-table-choisie" }, [nomTable(c.table)]));
-    corps.appendChild(creer("div", {}, [bouton("Choisir une autre table", "tertiaire", "arrow-go-back-line", function() {
-      c.table = "";
-      c.etape = 0;
-      redessiner();
-      refocaliser("titreVue");
-    }, { petit: true, id: "cAutreTable" })]));
-    return;
-  }
-  var nOps = etat.journal.filter(function(x) {
-    return x.regle === c.id;
-  }).length;
-  corps.appendChild(titreColonne("Tables utilisées", "pTitreTables", null));
-  corps.appendChild(creer("table", { classe: "w-tableau-simple" }, [
-    creer("caption", { classe: "fr-sr-only", texte: "Tables utilisées" }),
-    creer("thead", {}, [creer("tr", {}, [creer("th", { texte: "Contenu", attrs: { scope: "col" } }), creer("th", { texte: "Table", attrs: { scope: "col" } })])]),
-    creer("tbody", {}, [
-      creer("tr", {}, [creer("td", { texte: "Dossiers" }), creer("td", {}, [nomTable(c.table)])]),
-      creer("tr", {}, [creer("td", { texte: "Historique des opérations (" + nOps + ")" }), creer("td", {}, [etat.tables.jo ? nomTable(etat.tables.jo) : creer("span", { texte: DEF_JO.titre })])])
-    ])
-  ]));
-}
-function corpsEtapeNom(c, idBase, corps, apres) {
-  var creation = idBase === "c";
-  var nom = saisie(idBase + "Nom", c.nom, { indice: c.table ? "Par exemple : " + libelleTable(c.table) + " sans réponse" : "Par exemple : candidatures sans réponse" });
-  nom.addEventListener("input", function() {
-    if (!creation && !nom.value.trim()) {
-      statutParam("Le nom ne peut pas être vide.", true);
-      return;
-    }
-    c.nom = creation ? nom.value : nom.value.trim();
-    apres();
-  });
-  var desc = saisie(idBase + "Description", c.description, { multiligne: true, lignes: 2 });
-  desc.addEventListener("input", function() {
-    c.description = desc.value;
-    apres();
-  });
-  corps.appendChild(groupeChamp("Nom", nom, null, true));
-  corps.appendChild(groupeChamp("Description", desc, "Par exemple la référence du texte qui fixe la durée."));
-  if (creation) {
-    return;
-  }
-  corps.appendChild(creer("div", { classe: "w-zone-retrait" }, [
-    titreColonne("Supprimer", "pTitreSuppr", null),
-    creer("p", { classe: "w-texte", texte: "Supprime la règle « " + c.nom + " ». Les dossiers, l'historique et les autres règles restent dans le document." }),
-    creer("div", {}, [bouton("Supprimer cette règle", "secondaire", "delete-line", function() {
-      return supprimerRegle(c);
-    }, { petit: true, id: "pSupprimer" })])
-  ]));
-}
-function choixTableDossiers(c, aller) {
-  var bloc = creer("div", { classe: "w-colonne" });
-  var redessiner = function(focus) {
-    rendreCreation();
-    refocaliser(focus);
-  };
-  var groupes = tablesAvecDates();
-  if (c.filtrePerso === void 0) {
-    c.filtrePerso = true;
-  }
-  var nbPerso = groupes.miennes.concat(groupes.widgets).filter(function(t) {
-    return groupes.perso[t].length;
-  }).length;
-  if (c.filtrePerso && nbPerso) {
-    groupes.miennes = groupes.miennes.filter(function(t) {
-      return groupes.perso[t].length;
-    });
-    groupes.widgets = groupes.widgets.filter(function(t) {
-      return groupes.perso[t].length;
-    });
-  }
-  if (nbPerso) {
-    bloc.appendChild(caseACocher(
-      "cFiltrePerso",
-      "Seulement les tables avec des données personnelles",
-      c.filtrePerso,
-      function(v) {
-        c.filtrePerso = v;
-        redessiner("cFiltrePerso");
-      },
-      "Champs repérés d'après leur libellé : nom, prénom, naissance, courriel, téléphone, adresse... Décochez pour voir toutes les tables."
-    ));
-  }
-  if (!groupes.miennes.length && !groupes.widgets.length) {
-    bloc.appendChild(alerte("info", "Aucune table ne convient", "Une règle d'archivage part d'une colonne de date ou de choix (statut). Aucune table de ce document n'en a pour l'instant."));
-  }
-  var carte = function(t) {
-    var choisi = c.table === t;
-    var dates = colonnesDates(t).map(function(x) {
-      return x.label;
-    }).sort(function(a, b) {
-      return cleTriNom(a) < cleTriNom(b) ? -1 : cleTriNom(a) > cleTriNom(b) ? 1 : 0;
-    });
-    var statuts = colonnesDonnees(t).filter(function(x) {
-      return /^Choice$/.test(x.type);
-    }).map(function(x) {
-      return x.label;
-    });
-    var b = bouton(choisi ? "Table choisie" : "Utiliser cette table", choisi ? null : "secondaire", choisi ? "check-line" : "arrow-right-line", async function() {
-      if (c.table !== t) {
-        await choisirTableDossiers(c, t);
-      }
-      annoncer("Table « " + libelleTable(t) + " » choisie.");
-      c.etape = String(c.nom || "").trim() ? 2 : 1;
-      rendreCreation();
-      refocaliser(c.etape === 1 ? "cNom" : "eTete2");
-      majAideEtape();
-    }, { petit: true, id: "cTable_" + t, iconeDroite: !choisi });
-    var div = creer("div", { classe: "w-carte-table" + (choisi ? " w-carte-table--choisie" : "") }, [
-      creer("span", { classe: "w-carte-table__nom" }, [nomTable(t)]),
-      groupes.perso[t].length ? creer("span", { classe: "w-carte-table__perso" }, [
-        creer("span", { classe: "fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine", texte: "Données personnelles" })
-      ]) : null,
-      listeColonnes("Données personnelles", groupes.perso[t]),
-      listeColonnes("Dates", dates),
-      listeColonnes("Choix", statuts),
-      creer("span", { classe: "w-carte-table__bas" }, [b])
-    ]);
-    div.addEventListener("click", function(ev) {
-      if (!ev.target.closest("button")) {
-        b.click();
-      }
-    });
-    return div;
-  };
-  if (groupes.miennes.length) {
-    bloc.appendChild(creer("div", { classe: "w-cartes-tables", attrs: { role: "group", "aria-label": "Tables du document" } }, groupes.miennes.map(carte)));
-  }
-  if (groupes.widgets.length) {
-    bloc.appendChild(creer("h4", { classe: "w-titre-colonne", id: "cTitreWidgets", texte: "Tables créées par les widgets" }));
-    bloc.appendChild(creer("div", { classe: "w-cartes-tables", attrs: { role: "group", "aria-labelledby": "cTitreWidgets" } }, groupes.widgets.map(carte)));
-  }
-  return bloc;
-}
 async function annulerCreation() {
   var ok = await confirmer("Abandonner la création ?", "Les choix faits dans l'assistant seront perdus.", "Abandonner");
   if (!ok) {
@@ -5717,12 +5661,8 @@ function demanderNom() {
   if (!c) {
     return;
   }
-  if (c.etape !== 1) {
-    c.etape = 1;
-    rendreCreation();
-    majAideEtape();
-  }
-  marquerInvalide("cNom", "Donnez un nom à la règle pour continuer.");
+  marquerInvalide("cNom", "Donnez un nom à la règle.");
+  refocaliser("cNom");
 }
 async function lancerCreation() {
   var c = etat.creation;
@@ -5730,7 +5670,17 @@ async function lancerCreation() {
     return;
   }
   if (!c.table) {
-    signalerSaisie("Choisissez d'abord la table des dossiers.");
+    marquerInvalide("cTable", "Choisissez la table des dossiers.");
+    return;
+  }
+  if (problemeFiltres(c)) {
+    signalerSaisie(problemeFiltres(c));
+    refocaliser(c.filtres.conditions.length ? "cF0Col" : "cAjouter");
+    return;
+  }
+  if (c.traitements !== "supprimer" && !c.champs.length) {
+    signalerSaisie("Cochez au moins une colonne à vider, ou choisissez « Supprimer seulement ».");
+    refocaliser("cTrait_" + c.traitements);
     return;
   }
   if (!String(c.nom || "").trim()) {
@@ -5749,8 +5699,6 @@ async function lancerCreation() {
     var id = "r" + Date.now().toString(36);
     if (problemeFiltres(c)) {
       masquerLoader();
-      c.etape = 2;
-      rendreCreation();
       signalerSaisie(problemeFiltres(c));
       return;
     }
@@ -6342,16 +6290,8 @@ async function supprimerRegle(r) {
 }
 var ONGLETS_AIDE = ["À quoi ça sert", "Pas à pas", "Questions"];
 var FICHES_AIDE = [
-  { cle: "creation0", titre: "Nouvelle règle : La table", texte: "À droite, choisissez la table des dossiers à archiver. Les tables qui contiennent des données personnelles (étiquette violette) sont montrées d'abord ; décochez « Seulement les tables avec des données personnelles » pour voir toutes les tables qui ont une date ou une colonne de choix." },
-  { cle: "creation1", titre: "Nouvelle règle : Le nom", texte: "Donnez un nom à la règle (obligatoire) et, si besoin, une description, par exemple la référence du texte qui fixe la durée de conservation." },
-  { cle: "creation2", titre: "Nouvelle règle : Quels dossiers archiver ?", texte: "Ajoutez un filtre par critère : une colonne, une comparaison, puis les valeurs (cases à cocher pour un statut, calendrier pour une date). Choisissez « tous les filtres » ou « au moins un ». À droite, la liste montre tout de suite les dossiers concernés." },
-  { cle: "creation3", titre: "Nouvelle règle : Traitements", texte: "Cochez les champs personnels à vider lors d'une anonymisation. Les champs qui ressemblent à des données personnelles sont déjà cochés : vérifiez-les. Choisissez les traitements proposés : les deux, anonymisation seulement ou suppression seulement." },
-  { cle: "creation4", titre: "Nouvelle règle : Tables liées", texte: "Pour chaque table qui pointe vers les dossiers : anonymiser aussi ses lignes (et quels champs), et ce qu'elles deviennent en cas de suppression définitive. Relisez la synthèse à droite, puis « Créer la règle », en bas à gauche." },
-  { cle: "param0", titre: "1. La table", texte: "La table des dossiers de la règle et la table de l'historique des opérations." },
-  { cle: "param1", titre: "2. Le nom", texte: "Nom et description de la règle ; suppression de la règle." },
-  { cle: "param2", titre: "3. Quels dossiers archiver ?", texte: "Filtres qui désignent les dossiers à archiver et colonnes affichées dans la liste. À droite, les dossiers concernés aujourd'hui." },
-  { cle: "param3", titre: "4. Traitements", texte: "Champs vidés par l'anonymisation ; traitements proposés." },
-  { cle: "param4", titre: "5. Tables liées", texte: "Ce que deviennent les lignes des tables qui pointent vers les dossiers." },
+  { cle: "creation0", titre: "Nouvelle règle", texte: "1. Choisissez la table des dossiers. 2. Ajoutez un filtre par critère : une colonne, un filtre, une valeur ; « et » ou « ou » à partir du deuxième filtre. 3. Choisissez le traitement et cochez les colonnes à vider ; l'étiquette « Suggestion » signale celles qui ressemblent à des données personnelles. 4. Si d'autres tables pointent vers les dossiers, dites ce que deviennent leurs lignes. 5. Donnez un nom, puis « Créer la règle »." },
+  { cle: "param0", titre: "Paramétrage de la règle", texte: "Les filtres, le traitement, les tables liées et le nom de la règle. En bas, le nombre de dossiers concernés aujourd'hui et la liste." },
   { cle: "parampages", titre: "Page des utilisateurs", texte: "Les agents archivent sur une page sans paramétrage. « Publier une page des utilisateurs » l'ajoute au document : son nom, puis toutes les règles ou seulement certaines. Ensuite, cachez cette page admin (« Les droits », « Cacher cette page »)." },
   { cle: "paramdroits", titre: "Les droits", texte: "Inviter les personnes (bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne) et poser les règles d'accès, chacune reproduite comme dans les Permissions avancées. Cliquez sur « Enregistrer » avant de quitter les Permissions avancées, puis vérifiez avec « Voir en tant que »." },
   { cle: "principal", titre: "Archiver des dossiers", texte: "Choisissez la règle à gauche. Cochez les dossiers dans la liste « À traiter », puis « Anonymiser » (ou « Supprimer définitivement »). Une fenêtre montre ce qui va changer ; téléchargez l'archive Excel, confirmez l'avoir enregistrée, puis lancez le traitement." },
