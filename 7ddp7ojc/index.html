@@ -975,6 +975,11 @@
     .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
     .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
     .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
+    .w-entete-admin { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 0 0 .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
+    .w-entete-admin .fr-btn { margin: 0; }
+    .w-entete-admin__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .w-bouton-danger.fr-btn--tertiary { color: var(--text-default-error); }
+    .w-entete-admin > .w-pousse { flex: 1 1 auto; }
 </style>
 </head>
 <body>
@@ -1023,7 +1028,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 12;
+var ESSAI_WIDGET = 13;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -3350,11 +3355,20 @@ function rendrePrincipal() {
   var principal = creer('div', { classe: 'w-principal' }, [barre, creer('p', { classe: 'w-mention-papier', id: 'vPapier' }), scene]);
   var pageAdmin = etat.peutParametrer && !etat.page;
   if (pageAdmin) {
-    var gaucheBarre = barre.querySelector('.w-barre__gauche');
-    var bAcc = boutonAccueil('vAccueil');
-    bAcc.classList.add('w-ouvrir-param');
-    gaucheBarre.insertBefore(bAcc, gaucheBarre.firstChild);
     droite.appendChild(bouton('Paramétrage', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'vParametrerBarre', classe: 'w-ouvrir-param' }));
+    var publie = pagesDuTableau(t.id).length > 0;
+    var titreBarre = barre.querySelector('#titreVue');
+    if (titreBarre) { titreBarre.parentNode.removeChild(titreBarre); }
+    zone.appendChild(creer('div', { classe: 'w-entete-admin' }, [
+      boutonAccueil('vAccueil'),
+      creer('h2', { classe: 'w-entete-admin__nom', id: 'titreVue', texte: t.nom, attrs: { tabindex: '-1' } }),
+      badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
+      creer('span', { classe: 'w-pousse' }),
+      bouton('Publier', null, 'send-plane-line', function () {
+        var ouvrirPub = function () { etat.param.etape = 5; if (!publie) { editerPage(null, false); } else { rendreParametrage(); } };
+        if (etat.vue !== 'parametrage') { ouvrirParametrage(5).then(function () { if (!publie) { editerPage(null, false); } }); } else { ouvrirPub(); }
+      }, { id: 'vPublier' }),
+      bouton('Supprimer', 'tertiaire', 'delete-line', function () { return supprimerTableau(t); }, { id: 'vSupprimer', classe: 'w-bouton-danger' })]));
     volet.hidden = true;
   }
   zone.appendChild(creer('div', { classe: 'w-disposition' + (pageAdmin ? ' w-disposition--admin' : '') }, [volet, principal]));
@@ -6782,7 +6796,7 @@ function listeEtapesAtelier(items, ouverte, aller, idBase) {
       if (c && c.querySelectorAll) {
         Array.prototype.forEach.call(c.querySelectorAll('.w-section'), function (sec) {
           var t2 = sec.querySelector('.w-titre-colonne');
-          if (t2 && /Les droits$/.test(t2.textContent.trim())) { sec.parentNode.removeChild(sec); }
+          if (t2 && /(Les droits|Supprimer le tableau blanc)$/.test(t2.textContent.trim())) { sec.parentNode.removeChild(sec); }
         });
         Array.prototype.forEach.call(c.querySelectorAll('.w-num'), function (n) { n.parentNode.removeChild(n); });
       }
@@ -6826,14 +6840,10 @@ function rendreParametrage() {
   var publie = pagesDuTableau(t.id).length > 0;
   var tete = [
     creer('div', { classe: 'w-atl-tete' }, [
-      creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Paramétrage du tableau blanc', attrs: { tabindex: '-1' } }),
+      creer('h2', { classe: 'w-titre-fluo', id: 'pTitreParam', texte: 'Paramétrage du tableau blanc', attrs: { tabindex: '-1' } }),
       creer('span', { classe: 'w-pousse' }),
       bouton('Fermer le paramétrage', 'discret', 'close-line', quitterParametrage, { petit: true, iconeSeule: true, id: 'pFermer', bulle: 'Fermer' })]),
-    creer('div', { classe: 'w-atl-ident' }, [
-      creer('span', { classe: 'w-atl-ident__nom', id: 'pTitre', texte: t.nom }),
-      badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
-      creer('span', { classe: 'w-pousse' }),
-      bouton('Publier', null, 'send-plane-line', function () { p.etape = 5; if (!publie) { editerPage(null, false); } else { rendreParametrage(); } }, { petit: true, id: 'pPublier' })])];
+    ];
   var items = ETAPES_ATELIER.map(function (nom, i) {
     return { cle: i, num: String(i + 1), nom: nom, corps: function () {
       if (i === 0) { return enBlocs([etapeGeneral(t)]); }
