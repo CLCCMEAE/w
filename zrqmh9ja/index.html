@@ -1329,6 +1329,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 .w-af__seg > .w-af__valeur { flex: 2 1 11rem; width: auto; min-width: 9rem; }
 .w-af__filtre > .w-af__seg { width: auto; }
 .w-af__groupe { width: auto; flex: 1 1 auto; min-width: 0; max-width: 44rem; }
+.w-filtres--inactif { opacity: .45; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -5684,7 +5685,13 @@ function rendreEditeur(c, idBase) {
         c.filtres.tous = v;
         changerFiltres(idBase + "Tous");
       }),
-      c.filtres.tous ? null : editeurFiltresAirtable(c, idBase, changerFiltres, maj),
+      c.filtres.tous ? (function() {
+        var z = creer("div", { classe: "w-filtres--inactif", attrs: { "aria-hidden": "true" } }, [editeurFiltresAirtable({ table: c.table, filtres: { racine: { conj: "et", items: [normaliserCondition({})] } } }, idBase + "Inactif", function() {
+        }, function() {
+        })]);
+        z.inert = true;
+        return z;
+      })() : editeurFiltresAirtable(c, idBase, changerFiltres, maj),
       creer("p", { classe: "w-filtres__phrase w-mention", id: idBase + "Phrase" })
     ]));
     // 3. Traitements
