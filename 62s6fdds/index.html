@@ -749,6 +749,8 @@
     .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
     .w-choix-table-kb { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-kb__bas { display: flex; justify-content: flex-end; gap: .5rem; }
+    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; }
+    .w-atelier .w-section--seule > .w-champ-aide:first-child { border-bottom: 0; padding-bottom: 0; }
 </style>
 </head>
 <body>
@@ -5444,6 +5446,31 @@ function resumeEtapeKb(n, b) {
     }
     return '';
 }
+function allegerEtapeW(c, nom) {
+    if (!c || !c.querySelectorAll) {
+        return;
+    }
+    Array.prototype.forEach.call(c.querySelectorAll('.w-num'), function (n) { n.parentNode.removeChild(n); });
+    var norm = function (t) { return String(t || '').replace(/^\d+\.\s*/, '').trim().toLowerCase(); };
+    Array.prototype.forEach.call(c.querySelectorAll('.w-c3__titre'), function (t) {
+        Array.prototype.forEach.call(t.childNodes, function (n) { if (n.nodeType === 3) {
+            n.nodeValue = n.nodeValue.replace(/^\d+\.\s*/, '');
+        } });
+        if (nom === 'Général' || norm(t.textContent) === norm(nom)) {
+            var bloc = t.closest('.w-champ-aide') || t;
+            if (t.id) {
+                bloc.classList.add('fr-sr-only');
+            }
+            else {
+                bloc.parentNode.removeChild(bloc);
+            }
+        }
+    });
+    var sections = c.querySelectorAll('.w-section');
+    if (sections.length === 1 || nom === 'Général') {
+        Array.prototype.forEach.call(sections, function (x) { x.classList.add('w-section--seule'); });
+    }
+}
 function panneauParamKb() {
     var b = etat.brouillon;
     var ol = creer('ol', { classe: 'w-atl-etapes', attrs: { 'aria-label': 'Étapes' } });
@@ -5479,6 +5506,7 @@ function panneauParamKb() {
             finally {
                 etat.panneauKb = false;
             }
+            allegerEtapeW(c, nom);
             li.appendChild(creer('div', { classe: 'w-atl-etape__corps' }, [c]));
         }
         ol.appendChild(li);
