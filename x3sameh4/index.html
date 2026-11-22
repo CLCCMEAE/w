@@ -9539,6 +9539,10 @@ function rendreAssistant(zone) {
     if (b.cfg && !perso) {
         b.cfg.depuisDonnees = !!b.depuisDonnees;
     }
+    if (!perso && b.mode === 'creation' && nom === 'Point de départ') {
+        zone.appendChild(creer('div', { classe: 'w-assistant' }, [contenuEtape(nom)]));
+        return;
+    }
     var entete = perso
         ? enteteParametrage(etat.config.name, null, null, b.statut)
         : enteteCreation('Nouveau planning des salles');
@@ -9741,12 +9745,11 @@ function etapeDepart() {
     zone.appendChild(creer('div', { classe: 's-depart__carte' }, [
         creer('span', { classe: 'fr-icon-building-line fr-icon--lg s-depart__icone', attrs: { 'aria-hidden': 'true' } }),
         creer('h3', { classe: 's-depart__titre', texte: deja ? 'Vos tables sont créées' : 'Vos salles, prêtes en quelques minutes' }),
-        creer('p', { classe: 'w-texte', texte: deja ? 'Continuez avec vos salles : nom, bâtiment, capacité, équipements.' : 'WuitSalles crée la table des salles et la table des réservations, avec une première salle à nommer. Vous réglez ensuite vos règles et le formulaire de réservation, étape par étape.' }),
+        creer('p', { classe: 'w-texte', texte: deja ? 'Continuez avec vos salles : nom, bâtiment, capacité, équipements.' : 'WuitSalles crée la table des salles et la table des réservations, avec une première salle à nommer. Vous réglez ensuite vos salles, les règles et le formulaire de réservation dans le paramétrage.' }),
         creer('ul', { classe: 's-depart__points' }, ['Une salle « Salle 1 » pour commencer, à renommer', 'Les règles de votre poste : jours, horaires, validation', 'Une page « Réserver une salle » pour les agents'].map(function (x) { return creer('li', { texte: x }); })),
         bouton(deja ? 'Continuer : mes salles' : 'Commencer : créer mes salles', null, 'arrow-right-line', function () {
             if (deja && b.cfg) {
-                allerEtape(rangEtape('Les salles'));
-                return;
+                return creerPlanDirectSa();
             }
             return creerDepuisModele(m);
         }, { id: 'dCommencer', iconeDroite: true, classe: 's-depart__bouton' })
@@ -10300,8 +10303,8 @@ async function creerDepuisModele(m) {
         b.etape = rangEtape('Les salles');
         b.etapeMax = b.etape;
         masquerLoader();
-        afficherVue('assistant');
-        afficherSucces((aCreer.length ? (reutilisees.length ? 'Tables prêtes : ' : 'Tables créées : ') : 'Tables reprises : ') + noms.join(' et ') + '. Donnez maintenant un nom à votre première salle.');
+        await creerPlanDirectSa();
+        return;
     }
     catch (e) {
         masquerLoader();
@@ -10916,6 +10919,21 @@ async function assurerColonneSerie(cfg) {
         await chargerMeta();
     }
     cfg.colSerie = 'SERIE';
+}
+async function creerPlanDirectSa() {
+    var b = etat.brouillon;
+    var k = premiereEtapeInvalide();
+    if (k) {
+        b.etape = 0;
+        afficherVue('assistant');
+        afficherErreur('Le planning des salles n\'a pas été créé : l\'étape « ' + k + ' » est incomplète.');
+        return;
+    }
+    await creerPlan();
+    if (etat.brouillon === b) {
+        b.etape = 0;
+        afficherVue('assistant');
+    }
 }
 async function creerPlan() {
     var k = premiereEtapeInvalide();

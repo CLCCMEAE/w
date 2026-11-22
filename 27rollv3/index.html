@@ -910,6 +910,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-atelier .w-section { padding: 0; border: 0; }
     #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
 </style>
 </head>
 <body>
@@ -4127,7 +4128,7 @@ function notePubSl(id, publie) {
     var e = document.getElementById('sEtat');
     if (e && etat.pres && etat.pres.id === id) {
         e.textContent = publie ? 'Publié' : 'Brouillon';
-        e.className = 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new') + ' w-etat-bouton';
+        e.className = 'fr-badge fr-badge--sm fr-badge--no-icon ' + (publie ? 'fr-badge--success' : 'w-badge-brouillon') + ' w-etat-bouton';
     }
     var r = document.querySelector('#sEtape4 .w-atl-etape__resume');
     if (r && etat.pres && etat.pres.id === id) {
@@ -4153,7 +4154,7 @@ async function lireToutesPagesSl() {
 }
 function etiquetteEtatSl() {
     var publie = !!(etat.pres && etat.pubSl[etat.pres.id]);
-    var e = creer('button', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new') + ' w-etat-bouton', id: 'sEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
+    var e = creer('button', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (publie ? 'fr-badge--success' : 'w-badge-brouillon') + ' w-etat-bouton', id: 'sEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
     e.addEventListener('click', function () {
         if (etat.brouillon && etat.brouillon.mode === 'parametrage') {
             allerEtape(4);
@@ -4271,25 +4272,39 @@ function vignetteModeleSl(m) {
     }
     return v;
 }
+function nomLibreSl(base) {
+    var pris = (etat.presentations || []).map(function (p) { return (p.cfg && p.cfg.nom) || ''; });
+    if (pris.indexOf(base) === -1) {
+        return base;
+    }
+    var k = 2;
+    while (pris.indexOf(base + ' ' + k) !== -1) {
+        k++;
+    }
+    return base + ' ' + k;
+}
 function creerDepuisAccueilSl(dep, cle) {
-    demarrerCreation();
-    var b = etat.brouillon;
-    b.depart = dep;
-    if (dep === 'modele') {
-        var m = MODELES.filter(function (x) { return x.cle === cle; })[0];
-        b.modele = cle;
-        b.cfg.nom = m ? m.nom : '';
+    relayer(creerDirectSl(dep, cle), 'Création de la présentation');
+}
+async function creerDirectSl(dep, cle) {
+    etat.pres = null;
+    etat.diapos = [];
+    etat.courante = null;
+    var b = { mode: 'creation', etape: 2, max: 2, depart: dep, modele: null, cfg: configValide({ gabarit: 'officiel' }) };
+    var m = dep === 'modele' ? MODELES.filter(function (x) { return x.cle === cle; })[0] : null;
+    b.modele = m ? cle : null;
+    b.cfg.nom = nomLibreSl(m ? m.nom : 'Nouvelle présentation');
+    etat.brouillon = b;
+    await creerPresentation();
+    if (!etat.brouillon && etat.pres) {
+        ouvrirParametrage(1);
+        return;
     }
-    else {
-        b.modele = null;
-        b.cfg.nom = '';
+    if (etat.brouillon === b) {
+        etat.brouillon = null;
+        afficherVue('accueil');
+        afficherErreur('La présentation n\'a pas été créée : vérifiez vos droits sur le document.');
     }
-    b.etape = 2;
-    b.max = 2;
-    afficherVue('assistant');
-    setTimeout(function () { var f = document.getElementById('aNom'); if (f) {
-        f.focus();
-    } }, 30);
 }
 function carteAccueilSl(vig, etiquette, nom, desc, libelle, action, id) {
     if (etiquette) {
@@ -4305,7 +4320,7 @@ function carteAccueilSl(vig, etiquette, nom, desc, libelle, action, id) {
     } });
     return c;
 }
-function badgeSl(texte, variante) { return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + variante, texte: texte }); }
+function badgeSl(texte, variante) { return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (variante ? 'fr-badge--' + variante : 'w-badge-brouillon'), texte: texte }); }
 function rendreAccueilSl(zone) {
     var rub = etat.rubSl;
     if (!etat.pagesSl && !etat.lecturePagesSl) {
@@ -4366,7 +4381,7 @@ function rendreAccueilSl(zone) {
         var grille = creer('div', { classe: 'w-acc__cartes' });
         triees.forEach(function (p, k) {
             var publie = !!(pages[p.id] && pages[p.id].length);
-            grille.appendChild(carteAccueilSl(vignettePresSl(p), badgeSl(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'), nomPres(p), accordSl(diaposDe(p.id).length, 'diapositive', 'diapositives'),
+            grille.appendChild(carteAccueilSl(vignettePresSl(p), badgeSl(publie ? 'Publié' : 'Brouillon', publie ? 'success' : ''), nomPres(p), accordSl(diaposDe(p.id).length, 'diapositive', 'diapositives'),
                 publie ? 'Modifier' : 'Modifier mon brouillon', function () { ouvrirPresentation(p.id); }, 'sOuvrir' + k));
         });
         if (peutCreer()) {

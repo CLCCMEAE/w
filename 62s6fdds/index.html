@@ -746,6 +746,9 @@
     .w-disposition--admin > .w-atelier { background: var(--background-default-grey); }
     .w-disposition--admin > .w-atelier .w-atelier__defile { padding-top: 1rem; }
     .w-disposition--admin .w-colonne { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .w-choix-table-kb { max-width: 32rem; margin-top: 1.25rem; }
+    .w-choix-table-kb__bas { display: flex; justify-content: flex-end; gap: .5rem; }
 </style>
 </head>
 <body>
@@ -5394,7 +5397,7 @@ etat.surAccueil = true;
 etat.rubKb = 'kanban';
 function enteteAdminKb() {
     var publie = pagesDuTableau(etat.cleConfig).length > 0;
-    var e = creer('button', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new') + ' w-etat-bouton', id: 'kEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
+    var e = creer('button', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (publie ? 'fr-badge--success' : 'w-badge-brouillon') + ' w-etat-bouton', id: 'kEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
     e.addEventListener('click', function () { relayer(allerPublierKb(), 'Étape Publier'); });
     return creer('div', { classe: 'w-entete-admin' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilKb(); }, { petit: true, id: 'kAccueil' }),
@@ -5587,23 +5590,24 @@ function rendreAccueilKb(zone) {
                     reperes.push('responsable : ' + infoColonne(a.table, a.colResponsable).label);
                 }
                 grilleD.appendChild(carteAccueilKb(vig, creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--info', texte: 'Suggestion' }), sg.nom, reperes.join(', '), 'Utiliser cette suggestion', function () {
-                    etat.surAccueil = false;
-                    a.etape = 4;
                     a.suggestion = sg.nom;
-                    etat.assistant = a;
-                    afficherVue('branchement');
+                    relayer(brancherDirectKb(a), 'Création du Kanban');
                 }, 'kSuggestion' + i));
             });
             var plusD = creer('button', { classe: 'w-acc__plus', id: 'kDonnees', attrs: { type: 'button', 'aria-label': 'Paramétrer moi-même un Kanban à partir de l\'une de mes tables' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
             plusD.addEventListener('click', function () {
-                etat.surAccueil = false;
-                relayer(demarrerBranchement().then(function () { if (etat.assistant) {
-                    etat.assistant.etape = 1;
-                    afficherVue('branchement');
-                } }), 'Partir de mes données');
+                etat.choixTableKb = true;
+                afficherVue('accueil', true);
+                var f = document.getElementById('kChoixTable');
+                if (f) {
+                    f.focus();
+                }
             });
             grilleD.appendChild(plusD);
             scene.appendChild(grilleD);
+            if (etat.choixTableKb) {
+                scene.appendChild(choixTableKb());
+            }
         }
     }
     else {
@@ -5629,24 +5633,112 @@ function rendreAccueilKb(zone) {
         var grille = creer('div', { classe: 'w-acc__cartes' });
         etat.tableaux.forEach(function (t, k) {
             var publie = pagesDuTableau(t.cle).length > 0;
-            grille.appendChild(carteAccueilKb(vignetteColonnesKb(etat.etapesAccueil[t.cle] || []), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new'), texte: publie ? 'Publié' : 'Brouillon' }),
+            grille.appendChild(carteAccueilKb(vignetteColonnesKb(etat.etapesAccueil[t.cle] || []), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (publie ? 'fr-badge--success' : 'w-badge-brouillon'), texte: publie ? 'Publié' : 'Brouillon' }),
                 t.config.nom || 'Kanban sans nom', t.config.description || '', publie ? 'Modifier' : 'Modifier mon brouillon', function () { return ouvrirKanbanAccueil(t.cle); }, 'kOuvrir' + k));
         });
         MODELES.forEach(function (m) {
             grille.appendChild(carteAccueilKb(vignetteColonnesKb(m.etapes), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine', texte: 'Modèle' }),
-                m.nom, m.description, 'Utiliser ce modèle', function () { etat.surAccueil = false; appliquerModele(m); }, 'kModele_' + m.id));
+                m.nom, m.description, 'Utiliser ce modèle', function () { relayer(creerModeleKb(m), 'Création du Kanban'); }, 'kModele_' + m.id));
         });
         var plus = creer('button', { classe: 'w-acc__plus', id: 'kCreer', attrs: { type: 'button', 'aria-label': 'Créer un Kanban vierge' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-        plus.addEventListener('click', function () {
-            etat.surAccueil = false;
-            etat.brouillon = brouillonVierge();
-            etat.brouillon.choixDepart = 'modele';
-            afficherVue('assistant');
-        });
+        plus.addEventListener('click', function () { relayer(creerModeleKb(null), 'Création du Kanban'); });
         grille.appendChild(plus);
         scene.appendChild(grille);
     }
     zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
+}
+function nomLibreKb(base) {
+    var pris = etat.tableaux.map(function (t) { return (t.config && t.config.nom) || ''; });
+    if (pris.indexOf(base) === -1) {
+        return base;
+    }
+    var k = 2;
+    while (pris.indexOf(base + ' ' + k) !== -1) {
+        k++;
+    }
+    return base + ' ' + k;
+}
+function echecCreationKb(raison) {
+    etat.brouillon = null;
+    etat.assistant = null;
+    etat.surAccueil = true;
+    afficherVue('accueil');
+    afficherErreur('Le Kanban n\'a pas été créé : ' + raison);
+}
+async function creerModeleKb(m) {
+    if (!etat.peutParametrer) {
+        return;
+    }
+    etat.surAccueil = false;
+    etat.choixTableKb = false;
+    var b = m ? brouillonDepuisDefinition({ nom: m.nom, description: m.description, etapes: m.etapes, champs: m.champs, options: m.options, origine: 'du modèle « ' + m.nom + ' »' }) : brouillonVierge();
+    b.choixDepart = 'modele';
+    b.nom = nomLibreKb(m ? m.nom : 'Nouveau Kanban');
+    etat.brouillon = b;
+    for (var n = 1; n <= 3; n++) {
+        if (!validerEtapeSansRendu(n)) {
+            echecCreationKb('le modèle est incomplet.');
+            return;
+        }
+    }
+    await creerDepuisBrouillon();
+    if (etat.brouillon === b) {
+        echecCreationKb('vérifiez vos droits sur le document.');
+    }
+}
+async function brancherDirectKb(a) {
+    if (!etat.peutParametrer) {
+        return;
+    }
+    etat.surAccueil = false;
+    etat.choixTableKb = false;
+    etat.brouillon = null;
+    try {
+        await chargerMeta();
+    }
+    catch (e) {
+        echecCreationKb('la structure du document n\'a pas pu être lue.');
+        return;
+    }
+    if (!a.colEtape || !a.colTitre || a.colEtape === a.colTitre) {
+        echecCreationKb('la table « ' + libelleTable(a.table) + ' » n\'a pas de colonne qui puisse donner les étapes et une autre pour le titre des cartes.');
+        return;
+    }
+    if (!a.triCol) {
+        a.triCol = a.colTitre;
+    }
+    etat.assistant = a;
+    await executerBranchement();
+    if (etat.assistant === a) {
+        echecCreationKb('vérifiez vos droits sur le document.');
+    }
+}
+function choixTableKb() {
+    var tables = tablesBranchables().filter(function (t) { return !tableauDeTable(t); });
+    if (!tables.length) {
+        return creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Toutes vos tables ont déjà leur Kanban.' });
+    }
+    var sel = liste('kChoixTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+    var ok = bouton('Créer le Kanban', null, 'arrow-right-line', function () {
+        var a = nouvelAssistantBranchement(sel.value);
+        proposerAssociations(a);
+        if (!a.colEtape) {
+            var pe = colonnesEtapePossibles(a.table).filter(function (c) { return c.colId !== a.colTitre; })[0];
+            a.colEtape = pe ? pe.colId : null;
+        }
+        if (!a.colTitre) {
+            var pt = colonnesTitrePossibles(a.table).filter(function (c) { return c.colId !== a.colEtape; })[0];
+            a.colTitre = pt ? pt.colId : null;
+        }
+        relayer(brancherDirectKb(a), 'Création du Kanban');
+    }, { id: 'kChoixTableOk', iconeDroite: true });
+    var annuler = bouton('Annuler', 'tertiaire', null, function () { etat.choixTableKb = false; afficherVue('accueil', true); var f = document.getElementById('kDonnees'); if (f) {
+        f.focus();
+    } }, { id: 'kChoixTableAnnuler' });
+    return creer('div', { classe: 'w-section w-choix-table-kb' }, [
+        creer('div', { classe: 'fr-select-group fr-mb-0' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'kChoixTable' }, texte: 'Table des cartes' }), sel]),
+        creer('p', { classe: 'w-mention', texte: 'Le widget reconnaît la colonne des étapes et celle du titre des cartes.' }),
+        creer('div', { classe: 'w-choix-table-kb__bas' }, [annuler, ok])]);
 }
 function ouvrirNouveauKanban() {
     if (!etat.peutParametrer) {
