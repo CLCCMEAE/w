@@ -1360,7 +1360,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 11;
+var ESSAI_WIDGET = 12;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3888,7 +3888,7 @@ function normaliserFiltres(r) {
     f = { mode: "et", conditions: conds };
   }
   var racine = f.racine && Array.isArray(f.racine.items) ? normaliserNoeudFiltres(f.racine, 0) : { conj: f.mode === "ou" ? "ou" : "et", items: f.conditions.map(normaliserCondition) };
-  r.filtres = { racine: racine };
+  r.filtres = { racine: racine, tous: f.tous === true };
   synchroFiltresAnciens(r.filtres);
   delete r.critere;
   delete r.colDate;
@@ -3944,6 +3944,9 @@ function problemeCondition(tid, k) {
   return "";
 }
 function problemeFiltres(r) {
+  if (r.filtres.tous) {
+    return "";
+  }
   var l = feuillesFiltres(r.filtres);
   if (!l.length) {
     return "Ajoutez au moins un filtre : sans filtre, aucun dossier n'est proposé.";
@@ -3957,7 +3960,7 @@ function problemeFiltres(r) {
   return "";
 }
 function aDuree(r) {
-  return feuillesFiltres(r.filtres).some(function(k) {
+  return !r.filtres.tous && feuillesFiltres(r.filtres).some(function(k) {
     return k.op === "plusde";
   });
 }
@@ -4071,7 +4074,7 @@ function evaluerNoeud(r, n, d, i, maintenant) {
   return n.conj === "ou" ? n.items.some(t) : n.items.every(t);
 }
 function evaluerRegle(r, d, i, maintenant) {
-  return evaluerNoeud(r, racineFiltres(r.filtres), d, i, maintenant);
+  return r.filtres.tous ? true : evaluerNoeud(r, racineFiltres(r.filtres), d, i, maintenant);
 }
 function echeanceDossier(r, d, i, reference) {
   var noeud = function(n) {
@@ -4103,7 +4106,7 @@ function echeanceDossier(r, d, i, reference) {
     }
     return Math.max.apply(null, l);
   };
-  return noeud(racineFiltres(r.filtres));
+  return r.filtres.tous ? 0 : noeud(racineFiltres(r.filtres));
 }
 function dateCourte(iso) {
   if (!isoValide(iso)) {
@@ -4162,6 +4165,9 @@ function phraseNoeudFiltres(tid, n, niveau) {
   }).join(n.conj === "ou" ? " ou " : " et ");
 }
 function libelleCritere(r) {
+  if (r.filtres.tous) {
+    return "tous les dossiers de la table";
+  }
   if (!feuillesFiltres(r.filtres).length) {
     return "aucun filtre";
   }
@@ -5211,7 +5217,7 @@ function apercuFiltres(c) {
 function majApercuFiltres(c, idBase) {
   var phrase = document.getElementById(idBase + "Phrase");
   if (phrase) {
-    var complet = feuillesFiltres(c.filtres).length && !problemeFiltres(c);
+    var complet = !c.filtres.tous && feuillesFiltres(c.filtres).length && !problemeFiltres(c);
     phrase.textContent = complet ? "Se lit : " + libelleCritere(c) + "." : "";
     phrase.hidden = !complet;
   }
@@ -5240,7 +5246,7 @@ function majApercuFiltres(c, idBase) {
         compte.appendChild(creer("span", { classe: "w-mention", texte: "La table ne contient aucun dossier." }));
       } else {
         compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "dossier concerné", "dossiers concernés") }));
-        compte.appendChild(document.createTextNode(" aujourd'hui sur " + a.total));
+        compte.appendChild(document.createTextNode(c.filtres.tous ? ", soit toute la table" : " aujourd'hui sur " + a.total));
       }
     }
   }
@@ -5637,7 +5643,11 @@ function rendreEditeur(c, idBase) {
       }
     };
     defile.appendChild(carteParam(titreNum("Quels dossiers archiver ?"), "eCarteFiltres", [
-      editeurFiltresAirtable(c, idBase, changerFiltres, maj),
+      caseACocher(idBase + "Tous", "Tous les dossiers de la table", !!c.filtres.tous, function(v) {
+        c.filtres.tous = v;
+        changerFiltres(idBase + "Tous");
+      }),
+      c.filtres.tous ? null : editeurFiltresAirtable(c, idBase, changerFiltres, maj),
       creer("p", { classe: "w-filtres__phrase w-mention", id: idBase + "Phrase" })
     ]));
     // 3. Traitements
@@ -6066,6 +6076,9 @@ async function lancerCreation() {
   }
   if (!String(c.nom || "").trim()) {
     demanderNom();
+    return;
+  }
+  if (c.filtres.tous && !await confirmer("Archiver toute la table ?", "Cette règle concerne tous les dossiers de la table « " + libelleTable(c.table) + " ».", "Créer la règle")) {
     return;
   }
   afficherLoader("Création de la règle…");
