@@ -1080,6 +1080,23 @@
     .w-acc__scene .s-fiche-salle__cadre { border: 0; padding: 0; }
     .w-acc__scene .w-general > p.w-texte { margin: 0 0 1rem; max-width: 60rem; }
     @media (max-width: 62em) { .w-acc__scene .w-param-apercu { grid-template-columns: minmax(0, 1fr); } }
+    .s-fil { display: flex; flex-direction: column; }
+    .s-fil-sec { position: relative; padding: 0 0 1.75rem 3rem; }
+    .s-fil-sec::before { content: ""; position: absolute; left: .875rem; top: 2rem; bottom: .25rem; border-left: 1px solid var(--border-action-high-blue-france); }
+    .s-fil-sec__tete { position: relative; display: flex; gap: .75rem; margin: 0 0 1rem -3rem; }
+    .s-fil-sec__num { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .875rem; margin-right: .5rem; }
+    .s-fil-sec__titre { margin: 0; font-size: 1.125rem; line-height: 1.75rem; }
+    .s-fil-sec__aide { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
+    .s-fil-sec__corps { display: flex; flex-direction: column; gap: 1rem; }
+    .s-fil-sec__corps .fr-input-group, .s-fil-sec__corps .fr-fieldset { margin: 0; }
+    .s-fil-ident { display: flex; flex-direction: column; gap: 1rem; }
+    .s-fil-ident > .fr-input-group { max-width: 28rem; }
+    .s-fil-sec .s-grille2 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 1.5rem; align-items: end; }
+    .s-fil-sec .s-equipements .s-grille2 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem 1.5rem; align-items: start; }
+    .s-fil-sec .s-encadre { margin: 0; }
+    .s-fil-fin { display: flex; gap: .5rem; padding: 1rem 0 0 3rem; border-top: 1px solid var(--border-default-grey); }
+    .s-fil-fin .s-fiche-salle__actions { border: 0; padding: 0; }
+    @container assistant (max-width: 50rem) { .s-fil-ident, .s-fil-sec .s-grille2, .s-fil-sec .s-equipements .s-grille2 { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -1135,7 +1152,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 4;
+var ESSAI_WIDGET = 5;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -12865,7 +12882,7 @@ function rendreFicheSalle(zone, s) {
     var tete = creer('div', { classe: 's-fiche-salle__tete' }, [teinterSalle(creer('span', { classe: 's-pastille s-pastille--grande', attrs: { 'aria-hidden': 'true' } }), s.cle), creer('h3', { classe: 's-fiche-salle__titre', texte: s.nom })]);
     var champs = [tete];
     if (colNom) {
-        champs.push(champTexte('sNom', 'Nom de la salle', colNom, val(colNom), { obligatoire: true }));
+        champs.push(marquerSec(champTexte('sNom', 'Nom de la salle', colNom, val(colNom), { obligatoire: true }), 'nom'));
     }
     var coul = couleurSalle(s.cle, c);
     var fsC = creer('fieldset', { classe: 's-couleurs', attrs: { 'aria-labelledby': 'sCoulLeg' } }, [creer('legend', { classe: 'fr-label', id: 'sCoulLeg', texte: 'Couleur dans le calendrier' })]);
@@ -12882,7 +12899,7 @@ function rendreFicheSalle(zone, s) {
         fsC.appendChild(rb);
         fsC.appendChild(lab);
     });
-    champs.push(fsC);
+    champs.push(marquerSec(fsC, 'couleur'));
     var grille = creer('div', { classe: 's-grille2' });
     if (rc.batiment) {
         grille.appendChild(creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'sBat' }, texte: 'Bâtiment' }),
@@ -12897,16 +12914,16 @@ function rendreFicheSalle(zone, s) {
     if (rc.photo) {
         grille.appendChild(blocPhotoSalle(s, rc.photo, val(rc.photo)));
     }
-    champs.push(grille);
+    champs.push(marquerSec(grille, '1'));
     if (rc.visio) {
-        champs.push(champTexte('sVisio', 'Lien de visioconférence', rc.visio, val(rc.visio), { url: true, indice: 'https://…', aide: 'Si la salle est équipée : la personne qui réserve reçoit ce lien pour le donner à ses invités.' }));
+        champs.push(marquerSec(champTexte('sVisio', 'Lien de visioconférence', rc.visio, val(rc.visio), { url: true, indice: 'https://…', aide: 'Si la salle est équipée : la personne qui réserve reçoit ce lien pour le donner à ses invités.' }), '2'));
     }
-    champs.push(blocEquipementsSalle(s));
+    champs.push(marquerSec(blocEquipementsSalle(s), '2'));
     if (rc.validation) {
         var cb = creer('input', { attrs: { type: 'checkbox', id: 'sValid' }, coche: val(rc.validation) === true });
         cb.addEventListener('change', function () { var ch = {}; ch[rc.validation] = cb.checked; relayer(ecrireSalle(s.id, ch, 'Validation').then(majListe), 'Validation'); });
-        champs.push(creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'sValid' } }, ['Les réservations de cette salle sont validées par un gestionnaire',
-            creer('span', { classe: 'fr-hint-text', texte: reglesDe(c).validation === 'salles' ? 'Elles restent « En attente » jusqu\'à sa réponse.' : 'Pris en compte si la validation est « Pour les salles qui le demandent » (étape « Les règles »).' })])]));
+        champs.push(marquerSec(creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'sValid' } }, ['Les réservations de cette salle sont validées par un gestionnaire',
+            creer('span', { classe: 'fr-hint-text', texte: reglesDe(c).validation === 'salles' ? 'Elles restent « En attente » jusqu\'à sa réponse.' : 'Pris en compte si la validation est « Pour les salles qui le demandent » (étape « Les règles »).' })])]), '3'));
     }
     var p = c.reglesSalles = c.reglesSalles || {};
     var propres = p[s.cle] = p[s.cle] || {};
@@ -12946,7 +12963,7 @@ function rendreFicheSalle(zone, s) {
     acc.push(accordeon(b, 'fermS_' + s.cle, 'Fermetures de cette salle', (propres.fermetures || []).length ? pluriel(propres.fermetures.length, 'fermeture') : 'Aucune. Pour des travaux, un prêt…', (propres.fermetures || []).length > 0, function (z) {
         z.appendChild(editeurFermetures(propres.fermetures = propres.fermetures || [], 'sFerm'));
     }));
-    champs.push(creer('div', { classe: 's-acc__liste' }, acc));
+    champs.push(marquerSec(creer('div', { classe: 's-acc__liste' }, acc), '3'));
     var actions = creer('div', { classe: 's-fiche-salle__actions' });
     actions.appendChild(bouton('Dupliquer', 'discret', iconeDispo(['file-copy-line', 'file-add-line', 'add-line']), function () { b.ajoutSalle = true; b.repriseDepuis = s.cle; b.nomNouvelle = s.nom + ' (copie)'; redessinerEtape('sNouvNom'); }, { petit: true, id: 'sDupliquer' }));
     if (rc.active) {
@@ -12978,9 +12995,35 @@ function rendreFicheSalle(zone, s) {
             afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette salle.' : 'La salle n\'a pas pu être supprimée.', e);
         }
     }, { petit: true, id: 'sSupprimer' }));
-    champs.push(actions);
+    champs.push(marquerSec(actions, 'fin'));
     vider(zone);
+    if (estConsoleAdmin()) {
+        zone.appendChild(ficheEnSectionsSl(s, champs));
+        return;
+    }
     zone.appendChild(creer('section', { classe: 's-fiche-salle__cadre', attrs: { 'aria-label': 'Fiche de la salle ' + s.nom } }, champs));
+}
+function marquerSec(n, sec) {
+    if (n && n.setAttribute) {
+        n.setAttribute('data-sec', sec);
+    }
+    return n;
+}
+function ficheEnSectionsSl(s, champs) {
+    var de = function (sec) { return champs.filter(function (n) { return n && n.getAttribute && n.getAttribute('data-sec') === sec; }); };
+    var section = function (num, titre, aide, enfants, classe) {
+        return creer('section', { classe: 's-fil-sec' + (classe ? ' ' + classe : ''), attrs: { 'aria-labelledby': 'sFil' + num } }, [
+            creer('div', { classe: 's-fil-sec__tete' }, [creer('span', { classe: 's-fil-sec__num', texte: String(num), attrs: { 'aria-hidden': 'true' } }),
+                creer('div', {}, [creer('h3', { classe: 's-fil-sec__titre', id: 'sFil' + num, texte: titre }), aide ? creer('p', { classe: 's-fil-sec__aide', texte: aide }) : null])]),
+            creer('div', { classe: 's-fil-sec__corps' }, enfants)]);
+    };
+    var ident = creer('div', { classe: 's-fil-ident' }, de('nom').concat(de('couleur')));
+    var fin = de('fin');
+    return creer('div', { classe: 's-fil', attrs: { 'aria-label': 'Fiche de la salle ' + s.nom } }, [
+        section(1, 'La salle', 'Son nom, sa couleur dans le calendrier et où elle se trouve.', [ident].concat(de('1'))),
+        section(2, 'Équipements et visioconférence', 'Ce que l\'agent peut demander en cherchant une salle.', de('2').reverse()),
+        section(3, 'Réservation', 'Validation, règles et fermetures propres à cette salle.', de('3')),
+        fin.length ? creer('div', { classe: 's-fil-fin' }, fin) : null]);
 }
 function reservationsDeSalle(cle) {
     var b = etat.brouillon;
