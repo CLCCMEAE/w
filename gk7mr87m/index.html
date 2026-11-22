@@ -455,7 +455,7 @@ h2.w-section__title {margin:0}
         <div class="tableWrap" style="margin:0" id="zoneTableau" hidden>
           <table class="utable" aria-label="Liste des utilisateurs">
             <caption class="fr-sr-only">Liste des utilisateurs et de leurs droits</caption>
-            <thead id="thead"><tr><th scope="col" class="fr-sr-only">Actions</th></tr></thead>
+            <thead id="thead"><tr></tr></thead>
             <tbody id="tbody" tabindex="-1"></tbody>
           </table>
         </div>
@@ -1350,7 +1350,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 14;
+var ESSAI_WIDGET = 15;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1658,54 +1658,6 @@ async function apiUpdate(id, data) {
     if (a.updateRecord)
         return a.updateRecord(NOM_TABLE_CENTRALE, id, d);
     return a.applyUserActions([['UpdateRecord', NOM_TABLE_CENTRALE, id, d]]);
-}
-async function copieLigne(rid) {
-    try {
-        var d = await grist.docApi.fetchTable(NOM_TABLE_CENTRALE);
-        var i = d.id.indexOf(rid);
-        if (i === -1) {
-            return null;
-        }
-        var v = {};
-        Object.keys(d).forEach(function (col) {
-            if (INTERNAL_COLS.has(col) && col !== 'manualSort') {
-                return;
-            }
-            if (formulaCols.has(col) || col.indexOf('gristHelper_') === 0) {
-                return;
-            }
-            v[col] = d[col][i];
-        });
-        return { id: rid, valeurs: v };
-    }
-    catch (e) {
-        logSecurite('AVERTISSEMENT', 'Copie avant suppression', e);
-        return null;
-    }
-}
-async function retablirLigne(copie) {
-    try {
-        try {
-            await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, copie.id, copie.valeurs]]);
-        }
-        catch (e) {
-            await ecrireDocument([['AddRecord', NOM_TABLE_CENTRALE, null, copie.valeurs]]);
-        }
-        await refreshUsers(true);
-        toast('Suppression annulée.', { type: 'succes' });
-    }
-    catch (e2) {
-        afficherErreur('La suppression n’a pas pu être annulée.', e2);
-    }
-}
-async function apiDelete(ids) {
-    if (!accesComplet()) {
-        return ecrireDocument(ids.map(function (id) { return ['RemoveRecord', NOM_TABLE_CENTRALE, id]; }));
-    }
-    var a = grist.docApi;
-    if (a.deleteRecords)
-        return a.deleteRecords(NOM_TABLE_CENTRALE, ids);
-    return a.applyUserActions(ids.map(function (id) { return ['RemoveRecord', NOM_TABLE_CENTRALE, id]; }));
 }
 async function saveCustomFields() {
     try {
@@ -2896,10 +2848,6 @@ function renderTableHeader() {
         enTeteTriable(th, colId, f ? f.label.toUpperCase() : colId.toUpperCase());
         tr.appendChild(th);
     });
-    var thDel = document.createElement('th');
-    thDel.setAttribute('scope', 'col');
-    thDel.style.width = '32px';
-    tr.appendChild(thDel);
     ordonnerCellules(tr);
     thead.appendChild(tr);
 }
@@ -3159,17 +3107,10 @@ function ordonnerCellules(tr) {
     if (!cellules[0].dataset.col) {
         cellules[0].dataset.col = 'OEIL';
     }
-    var fin = cellules[cellules.length - 1];
-    if (!fin.dataset.col) {
-        fin.dataset.col = 'SUPPR';
-    }
     var rang = function (c, i) {
         var k = ORDRE_COLONNES.indexOf(c.dataset.col);
         if (k !== -1) {
             return k;
-        }
-        if (c.dataset.col === 'SUPPR') {
-            return 10000;
         }
         if (c.dataset.col === 'MODIFIE_LE') {
             return 9999;
@@ -3474,36 +3415,6 @@ function renderTableBody() {
                 });
             }
         })(r.id, rowCtrls.ACTIF, rowCtrls.STATUT, rowCtrls.ROLE_GRIST, tr);
-        var tdDel = document.createElement('td');
-        tdDel.style.textAlign = 'center';
-        var btnD = document.createElement('button');
-        btnD.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-delete-line';
-        btnD.type = 'button';
-        infobulle(btnD, 'Supprimer ' + ((r.PRENOM || '') + ' ' + (r.NOM || '')).trim());
-        btnD.setAttribute('aria-label', 'Supprimer ' + ((r.PRENOM || '') + ' ' + cleanText(r.NOM || '').toUpperCase()).trim());
-        btnD.addEventListener('click', async function () {
-            var prenom = cleanText(r.PRENOM || '');
-            var nomMaj2 = cleanText(r.NOM || '').toUpperCase();
-            var label = (prenom + ' ' + nomMaj2).trim() || r.EMAIL || '#' + r.id;
-            var avert = 'Les règles d’accès qui s’appuient sur l’autorisation du registre ne pourront plus s’y référer. N’oubliez pas de la retirer aussi du document : icône de partage en haut à droite, « Gérer les utilisateurs », puis la corbeille à côté de son nom.';
-            if (!await confirmerAction('Supprimer « ' + label + ' » du registre ?', 'Sa ligne est supprimée du registre. Vous pourrez annuler la suppression juste après.', avert, 'Supprimer', { danger: true }))
-                return;
-            btnD.disabled = true;
-            var copie = await copieLigne(r.id);
-            apiDelete([r.id]).then(function () {
-                return refreshUsers(true);
-            }).then(function () {
-                focaliserConteneur('tbody');
-                if (copie) {
-                    toast('Ligne de « ' + label + ' » supprimée du registre.', { type: 'succes', action: { libelle: 'Annuler la suppression', fn: function () { return retablirLigne(copie); } } });
-                }
-            }).catch(function (e) {
-                btnD.disabled = false;
-                afficherErreur('Erreur de suppression', e);
-            });
-        });
-        tdDel.appendChild(btnD);
-        tr.appendChild(tdDel);
         ordonnerCellules(tr);
         tbody.appendChild(tr);
     });
