@@ -1039,7 +1039,6 @@
     .w-acc__scene { padding: 1rem 1.5rem 1.5rem; }
     #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
     .w-acc { align-items: stretch; }
-    .w-acc__scene { background: var(--background-default-grey); }
     .w-acc__scene > .w-titre-fluo { margin-bottom: .25rem; }
     .w-acc__scene .w-stepper, .w-acc__scene .w-entete-param__titre { display: none; }
     .w-acc__scene .w-entete-param { min-height: 0; padding: 0; border: 0; margin: 0; }
@@ -1048,6 +1047,26 @@
     .s-acc-etape .s-acc-num { flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 1px solid var(--border-action-high-blue-france); display: inline-flex; align-items: center; justify-content: center; font-size: .8125rem; color: var(--text-action-high-blue-france); background: var(--background-default-grey); position: relative; z-index: 1; }
     .s-acc-etape[aria-current="page"] .s-acc-num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .s-acc-etape:not(.s-acc-etape--derniere)::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2rem; bottom: -.75rem; border-left: 1px solid var(--border-action-high-blue-france); }
+    .s-aval__bande--3 { gap: 1.25rem; align-items: start; }
+    .s-aval__groupe { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); border-top: 4px solid var(--s-aval-teinte, var(--border-plain-warning)); padding: 1rem 1rem 1.25rem; }
+    .s-aval__groupe--V { --s-aval-teinte: var(--border-plain-warning); --s-aval-fond: var(--background-contrast-warning); --s-aval-texte: var(--text-default-warning); }
+    .s-aval__groupe--R { --s-aval-teinte: var(--border-plain-success); --s-aval-fond: var(--background-contrast-success); --s-aval-texte: var(--text-default-success); }
+    .s-aval__groupe--A { --s-aval-teinte: var(--border-plain-info); --s-aval-fond: var(--background-contrast-info); --s-aval-texte: var(--text-default-info); }
+    .s-aval__titre { gap: .625rem; margin: 0 0 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); font-size: 1rem; line-height: 1.5rem; }
+    .s-aval__ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--s-aval-fond); color: var(--s-aval-texte); }
+    .s-aval__ico::before { --icon-size: 1.25rem; }
+    .s-aval__titre-texte { flex: 1 1 auto; }
+    .s-aval__nb { flex: none; min-width: 1.75rem; padding: 0 .5rem; border-radius: 1rem; text-align: center; font-size: .875rem; font-weight: 700; background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+    .s-aval__nb--plein { background: var(--s-aval-teinte); color: var(--text-inverted-grey); }
+    .s-aval__rien { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: 1.5rem .5rem; text-align: center; color: var(--text-mention-grey); }
+    .s-aval__rien > span::before { --icon-size: 2rem; color: var(--s-aval-teinte); }
+    .s-aval__rien p { margin: 0; font-size: .875rem; }
+    .s-aval__bande--3 .s-aval__puces { gap: .625rem; }
+    .s-aval__puce { padding: .625rem .875rem; gap: .25rem; border-left-color: var(--s-aval-teinte); }
+    .s-aval__puce--speciale { border-left-color: var(--s-aval-teinte); }
+    .s-aval__puce--choisie { border-left-color: var(--s-aval-teinte); background: var(--background-alt-blue-france); }
+    .s-aval__puce strong { color: var(--text-title-grey); }
+    .s-aval__salle-nom { display: inline-flex; align-items: center; gap: .375rem; color: var(--text-default-grey); }
 </style>
 </head>
 <body>
@@ -1103,7 +1122,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 1;
+var ESSAI_WIDGET = 2;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -7507,6 +7526,7 @@ function afficherVue(vue, garderFocus) {
     }
     if ((vue === 'plan' || vue === 'assistant') && estConsoleAdmin()) {
         envelopperConsoleSl(zone);
+        relayer(majClocheSalles(), 'Cloche dans le nom des pages');
     }
     zone.classList.toggle('w-contenu--plan', vue === 'plan');
     var nomW = etat.page && etat.page.titre ? etat.page.titre : 'WuitSalles';
@@ -10624,11 +10644,15 @@ function etapeGeneral(partie) {
     else {
         table.appendChild(bouton('Changer de table', 'tertiaire', 'table-line', function () { b.voirTables = true; redessinerEtape('aNom'); }, { petit: true, id: 'aChangerTable' }));
     }
+    var cloche = creer('input', { id: 'aClochePage', attrs: { type: 'checkbox' }, coche: c.clochePage !== false });
+    cloche.addEventListener('change', function () { c.clochePage = cloche.checked; });
     var col1 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecPlan' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecPlan', texte: 'Le planning des salles' })]),
         groupeChamp('Nom', nom, null, true),
         groupeChamp('Description', desc, null),
-        table
+        table,
+        creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm fr-mt-2w' }, [cloche, creer('label', { classe: 'fr-label', attrs: { 'for': 'aClochePage' } }, ['Signaler les demandes en attente dans le nom des pages (🔔 après l\'emoji de la page)',
+            creer('span', { classe: 'fr-hint-text', texte: 'Réservations à valider et demandes spéciales à venir. La cloche s\'ajoute au nom de cette page et des pages des gestionnaires, et disparaît quand tout est traité. Le nom change quand un propriétaire du document ouvre cette page.' })])])
     ]);
     var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var col2 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecAdmin' } }, [
@@ -15471,6 +15495,59 @@ function rendreCreneau(focusId) {
     ouvrirModale({ titre: 'Réserver une salle', laterale: true, corps: corps, pied: pied, focus: focusId || 'cHeure', surFermeture: function () { etat.creneau = null; } });
 }
 function estConsoleAdmin() { return !etat.page && etat.peutParametrer && !!etat.config && !enCreation(); }
+var EMOJI_CLOCHE = '🔔', _clocheEnCours = false, _clocheRefusee = false, _clocheCle = null;
+function nomAvecCloche(nom, actif) {
+    var n = String(nom || '').split(EMOJI_CLOCHE + '\uFE0F').join('').split(EMOJI_CLOCHE).join('').replace(/\s{2,}/g, ' ').trim();
+    if (!actif) {
+        return n;
+    }
+    var m = n.match(/^(?:\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})*(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})*)*)/u);
+    if (m) {
+        return m[0] + ' ' + EMOJI_CLOCHE + ' ' + n.slice(m[0].length).trim();
+    }
+    return EMOJI_CLOCHE + ' ' + n;
+}
+async function majClocheSalles() {
+    if (_clocheEnCours || _clocheRefusee || !estConsoleAdmin() || etat.niveauAcces !== 'full') {
+        return;
+    }
+    var c = etat.config;
+    var actif = c.clochePage !== false && elementsATraiter().length > 0;
+    var gestion = Object.keys(etat.copies || {}).filter(function (b) { return etat.copies[b].gestion && (etat.copies[b].plans || []).indexOf(etat.cleConfig) !== -1; });
+    var cle = (actif ? '1' : '0') + gestion.join(',');
+    if (cle === _clocheCle) {
+        return;
+    }
+    _clocheEnCours = true;
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vues = [vueDeCetteConsole(d)].concat(gestion.map(function (b) { return vueDuBadge(d, b); })).filter(function (x, i, l) { return x && l.indexOf(x) === i; });
+        var v = await lireTable('_grist_Views');
+        var actions = [];
+        vues.forEach(function (vue) {
+            var k = v.id.indexOf(vue);
+            if (k === -1) {
+                return;
+            }
+            var nom = String((v.name || [])[k] || '');
+            var voulu = nomAvecCloche(nom, actif);
+            if (voulu && voulu !== nom) {
+                actions.push(['UpdateRecord', '_grist_Views', vue, { name: voulu }]);
+            }
+        });
+        if (actions.length) {
+            await agir(actions);
+        }
+        _clocheCle = cle;
+    }
+    catch (e) {
+        _clocheRefusee = true;
+        logSecurite('INFO', 'Nom des pages non modifié (cloche)', e);
+    }
+    finally {
+        _clocheEnCours = false;
+    }
+}
 function envelopperConsoleSl(zone) {
     var courant = ongletAdminCourant();
     var b = etat.brouillon;
@@ -15836,10 +15913,11 @@ function rendreAValider() {
     }
     var k = 0;
     var groupe = function (id, titre, icone, liste, vide, filtre) {
-        var g = creer('section', { classe: 's-aval__groupe', attrs: { 'aria-labelledby': 'sAvG' + id } }, [
-            creer('h3', { classe: 's-aval__titre', id: 'sAvG' + id }, [creer('span', { classe: 'fr-icon-' + iconeDispo(icone) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), ' ' + titre + (liste.length ? ' (' + liste.length + ')' : '')])]);
+        var g = creer('section', { classe: 's-aval__groupe s-aval__groupe--' + id, attrs: { 'aria-labelledby': 'sAvG' + id } }, [
+            creer('h3', { classe: 's-aval__titre', id: 'sAvG' + id }, [creer('span', { classe: 's-aval__ico fr-icon-' + iconeDispo(icone), attrs: { 'aria-hidden': 'true' } }), creer('span', { classe: 's-aval__titre-texte', texte: titre }),
+                creer('span', { classe: 's-aval__nb' + (liste.length ? ' s-aval__nb--plein' : ''), texte: String(liste.length), attrs: { 'aria-label': pluriel(liste.length, 'élément') } })])]);
         if (!liste.length) {
-            g.appendChild(creer('p', { classe: 's-aval__vide', texte: vide }));
+            g.appendChild(creer('div', { classe: 's-aval__rien' }, [creer('span', { classe: 'fr-icon-checkbox-circle-line', attrs: { 'aria-hidden': 'true' } }), creer('p', { texte: vide })]));
             return g;
         }
         var ul = creer('ul', { classe: 's-aval__puces' });
