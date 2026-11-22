@@ -1243,6 +1243,9 @@ nav[hidden],
 .w-apercu-filtres[hidden] { display: none; }
 .w-apercu-filtres { padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
 .w-regle__table { display: block; font-size: .75rem; color: var(--text-mention-grey); }
+.w-carte-param--verrouillee { background: transparent; border-style: dashed; }
+.w-carte-param--verrouillee .w-carte-param__titre { color: var(--text-disabled-grey); }
+.w-carte-param__verrou { margin: 0; }
 </style>
 </head>
 <body>
@@ -1289,7 +1292,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 6;
+var ESSAI_WIDGET = 7;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5132,8 +5135,9 @@ function casesColonnesSuggerees(idBase, cols, suggerees, choisies, surChange) {
   }
   return g;
 }
-function carteParam(titre, id, enfants) {
-  return creer("section", { classe: "w-carte-param", attrs: { "aria-labelledby": id } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(enfants));
+function carteParam(titre, id, enfants, apresEtape) {
+  var verrou = !!apresEtape;
+  return creer("section", { classe: "w-carte-param" + (verrou ? " w-carte-param--verrouillee" : ""), attrs: { "aria-labelledby": id, "aria-disabled": verrou ? "true" : null } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(verrou ? [creer("p", { classe: "w-mention w-carte-param__verrou", texte: "Après l'étape " + apresEtape + "." })] : enfants));
 }
 function rendreEditeur(c, idBase) {
   majBandeauRole();
@@ -5195,6 +5199,25 @@ function rendreEditeur(c, idBase) {
   var defile = creer("div", { classe: "w-resultat-defile" });
   res.appendChild(defile);
   var tableOk = !!(c.table && etat.meta.tables[c.table]);
+  var verrous = function() {
+    var o1 = !!(c.table && etat.meta.tables[c.table]);
+    var o2 = o1 && !problemeFiltres(c);
+    var o3 = o2 && (c.traitements === "supprimer" || c.champs.length > 0);
+    return [o1, o2, o3];
+  };
+  var v = verrous();
+  var sigVerrous = JSON.stringify(v);
+  var apres1 = apres;
+  apres = function() {
+    apres1();
+    if (JSON.stringify(verrous()) !== sigVerrous) {
+      var f = document.activeElement && document.activeElement.id;
+      redessiner();
+      if (f) {
+        refocaliser(f);
+      }
+    }
+  };
   var num = 0;
   var titreNum = function(t) {
     num += 1;
@@ -5241,6 +5264,11 @@ function rendreEditeur(c, idBase) {
   if (c.table && !tableOk) {
     defile.appendChild(alerte("error", null, "La table « " + c.table + " » n'existe plus dans le document."));
   }
+  if (!tableOk) {
+    ["Quels dossiers archiver ?", "Que faire de ces dossiers ?", "Et les tables liées ?", "Nom de la règle"].forEach(function(t, k) {
+      defile.appendChild(carteParam(titreNum(t), "eCarteV" + k, [], 1));
+    });
+  }
   if (tableOk) {
     // 2. Les filtres
     var maj = function() {
@@ -5270,7 +5298,7 @@ function rendreEditeur(c, idBase) {
       casesColonnesSuggerees(idBase + "Ch", eff, champsSuggeres(c.table, ""), c.champs, apres)
     ]);
     zoneChamps.hidden = c.traitements === "supprimer";
-    defile.appendChild(carteParam(titreNum("Que faire de ces dossiers ?"), "eCarteTrait", [
+    defile.appendChild(carteParam(titreNum("Que faire de ces dossiers ?"), "eCarteTrait", v[1] ? [
       radios(idBase + "Trait", "Traitement", [
         { valeur: "les2", libelle: "Vider les données personnelles, et supprimer en second choix" },
         { valeur: "anonymiser", libelle: "Vider les données personnelles seulement" },
@@ -5283,15 +5311,14 @@ function rendreEditeur(c, idBase) {
         apres();
       }),
       zoneChamps
-    ]));
+    ] : [], v[1] ? null : 2));
     // 4. Tables liées (seulement s'il y en a)
     var avant = JSON.stringify(c.liees);
     var det = synchroniserLiees(c);
     if (!creation && JSON.stringify(c.liees) !== avant) {
       enregistrerReglages();
     }
-    if (det.length) {
-      defile.appendChild(carteParam(titreNum("Et les tables liées ?"), "eCarteLiees", det.map(function(d, k) {
+    defile.appendChild(carteParam(titreNum("Et les tables liées ?"), "eCarteLiees", !v[2] ? [] : !det.length ? [creer("p", { classe: "w-texte", texte: "Aucune table ne pointe vers ces dossiers." })] : det.map(function(d, k) {
         var l = c.liees[k];
         var colRef = infoCol(d.table, d.colonne);
         var champs = colonnesEffacables(d.table).filter(function(x) {
@@ -5317,8 +5344,7 @@ function rendreEditeur(c, idBase) {
           bloc.appendChild(groupeListe("Si le dossier est supprimé", sl));
         }
         return bloc;
-      })));
-    }
+      }), v[2] ? null : 3));
     // dernière carte : le nom
     var nom = saisie(idBase + "Nom", c.nom, { indice: libelleTable(c.table) });
     nom.addEventListener("input", function() {
@@ -5340,8 +5366,10 @@ function rendreEditeur(c, idBase) {
         return supprimerRegle(c);
       }, { petit: true, id: "pSupprimer" })]));
     }
-    defile.appendChild(carteParam(titreNum("Nom de la règle"), "eCarteNom", corpsNom));
-    defile.appendChild(creer("div", { id: idBase + "Apercu", classe: "w-apercu-filtres", hidden: true }));
+    defile.appendChild(carteParam(titreNum("Nom de la règle"), "eCarteNom", corpsNom, v[2] ? null : 3));
+    var zApercu = creer("div", { id: idBase + "Apercu", classe: "w-apercu-filtres" });
+    zApercu.hidden = true;
+    defile.appendChild(zApercu);
   }
   var pied = creer("div", { classe: "w-pied-regle" }, [
     creer("p", { classe: "w-pied-regle__compte", id: idBase + "Compte", attrs: { role: "status" } }),
