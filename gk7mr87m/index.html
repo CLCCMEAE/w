@@ -386,6 +386,11 @@ h2.w-section__title {margin:0}
 .w-colonnes-aide { display: flex; flex-direction: column; gap: .375rem; margin: 0; padding: .5rem .75rem; background: var(--background-alt-grey); font-size: .8125rem; }
 .w-colonnes-aide p { margin: 0; }
 #thAddCol.th-new-col { min-width: 0; padding: .5rem; }
+.w-tri { display: inline-flex; align-items: center; gap: .25rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; white-space: nowrap; }
+.w-tri:hover { color: var(--text-action-high-blue-france); }
+.w-tri:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+.w-tri__fleche { font-size: .75rem; color: var(--text-mention-grey); }
+.w-tri__fleche--active { color: var(--text-action-high-blue-france); }
 </style>
 </head>
 <body>
@@ -2794,26 +2799,26 @@ function renderTableHeader() {
     var thACTIF = document.createElement('th');
     thACTIF.setAttribute('scope', 'col');
     thACTIF.style.width = '42px';
-    thACTIF.textContent = 'ACTIF';
+    enTeteTriable(thACTIF, 'ACTIF', 'ACTIF');
     thACTIF.title = 'Désactiver bloque immédiatement l\'accès si les ACL sont configurées en ce sens';
     tr.appendChild(thACTIF);
     var thAdmin = document.createElement('th');
     thAdmin.setAttribute('scope', 'col');
-    thAdmin.textContent = 'MODE STRUCTURE';
+    enTeteTriable(thAdmin, 'MODE_ADMIN', 'MODE STRUCTURE');
     thAdmin.title = 'Autorise ce propriétaire à modifier la structure, si les règles de structure sont posées';
     tr.appendChild(thAdmin);
     var thPRENOM = document.createElement('th');
     thPRENOM.setAttribute('scope', 'col');
-    thPRENOM.textContent = 'PRÉNOM';
+    enTeteTriable(thPRENOM, 'PRENOM', 'PRÉNOM');
     tr.appendChild(thPRENOM);
     var thNOM = document.createElement('th');
     thNOM.setAttribute('scope', 'col');
     thNOM.style.minWidth = '110px';
-    thNOM.textContent = 'NOM';
+    enTeteTriable(thNOM, 'NOM', 'NOM');
     tr.appendChild(thNOM);
     var thRole = document.createElement('th');
     thRole.setAttribute('scope', 'col');
-    thRole.textContent = 'RÔLE';
+    enTeteTriable(thRole, 'ROLE_GRIST', 'RÔLE');
     tr.appendChild(thRole);
     getTableCols().forEach(function (colId) {
         if (colId === 'PRENOM' || colId === 'NOM')
@@ -2822,13 +2827,13 @@ function renderTableHeader() {
         var isCore = CORE_FIELDS.some(function (cf) { return cf.id === colId; });
         var th = document.createElement('th');
         th.setAttribute('scope', 'col');
-        th.textContent = f ? f.label.toUpperCase() : colId.toUpperCase();
+        enTeteTriable(th, colId, f ? f.label.toUpperCase() : colId.toUpperCase());
         tr.appendChild(th);
     });
     var thMeta = document.createElement('th');
     thMeta.setAttribute('scope', 'col');
     thMeta.style.cssText = 'font-size:.75rem;color:var(--text-mention-grey);font-weight:400;min-width:120px';
-    thMeta.textContent = 'MODIFIÉ LE';
+    enTeteTriable(thMeta, 'MODIFIE_LE', 'MODIFIÉ LE');
     tr.appendChild(thMeta);
     var thDel = document.createElement('th');
     thDel.setAttribute('scope', 'col');
@@ -3064,11 +3069,74 @@ function createCellControl(f, val, rowId, colId) {
         el: inp4
     };
 }
+var _tri = { col: null, sens: 1 };
+function valeurTri(r, col) {
+    var v = r[col];
+    var f = getFieldDef(col);
+    var t = f ? String(f.type || '') : '';
+    if (col === 'MODE_ADMIN') {
+        return modeAdminEnVigueur(r) ? 1 : 0;
+    }
+    if (typeof v === 'boolean') {
+        return v ? 1 : 0;
+    }
+    if (typeof v === 'number' && !/^Ref/.test(t)) {
+        return v;
+    }
+    if (/^Ref/.test(t)) {
+        return texteCelluleRef(v).toLowerCase();
+    }
+    if (Array.isArray(v)) {
+        return decodeList(v).join(', ').toLowerCase();
+    }
+    return v === null || v === undefined ? '' : String(v).toLowerCase();
+}
+function comparerPourTri(a, b) {
+    var va = valeurTri(a, _tri.col), vb = valeurTri(b, _tri.col);
+    var videA = va === '' || va === null, videB = vb === '' || vb === null;
+    if (videA !== videB) {
+        return videA ? 1 : -1;
+    }
+    var c = (typeof va === 'number' && typeof vb === 'number') ? va - vb : String(va).localeCompare(String(vb), 'fr', { numeric: true, sensitivity: 'base' });
+    return c * _tri.sens || a.id - b.id;
+}
+function enTeteTriable(th, col, libelle) {
+    while (th.firstChild)
+        th.removeChild(th.firstChild);
+    var actif = _tri.col === col;
+    th.setAttribute('aria-sort', actif ? (_tri.sens > 0 ? 'ascending' : 'descending') : 'none');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'w-tri';
+    b.appendChild(document.createTextNode(libelle));
+    var fl = document.createElement('span');
+    fl.className = 'w-tri__fleche' + (actif ? ' w-tri__fleche--active' : '');
+    fl.setAttribute('aria-hidden', 'true');
+    fl.textContent = actif ? (_tri.sens > 0 ? '▲' : '▼') : '↕';
+    b.appendChild(fl);
+    b.setAttribute('aria-label', 'Trier par ' + libelle.toLowerCase() + (actif ? (_tri.sens > 0 ? ', tri croissant' : ', tri décroissant') : ''));
+    b.addEventListener('click', function () {
+        if (_tri.col === col) {
+            _tri.sens = -_tri.sens;
+        }
+        else {
+            _tri.col = col;
+            _tri.sens = 1;
+        }
+        renderAll();
+        var nouveau = document.querySelector('#thead [data-tri="' + col + '"]');
+        if (nouveau) {
+            nouveau.focus();
+        }
+    });
+    b.dataset.tri = col;
+    th.appendChild(b);
+}
 function renderTableBody() {
     var tbody = $('tbody');
     while (tbody.firstChild)
         tbody.removeChild(tbody.firstChild);
-    records.forEach(function (r) {
+    (_tri.col ? records.slice().sort(comparerPourTri) : records).forEach(function (r) {
         if (r.EMAIL === '__PARAM__')
             return;
         var tr = document.createElement('tr');
