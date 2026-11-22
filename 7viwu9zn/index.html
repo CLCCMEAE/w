@@ -796,7 +796,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5554,14 +5554,50 @@ function rendreAccueilKb(zone) {
     }
     else if (rub === 'donnees') {
         var aDesDonnees = tablesBranchables().length > 0;
-        var nbSug = aDesDonnees ? suggestionsDeDonnees().length : 0;
-        var bt = bouton('Partir de mes données', null, 'arrow-right-line', function () { etat.surAccueil = false; return demarrerBranchement(); }, { id: 'kDonnees', iconeDroite: true });
-        bt.disabled = !aDesDonnees;
-        scene.appendChild(creer('div', { classe: 'w-acc__donnees' }, [
-            creer('p', { classe: 'w-texte', texte: !aDesDonnees ? 'Ce document ne contient encore aucune table de données : cette possibilité sera proposée dès qu\'il en aura une.'
-                    : (nbSug ? 'Le widget a analysé vos tables et vous suggère ' + (nbSug > 1 ? nbSug + ' Kanbans prêts' : 'un Kanban prêt') + ' à l\'emploi. Vous pouvez aussi le paramétrer vous-même à partir de la table de votre choix.'
-                        : 'Le widget n\'a pas trouvé de Kanban à vous suggérer d\'après vos tables : vous le paramétrez vous-même à partir de la table de votre choix.') }),
-            bt]));
+        if (!aDesDonnees) {
+            scene.appendChild(creer('p', { classe: 'w-mention', texte: 'Ce document ne contient encore aucune table de données : cette possibilité sera proposée dès qu\'il en aura une.' }));
+        }
+        else {
+            var grilleD = creer('div', { classe: 'w-acc__cartes' });
+            suggestionsDeDonnees().forEach(function (sg, i) {
+                var a = sg.a;
+                var noms = sg.colE.type === 'Choice' ? choixDe(sg.colE) : [];
+                var vig = vignetteColonnesKb(noms);
+                if (sg.colE.type.indexOf('Ref:') === 0) {
+                    relayer(chargerRef(tableCibleRef(sg.colE.type), colAffichageRef(sg.colE)).then(function (r) {
+                        var nv = vignetteColonnesKb(r.ids.map(function (id) { return r.libelles[id]; }));
+                        while (vig.firstChild && !vig.firstChild.classList.contains('fr-badge')) {
+                            vig.removeChild(vig.firstChild);
+                        }
+                        Array.prototype.slice.call(nv.childNodes).reverse().forEach(function (n) { vig.insertBefore(n, vig.firstChild); });
+                    }), 'Aperçu des colonnes suggérées');
+                }
+                var reperes = ['Titre des cartes : ' + infoColonne(a.table, a.colTitre).label];
+                if (a.colEcheance) {
+                    reperes.push('échéance : ' + infoColonne(a.table, a.colEcheance).label);
+                }
+                if (a.colResponsable) {
+                    reperes.push('responsable : ' + infoColonne(a.table, a.colResponsable).label);
+                }
+                grilleD.appendChild(carteAccueilKb(vig, creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--info', texte: 'Suggestion' }), sg.nom, reperes.join(', '), 'Utiliser cette suggestion', function () {
+                    etat.surAccueil = false;
+                    a.etape = 4;
+                    a.suggestion = sg.nom;
+                    etat.assistant = a;
+                    afficherVue('branchement');
+                }, 'kSuggestion' + i));
+            });
+            var plusD = creer('button', { classe: 'w-acc__plus', id: 'kDonnees', attrs: { type: 'button', 'aria-label': 'Paramétrer moi-même un Kanban à partir de l\'une de mes tables' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
+            plusD.addEventListener('click', function () {
+                etat.surAccueil = false;
+                relayer(demarrerBranchement().then(function () { if (etat.assistant) {
+                    etat.assistant.etape = 1;
+                    afficherVue('branchement');
+                } }), 'Partir de mes données');
+            });
+            grilleD.appendChild(plusD);
+            scene.appendChild(grilleD);
+        }
     }
     else {
         etat.etapesAccueil = etat.etapesAccueil || {};
