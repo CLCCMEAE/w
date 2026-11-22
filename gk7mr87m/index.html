@@ -1350,7 +1350,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 13;
+var ESSAI_WIDGET = 14;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2561,15 +2561,20 @@ function expirationAdminEnPlace() {
 }
 var COLONNE_AUTORISATION = { id: 'AUTORISE_LE', label: 'AUTORISATION MODIFIÉE LE', type: 'DateTime:Europe/Paris', formula: 'NOW() if $ACTIF or value else None',
     description: 'Date et heure du dernier changement de l’interrupteur Autorisé (colonne ACTIF), posées automatiquement par le document.' };
-function texteDateAutorisation(valeur, autorise) {
+function dateCourte(valeur) {
     if (typeof valeur !== 'number' || valeur <= 0) {
         return '';
     }
     var d = new Date(valeur * 1000);
-    if (isNaN(d)) {
-        return '';
+    return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function texteDateAutorisation(valeur, autorise, creeLe) {
+    var d = dateCourte(valeur);
+    if (d) {
+        return (autorise ? 'depuis le ' : 'retirée le ') + d;
     }
-    return (autorise ? 'depuis le ' : 'retirée le ') + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    var c = dateCourte(creeLe);
+    return c ? 'créée le ' + c : '';
 }
 function majDateAutorisation(tr, autorise) {
     var sp = tr ? tr.querySelector('td[data-col="ACTIF"] .w-autorise-date') : null;
@@ -3287,7 +3292,7 @@ function renderTableBody() {
         tdActif.appendChild(lblSwitch);
         var spAut = document.createElement('span');
         spAut.className = 'w-admin-fin w-autorise-date';
-        spAut.textContent = texteDateAutorisation(r.AUTORISE_LE, !!r.ACTIF);
+        spAut.textContent = texteDateAutorisation(r.AUTORISE_LE, !!r.ACTIF, r.CREE_LE);
         spAut.hidden = !spAut.textContent;
         tdActif.appendChild(spAut);
         tdActif.dataset.col = 'ACTIF';
