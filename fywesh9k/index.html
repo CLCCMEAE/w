@@ -1264,6 +1264,20 @@ nav[hidden],
 .w-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 #eCarteTable .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .w-pied-regle__compte { font-size: .875rem; }
+.w-filtres__ligne { grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) 2rem; align-items: start; }
+.w-filtres__ligne .w-condition__valeurs .fr-input-group > .fr-label, .w-filtres__ligne .w-condition__valeurs .fr-select-group > .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.w-filtres__ligne .w-condition__valeurs .w-plage .fr-input-group > .fr-label { position: static; width: auto; height: auto; margin: 0; clip: auto; font-size: .75rem; }
+.w-filtres__ligne .w-condition__valeurs .w-deux { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; }
+.w-filtres__ligne .w-condition__valeurs .fr-input, .w-filtres__ligne .w-condition__valeurs .fr-select { margin-top: 0; }
+.w-multi { position: relative; }
+.w-multi__bouton { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; width: 100%; min-height: 2.25rem; text-align: left; cursor: pointer; font-size: .875rem; }
+.w-multi__vide { color: var(--text-mention-grey); }
+.w-multi__puce { padding: 0 .375rem; font-size: .8125rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+.w-multi__panneau { position: absolute; left: 0; right: 0; top: calc(100% + .125rem); z-index: 30; display: flex; flex-direction: column; gap: .25rem; max-height: 12rem; overflow-y: auto; padding: .375rem .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+.w-multi__panneau[hidden] { display: none; }
+.w-multi__panneau .fr-checkbox-group { margin: 0; }
+[aria-labelledby="eCarteTable"] .fr-select-group > .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.w-filtres__ligne .w-condition__valeurs { margin: 0; padding: 0; border: 0; }
 </style>
 </head>
 <body>
@@ -1310,7 +1324,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 9;
+var ESSAI_WIDGET = 10;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -4733,6 +4747,70 @@ function opDefaut(col) {
   var g = genreColonne(col);
   return { date: "plusde", choix: "parmi", texte: "parmi", nombre: "inf", bool: "coche" }[g] || "";
 }
+function choixMultiple(id, libelleCol, valeurs, choisies, surChange) {
+  var multi = creer("div", { classe: "w-multi" });
+  var b = creer("button", { classe: "fr-select w-multi__bouton", id, attrs: { type: "button", "aria-expanded": "false", "aria-controls": id + "Liste" } });
+  var majBouton = function() {
+    vider(b);
+    if (!choisies.length) {
+      b.appendChild(creer("span", { classe: "w-multi__vide", texte: "Choisir…" }));
+    }
+    choisies.forEach(function(v) {
+      b.appendChild(creer("span", { classe: "w-multi__puce", texte: v }));
+    });
+    b.setAttribute("aria-label", "Valeurs : " + (choisies.length ? choisies.join(", ") : "aucune"));
+  };
+  var boite = creer("div", { classe: "w-multi__panneau", id: id + "Liste", attrs: { role: "group", "aria-label": "Valeurs de " + libelleCol } });
+  boite.hidden = true;
+  var fermer = function(e) {
+    if (!multi.contains(e.target)) {
+      basculer(false);
+    }
+  };
+  var basculer = function(ouvrir) {
+    boite.hidden = !ouvrir;
+    b.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+    if (ouvrir) {
+      document.addEventListener("click", fermer, true);
+    } else {
+      document.removeEventListener("click", fermer, true);
+      setTimeout(surChange, 0);
+    }
+  };
+  b.addEventListener("click", function() {
+    basculer(boite.hidden);
+  });
+  multi.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !boite.hidden) {
+      e.stopPropagation();
+      basculer(false);
+      b.focus();
+    }
+  });
+  if (!valeurs.length) {
+    boite.appendChild(creer("span", { classe: "fr-hint-text", texte: "Aucune valeur dans cette colonne" }));
+  }
+  valeurs.forEach(function(v, k) {
+    var idc = id + "_" + k;
+    var cb = creer("input", { attrs: { type: "checkbox", id: idc }, coche: choisies.indexOf(v) !== -1 });
+    cb.addEventListener("change", function() {
+      var x = choisies.indexOf(v);
+      if (cb.checked && x === -1) {
+        choisies.push(v);
+      }
+      if (!cb.checked && x !== -1) {
+        choisies.splice(x, 1);
+      }
+      majBouton();
+      surChange();
+    });
+    boite.appendChild(creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [cb, creer("label", { classe: "fr-label", attrs: { "for": idc }, texte: v })]));
+  });
+  majBouton();
+  multi.appendChild(b);
+  multi.appendChild(boite);
+  return multi;
+}
 function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
   var id = idBase + "F" + n;
   var cols = colonnesFiltrables(c.table);
@@ -4797,13 +4875,7 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
         vd.valeurs.push(v);
       }
     });
-    if (vd.valeurs.length) {
-      valeurs.appendChild(colorerCasesChoix(casesColonnes(id + "V", vd.valeurs.map(function(v, i) {
-        return { colId: v, label: v, idHtml: String(i) };
-      }), k.valeurs, maj), infoCol(c.table, k.colonne)));
-    } else {
-      valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Cette colonne est vide pour l'instant." }));
-    }
+    valeurs.appendChild(choixMultiple(id + "V", col.label, vd.valeurs, k.valeurs, maj));
     if (vd.trop) {
       valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Plus de " + MAX_VALEURS + " valeurs différentes : seules les premières sont proposées. Pour un texte libre, utilisez plutôt « contient »." }));
     }
@@ -4823,10 +4895,9 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
       maj();
     });
     valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("Durée", nb), groupeListe("Unité", un)]));
-    valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Par rapport à aujourd'hui." }));
   }
   if (g === "date" && k.op === "entre") {
-    valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("Du (inclus)", champDate(id + "Du", k.du, function(v) {
+    valeurs.appendChild(creer("div", { classe: "w-deux w-plage" }, [groupeChamp("Du (inclus)", champDate(id + "Du", k.du, function(v) {
       k.du = v;
       maj();
     })), groupeChamp("Au (inclus)", champDate(id + "Au", k.au, function(v) {
@@ -4861,7 +4932,7 @@ function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
     })));
   }
   if (g === "nombre" && k.op === "entre") {
-    valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("De (inclus)", champNombre(id + "Nb", k.nombre, function(v) {
+    valeurs.appendChild(creer("div", { classe: "w-deux w-plage" }, [groupeChamp("De (inclus)", champNombre(id + "Nb", k.nombre, function(v) {
       k.nombre = v;
       maj();
     })), groupeChamp("À (inclus)", champNombre(id + "Nb2", k.nombre2, function(v) {
@@ -5234,6 +5305,10 @@ function rendreEditeur(c, idBase) {
   var apres1 = apres;
   apres = function() {
     apres1();
+    var ae = document.activeElement;
+    if (ae && ae.closest && ae.closest(".w-multi__panneau")) {
+      return;
+    }
     if (JSON.stringify(verrous()) !== sigVerrous) {
       var f = document.activeElement && document.activeElement.id;
       redessiner();
