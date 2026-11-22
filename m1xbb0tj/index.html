@@ -811,6 +811,11 @@
     .w-disposition--admin > .w-atelier .w-atelier__defile { padding-top: 1rem; }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
     .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .w-general--court { display: flex; flex-direction: column; gap: .25rem; }
+    .w-general--court .fr-input-group { margin-bottom: .75rem; }
+    .w-publier-court .w-section { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; }
+    .w-publier-court .w-c3__titre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .w-publier-court .w-champ-aide { border: 0; padding: 0; margin: 0; }
 </style>
 </head>
 <body>
@@ -856,7 +861,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9229,7 +9234,7 @@ function panneauParamCa() {
             etat.panneauCa = true;
             var c;
             try {
-                c = nom === 'Publier' ? creer('div', {}, [creer('p', { classe: 'w-texte', texte: 'Publier crée une nouvelle page dans le document. Les utilisateurs y voient cette carte, sans les paramétrages, avec seulement ce que vous leur permettez.' }), sectionsPages(false)[1]])
+                c = nom === 'Publier' ? creer('div', { classe: 'w-publier-court' }, [sectionsPages(false)[1]])
                     : contenuEtape(nom);
             }
             finally {
@@ -10432,7 +10437,8 @@ function etapeGeneral() {
     ]);
     var perso = b.mode === 'personnalisation' && !!etat.cleConfig;
     if (etat.panneauCa) {
-        return creer('div', { classe: 'w-general' }, [section, sectionDesc]);
+        desc.setAttribute('rows', '2');
+        return creer('div', { classe: 'w-general w-general--court' }, [groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc)]);
     }
     var seule = !!etat.carteFixe && etat.carteFixe === etat.cleConfig;
     var danger = blocSupprimer('Supprimer la carte', b.parcours === 'vierge'
@@ -10478,8 +10484,8 @@ function sectionsPages(seule) {
         ]));
     });
     var consult = sectionPage('aSecConsult', '4. Page des utilisateurs', [
-        creer('p', { classe: 'w-texte' }, ['Les pages qui montrent cette carte seule, sans paramétrages, avec les filtres choisis. ', ic.bouton]), ic.panneau,
-        liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'Cette carte n\'est montrée sur aucune page du document.' })
+        creer('p', { classe: 'w-texte' }, [etat.panneauCa ? 'Une page qui montre cette carte aux utilisateurs, sans les paramétrages. ' : 'Les pages qui montrent cette carte seule, sans paramétrages, avec les filtres choisis. ', ic.bouton]), ic.panneau,
+        liste.childNodes.length ? liste : (etat.panneauCa ? null : creer('p', { classe: 'w-mention', texte: 'Cette carte n\'est montrée sur aucune page du document.' }))
     ], etat.panneauCa && !liste.childNodes.length ? bouton('Publier la page', null, 'send-plane-line', function () { editerPage(null, false); }, { id: 'aPageConsultation' }) : bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
     return [admin, consult];
 }
