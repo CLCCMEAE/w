@@ -1215,7 +1215,7 @@ nav[hidden],
 .w-carte-param__titre { margin: 0; font-size: 1rem; line-height: 1.5rem; }
 .w-carte-param__sous { margin: 0; font-size: .875rem; font-weight: 700; }
 .w-carte-param .fr-select-group, .w-carte-param .fr-input-group, .w-carte-param .fr-fieldset { margin-bottom: 0; }
-#cTable, .w-carte-param .fr-input, .w-carte-param > .fr-select-group .fr-select { max-width: 32rem; }
+#cTable, .w-carte-param > .fr-input-group .fr-input, .w-carte-param > .fr-select-group .fr-select { max-width: 32rem; }
 .w-table-choisie { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; }
 .w-filtres__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
 .w-filtres__liste > li::marker { content: none; }
@@ -1246,15 +1246,24 @@ nav[hidden],
 .w-carte-param--verrouillee { background: transparent; border-style: dashed; }
 .w-carte-param--verrouillee .w-carte-param__titre { color: var(--text-disabled-grey); }
 .w-carte-param__verrou { margin: 0; }
-.w-resultat-defile > .w-carte-param, .w-resultat-defile > .w-apercu-filtres, .w-resultat-defile > .fr-alert { width: 100%; max-width: 60rem; box-sizing: border-box; }
-.w-carte-param .w-radios { display: flex; flex-direction: column; gap: .25rem; margin: 0; padding: 0; }
+.w-carte-param .w-radios { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; margin: 0; padding: 0; }
 .w-carte-param .w-radios > legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.w-carte-param .w-radios .fr-radio-group { margin: 0; max-width: none; }
+.w-carte-param .w-radios .fr-radio-group { margin: 0; width: auto; max-width: none; }
 .w-champs-vider .w-cases { display: flex; flex-direction: column; gap: .25rem; }
 .w-champs-vider .w-cases .fr-checkbox-group { margin: 0; }
 .w-champs-vider .w-cases .fr-label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
 .w-champs-vider .w-cases > .fr-btn { align-self: flex-start; margin: .25rem 0 0; }
 .w-tag-sugg { margin-left: .25rem; }
+.w-carte-param { font-size: .875rem; }
+.w-carte-param__titre { font-size: 1rem; }
+.w-carte-param .fr-label, .w-carte-param .fr-radio-group .fr-label, .w-carte-param .fr-checkbox-group .fr-label, .w-carte-param .w-texte, .w-carte-param .fr-select, .w-carte-param .fr-input { font-size: .875rem; }
+.w-carte-param .fr-hint-text, .w-carte-param .w-mention { font-size: .75rem; }
+.w-carte-param .w-filtres__phrase { font-size: .875rem; }
+.w-carte-param__sous { font-size: .875rem; }
+.w-filtres__ligne { grid-template-columns: 4rem minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 2fr) 2rem; }
+.w-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+#eCarteTable .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.w-pied-regle__compte { font-size: .875rem; }
 </style>
 </head>
 <body>
@@ -1301,7 +1310,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 8;
+var ESSAI_WIDGET = 9;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3710,8 +3719,8 @@ function jourIso() {
 }
 var OPS = {
   date: [["plusde", "date de plus de"], ["entre", "est entre le"], ["avant", "est avant le"], ["apres", "est après le"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
-  choix: [["parmi", "est l'une des valeurs cochées"], ["horsde", "n'est aucune des valeurs cochées"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
-  texte: [["parmi", "est l'une des valeurs cochées"], ["horsde", "n'est aucune des valeurs cochées"], ["contient", "contient"], ["necontientpas", "ne contient pas"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
+  choix: [["parmi", "est l'une de"], ["horsde", "n'est aucune de"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
+  texte: [["parmi", "est l'une de"], ["horsde", "n'est aucune de"], ["contient", "contient"], ["necontientpas", "ne contient pas"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   nombre: [["egal", "est égal à"], ["inf", "est inférieur à"], ["sup", "est supérieur à"], ["entre", "est entre"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   bool: [["coche", "est coché"], ["noncoche", "n'est pas coché"]]
 };
@@ -4907,8 +4916,12 @@ function majApercuFiltres(c, idBase) {
     if (a.probleme) {
       compte.appendChild(creer("span", { classe: "w-mention", texte: c.filtres.conditions.length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les dossiers concernés" }));
     } else {
-      compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "dossier concerné", "dossiers concernés") }));
-      compte.appendChild(document.createTextNode(" aujourd'hui sur " + a.total));
+      if (!a.total) {
+        compte.appendChild(creer("span", { classe: "w-mention", texte: "La table ne contient aucun dossier." }));
+      } else {
+        compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "dossier concerné", "dossiers concernés") }));
+        compte.appendChild(document.createTextNode(" aujourd'hui sur " + a.total));
+      }
     }
   }
   if (voir) {
