@@ -1278,6 +1278,42 @@ nav[hidden],
 .w-multi__panneau .fr-checkbox-group { margin: 0; }
 [aria-labelledby="eCarteTable"] .fr-select-group > .fr-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .w-filtres__ligne .w-condition__valeurs { margin: 0; padding: 0; border: 0; }
+.w-af { display: flex; flex-direction: column; gap: .5rem; }
+.w-af__liste { display: flex; flex-direction: column; gap: .375rem; }
+.w-af__ligne { display: flex; align-items: flex-start; gap: .5rem; }
+.w-af__lien { flex: none; width: 3.75rem; padding-top: .375rem; font-size: .875rem; }
+select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem 1.25rem .25rem .375rem; font-size: .875rem; background-position: calc(100% - .25rem) 50%; box-shadow: none; border: 0; background-color: transparent; }
+.w-af__filtre { display: flex; flex-direction: column; gap: .125rem; }
+.w-af__seg { display: flex; align-items: stretch; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+.w-af__seg > * { border-right: 1px solid var(--border-default-grey) !important; }
+.w-af__seg > :last-child { border-right: 0 !important; }
+.w-af__seg select.fr-select, .w-af__seg .w-af__saisie { margin: 0; height: 2rem; min-height: 2rem; padding: .25rem 1.75rem .25rem .5rem; font-size: .875rem; box-shadow: none; border-radius: 0; background-color: transparent; background-position: calc(100% - .5rem) 50%; }
+.w-af__seg input.w-af__saisie { padding-right: .5rem; }
+.w-af__seg { width: max-content; max-width: 100%; }
+.w-af__seg > .w-af__col { width: 11rem; flex: none; }
+.w-af__seg > .w-af__op { width: 10rem; flex: none; }
+.w-af__vide { display: block; }
+.w-af__seg > .w-af__valeur { width: 15rem; flex: none; display: flex; align-items: stretch; position: relative; }
+.w-af__valeur > * { flex: 1 1 0; min-width: 0; }
+.w-af__valeur > * + * { border-left: 1px solid var(--border-default-grey); }
+.w-af__valeur .w-multi { display: flex; }
+.w-af__valeur .w-multi__bouton { height: auto; min-height: 2rem; }
+.w-af__btn { flex: none; width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: var(--text-action-high-blue-france); cursor: pointer; font-size: 1rem; }
+.w-af__btn::before { --icon-size: 1rem; }
+.w-af__btn:hover { background: var(--background-default-grey-hover); }
+.w-af__poignee { color: var(--text-mention-grey); cursor: grab; }
+.w-af__groupe { width: max-content; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: .375rem; padding: .375rem .5rem .5rem .75rem; background: var(--background-alt-grey); border: 1px solid var(--border-default-grey); }
+.w-af__groupe .w-af__groupe { background: var(--background-contrast-grey); }
+.w-af__groupe-tete { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: .875rem; color: var(--text-mention-grey); }
+.w-af__outils { display: inline-flex; align-items: center; }
+.w-af__menu-zone { position: relative; display: inline-flex; }
+.w-af__menu { position: absolute; right: 0; top: 100%; z-index: 40; display: flex; flex-direction: column; align-items: flex-start; padding: .25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 6px 18px rgba(0,0,0,.16); white-space: nowrap; }
+.w-af__menu[hidden] { display: none; }
+.w-af__menu .fr-btn { margin: 0; }
+.w-af__erreur { margin: 0; font-size: .75rem; }
+.w-af__erreur:empty { display: none; }
+.w-af__ajouts { display: flex; flex-wrap: wrap; gap: 1rem; }
+.w-af__ajouts .fr-btn { margin: 0; }
 </style>
 </head>
 <body>
@@ -1324,7 +1360,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 10;
+var ESSAI_WIDGET = 11;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3793,6 +3829,45 @@ function normaliserCondition(k) {
     nombre2: nombreOuNul(k.nombre2)
   };
 }
+function normaliserNoeudFiltres(n, niveau) {
+  return {
+    conj: n && n.conj === "ou" ? "ou" : "et",
+    items: (n && Array.isArray(n.items) ? n.items : []).map(function(x) {
+      return x && x.groupe && niveau < 2 ? Object.assign({ groupe: true }, normaliserNoeudFiltres(x, niveau + 1)) : normaliserCondition(x);
+    })
+  };
+}
+function feuillesFiltres(f) {
+  var l = [];
+  (function parcourir(n) {
+    n.items.forEach(function(x) {
+      if (x.groupe) {
+        parcourir(x);
+      } else {
+        l.push(x);
+      }
+    });
+  })(f.racine);
+  return l;
+}
+function nettoyerNoeudFiltres(n) {
+  n.items = n.items.filter(function(x) {
+    if (x.groupe) {
+      nettoyerNoeudFiltres(x);
+      return x.items.length > 0;
+    }
+    return true;
+  });
+}
+function synchroFiltresAnciens(f) {
+  // ancien format { mode, conditions } : exact sans groupe ; avec groupes, « tous les filtres »,
+  // qui ne désigne jamais plus de dossiers que les groupes (filtres et / ou sans négation de groupe).
+  var simple = f.racine.items.every(function(x) {
+    return !x.groupe;
+  });
+  f.mode = simple ? f.racine.conj : "et";
+  f.conditions = simple ? f.racine.items : feuillesFiltres(f);
+}
 function normaliserFiltres(r) {
   var f = r.filtres;
   if (!f || !Array.isArray(f.conditions)) {
@@ -3805,7 +3880,9 @@ function normaliserFiltres(r) {
     }
     f = { mode: "et", conditions: conds };
   }
-  r.filtres = { mode: f.mode === "ou" ? "ou" : "et", conditions: f.conditions.map(normaliserCondition) };
+  var racine = f.racine && Array.isArray(f.racine.items) ? normaliserNoeudFiltres(f.racine, 0) : { conj: f.mode === "ou" ? "ou" : "et", items: f.conditions.map(normaliserCondition) };
+  r.filtres = { racine: racine };
+  synchroFiltresAnciens(r.filtres);
   delete r.critere;
   delete r.colDate;
   delete r.delai;
@@ -3860,7 +3937,7 @@ function problemeCondition(tid, k) {
   return "";
 }
 function problemeFiltres(r) {
-  var l = r.filtres.conditions;
+  var l = feuillesFiltres(r.filtres);
   if (!l.length) {
     return "Ajoutez au moins un filtre : sans filtre, aucun dossier n'est proposé.";
   }
@@ -3873,7 +3950,7 @@ function problemeFiltres(r) {
   return "";
 }
 function aDuree(r) {
-  return r.filtres.conditions.some(function(k) {
+  return feuillesFiltres(r.filtres).some(function(k) {
     return k.op === "plusde";
   });
 }
@@ -3980,35 +4057,46 @@ function evaluerCondition(r, k, d, i, maintenant) {
       return false;
   }
 }
+function evaluerNoeud(r, n, d, i, maintenant) {
+  var t = function(x) {
+    return x.groupe ? evaluerNoeud(r, x, d, i, maintenant) : evaluerCondition(r, x, d, i, maintenant);
+  };
+  return n.conj === "ou" ? n.items.some(t) : n.items.every(t);
+}
 function evaluerRegle(r, d, i, maintenant) {
-  var l = r.filtres.conditions;
-  return r.filtres.mode === "ou" ? l.some(function(k) {
-    return evaluerCondition(r, k, d, i, maintenant);
-  }) : l.every(function(k) {
-    return evaluerCondition(r, k, d, i, maintenant);
-  });
+  return evaluerNoeud(r, r.filtres.racine, d, i, maintenant);
 }
 function echeanceDossier(r, d, i, reference) {
-  var l = [];
-  r.filtres.conditions.forEach(function(k) {
-    if (k.op !== "plusde") {
-      return;
-    }
-    var v = cellule(d, k.colonne, i);
-    if (typeof v === "number" && v) {
-      l.push(ajouterMois(v, moisDe(k)));
-    }
-  });
-  if (!l.length) {
-    return 0;
-  }
-  if (r.filtres.mode === "ou") {
-    var ok = l.filter(function(x) {
-      return x <= reference;
+  var noeud = function(n) {
+    var l = [];
+    n.items.forEach(function(k) {
+      if (k.groupe) {
+        var e = noeud(k);
+        if (e) {
+          l.push(e);
+        }
+        return;
+      }
+      if (k.op !== "plusde") {
+        return;
+      }
+      var v = cellule(d, k.colonne, i);
+      if (typeof v === "number" && v) {
+        l.push(ajouterMois(v, moisDe(k)));
+      }
     });
-    return ok.length ? Math.min.apply(null, ok) : 0;
-  }
-  return Math.max.apply(null, l);
+    if (!l.length) {
+      return 0;
+    }
+    if (n.conj === "ou") {
+      var ok = l.filter(function(x) {
+        return x <= reference;
+      });
+      return ok.length ? Math.min.apply(null, ok) : 0;
+    }
+    return Math.max.apply(null, l);
+  };
+  return noeud(r.filtres.racine);
 }
 function dateCourte(iso) {
   if (!isoValide(iso)) {
@@ -4061,18 +4149,20 @@ function libelleCondition(tid, k) {
       return nom + " …";
   }
 }
+function phraseNoeudFiltres(tid, n, niveau) {
+  return n.items.map(function(x) {
+    return x.groupe ? "(" + phraseNoeudFiltres(tid, x, niveau + 1) + ")" : libelleCondition(tid, x);
+  }).join(n.conj === "ou" ? " ou " : " et ");
+}
 function libelleCritere(r) {
-  var l = r.filtres.conditions;
-  if (!l.length) {
+  if (!feuillesFiltres(r.filtres).length) {
     return "aucun filtre";
   }
-  return "les dossiers dont " + l.map(function(k) {
-    return libelleCondition(r.table, k);
-  }).join(r.filtres.mode === "ou" ? ", ou dont " : ", et dont ");
+  return "les dossiers dont " + phraseNoeudFiltres(r.table, r.filtres.racine, 0);
 }
 function colonnesDesFiltres(r) {
   var vus = {};
-  return r.filtres.conditions.map(function(k) {
+  return feuillesFiltres(r.filtres).map(function(k) {
     return infoCol(r.table, k.colonne);
   }).filter(function(c) {
     if (!c || vus[c.colId]) {
@@ -4747,16 +4837,20 @@ function opDefaut(col) {
   var g = genreColonne(col);
   return { date: "plusde", choix: "parmi", texte: "parmi", nombre: "inf", bool: "coche" }[g] || "";
 }
-function choixMultiple(id, libelleCol, valeurs, choisies, surChange) {
+function choixMultiple(id, col, valeurs, choisies, surChange) {
+  var libelleCol = col ? col.label : "";
+  var pastille = function(v) {
+    return col && styleChoixGrist(col, v) ? badgeChoixGrist(col, v) : creer("span", { classe: "w-multi__puce", texte: v });
+  };
   var multi = creer("div", { classe: "w-multi" });
-  var b = creer("button", { classe: "fr-select w-multi__bouton", id, attrs: { type: "button", "aria-expanded": "false", "aria-controls": id + "Liste" } });
+  var b = creer("button", { classe: "fr-select w-multi__bouton w-af__saisie", id, attrs: { type: "button", "aria-expanded": "false", "aria-controls": id + "Liste" } });
   var majBouton = function() {
     vider(b);
     if (!choisies.length) {
       b.appendChild(creer("span", { classe: "w-multi__vide", texte: "Choisir…" }));
     }
     choisies.forEach(function(v) {
-      b.appendChild(creer("span", { classe: "w-multi__puce", texte: v }));
+      b.appendChild(pastille(v));
     });
     b.setAttribute("aria-label", "Valeurs : " + (choisies.length ? choisies.join(", ") : "aucune"));
   };
@@ -4804,145 +4898,293 @@ function choixMultiple(id, libelleCol, valeurs, choisies, surChange) {
       majBouton();
       surChange();
     });
-    boite.appendChild(creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [cb, creer("label", { classe: "fr-label", attrs: { "for": idc }, texte: v })]));
+    boite.appendChild(creer("div", { classe: "fr-checkbox-group fr-checkbox-group--sm" }, [cb, creer("label", { classe: "fr-label", attrs: { "for": idc } }, [pastille(v)])]));
   });
   majBouton();
   multi.appendChild(b);
   multi.appendChild(boite);
   return multi;
 }
-function ligneCondition(c, k, n, idBase, apres, redessiner, maj) {
-  var id = idBase + "F" + n;
-  var cols = colonnesFiltrables(c.table);
-  var selCol = liste(id + "Col", cols.map(function(x) {
-    return { valeur: x.colId, libelle: x.label };
-  }), k.colonne, { vide: "- Choisir -" });
-  selCol.addEventListener("change", function() {
-    k.colonne = selCol.value;
-    k.op = opDefaut(infoCol(c.table, k.colonne));
-    k.valeurs = [];
-    apres();
-    redessiner();
-    refocaliser(id + "Op");
+var _idsFiltres = new WeakMap();
+function idFiltre(k) {
+  return _idsFiltres.get(k) || "";
+}
+function champCellule(type, id, valeur, aria, surChange, evenement) {
+  var e = creer("input", { classe: "fr-input w-af__saisie", id, valeur: valeur, attrs: { type, "aria-label": aria } });
+  e.addEventListener(evenement || "input", function() {
+    surChange(e.value);
   });
-  var col = infoCol(c.table, k.colonne);
-  var pref;
-  if (n === 0) {
-    pref = creer("span", { classe: "w-filtres__conj", texte: "Où" });
-  } else if (n === 1) {
-    pref = liste(idBase + "Conj", [{ valeur: "et", libelle: "et" }, { valeur: "ou", libelle: "ou" }], c.filtres.mode === "ou" ? "ou" : "et");
-    pref.classList.add("w-filtres__conj-choix");
-    pref.setAttribute("aria-label", "Lien entre les filtres");
-    pref.addEventListener("change", function() {
-      c.filtres.mode = pref.value;
-      apres();
-      redessiner();
-      refocaliser(idBase + "Conj");
-    });
-  } else {
-    pref = creer("span", { classe: "w-filtres__conj", texte: c.filtres.mode === "ou" ? "ou" : "et" });
-  }
-  var selOp = null;
-  if (col) {
-    selOp = liste(id + "Op", opsDe(col).map(function(o) {
-      return { valeur: o[0], libelle: o[1] };
-    }), k.op);
-    selOp.addEventListener("change", function() {
-      k.op = selOp.value;
-      apres();
-      redessiner();
-      refocaliser(id + "Op");
-    });
-  }
-  var corps = [
-    pref,
-    groupeListe("Colonne", selCol),
-    selOp ? groupeListe("Filtre", selOp) : creer("span"),
-    null,
-    bouton("Supprimer ce filtre", "discret", "delete-line", function() {
-      c.filtres.conditions.splice(n, 1);
-      apres();
-      redessiner();
-      refocaliser(idBase + "Ajouter");
-    }, { petit: true, iconeSeule: true, id: id + "Retirer", bulle: "Supprimer" })
-  ];
+  return e;
+}
+function valeurFiltre(c, k, id, col, maj) {
   var g = genreColonne(col);
-  var valeurs = creer("div", { classe: "w-condition__valeurs" });
-  if (col && (k.op === "parmi" || k.op === "horsde")) {
+  var cell = creer("div", { classe: "w-af__valeur" });
+  if (!col) {
+    return cell;
+  }
+  if (k.op === "parmi" || k.op === "horsde") {
     var vd = valeursDistinctes(c, k.colonne);
     k.valeurs.forEach(function(v) {
       if (vd.valeurs.indexOf(v) === -1) {
         vd.valeurs.push(v);
       }
     });
-    valeurs.appendChild(choixMultiple(id + "V", col.label, vd.valeurs, k.valeurs, maj));
-    if (vd.trop) {
-      valeurs.appendChild(creer("p", { classe: "w-mention", texte: "Plus de " + MAX_VALEURS + " valeurs différentes : seules les premières sont proposées. Pour un texte libre, utilisez plutôt « contient »." }));
-    }
-  }
-  if (k.op === "plusde") {
-    var nb = saisie(id + "N", k.n > 0 ? String(k.n) : "", { type: "number" });
-    nb.setAttribute("min", "0");
-    nb.setAttribute("max", "1200");
-    nb.addEventListener("input", function() {
-      var v = parseInt(nb.value, 10);
-      k.n = isFinite(v) && v > 0 ? Math.min(1200, v) : 0;
+    cell.appendChild(choixMultiple(id + "V", col, vd.valeurs, k.valeurs, maj));
+  } else if (k.op === "plusde") {
+    var nb = champCellule("number", id + "N", k.n > 0 ? String(k.n) : "", "Durée", function(v) {
+      var x = parseInt(v, 10);
+      k.n = isFinite(x) && x > 0 ? Math.min(1200, x) : 0;
       maj();
     });
+    nb.setAttribute("min", "1");
+    nb.setAttribute("max", "1200");
     var un = liste(id + "U", UNITES, k.unite);
+    un.classList.add("w-af__saisie");
+    un.setAttribute("aria-label", "Unité");
     un.addEventListener("change", function() {
       k.unite = un.value;
       maj();
     });
-    valeurs.appendChild(creer("div", { classe: "w-deux" }, [groupeChamp("Durée", nb), groupeListe("Unité", un)]));
+    cell.appendChild(nb);
+    cell.appendChild(un);
+  } else if (g === "date" && k.op === "entre") {
+    cell.appendChild(champCellule("date", id + "Du", k.du, "Du (inclus)", function(v) {
+      k.du = isoValide(v) ? v : "";
+      maj();
+    }, "change"));
+    cell.appendChild(champCellule("date", id + "Au", k.au, "Au (inclus)", function(v) {
+      k.au = isoValide(v) ? v : "";
+      maj();
+    }, "change"));
+  } else if (k.op === "avant" || k.op === "apres") {
+    var cle = k.op === "avant" ? "au" : "du";
+    cell.appendChild(champCellule("date", id + (k.op === "avant" ? "Au" : "Du"), k[cle], k.op === "avant" ? "Avant le (exclu)" : "Après le (exclu)", function(v) {
+      k[cle] = isoValide(v) ? v : "";
+      maj();
+    }, "change"));
+  } else if (k.op === "contient" || k.op === "necontientpas") {
+    cell.appendChild(champCellule("text", id + "T", k.texte, "Texte", function(v) {
+      k.texte = v;
+      maj();
+    }));
+  } else if (g === "nombre" && (k.op === "egal" || k.op === "inf" || k.op === "sup")) {
+    cell.appendChild(champCellule("number", id + "Nb", k.nombre === null ? "" : String(k.nombre), "Nombre", function(v) {
+      k.nombre = nombreOuNul(v);
+      maj();
+    }));
+  } else if (g === "nombre" && k.op === "entre") {
+    cell.appendChild(champCellule("number", id + "Nb", k.nombre === null ? "" : String(k.nombre), "De (inclus)", function(v) {
+      k.nombre = nombreOuNul(v);
+      maj();
+    }));
+    cell.appendChild(champCellule("number", id + "Nb2", k.nombre2 === null ? "" : String(k.nombre2), "À (inclus)", function(v) {
+      k.nombre2 = nombreOuNul(v);
+      maj();
+    }));
   }
-  if (g === "date" && k.op === "entre") {
-    valeurs.appendChild(creer("div", { classe: "w-deux w-plage" }, [groupeChamp("Du (inclus)", champDate(id + "Du", k.du, function(v) {
-      k.du = v;
-      maj();
-    })), groupeChamp("Au (inclus)", champDate(id + "Au", k.au, function(v) {
-      k.au = v;
-      maj();
-    }))]));
-  }
-  if (k.op === "avant") {
-    valeurs.appendChild(groupeChamp("Avant le (exclu)", champDate(id + "Au", k.au, function(v) {
-      k.au = v;
-      maj();
-    })));
-  }
-  if (k.op === "apres") {
-    valeurs.appendChild(groupeChamp("Après le (exclu)", champDate(id + "Du", k.du, function(v) {
-      k.du = v;
-      maj();
-    })));
-  }
-  if (k.op === "contient" || k.op === "necontientpas") {
-    var tx = saisie(id + "T", k.texte);
-    tx.addEventListener("input", function() {
-      k.texte = tx.value;
-      maj();
+  return cell;
+}
+var _glisseFiltre = null;
+function editeurFiltresAirtable(c, idBase, changer, maj) {
+  var f = c.filtres;
+  var cols = colonnesFiltrables(c.table);
+  var poignee = function(n, i, id, ligne) {
+    var b = creer("button", { classe: "w-af__btn w-af__poignee w-bulle", id: id + "Poignee", texte: "⠿", attrs: { type: "button", "aria-label": "Déplacer (flèches haut et bas)", "data-bulle": "Déplacer" } });
+    b.addEventListener("keydown", function(e) {
+      var cible = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
+      if (cible < 0 || cible >= n.items.length) {
+        return;
+      }
+      e.preventDefault();
+      var x = n.items.splice(i, 1)[0];
+      n.items.splice(cible, 0, x);
+      changer(null, function() {
+        refocaliser(id.replace(/\d+$/, String(cible)) + "Poignee");
+      });
     });
-    valeurs.appendChild(groupeChamp("Texte", tx, "Sans tenir compte des majuscules ni des accents."));
+    b.addEventListener("mousedown", function() {
+      ligne.draggable = true;
+    });
+    ligne.addEventListener("dragstart", function(e) {
+      _glisseFiltre = { n, i };
+      e.dataTransfer.effectAllowed = "move";
+      try {
+        e.dataTransfer.setData("text/plain", "filtre");
+      } catch (er) {
+      }
+      e.stopPropagation();
+    });
+    ligne.addEventListener("dragend", function() {
+      ligne.draggable = false;
+      _glisseFiltre = null;
+    });
+    ligne.addEventListener("dragover", function(e) {
+      if (_glisseFiltre && _glisseFiltre.n === n) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    ligne.addEventListener("drop", function(e) {
+      if (!_glisseFiltre || _glisseFiltre.n !== n || _glisseFiltre.i === i) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      var x = n.items.splice(_glisseFiltre.i, 1)[0];
+      n.items.splice(i, 0, x);
+      _glisseFiltre = null;
+      changer();
+    });
+    return b;
+  };
+  var corbeille = function(n, x, id, libelle) {
+    var b = creer("button", { classe: "w-af__btn w-bulle fr-icon-delete-line", id: id + "Retirer", attrs: { type: "button", "aria-label": libelle, "data-bulle": "Supprimer" } });
+    b.addEventListener("click", function() {
+      n.items.splice(n.items.indexOf(x), 1);
+      changer(idBase + "Ajouter");
+    });
+    return b;
+  };
+  var menuAjout = function(n, niveau, id) {
+    var zone = creer("span", { classe: "w-af__menu-zone" });
+    var b = creer("button", { classe: "w-af__btn w-bulle fr-icon-add-line", id: id + "Plus", attrs: { type: "button", "aria-label": "Ajouter au groupe", "aria-expanded": "false", "aria-controls": id + "Menu", "data-bulle": "Ajouter" } });
+    var menu = creer("div", { classe: "w-af__menu", id: id + "Menu" });
+    menu.hidden = true;
+    var fermer = function(e) {
+      if (!zone.contains(e.target)) {
+        basculer(false);
+      }
+    };
+    var basculer = function(o) {
+      menu.hidden = !o;
+      b.setAttribute("aria-expanded", o ? "true" : "false");
+      if (o) {
+        document.addEventListener("click", fermer, true);
+      } else {
+        document.removeEventListener("click", fermer, true);
+      }
+    };
+    b.addEventListener("click", function() {
+      basculer(menu.hidden);
+    });
+    menu.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        basculer(false);
+        b.focus();
+      }
+    });
+    var items = [["Ajouter un filtre", function() {
+      var k = normaliserCondition({});
+      n.items.push(k);
+      return k;
+    }]];
+    if (niveau < 2) {
+      items.push(["Ajouter un groupe de filtres", function() {
+        var k = normaliserCondition({});
+        n.items.push({ groupe: true, conj: "et", items: [k] });
+        return k;
+      }]);
+    }
+    items.forEach(function(it) {
+      var bi = creer("button", { classe: "fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-add-line fr-btn--icon-left", texte: it[0], attrs: { type: "button" } });
+      bi.addEventListener("click", function() {
+        document.removeEventListener("click", fermer, true);
+        var k = it[1]();
+        changer(null, function() {
+          refocaliser(idFiltre(k) + "Col");
+        });
+      });
+      menu.appendChild(bi);
+    });
+    zone.appendChild(b);
+    zone.appendChild(menu);
+    return zone;
+  };
+  var rendreNoeud = function(n, niveau, chemin) {
+    var conteneur = creer("div", { classe: "w-af__liste", attrs: { role: "list" } });
+    n.items.forEach(function(x, i) {
+      var id = idBase + "F" + chemin.concat(i).join("_");
+      var pref;
+      if (i === 0) {
+        pref = creer("span", { classe: "w-af__lien", texte: "Où" });
+      } else if (i === 1) {
+        var idConj = idBase + "Conj" + chemin.join("_");
+        pref = liste(idConj, [{ valeur: "et", libelle: "et" }, { valeur: "ou", libelle: "ou" }], n.conj);
+        pref.classList.add("w-af__lien-choix");
+        pref.setAttribute("aria-label", "Lien entre les filtres");
+        pref.addEventListener("change", function() {
+          n.conj = pref.value;
+          changer(idConj);
+        });
+      } else {
+        pref = creer("span", { classe: "w-af__lien", texte: n.conj === "ou" ? "ou" : "et" });
+      }
+      var ligne = creer("div", { classe: "w-af__ligne", attrs: { role: "listitem" } });
+      ligne.appendChild(pref);
+      if (x.groupe) {
+        var titre = x.conj === "ou" ? "Au moins un des filtres suivants est vrai…" : "Tous les filtres suivants sont vrais…";
+        var boite = creer("div", { classe: "w-af__groupe", id, attrs: { role: "group", "aria-label": "Groupe de filtres" } }, [
+          creer("div", { classe: "w-af__groupe-tete" }, [
+            creer("span", { texte: titre }),
+            creer("span", { classe: "w-af__outils" }, [menuAjout(x, niveau + 1, id), corbeille(n, x, id, "Supprimer ce groupe de filtres"), poignee(n, i, id, ligne)])
+          ]),
+          rendreNoeud(x, niveau + 1, chemin.concat(i))
+        ]);
+        ligne.appendChild(boite);
+      } else {
+        var k = x;
+        _idsFiltres.set(k, id);
+        var col = infoCol(c.table, k.colonne);
+        var selCol = liste(id + "Col", cols.map(function(o) {
+          return { valeur: o.colId, libelle: o.label };
+        }), k.colonne, { vide: "Colonne" });
+        selCol.classList.add("w-af__col");
+        selCol.setAttribute("aria-label", "Colonne");
+        selCol.addEventListener("change", function() {
+          k.colonne = selCol.value;
+          k.op = opDefaut(infoCol(c.table, k.colonne));
+          k.valeurs = [];
+          changer(id + "Op");
+        });
+        var selOp = creer("span", { classe: "w-af__op w-af__vide" });
+        if (col) {
+          selOp = liste(id + "Op", opsDe(col).map(function(o) {
+            return { valeur: o[0], libelle: o[1] };
+          }), k.op);
+          selOp.classList.add("w-af__op");
+          selOp.setAttribute("aria-label", "Filtre");
+          selOp.addEventListener("change", function() {
+            k.op = selOp.value;
+            changer(id + "Op");
+          });
+        }
+        var seg = creer("div", { classe: "w-af__seg", id }, [selCol, selOp, valeurFiltre(c, k, id, col, maj), corbeille(n, k, id, "Supprimer ce filtre"), poignee(n, i, id, ligne)]);
+        ligne.appendChild(creer("div", { classe: "w-af__filtre" }, [seg, creer("p", { classe: "fr-error-text w-af__erreur", id: id + "Err", attrs: { "aria-live": "polite" } })]));
+      }
+      conteneur.appendChild(ligne);
+    });
+    return conteneur;
+  };
+  var bloc = creer("div", { classe: "w-af" });
+  if (f.racine.items.length) {
+    bloc.appendChild(rendreNoeud(f.racine, 0, []));
   }
-  if (g === "nombre" && (k.op === "egal" || k.op === "inf" || k.op === "sup")) {
-    valeurs.appendChild(groupeChamp("Nombre", champNombre(id + "Nb", k.nombre, function(v) {
-      k.nombre = v;
-      maj();
-    })));
-  }
-  if (g === "nombre" && k.op === "entre") {
-    valeurs.appendChild(creer("div", { classe: "w-deux w-plage" }, [groupeChamp("De (inclus)", champNombre(id + "Nb", k.nombre, function(v) {
-      k.nombre = v;
-      maj();
-    })), groupeChamp("À (inclus)", champNombre(id + "Nb2", k.nombre2, function(v) {
-      k.nombre2 = v;
-      maj();
-    }))]));
-  }
-  valeurs.appendChild(creer("p", { classe: "fr-error-text w-condition__erreur", id: id + "Err", attrs: { "aria-live": "polite" } }));
-  corps[3] = valeurs;
-  return creer("li", { classe: "w-filtres__ligne", id }, corps);
+  var ajF = bouton("Ajouter un filtre", "discret", "add-line", function() {
+    var k = normaliserCondition({});
+    f.racine.items.push(k);
+    changer(null, function() {
+      refocaliser(idFiltre(k) + "Col");
+    });
+  }, { petit: true, id: idBase + "Ajouter" });
+  var ajG = bouton("Ajouter un groupe de filtres", "discret", "add-line", function() {
+    var k = normaliserCondition({});
+    f.racine.items.push({ groupe: true, conj: "et", items: [k] });
+    changer(null, function() {
+      refocaliser(idFiltre(k) + "Col");
+    });
+  }, { petit: true, id: idBase + "AjouterGroupe" });
+  bloc.appendChild(creer("div", { classe: "w-af__ajouts" }, [ajF, ajG]));
+  return bloc;
 }
 function apercuFiltres(c) {
   var d = donneesDe(c);
@@ -4962,13 +5204,13 @@ function apercuFiltres(c) {
 function majApercuFiltres(c, idBase) {
   var phrase = document.getElementById(idBase + "Phrase");
   if (phrase) {
-    var complet = c.filtres.conditions.length && !problemeFiltres(c);
+    var complet = feuillesFiltres(c.filtres).length && !problemeFiltres(c);
     phrase.textContent = complet ? "Se lit : " + libelleCritere(c) + "." : "";
     phrase.hidden = !complet;
   }
   var montrer = idBase !== "c" || c.tente;
-  c.filtres.conditions.forEach(function(k, n) {
-    var e = document.getElementById(idBase + "F" + n + "Err");
+  feuillesFiltres(c.filtres).forEach(function(k) {
+    var e = document.getElementById(idFiltre(k) + "Err");
     if (e) {
       var p = montrer ? problemeCondition(c.table, k) : "";
       e.textContent = p ? "À compléter : " + p + "." : "";
@@ -4985,7 +5227,7 @@ function majApercuFiltres(c, idBase) {
   if (compte) {
     vider(compte);
     if (a.probleme) {
-      compte.appendChild(creer("span", { classe: "w-mention", texte: c.filtres.conditions.length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les dossiers concernés" }));
+      compte.appendChild(creer("span", { classe: "w-mention", texte: feuillesFiltres(c.filtres).length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les dossiers concernés" }));
     } else {
       if (!a.total) {
         compte.appendChild(creer("span", { classe: "w-mention", texte: "La table ne contient aucun dossier." }));
@@ -5119,7 +5361,7 @@ async function choisirTableDossiers(c, tid) {
   } else if (statut.length) {
     conds.push({ colonne: (prefS || statut[0]).colId, op: "parmi", valeurs: [] });
   }
-  c.filtres = { mode: "et", conditions: [] };
+  c.filtres = { mode: "et", conditions: [], racine: { conj: "et", items: [] } };
   c.affichees = colonnesDonnees(tid).filter(function(x) {
     return /^(Text|Choice$|Ref:)/.test(x.type);
   }).slice(0, 3).map(function(x) {
@@ -5134,7 +5376,7 @@ function rendreCreation() {
   rendreEditeur(etat.creation, "c");
 }
 function resumesRegle(c) {
-  var n = c.filtres.conditions.length;
+  var n = feuillesFiltres(c.filtres).length;
   var trait = { les2: "Anonymisation puis suppression", anonymiser: "Anonymisation seulement", supprimer: "Suppression seulement" }[c.traitements] || "";
   var nl = c.table ? tablesLiees(c.table).length : 0;
   return [
@@ -5371,21 +5613,24 @@ function rendreEditeur(c, idBase) {
   if (tableOk) {
     // 2. Les filtres
     var maj = function() {
+      synchroFiltresAnciens(c.filtres);
       apres();
       majApercuFiltres(c, idBase);
     };
-    var ol = creer("ol", { classe: "w-filtres__liste", attrs: { "aria-label": "Filtres" } });
-    c.filtres.conditions.forEach(function(k, n) {
-      ol.appendChild(ligneCondition(c, k, n, idBase, apres, redessiner, maj));
-    });
+    var changerFiltres = function(focus, ensuite) {
+      nettoyerNoeudFiltres(c.filtres.racine);
+      synchroFiltresAnciens(c.filtres);
+      apres1();
+      redessiner();
+      if (focus) {
+        refocaliser(focus);
+      }
+      if (ensuite) {
+        ensuite();
+      }
+    };
     defile.appendChild(carteParam(titreNum("Quels dossiers archiver ?"), "eCarteFiltres", [
-      ol,
-      creer("div", {}, [bouton("Ajouter un filtre", "secondaire", "add-line", function() {
-        c.filtres.conditions.push(normaliserCondition({}));
-        apres();
-        redessiner();
-        refocaliser(idBase + "F" + (c.filtres.conditions.length - 1) + "Col");
-      }, { petit: true, id: idBase + "Ajouter" })]),
+      editeurFiltresAirtable(c, idBase, changerFiltres, maj),
       creer("p", { classe: "w-filtres__phrase w-mention", id: idBase + "Phrase" })
     ]));
     // 3. Traitements
@@ -5804,7 +6049,7 @@ async function lancerCreation() {
   majApercuFiltres(c, "c");
   if (problemeFiltres(c)) {
     signalerSaisie(problemeFiltres(c));
-    refocaliser(c.filtres.conditions.length ? "cF0Col" : "cAjouter");
+    refocaliser(feuillesFiltres(c.filtres).length ? idFiltre(feuillesFiltres(c.filtres)[0]) + "Col" : "cAjouter");
     return;
   }
   if (c.traitements !== "supprimer" && !c.champs.length) {
@@ -6419,7 +6664,7 @@ async function supprimerRegle(r) {
 }
 var ONGLETS_AIDE = ["À quoi ça sert", "Pas à pas", "Questions"];
 var FICHES_AIDE = [
-  { cle: "creation0", titre: "Nouvelle règle", texte: "1. Choisissez la table des dossiers. 2. Ajoutez un filtre par critère : une colonne, un filtre, une valeur ; « et » ou « ou » à partir du deuxième filtre. 3. Choisissez le traitement et cochez les colonnes à vider ; l'étiquette « Suggestion » signale celles qui ressemblent à des données personnelles. 4. Si d'autres tables pointent vers les dossiers, dites ce que deviennent leurs lignes. 5. Donnez un nom, puis « Créer la règle »." },
+  { cle: "creation0", titre: "Nouvelle règle", texte: "1. Choisissez la table des dossiers. 2. Ajoutez un filtre par critère : une colonne, un filtre, une valeur ; « et » ou « ou » à partir du deuxième filtre. « Ajouter un groupe de filtres » permet de mêler « et » et « ou » ; la poignée ⠿ déplace un filtre (souris, ou flèches haut et bas). 3. Choisissez le traitement et cochez les colonnes à vider ; l'étiquette « Suggestion » signale celles qui ressemblent à des données personnelles. 4. Si d'autres tables pointent vers les dossiers, dites ce que deviennent leurs lignes. 5. Donnez un nom, puis « Créer la règle »." },
   { cle: "param0", titre: "Paramétrage de la règle", texte: "Les filtres, le traitement, les tables liées et le nom de la règle. En bas, le nombre de dossiers concernés aujourd'hui et la liste." },
   { cle: "parampages", titre: "Page des utilisateurs", texte: "Les agents archivent sur une page sans paramétrage. « Publier une page des utilisateurs » l'ajoute au document : son nom, puis toutes les règles ou seulement certaines. Ensuite, cachez cette page admin (« Les droits », « Cacher cette page »)." },
   { cle: "paramdroits", titre: "Les droits", texte: "Inviter les personnes (bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne) et poser les règles d'accès, chacune reproduite comme dans les Permissions avancées. Cliquez sur « Enregistrer » avant de quitter les Permissions avancées, puis vérifiez avec « Voir en tant que »." },
