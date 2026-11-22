@@ -980,6 +980,10 @@
     .w-entete-admin__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
     .w-bouton-danger.fr-btn--tertiary { color: var(--text-default-error); }
     .w-entete-admin > .w-pousse { flex: 1 1 auto; }
+    .w-acc__carte--modele { border-style: dashed; }
+    .w-acc__vig { position: relative; }
+    .w-acc__suggestion { position: absolute; top: .375rem; right: .375rem; }
+    .w-acc__carte--modele { border-style: solid; }
 </style>
 </head>
 <body>
@@ -1028,7 +1032,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 13;
+var ESSAI_WIDGET = 15;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -6757,6 +6761,23 @@ function rendreAccueil(rubrique) {
         creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
       carte.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { ouvrir(); } });
       grille.appendChild(carte);
+    });
+    MODELES.filter(function (m) { return m.groupe === rub && m.cle !== 'vierge'; }).forEach(function (m) {
+      var utiliser = function () {
+        ouvrirCreation(rub);
+        var c = etat.creation;
+        c.depart = 'modele'; choisirModele(c, m.cle); c.fiche = { table: '', colonne: '' }; c.etape = 1;
+        rendreCreation();
+        var f = document.getElementById('cNom'); if (f) { f.focus(); }
+      };
+      var bm = bouton('Utiliser ce modèle', 'secondaire', 'arrow-right-line', utiliser, { petit: true, id: 'aModele_' + m.cle, iconeDroite: true });
+      var etq = badge('Suggestion', 'info');
+      etq.classList.add('w-acc__suggestion');
+      var cm = creer('div', { classe: 'w-acc__carte w-acc__carte--modele' }, [creer('div', { classe: 'w-acc__vig' }, [vignetteModele(m.cle), etq]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: m.nom }), creer('span', { classe: 'w-mention', texte: m.desc })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [bm])]);
+      cm.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { utiliser(); } });
+      grille.appendChild(cm);
     });
     var plus = creer('button', { classe: 'w-acc__plus', id: 'aCreer_' + rub, attrs: { type: 'button', 'aria-label': 'Créer : ' + sorte.menu.toLowerCase() } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
     plus.addEventListener('click', function () { ouvrirCreation(rub); });
