@@ -730,7 +730,7 @@
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
     #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: flex; gap: .375rem; height: 7rem; overflow: hidden; padding: .75rem; background: var(--background-alt-grey); }
+    .w-acc__vig { position: relative; display: flex; gap: .375rem; height: 7.5rem; overflow: hidden; padding: 1.875rem .75rem .75rem; background: var(--background-alt-grey); }
     .w-acc__vig-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .25rem; padding: .25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
     .w-acc__vig-col span { font-size: .625rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .w-acc__vig-col i { display: block; height: .875rem; background: var(--background-contrast-grey); }
@@ -796,7 +796,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 1;
+var ESSAI_WIDGET = 2;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5412,6 +5412,7 @@ async function allerAccueilKb() {
     }
     etat.brouillon = null;
     etat.surAccueil = true;
+    etat.etapesAccueil = {};
     await lireTableaux();
     afficherVue('accueil');
 }
@@ -5526,7 +5527,7 @@ function rendreAccueilKb(zone) {
     };
     item('pages', 'Mes pages publiées', 'layout-grid-line');
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('kanban', 'Un Kanban', 'layout-column-line');
+    item('kanban', 'Un Kanban', 'todo-line');
     item('donnees', 'À partir de mes données', 'table-line');
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
@@ -5563,10 +5564,29 @@ function rendreAccueilKb(zone) {
             bt]));
     }
     else {
+        etat.etapesAccueil = etat.etapesAccueil || {};
+        var manque = etat.tableaux.filter(function (t) { return !etat.etapesAccueil[t.cle]; });
+        if (manque.length && !etat.lectureEtapesAccueil) {
+            etat.lectureEtapesAccueil = true;
+            relayer((async function () {
+                for (var i = 0; i < manque.length; i++) {
+                    try {
+                        etat.etapesAccueil[manque[i].cle] = (await etapesDuKanban(manque[i])).map(function (e) { return e.libelle; });
+                    }
+                    catch (e) {
+                        etat.etapesAccueil[manque[i].cle] = [];
+                    }
+                }
+                etat.lectureEtapesAccueil = false;
+                if (etat.vue === 'accueil' && etat.rubKb === 'kanban') {
+                    afficherVue('accueil', true);
+                }
+            })(), 'Lecture des colonnes');
+        }
         var grille = creer('div', { classe: 'w-acc__cartes' });
         etat.tableaux.forEach(function (t, k) {
             var publie = pagesDuTableau(t.cle).length > 0;
-            grille.appendChild(carteAccueilKb(vignetteColonnesKb([]), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new'), texte: publie ? 'Publié' : 'Brouillon' }),
+            grille.appendChild(carteAccueilKb(vignetteColonnesKb(etat.etapesAccueil[t.cle] || []), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--' + (publie ? 'success' : 'new'), texte: publie ? 'Publié' : 'Brouillon' }),
                 t.config.nom || 'Kanban sans nom', t.config.description || '', publie ? 'Modifier' : 'Modifier mon brouillon', function () { return ouvrirKanbanAccueil(t.cle); }, 'kOuvrir' + k));
         });
         MODELES.forEach(function (m) {
