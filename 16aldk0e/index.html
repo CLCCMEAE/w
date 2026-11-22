@@ -100,6 +100,12 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .w-panneau-fiche__meta {margin:0;padding:.5rem 1rem;border-top:1px solid var(--border-default-grey);font-size:.75rem;color:var(--text-mention-grey)}
 .w-panneau-fiche__meta[hidden] {display:none}
 .w-pousse {flex:1 1 auto}
+.w-page-publiee {display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:0 0 1rem;padding:.5rem .75rem;border:1px solid var(--border-default-grey)}
+.w-page-publiee--courante {border-left:4px solid var(--border-active-blue-france)}
+.w-page-publiee__nom {font-weight:700}
+.w-page-util-grille {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5rem;align-items:start}
+.w-page-util-grille__form {display:flex;flex-direction:column;gap:1rem}
+@media (max-width:62em){.w-page-util-grille {grid-template-columns:minmax(0,1fr)}}
 .w-alerte-etat {flex-basis:100%;font-size:.75rem;color:var(--text-mention-grey)}
 .w-alerte-etat--erreur {color:var(--text-default-error)}
 .w-fiche-ligne {display:flex;align-items:flex-end;flex-wrap:wrap;gap:1rem}
@@ -1571,20 +1577,15 @@ async function supprimerPageConsultation(badge) {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée. Réessayez.', e);
     }
 }
-function editerPage(badge, dupliquer) {
+function editerPage(badge) {
     var p = badge ? _pages[badge] : null;
     var cats = {};
     knownCategories.forEach(function (c) { cats[c] = !p || !p.categories.length || p.categories.indexOf(c) !== -1; });
     var nomActuel = p ? (_nomsPages[badge] || p.nom) : '';
-    _editionPage = { badge: dupliquer ? null : badge, nomInitial: p && !dupliquer ? nomActuel : '',
-        nom: p ? nomActuel + (dupliquer ? ' (copie)' : '') : '❓ FAQ', titre: p ? p.titre : '❓ FAQ', titreManuel: !!p && p.titre !== nomActuel,
+    _editionPage = { badge: badge, nomInitial: p ? nomActuel : '',
+        nom: p ? nomActuel : '❓ FAQ', titre: p ? p.titre : '❓ FAQ', titreManuel: !!p && p.titre !== nomActuel,
         description: p ? p.description : '', cats: cats,
         filtreCategorie: p ? p.filtreCategorie : true, poser: p ? p.poser : true, attente: p ? p.attente : showPending };
-    afficherVueFaq('page');
-    var n = $('pfNom');
-    if (n) {
-        n.focus();
-    }
 }
 function resumePage(badge) {
     var p = _pages[badge];
@@ -1645,8 +1646,8 @@ function formulairePage() {
         creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pfDesc' } }, ['Description ', creer('span', { classe: 'fr-hint-text', texte: 'Affichée sous le nom de la page.' })]), desc]),
         champs, options,
         creer('div', { classe: 'faq-form-page__actions' }, [
-            bouton('Annuler', 'secondaire', null, retourPagesLecteurs, { petit: true, id: 'pfAnnuler' }),
-            bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'pfValider' })
+            bouton(ed.badge ? 'Annuler les modifications' : 'Annuler', 'secondaire', null, retourPagesLecteurs, { petit: true, id: 'pfAnnuler' }),
+            bouton(ed.badge ? 'Enregistrer' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'pfValider' })
         ])
     ];
 }
@@ -1691,30 +1692,47 @@ function retourPagesLecteurs() {
 function pagesUtilisateursExistantes() {
     return Object.keys(_pages).filter(function (x) { return _pages[x].consultation && _nomsPages[x]; });
 }
+function preparerEditionPage() {
+    var ex = pagesUtilisateursExistantes();
+    if (_editionPage && (_editionPage.badge === null ? !ex.length : ex.indexOf(_editionPage.badge) !== -1)) {
+        return;
+    }
+    editerPage(ex.length ? ex[0] : null);
+}
 function renderPagesZone() {
     var z = $('pagesZone');
     if (!z) {
         return;
     }
     vider(z);
+    preparerEditionPage();
     var ic = aide('aideConsult', 'Page des utilisateurs', 'La page des utilisateurs montre la FAQ publiée, sans aide et sans administration, limitée aux catégories choisies, avec son propre titre de bandeau. Ces choix règlent l\'affichage, pas les droits : une personne qui a accès au document par ailleurs peut lire toutes les questions. Proposer une question demande un droit de modification : une personne en lecture seule ne le peut pas, même si la page le permet.');
-    var liste = creer('ul', { classe: 'w-pages-liste' });
     var existantes = pagesUtilisateursExistantes();
-    existantes.forEach(function (x, k) {
-        var nom = _nomsPages[x];
-        liste.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
-            creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
-            menuActions('Actions sur « ' + nom + ' »', 'pageMenu' + k, [
-                { libelle: 'Modifier', icone: 'edit-line', id: 'pageModif' + k, action: function () { editerPage(x, false); } },
-                { libelle: 'Supprimer', icone: 'delete-line', id: 'pageSuppr' + k, action: function () { return supprimerPageConsultation(x); } }
-            ])
-        ]));
-    });
-    z.appendChild(creer('div', { classe: 'w-bloc-reglage__haut' }, [
-        creer('h3', { classe: 'faq-section-titre', id: 'secPagesConsult', attrs: { tabindex: '-1' } }, ['Page des utilisateurs ', ic.bouton]),
-        existantes.length ? null : bouton('Publier la FAQ sur une page', null, 'upload-2-line', function () { editerPage(null, false); }, { petit: true, id: 'btnCreerPage' })]));
+    var ed = _editionPage;
+    var haut = creer('div', { classe: 'w-bloc-reglage__haut' }, [
+        creer('h3', { classe: 'faq-section-titre', id: 'secPagesConsult', attrs: { tabindex: '-1' } }, ['Page des utilisateurs ', ic.bouton])]);
+    z.appendChild(haut);
     z.appendChild(ic.panneau);
-    z.appendChild(liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', texte: 'La FAQ n\'est pas encore publiée. La page des utilisateurs montre la même FAQ, sans l\'administration.' }));
+    if (existantes.length) {
+        existantes.forEach(function (x, k) {
+            var courante = ed && ed.badge === x;
+            z.appendChild(creer('div', { classe: 'w-page-publiee' + (courante ? ' w-page-publiee--courante' : '') }, [
+                creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--success fr-badge--no-icon', texte: 'Publiée' }),
+                creer('span', { classe: 'w-page-publiee__nom', texte: _nomsPages[x] }),
+                creer('span', { classe: 'w-pousse' }),
+                existantes.length > 1 && !courante ? bouton('Modifier', 'tertiaire', 'edit-line', function () { editerPage(x); renderPagesZone(); }, { petit: true, id: 'pageModif' + k }) : null,
+                bouton('Supprimer la page', 'tertiaire', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, id: 'pageSuppr' + k })
+            ]));
+        });
+    }
+    else {
+        z.appendChild(creer('p', { classe: 'w-mention', texte: 'La FAQ n\'est pas encore publiée : réglez la page ci-dessous, puis « Publier ».' }));
+    }
+    z.appendChild(creer('div', { classe: 'w-page-util-grille' }, [
+        creer('div', { classe: 'w-page-util-grille__form' }, formulairePage()),
+        creer('div', { classe: 'w-page-util-grille__apercu' }, [creer('h4', { classe: 'w-titre-fluo', texte: 'Aperçu' }), creer('div', { classe: 'w-apercu', id: 'pApercu' })])
+    ]));
+    majApercuPage();
 }
 var _iconesVues = {};
 var _vueFaq = 'lecture', _adminFaq = false, _sectionReglages = 'droits';
@@ -1769,15 +1787,12 @@ function afficherVueFaq(vue) {
     p.classList.toggle('actif', vue !== 'lecture');
     rangerBlocs();
     vider(z);
-    z.hidden = vue !== 'reglages' && vue !== 'page';
+    z.hidden = vue !== 'reglages';
     if (vue === 'lecture') {
         renderConsultation();
     }
     else if (vue === 'reglages') {
         rendreReglages(z);
-    }
-    else if (vue === 'page') {
-        rendreEditionPage(z);
     }
     panneauAide();
 }
@@ -1873,19 +1888,6 @@ function majApercuPage() {
     finally {
         _cfgPage = sauve;
     }
-}
-function rendreEditionPage(zone) {
-    var ed = _editionPage;
-    var haut = creer('div', { classe: 'w-constr__haut' }, [
-        bouton('Retour aux pages', 'secondaire', 'arrow-left-line', function () { ouvrirReglages('lecteurs'); }, { id: 'pRetour' }),
-        creer('h2', { classe: 'fr-h5 fr-m-0', id: 'titreVue', texte: ed.badge ? 'Modifier la page des utilisateurs' : 'Publier la FAQ sur une page', attrs: { tabindex: '-1' } })]);
-    var resultat = creer('div', { classe: 'w-constr__resultat' }, [
-        creer('h3', { classe: 'w-titre-fluo', texte: 'Aperçu' }),
-        creer('div', { classe: 'w-apercu', id: 'pApercu' })]);
-    var panneau = creer('div', { classe: 'w-constr__panneau', id: 'pPanneau' }, [
-        creer('h3', { classe: 'w-titre-fluo', texte: 'Paramétrage' })].concat(formulairePage()));
-    zone.appendChild(creer('div', { classe: 'w-constr w-constr--entree' }, [haut, creer('div', { classe: 'w-constr__corps' }, [resultat, panneau])]));
-    majApercuPage();
 }
 function renderDroitsFaq() {
     var zone = $('ongletDroits');
@@ -4285,10 +4287,10 @@ var AIDE = {
                 '« Afficher les questions en attente » montre aux utilisateurs les questions encore sans réponse, ce qui évite qu\'elles soient posées deux fois.',
                 'Ajoutez une catégorie dans « Ajouter ». Faites glisser une catégorie par sa poignée pour changer l\'ordre d\'affichage.',
                 'La croix supprime une catégorie ; ses questions passent dans « Autre ».'] },
-        'Page des utilisateurs': { titre: 'rubrique « Page des utilisateurs » : montrer la FAQ sans l\'administration.', points: ['« Publier la FAQ sur une page » ajoute au document une page qui montre cette même FAQ aux utilisateurs, sans administration ni aide : ce n\'est pas une nouvelle FAQ.',
-                'À gauche, l\'aperçu montre la page telle que les utilisateurs la verront ; à droite, le paramétrage : nom, titre de bandeau, catégories et ce que les utilisateurs peuvent faire.',
-                'Le bouton « … » de la page la modifie ou la supprime. Une FAQ n\'a qu\'une page des utilisateurs : une fois publiée, on la modifie, on ne la crée pas une deuxième fois.',
-                'Créez toujours la page des utilisateurs avec « Publier la FAQ sur une page » : un widget installé à la main sur une autre page empêche le widget de savoir quelle page cacher.'] },
+        'Page des utilisateurs': { titre: 'rubrique « Page des utilisateurs » : montrer la FAQ sans l\'administration.', points: ['Réglez la page dans la rubrique (nom, titre de bandeau, catégories, ce que les utilisateurs peuvent faire), puis « Publier » : le widget ajoute au document une page qui montre cette même FAQ aux utilisateurs, sans administration ni aide : ce n\'est pas une nouvelle FAQ.',
+                'À droite, l\'aperçu montre la page telle que les utilisateurs la verront.',
+                'Une fois publiée, la page se modifie au même endroit (« Enregistrer ») ou se supprime (« Supprimer la page ») : une FAQ n\'a qu\'une page des utilisateurs.',
+                'Créez toujours la page des utilisateurs avec le bouton « Publier » de cette rubrique : un widget installé à la main sur une autre page empêche le widget de savoir quelle page cacher.'] },
         'Les droits': { titre: 'rubrique « Les droits » : inviter les personnes, poser les règles d\'accès, cacher cette page.', points: ['« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
                 '« Cacher cette page » cache la page d\'administration aux personnes qui ne peuvent pas lire la table ' + TITRE_OWNER + '. La page des utilisateurs n\'est pas touchée.',
@@ -4355,7 +4357,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 7;
+var ESSAI_WIDGET = 8;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
