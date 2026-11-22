@@ -1314,6 +1314,14 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 .w-af__erreur:empty { display: none; }
 .w-af__ajouts { display: flex; flex-wrap: wrap; gap: 1rem; }
 .w-af__ajouts .fr-btn { margin: 0; }
+.w-apercu-etape { display: flex; flex-direction: column; gap: .375rem; color: var(--text-disabled-grey); pointer-events: none; }
+.w-apercu-q { margin: 0; display: flex; align-items: center; gap: .5rem; white-space: pre; }
+.w-apercu-sous { font-weight: 700; }
+.w-apercu-case, .w-apercu-radio { width: 1rem; height: 1rem; border: 1px solid var(--border-disabled-grey); flex: none; }
+.w-apercu-radio { border-radius: 50%; }
+.w-apercu-seg { border-color: var(--border-disabled-grey); background: transparent; }
+.w-apercu-seg > span { padding: .375rem .5rem; border-right: 1px solid var(--border-disabled-grey) !important; }
+.w-apercu-champ { display: block; width: 100%; max-width: 32rem; height: 2rem; border-bottom: 2px solid var(--border-disabled-grey); background: var(--background-disabled-grey); }
 </style>
 </head>
 <body>
@@ -1360,7 +1368,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 12;
+var ESSAI_WIDGET = 13;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5485,9 +5493,31 @@ function casesColonnesSuggerees(idBase, cols, suggerees, choisies, surChange) {
   }
   return g;
 }
+var APERCUS_ETAPES = {
+  "Quels dossiers archiver ?": function() {
+    return [
+      creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Tous les dossiers de la table"]),
+      creer("div", { classe: "w-af__ligne" }, [creer("span", { classe: "w-af__lien", texte: "Où" }), creer("div", { classe: "w-af__seg w-apercu-seg" }, [creer("span", { classe: "w-af__col", texte: "Colonne" }), creer("span", { classe: "w-af__op", texte: "Filtre" }), creer("span", { classe: "w-af__valeur", texte: "Valeur" })])]),
+      creer("p", { classe: "w-apercu-q", texte: "+ Ajouter un filtre    + Ajouter un groupe de filtres" })
+    ];
+  },
+  "Que faire de ces dossiers ?": function() {
+    return ["Vider les données personnelles, et supprimer en second choix", "Vider les données personnelles seulement", "Supprimer seulement"].map(function(t) {
+      return creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-radio" }), t]);
+    }).concat([creer("p", { classe: "w-apercu-q w-apercu-sous", texte: "Colonnes à vider" })]);
+  },
+  "Et les tables liées ?": function() {
+    return [creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Vider aussi des colonnes des lignes liées"]), creer("p", { classe: "w-apercu-q", texte: "Si le dossier est supprimé : les garder ou les supprimer" })];
+  },
+  "Nom de la règle": function() {
+    return [creer("p", { classe: "w-apercu-q", texte: "Nom (obligatoire)" }), creer("span", { classe: "w-apercu-champ" }), creer("p", { classe: "w-apercu-q", texte: "Description" }), creer("span", { classe: "w-apercu-champ" })];
+  }
+};
 function carteParam(titre, id, enfants, apresEtape) {
   var verrou = !!apresEtape;
-  return creer("section", { classe: "w-carte-param" + (verrou ? " w-carte-param--verrouillee" : ""), attrs: { "aria-labelledby": id, "aria-disabled": verrou ? "true" : null } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(verrou ? [creer("p", { classe: "w-mention w-carte-param__verrou", texte: "Après l'étape " + apresEtape + "." })] : enfants));
+  var cle = titre.replace(/^\d+\. /, "");
+  var apercu = verrou && APERCUS_ETAPES[cle] ? APERCUS_ETAPES[cle]() : [];
+  return creer("section", { classe: "w-carte-param" + (verrou ? " w-carte-param--verrouillee" : ""), attrs: { "aria-labelledby": id, "aria-disabled": verrou ? "true" : null } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(verrou ? [creer("div", { classe: "w-apercu-etape", attrs: { "aria-hidden": "true" } }, apercu), creer("p", { classe: "w-mention w-carte-param__verrou", texte: "Après l'étape " + apresEtape + "." })] : enfants));
 }
 function rendreEditeur(c, idBase) {
   majBandeauRole();
