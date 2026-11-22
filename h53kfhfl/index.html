@@ -303,6 +303,9 @@
     .w-carte__bas { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: 0 1rem .875rem; }
     .w-carte__bas .w-carte__maj { margin: 0; padding: 0; text-align: left; align-self: center; }
     .w-carte__bas .fr-btn { margin: 0 0 0 auto; }
+    .w-etape--verrouillee .w-etape__tete { cursor: not-allowed; }
+    .w-etape--verrouillee .w-etape__nom, .w-etape--verrouillee .w-etape__resume { color: var(--text-disabled-grey); }
+    .w-etape--verrouillee .w-etape__num { background: var(--background-disabled-grey); color: var(--text-disabled-grey); border-color: var(--border-disabled-grey); }
 </style>
 </head>
 <body>
@@ -3728,7 +3731,24 @@ async function ouvrirModele(id) {
     _vue.etape = 'colonnes';
     afficherVue('atelier');
 }
+function etapeAccessible(cle) {
+    return cle === 'feuilles' || etat.tablesAExporter.length > 0;
+}
+function etapeRepli() {
+    return 'feuilles';
+}
+function majVerrousEtapes() {
+    Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
+        var ok = etapeAccessible(li.getAttribute('data-etape'));
+        li.querySelector('.w-etape__tete').disabled = !ok;
+        li.classList.toggle('w-etape--verrouillee', !ok);
+    });
+    if (!etapeAccessible(_vue.etape))
+        ouvrirEtape(etapeRepli(), true);
+}
 function ouvrirEtape(cle, sansFocus) {
+    if (!etapeAccessible(cle))
+        cle = etapeRepli();
     _vue.etape = cle;
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
         var ouvert = li.getAttribute('data-etape') === cle;
@@ -3762,6 +3782,7 @@ function resumeLignes(filtres) {
     return n + (n > 1 ? ' filtres' : ' filtre');
 }
 function majResumes() {
+    majVerrousEtapes();
     var r = function (cle, t) {
         var x = document.getElementById('etape-' + cle + '-resume');
         if (x) {

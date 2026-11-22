@@ -5015,19 +5015,21 @@ async function majLibellesTables(meta) {
 function etapeAccessible(cle) {
     return cle === 'table' || !!S.selectedTable;
 }
+function etapeRepli() {
+    return 'table';
+}
 function majVerrousEtapes() {
-    ['colonnes', 'lignes'].forEach(function (cle) {
-        var t = document.getElementById('etape-' + cle + '-tete');
-        if (!t)
-            return;
-        var ok = etapeAccessible(cle);
-        t.disabled = !ok;
-        t.closest('.w-etape').classList.toggle('w-etape--verrouillee', !ok);
+    Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
+        var ok = etapeAccessible(li.getAttribute('data-etape'));
+        li.querySelector('.w-etape__tete').disabled = !ok;
+        li.classList.toggle('w-etape--verrouillee', !ok);
     });
+    if (!etapeAccessible(_vue.etape))
+        ouvrirEtape(etapeRepli(), true);
 }
 function ouvrirEtape(cle, sansFocus) {
     if (!etapeAccessible(cle))
-        cle = 'table';
+        cle = etapeRepli();
     _vue.etape = cle;
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
         var ouvert = li.getAttribute('data-etape') === cle;

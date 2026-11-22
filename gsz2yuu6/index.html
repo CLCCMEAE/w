@@ -408,6 +408,9 @@
     .w-carte__bas { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: 0 1rem .875rem; }
     .w-carte__bas .w-carte__maj { margin: 0; padding: 0; text-align: left; align-self: center; }
     .w-carte__bas .fr-btn { margin: 0 0 0 auto; }
+    .w-etape--verrouillee .w-etape__tete { cursor: not-allowed; }
+    .w-etape--verrouillee .w-etape__nom, .w-etape--verrouillee .w-etape__resume { color: var(--text-disabled-grey); }
+    .w-etape--verrouillee .w-etape__num { background: var(--background-disabled-grey); color: var(--text-disabled-grey); border-color: var(--border-disabled-grey); }
 </style>
 </head>
 <body>
@@ -2742,7 +2745,29 @@ function afficherVue(ecran) {
         ouvrirEtape(_vue.etape, true);
     }
 }
+function etapeAccessible(cle) {
+    var feuilles = etat.feuilles || [];
+    if (cle === 'fichier')
+        return true;
+    if (!feuilles.length)
+        return false;
+    return cle === 'feuilles' || feuilles.some(function (f) { return f.retenu === true; });
+}
+function etapeRepli() {
+    return (etat.feuilles && etat.feuilles.length) ? 'feuilles' : 'fichier';
+}
+function majVerrousEtapes() {
+    Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
+        var ok = etapeAccessible(li.getAttribute('data-etape'));
+        li.querySelector('.w-etape__tete').disabled = !ok;
+        li.classList.toggle('w-etape--verrouillee', !ok);
+    });
+    if (!etapeAccessible(_vue.etape))
+        ouvrirEtape(etapeRepli(), true);
+}
 function ouvrirEtape(cle, sansFocus) {
+    if (!etapeAccessible(cle))
+        cle = etapeRepli();
     _vue.etape = cle;
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
         var ouvert = li.getAttribute('data-etape') === cle;
@@ -2779,6 +2804,7 @@ function majResumes() {
             x.textContent = t;
         }
     };
+    majVerrousEtapes();
     var feuilles = etat.feuilles || [];
     var retenues = feuilles.filter(function (f) { return f.retenu === true; });
     r('fichier', etat.nomFichier && feuilles.length ? etat.nomFichier : 'Aucun fichier');
