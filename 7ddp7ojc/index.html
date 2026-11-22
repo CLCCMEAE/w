@@ -1005,7 +1005,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 7;
+var ESSAI_WIDGET = 8;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -5890,10 +5890,21 @@ function nouveauReglage() {
     affichage: Object.assign({}, AFFICHAGE_DEFAUT, MODELES[0].affichage), champs: Object.assign({}, CHAMPS_DEFAUT), filtres: Object.assign({}, FILTRES_DEFAUT) };
 }
 
-function ouvrirCreation() {
+function ouvrirCreation(groupe) {
   if (!etat.peutParametrer) { return; }
   if (etat.edition) { terminerEdition(true); }
   etat.creation = nouveauReglage();
+  var c = etat.creation;
+  c.groupe = typeof groupe === 'string' ? groupe : '';
+  if (c.groupe === 'vierge') { c.depart = 'modele'; choisirModele(c, 'vierge'); c.fiche = { table: '', colonne: '' }; c.etape = 1; }
+  if (c.groupe === 'donnees') {
+    var possibles = tablesUtilisatrice();
+    if (possibles.length) {
+      c.depart = 'donnees'; c.source.table = possibles[0]; c.source.colonne = colonneParDefaut(c.source.table);
+      legendeDepuisSource(c); c.fiche = { table: c.source.table, colonne: c.source.colonne }; c.modele = 'donnees';
+      c.affichage = Object.assign({}, AFFICHAGE_DEFAUT); c.traceDefaut = 'Droit';
+    }
+  }
   etat.vue = 'creation';
   rendreCreation();
   var t = document.getElementById('titreVue'); if (t) { t.focus(); }
@@ -6110,10 +6121,10 @@ function rendreCreation() {
     var groupe = function (id, titre, aideTexte, tuiles) {
       return creer('div', { classe: 'w-colonne' }, [titreColonne(titre, id, aideTexte), creer('div', { classe: 'w-modeles', attrs: { role: 'group', 'aria-labelledby': id } }, tuiles)]);
     };
-    bloc.appendChild(creer('p', { classe: 'w-texte fr-text--lg fr-mb-0', texte: 'Sélectionner un modèle de départ' }));
-    bloc.appendChild(creer('div', { classe: 'w-modeles', attrs: { role: 'group', 'aria-label': 'Tableau vierge' } }, MODELES.filter(function (m) { return m.groupe === 'vierge'; }).map(tuileModele)));
-    bloc.appendChild(groupe('cGrSchema', 'Schématiser', 'Un processus, une démarche, une décision : formes reliées par des connecteurs.', MODELES.filter(function (m) { return m.groupe === 'schema'; }).map(tuileModele)));
-    bloc.appendChild(groupe('cGrAtelier', 'Animer un atelier', 'Des post-it rangés par colonnes ou par cases, avec des votes.', MODELES.filter(function (m) { return m.groupe === 'atelier'; }).map(tuileModele)));
+    var g = c.groupe;
+    if (!g || g === 'vierge') { bloc.appendChild(creer('div', { classe: 'w-modeles', attrs: { role: 'group', 'aria-label': 'Tableau vierge' } }, MODELES.filter(function (m) { return m.groupe === 'vierge'; }).map(tuileModele))); }
+    if (!g || g === 'schema') { bloc.appendChild(groupe('cGrSchema', 'Schématiser', 'Un processus, une démarche, une décision : formes reliées par des connecteurs.', MODELES.filter(function (m) { return m.groupe === 'schema'; }).map(tuileModele))); }
+    if (!g || g === 'atelier') { bloc.appendChild(groupe('cGrAtelier', 'Animer un atelier', 'Des post-it rangés par colonnes ou par cases, avec des votes.', MODELES.filter(function (m) { return m.groupe === 'atelier'; }).map(tuileModele))); }
     /* Donnees : la carte ouvre le choix de la table juste en dessous ;
        « Continuer » (ligne des etapes ou bas de page) mene a la suite. */
     var tuileDonnees = carte('cDonnees', c.depart === 'donnees',
@@ -6128,7 +6139,7 @@ function rendreCreation() {
         var f = document.getElementById('cSourceTable'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); }
         annoncer('Choisissez la table, puis Continuer.');
       }, !possibles.length);
-    bloc.appendChild(groupe('cGrDonnees', 'Partir de vos données', null, [tuileDonnees]));
+    if (!g || g === 'donnees') { bloc.appendChild(groupe('cGrDonnees', 'Partir de vos données', null, [tuileDonnees])); }
     if (c.depart === 'donnees' && possibles.length) {
       var selT = liste('cSourceTable', possibles.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), c.source.table);
       selT.addEventListener('change', function () { c.source.table = selT.value; c.source.colonne = colonneParDefaut(selT.value); c.source.couleur = ''; legendeDepuisSource(c); c.fiche = { table: selT.value, colonne: c.source.colonne }; rendreCreation(); var f = document.getElementById('cSourceTable'); if (f) { f.focus(); } });
@@ -6180,7 +6191,7 @@ function rendreCreation() {
   bloc.appendChild(piedEtape(ETAPES_CREATION, c.etape, aller));
   var gauche, corpsCourant;
   if (c.etape === 0) {
-    gauche = creer('div', { classe: 'w-atl-gauche' }, [creer('h2', { classe: 'w-titre-fluo', texte: 'Point de départ' }), bloc]);
+    gauche = creer('div', { classe: 'w-atl-gauche' }, [creer('h2', { classe: 'w-titre-fluo', texte: { schema: 'Quel schéma ?', atelier: 'Quel atelier ?', donnees: 'Quelles données ?' }[c.groupe] || 'Point de départ' }), bloc]);
     corpsCourant = creer('p', { classe: 'w-texte', texte: c.depart ? 'Point de départ choisi.' : 'Choisissez à gauche une feuille blanche, un modèle ou vos données.' });
   } else {
     gauche = creer('div', { classe: 'w-atl-gauche' }, [creer('h2', { classe: 'w-titre-fluo', texte: 'Aperçu' }), blocApercu(c)]);
@@ -6625,11 +6636,20 @@ function rendreAccueil(rubrique) {
     });
     return b;
   };
+  var itemCreer = function (g, texte, icone) {
+    var b = creer('button', { classe: 'w-acc__item', id: 'aCreer_' + g, attrs: { type: 'button' } }, [creer('span', { classe: 'fr-icon-' + iconeDispo([icone, 'add-line']) + ' w-acc__ico', attrs: { 'aria-hidden': 'true' } }), texte]);
+    b.addEventListener('click', function () { ouvrirCreation(g); });
+    return b;
+  };
   var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [
     creer('h2', { classe: 'w-titre-fluo', texte: 'Paramétrage' }),
     item('tableaux', 'Mes tableaux blancs', 'git-merge-line'),
     item('pages', 'Mes pages publiées', 'pages-line'),
-    creer('div', { classe: 'w-acc__creer' }, [bouton('Créer un nouveau tableau blanc', null, 'add-line', ouvrirCreation, { petit: true, id: 'aCreer' })]),
+    creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }),
+    itemCreer('vierge', 'Un tableau vierge', 'file-line'),
+    itemCreer('schema', 'Un schéma', 'git-merge-line'),
+    itemCreer('atelier', 'Un atelier', 'sticky-note-line'),
+    itemCreer('donnees', 'À partir de mes données', 'table-line'),
     creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }),
     item('droits', 'Les droits', 'lock-line')]);
   var scene = creer('div', { classe: 'w-acc__scene' });
