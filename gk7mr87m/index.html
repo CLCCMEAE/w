@@ -238,8 +238,7 @@ h2.w-section__title {margin:0}
   .w-section__aide { margin: 0 0 .5rem; }
   .w-marche[hidden] { display: none; }
   .w-wuit { color: var(--blue-france-main-525); }
-    /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
-    :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
+        :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
     .w-bandeau__role { margin-left: .5rem; white-space: nowrap; align-self: center; }
     .w-bandeau__role.fr-badge { font-size: 1rem; line-height: 2rem; min-height: 2rem; padding: 0 .75rem; }
@@ -379,8 +378,13 @@ h2.w-section__title {margin:0}
 .w-etape__corps .w-section__head { border-bottom: 0; padding-bottom: 0; justify-content: flex-end; }
 .w-etape__corps #aSecRegles { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .w-roles { display: flex; flex-direction: column; gap: .5rem; }
-.w-colonnes-perso { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .75rem; font-size: .875rem; }
-.w-colonnes-perso > li { display: inline-flex; align-items: center; }
+.w-colonnes-perso { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: .875rem; }
+.w-colonnes-perso__item { display: flex; align-items: center; gap: .25rem; padding: .125rem 0; border-bottom: 1px solid var(--border-default-grey); }
+.w-colonnes-perso__item .fr-btn { margin: 0; }
+.w-colonnes-perso__nom { flex: 1 1 auto; min-width: 0; font-weight: 700; }
+.w-colonnes-perso__item[data-editing] { display: block; padding: .5rem 0; }
+.w-colonnes-aide { display: flex; flex-direction: column; gap: .375rem; margin: 0; padding: .5rem .75rem; background: var(--background-alt-grey); font-size: .8125rem; }
+.w-colonnes-aide p { margin: 0; }
 #thAddCol.th-new-col { min-width: 0; padding: .5rem; }
 </style>
 </head>
@@ -477,7 +481,11 @@ h2.w-section__title {margin:0}
     <li class="w-etape" data-etape="colonnes" id="etape-colonnes">
      <button type="button" class="w-etape__tete" id="etape-colonnes-tete" aria-expanded="false" aria-controls="etape-colonnes-corps"><span class="w-etape__num" aria-hidden="true">2</span><span class="w-etape__textes"><span class="w-etape__nom" id="etape-colonnes-nom">Les colonnes du registre</span><span class="w-etape__resume" id="etape-colonnes-resume"></span></span></button>
      <div class="w-etape__corps" id="etape-colonnes-corps" hidden>
-      <p class="w-mention">Des colonnes en plus pour décrire chaque personne (zone, domaine, profil…). Les règles d’accès peuvent s’en servir.</p>
+      <div class="w-colonnes-aide">
+       <p><strong>Actif</strong> : la personne peut entrer dans le document. Décocher bloque aussitôt son accès, si la règle d’or est posée (étape 4) : c’est le geste à faire en urgence.</p>
+       <p><strong>Mode structure</strong> : pour un propriétaire seulement, autorise à modifier la structure du document (tables, colonnes, formules, pages). Il se referme seul après 2 heures, si les règles de structure sont posées (étape 4).</p>
+       <p><strong>Des colonnes en plus</strong> : pour décrire chaque personne et affiner ses droits. Exemple : une colonne « Zone géographique autorisée » (Europe, Afrique, Asie…) ; une règle d’accès peut alors ne montrer à chacun que les lignes de sa zone.</p>
+      </div>
       <ul class="w-colonnes-perso" id="listeColonnesPerso"></ul>
       <div id="thAddCol"></div>
       <div><button type="button" class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-add-line fr-btn--icon-left" id="btnAjouterColonne">Ajouter une colonne</button></div>
@@ -512,12 +520,12 @@ h2.w-section__title {margin:0}
      <div class="w-etape__corps" id="etape-droits-corps" hidden>
       <div class="w-aide-registre__ligne"><button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-question-line fr-btn--icon-left" id="btnAideRegistre" aria-expanded="false" aria-controls="aideRegistre">Comment fonctionne ce registre</button></div>
       <div class="w-aide-registre__corps" id="aideRegistre" hidden>
-          <p><strong>Le registre.</strong> Il affine les droits de base (Propriétaire, Éditeur, Lecture seule) donnés dans « Gérer les utilisateurs ». Avec des champs personnalisés (zone géographique, domaine…), des règles peuvent limiter chaque utilisateur à son périmètre : voir l'onglet <em>Les droits</em>.</p>
-          <p><strong>Retirer un accès en urgence.</strong> Décocher Actif bloque aussitôt l'accès de la personne, si la règle d'or est en place (onglet <em>Les droits</em>). Pour un retrait définitif, retirez aussi l'invitation dans <strong>Gérer les utilisateurs</strong> (icône de partage en haut à droite).</p>
+          <p><strong>Le registre.</strong> Il affine les droits de base (Propriétaire, Éditeur, Lecture seule) donnés dans « Gérer les utilisateurs ». Avec des champs personnalisés (zone géographique, domaine…), des règles peuvent limiter chaque utilisateur à son périmètre : voir l'étape 4.</p>
+          <p><strong>Retirer un accès en urgence.</strong> Décocher Actif bloque aussitôt l'accès de la personne, si la règle d'or est en place (étape 4). Pour un retrait définitif, retirez aussi l'invitation dans <strong>Gérer les utilisateurs</strong> (icône de partage en haut à droite).</p>
           <p><strong>Mode structure.</strong> Verrou contre les modifications de structure accidentelles par un propriétaire. Il n'agit que si les deux règles de structure sont posées dans les permissions avancées.</p>
           <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary" id="btnInfoModeAdmin" aria-expanded="false" aria-controls="infoModeAdminDetail">Voir la marche à suivre</button>
           <div id="infoModeAdminDetail" hidden>
-            <p class="fr-mt-1w"><strong>Prérequis :</strong> l'attribut utilisateur <code>Utilisateur</code> (propriété <code>user.Email</code>, table <code>BIBLIOTHEQUE_CENTRALE</code>, colonne <code>EMAIL</code>), décrit dans l'onglet Les droits.</p>
+            <p class="fr-mt-1w"><strong>Prérequis :</strong> l'attribut utilisateur <code>Utilisateur</code> (propriété <code>user.Email</code>, table <code>BIBLIOTHEQUE_CENTRALE</code>, colonne <code>EMAIL</code>), décrit à l'étape 4.</p>
             <p><strong>1.</strong> Dans le panneau de gauche du document, rubrique <strong>Outils</strong>, ouvrez <strong>Permissions avancées</strong>, puis, dans le bloc des <strong>Règles spéciales</strong>, droits de modification de la structure, ajouter la règle <code>user.Access == OWNER and user.Utilisateur.MODE_ADMIN_VALIDE == True</code> : autoriser.</p>
             <p><strong>2.</strong> Juste en dessous, pour tous les autres : refuser, avec le message « Seuls les propriétaires ayant activé leur mode structure peuvent modifier la structure du document ».</p>
             <p><strong>3.</strong> Vérifier que seuls les propriétaires peuvent modifier les lignes de la gestion des utilisateurs : règle sur <code>BIBLIOTHEQUE_CENTRALE</code>, condition <code>user.Access != OWNER and rec.WIDGET in ("Gestion des utilisateurs", "utilisateurs")</code>, refuser Modification, Création et Suppression.</p>
@@ -2814,31 +2822,7 @@ function renderTableHeader() {
         var isCore = CORE_FIELDS.some(function (cf) { return cf.id === colId; });
         var th = document.createElement('th');
         th.setAttribute('scope', 'col');
-        if (!isCore) {
-            th.style.whiteSpace = 'nowrap';
-            var spanLabel = document.createElement('span');
-            spanLabel.textContent = f ? f.label.toUpperCase() : colId.toUpperCase();
-            var btnEditCol = document.createElement('button');
-            btnEditCol.type = 'button';
-            btnEditCol.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-edit-line';
-            btnEditCol.style.cssText = 'font-size:.75rem;padding:.1rem .2rem;margin-left:.25rem;color:var(--text-action-high-blue-france);vertical-align:middle;height:auto;min-height:0;line-height:1';
-            infobulle(btnEditCol, 'Modifier ce champ');
-            btnEditCol.setAttribute('aria-label', 'Modifier le champ ' + colId);
-            (function (cid) { btnEditCol.addEventListener('click', function (e) { e.stopPropagation(); ouvrirEditionChamp(th, cid); }); })(colId);
-            var btnDelCol = document.createElement('button');
-            btnDelCol.type = 'button';
-            btnDelCol.className = 'fr-btn fr-btn--tertiary fr-btn--sm fr-icon-delete-line';
-            btnDelCol.style.cssText = 'font-size:.75rem;padding:.1rem .2rem;margin-left:.15rem;color:var(--text-default-error);vertical-align:middle;height:auto;min-height:0;line-height:1';
-            infobulle(btnDelCol, 'Supprimer ce champ');
-            btnDelCol.setAttribute('aria-label', 'Supprimer le champ ' + colId);
-            (function (cid) { btnDelCol.addEventListener('click', function (e) { e.stopPropagation(); relayer(removeCustomField(cid), 'Suppression du champ impossible'); }); })(colId);
-            th.appendChild(spanLabel);
-            th.appendChild(btnEditCol);
-            th.appendChild(btnDelCol);
-        }
-        else {
-            th.textContent = f ? f.label.toUpperCase() : colId.toUpperCase();
-        }
+        th.textContent = f ? f.label.toUpperCase() : colId.toUpperCase();
         tr.appendChild(th);
     });
     var thMeta = document.createElement('th');
@@ -5453,16 +5437,34 @@ function majResumesUt() {
     texteAvecPicto($('etape-ajout-resume'), 'ligne', pluriel(tous.length, 'utilisateur dans le registre', 'utilisateurs dans le registre'));
     texteAvecPicto($('etape-acces-resume'), null, actifs ? pluriel(actifs, 'personne active à inviter dans le document', 'personnes actives à inviter dans le document') : 'Aucune personne active pour l’instant');
     texteAvecPicto($('etape-droits-resume'), null, 'Règles d’accès et mode structure');
-    var perso = customFields.filter(function (f) { return !f.hidden; });
-    texteAvecPicto($('etape-colonnes-resume'), 'colonne', perso.length ? pluriel(perso.length, 'colonne en plus', 'colonnes en plus') + ' : ' + perso.map(function (f) { return f.label || f.id; }).join(', ') : 'Aucune colonne en plus');
+    var perso = getTableCols().filter(function (c) { return !CORE_FIELDS.some(function (cf) { return cf.id === c; }); }).map(function (c) { var f = getFieldDef(c); return { id: c, label: f ? f.label : c }; });
+    texteAvecPicto($('etape-colonnes-resume'), 'colonne', perso.length ? pluriel(perso.length, 'colonne en plus', 'colonnes en plus') + ' : ' + perso.map(function (f) { return f.label; }).join(', ') : 'Aucune colonne en plus');
     var ul = $('listeColonnesPerso');
-    if (ul) {
+    if (ul && !ul.querySelector('[data-editing]')) {
         while (ul.firstChild)
             ul.removeChild(ul.firstChild);
         perso.forEach(function (f) {
             var li = document.createElement('li');
+            li.className = 'w-colonnes-perso__item';
             li.appendChild(picto('colonne'));
-            li.appendChild(document.createTextNode(f.label || f.id));
+            var nom = document.createElement('span');
+            nom.className = 'w-colonnes-perso__nom';
+            nom.textContent = f.label;
+            li.appendChild(nom);
+            var bEd = document.createElement('button');
+            bEd.type = 'button';
+            bEd.className = 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line fr-btn--icon-only w-infobulle w-infobulle--gauche';
+            bEd.setAttribute('aria-label', 'Modifier le champ ' + f.label);
+            bEd.setAttribute('data-infobulle', 'Modifier');
+            bEd.addEventListener('click', function (e) { e.stopPropagation(); ouvrirEditionChamp(li, f.id); });
+            var bDel = document.createElement('button');
+            bDel.type = 'button';
+            bDel.className = 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line fr-btn--icon-only w-infobulle w-infobulle--gauche';
+            bDel.setAttribute('aria-label', 'Supprimer le champ ' + f.label);
+            bDel.setAttribute('data-infobulle', 'Supprimer');
+            bDel.addEventListener('click', function (e) { e.stopPropagation(); relayer(removeCustomField(f.id), 'Suppression du champ impossible'); });
+            li.appendChild(bEd);
+            li.appendChild(bDel);
             ul.appendChild(li);
         });
         ul.hidden = !perso.length;
@@ -5846,16 +5848,16 @@ var AIDE = {
     avant: ['Le registre ne donne aucun accès à lui seul : chaque personne doit aussi être invitée dans « Gérer les utilisateurs » (icône de partage en haut à droite du document).', 'Les règles d\'accès se posent par un propriétaire, dans « Permissions avancées » (panneau de gauche du document, rubrique « Outils »).'],
     etapes: {
         'Ajouter des utilisateurs': { titre: 'les adresses des personnes.', points: ['Collez une ou plusieurs adresses, séparées comme vous voulez, puis « Ajouter ».', 'Chaque personne arrive en « Demande à étudier », non active : choisissez son rôle et activez-la dans le tableau, à droite.'] },
-        'Les colonnes du registre': { titre: 'des colonnes en plus pour chaque personne.', points: ['« Ajouter une colonne » : son nom, son type (texte, choix, date, référence…), puis « Valider ».', 'Pour renommer ou supprimer une colonne, utilisez le crayon et la corbeille dans son en-tête, au-dessus du tableau.'] },
+        'Les colonnes du registre': { titre: 'des colonnes en plus pour chaque personne.', points: ['« Ajouter une colonne » : son nom, son type (texte, choix, date, référence…), puis « Valider ».', 'Pour renommer ou supprimer une colonne, utilisez le crayon et la corbeille à côté de son nom, dans cette étape.'] },
         'Ouvrir l’accès au document': { titre: 'étape obligatoire.', points: ['« Copier les emails actifs ».', 'Icône de partage en haut à droite, menu « Gérer les utilisateurs » : la fenêtre « Inviter des personnes » s\'ouvre. « Invitation multiple », collez les adresses, choisissez l\'accès, puis « Confirmer ».'] },
         'Poser les règles d’accès': { titre: 'les règles qui lisent le registre.', points: ['L\'assistant indique ce qui manque et prépare les conditions à copier.', 'Un propriétaire les saisit dans « Permissions avancées ».'] },
         'Les utilisateurs': { titre: 'le registre, à droite.', points: ['Recherchez et filtrez par statut, rôle, type ou actif.', 'Chaque case se modifie directement dans le tableau.'] }
     },
     questions: [
-        { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'onglet « Les droits ».' },
-        { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'onglet « Les droits », cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est à l\'étape « Ouvrir l’accès au document ».' },
+        { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès de l\'étape « Poser les règles d’accès », cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
         { q: 'Pourquoi une personne du registre ne voit-elle pas le document ?', r: 'Elle n\'a pas encore été invitée dans « Gérer les utilisateurs », ou elle n\'est pas active alors que les règles d\'accès s\'appuient sur le registre.' },
-        { q: 'Comment retirer un accès en urgence ?', r: 'Décochez « Actif » : l\'accès est bloqué aussitôt si la règle d\'or est en place (onglet « Les droits »). Retirez aussi l\'invitation dans « Gérer les utilisateurs ».' },
+        { q: 'Comment retirer un accès en urgence ?', r: 'Décochez « Actif » : l\'accès est bloqué aussitôt si la règle d\'or est en place (étape « Poser les règles d’accès »). Retirez aussi l\'invitation dans « Gérer les utilisateurs ».' },
         { q: 'À quoi sert le mode structure ?', r: 'C\'est un verrou contre les modifications de structure accidentelles par un propriétaire. Il n\'agit que si les règles de structure sont posées, et se referme seul après 2 heures.' }
     ]
 };
