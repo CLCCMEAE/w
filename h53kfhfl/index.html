@@ -1982,7 +1982,7 @@ async function enregistrerDisposition() {
     preparerExport();
     var config = {
         champs: etat.champsSelectionnes.slice(),
-        filtres: etat.filtres,
+        filtres: filtresSansVides(etat.filtres),
         tri: etat.triCourant,
         options: { nomFichier: etat.options.nomFichier, horodatage: etat.options.horodatage },
         tablesAExporter: etat.tablesAExporter.slice(),
@@ -2307,6 +2307,21 @@ function anciensDepuisRacine(r) {
     }
     return r.items.map(function (x, i) { return groupe(x.groupe ? x.items.slice() : [x], x.groupe ? x.conj : 'et', i === 0 ? 'et' : r.conj); });
 }
+function filtresSansVides(f) {
+    var copie = JSON.parse(JSON.stringify(f || {}));
+    var nettoyer = function (n) {
+        n.items = (n.items || []).filter(function (x) {
+            if (x.groupe) {
+                nettoyer(x);
+                return x.items.length > 0;
+            }
+            return !!x.colId;
+        });
+    };
+    if (copie.racine)
+        nettoyer(copie.racine);
+    return copie;
+}
 function racineFiltres() {
     if (!etat.filtres.racine) {
         etat.filtres.racine = convertirAnciensFiltres(etat.filtres.groupes);
@@ -2414,6 +2429,8 @@ function afficherFiltresPanneau() {
     if (!container)
         return;
     var r = racineFiltres();
+    if (!r.items.length)
+        r.items.push(nouveauFiltre());
     Array.from(container.children).forEach(function (x) {
         if (x.id !== 'aucun-filtre-message')
             container.removeChild(x);
@@ -3454,7 +3471,7 @@ async function selectionnerTable(tableId) {
         etat.parametragesParBase[etat.baseSelectionnee] = {
             champsSelectionnes: etat.champsSelectionnes.slice(),
             champsDisponibles: etat.champsDisponibles.slice(),
-            filtres: JSON.parse(JSON.stringify(etat.filtres)),
+            filtres: filtresSansVides(etat.filtres),
             triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
         };
     }
@@ -3842,7 +3859,7 @@ function preparerExport() {
         etat.parametragesParBase[etat.baseSelectionnee] = {
             champsSelectionnes: etat.champsSelectionnes.slice(),
             champsDisponibles: etat.champsDisponibles.slice(),
-            filtres: JSON.parse(JSON.stringify(etat.filtres)),
+            filtres: filtresSansVides(etat.filtres),
             triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
         };
     }
@@ -4317,7 +4334,7 @@ async function _sauverBrouillonAsync() {
             etat.parametragesParBase[etat.baseSelectionnee] = {
                 champsSelectionnes: etat.champsSelectionnes.slice(),
                 champsDisponibles: etat.champsDisponibles.slice(),
-                filtres: JSON.parse(JSON.stringify(etat.filtres)),
+                filtres: filtresSansVides(etat.filtres),
                 triCourant: { colId: etat.triCourant.colId, ordre: etat.triCourant.ordre }
             };
         }
