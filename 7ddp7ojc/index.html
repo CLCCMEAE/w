@@ -968,6 +968,13 @@
     .w-acc__plus { display: flex; align-items: center; justify-content: center; min-height: 10rem; border: 0; background: transparent; color: var(--text-action-high-blue-france); cursor: pointer; }
     .w-acc__plus span::before { --icon-size: 3rem; }
     .w-acc__plus:hover { background: var(--background-alt-grey-hover); }
+    .w-atl-etapes { gap: 0; }
+    .w-atl-etape--num { position: relative; }
+    .w-atl-etape--num::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2.25rem; bottom: -.5rem; border-left: 1px solid var(--border-action-high-blue-france); }
+    .w-atl-etape--num:has(+ .w-atl-etape--separee)::before, .w-atl-etape--num:last-child::before { display: none; }
+    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
+    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
+    .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
 </style>
 </head>
 <body>
@@ -1016,7 +1023,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 11;
+var ESSAI_WIDGET = 12;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -6764,7 +6771,7 @@ function listeEtapesAtelier(items, ouverte, aller, idBase) {
       it.num ? creer('span', { classe: 'w-atl-etape__num', attrs: { 'aria-hidden': 'true' }, texte: it.num }) : creer('span', { classe: 'w-atl-etape__ico fr-icon-' + it.icone, attrs: { 'aria-hidden': 'true' } }),
       creer('span', { classe: 'w-atl-etape__textes' }, [creer('span', { classe: 'w-atl-etape__nom', texte: it.nom }), it.resume ? creer('span', { classe: 'w-atl-etape__resume', texte: it.resume }) : null])]);
     tete.addEventListener('click', function () { if (it.verrou) { if (it.message) { signalerSaisie(it.message); } return; } if (!on) { aller(it.cle); } });
-    var li = creer('li', { classe: 'w-atl-etape' + (on ? ' w-atl-etape--ouverte' : '') + (it.verrou ? ' w-atl-etape--verrouillee' : '') + (it.separe ? ' w-atl-etape--separee' : '') }, [tete]);
+    var li = creer('li', { classe: 'w-atl-etape' + (on ? ' w-atl-etape--ouverte' : '') + (it.verrou ? ' w-atl-etape--verrouillee' : '') + (it.separe ? ' w-atl-etape--separee' : '') + (it.num ? ' w-atl-etape--num' : '') }, [tete]);
     if (on && it.corps) {
       var c = it.corps();
       var h = c && c.querySelector ? c.querySelector('.w-titre-colonne') : null;
@@ -6777,7 +6784,7 @@ function listeEtapesAtelier(items, ouverte, aller, idBase) {
           var t2 = sec.querySelector('.w-titre-colonne');
           if (t2 && /Les droits$/.test(t2.textContent.trim())) { sec.parentNode.removeChild(sec); }
         });
-        Array.prototype.forEach.call(c.querySelectorAll('.w-num'), function (n, k) { n.textContent = String(k + 1); });
+        Array.prototype.forEach.call(c.querySelectorAll('.w-num'), function (n) { n.parentNode.removeChild(n); });
       }
       li.appendChild(creer('div', { classe: 'w-atl-etape__corps' }, [c]));
     }
