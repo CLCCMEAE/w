@@ -343,7 +343,8 @@ h2.w-section__title {margin:0}
 @media (max-width: 70em) { .w-cadre-filtres { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); } }
 .w-cadre-filtres > div { min-width: 0; margin: 0; }
 .w-cadre-filtres > div.fr-select-group:not(:last-child), .w-cadre-filtres > div.fr-input-group:not(:last-child), .w-cadre-filtres > div.fr-select-group, .w-cadre-filtres > div.fr-input-group { margin-bottom: 0; }
-.w-sorties-bas { flex: none; display: flex; justify-content: flex-end; gap: .25rem; }
+.w-sorties-bas { flex: none; display: flex; align-items: center; gap: .25rem; }
+.w-pousse { flex: 1 1 auto; }
 .w-sorties-bas .fr-btn { margin: 0; }
 .w-cadre-filtres .fr-label { font-size: .8125rem; }
 .w-cadre-filtres .fr-select, .w-cadre-filtres .fr-input { margin-top: .25rem; padding-top: .375rem; padding-bottom: .375rem; font-size: .875rem; }
@@ -369,7 +370,7 @@ h2.w-section__title {margin:0}
 }
 @media print {
   body { height: auto; overflow: visible; display: block; }
-  .w-constr__panneau, .w-cadre-filtres, .w-cadre-outils .fr-btn, .w-sorties-bas { display: none !important; }
+  .w-constr__panneau, .w-cadre-filtres, .w-cadre-outils .fr-btn, .w-sorties-bas .fr-btn { display: none !important; }
   .w-corps__contenu, #mainScreen, .w-constr, .w-constr__corps, .w-tableau-zone { display: block !important; overflow: visible !important; }
   .w-constr__resultat, .w-tableau-zone .tableWrap { overflow: visible !important; max-height: none !important; }
 }
@@ -443,8 +444,6 @@ h2.w-section__title {margin:0}
      <div class="fr-select-group"><label class="fr-label" for="filtreActif">Autorisé</label><select class="fr-select" id="filtreActif" autocomplete="off"><option value="">Tous</option><option value="oui">Oui</option><option value="non">Non</option></select></div>
     </div>
     <div class="w-cadre-outils">
-     <span class="w-compteur" id="countUsers"></span>
-     <span class="w-compteur" id="countActifs"></span>
      <p class="w-note-admin" id="alerteModeAdmin" role="status" hidden><span class="fr-icon-lock-unlock-line fr-icon--sm" aria-hidden="true"></span> <span id="alerteModeAdminTexte"></span></p>
     </div>
    </div>
@@ -461,7 +460,9 @@ h2.w-section__title {margin:0}
           </table>
         </div>
    </div>
-   <div class="w-sorties-bas" role="group" aria-label="Imprimer et exporter">
+   <div class="w-sorties-bas">
+     <span class="w-compteur" id="countUsers" aria-live="polite"></span>
+     <span class="w-pousse"></span>
      <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-printer-line fr-btn--icon-only w-infobulle w-infobulle--gauche" id="btnImprimer" aria-label="Imprimer" data-infobulle="Imprimer"></button>
      <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-download-line fr-btn--icon-only w-infobulle w-infobulle--gauche" id="btnExporterCsv" aria-label="Exporter en CSV" data-infobulle="Exporter en CSV"></button>
    </div>
@@ -1349,7 +1350,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 9;
+var ESSAI_WIDGET = 11;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5595,7 +5596,6 @@ function majResumesUt() {
         });
         ul.hidden = !perso.length;
     }
-    texteAvecPicto($('countActifs'), null, pluriel(actifs, 'autorisé', 'autorisés'));
 }
 function appliquerRecherche() {
     remplirFiltres();
@@ -5603,6 +5603,7 @@ function appliquerRecherche() {
     var filtre = champRecherche ? (champRecherche.value || '').toLowerCase().trim() : '';
     var rows = document.querySelectorAll('#tbody tr');
     var visible = 0;
+    var autorisesVisibles = 0;
     var filtresActifs = !!filtre || FILTRES_UT.concat([['filtreActif']]).some(function (f) { var x = $(f[0]); return !!(x && x.value); });
     for (var i = 0; i < rows.length; i++) {
         var texte = rows[i].textContent.toLowerCase();
@@ -5622,10 +5623,14 @@ function appliquerRecherche() {
         }
         var show = (!filtre || texte.indexOf(filtre) !== -1) && ligneRetenueParFiltres(rec);
         rows[i].style.display = show ? '' : 'none';
-        if (show)
+        if (show) {
             visible++;
+            var cbAut = rows[i].querySelector('td[data-col="ACTIF"] input[type=checkbox]');
+            if (cbAut ? cbAut.checked : (rec && rec.ACTIF))
+                autorisesVisibles++;
+        }
     }
-    texteAvecPicto($('countUsers'), 'ligne', pluriel(visible, 'utilisateur', 'utilisateurs') + (filtresActifs ? ' sur ' + rows.length : ''));
+    texteAvecPicto($('countUsers'), 'ligne', pluriel(autorisesVisibles, 'utilisateur autorisé', 'utilisateurs autorisés') + (autorisesVisibles !== visible ? ' sur ' + visible : ''));
     majResumesUt();
 }
 function celluleCsv(v) {
@@ -5669,6 +5674,11 @@ function exporterCsv() {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 ecouter('filtreActif', 'change', appliquerRecherche);
+ecouter('tbody', 'change', function (e) {
+    if (e.target && e.target.closest && e.target.closest('td[data-col="ACTIF"], td[data-col="STATUT"]')) {
+        setTimeout(appliquerRecherche, 0);
+    }
+});
 ecouter('btnImprimer', 'click', function () { window.print(); });
 ecouter('btnExporterCsv', 'click', exporterCsv);
 ecouter('searchUsers', 'input', appliquerRecherche);
