@@ -253,7 +253,8 @@
     .gb-constr__etiquette { display: flex; align-items: center; gap: .125rem; }
     .gb-constr__etiquette .fr-btn { margin: 0; }
     .w-reglages { display: flex; gap: 1.5rem; align-items: flex-start; }
-    .w-reglages__nav { flex: 0 0 15rem; position: sticky; top: 0; }
+    .w-reglages__nav { flex: 0 0 15rem; position: sticky; top: 0; display: flex; flex-direction: column; gap: .75rem; }
+    .gb-accueil__titre { margin-bottom: .5rem; }
     .w-reglages__corps { flex: 1 1 0; min-width: 0; }
     .w-reglages__nav .gb-acc__tete { width: 100%; text-align: left; }
     .w-reglages__nav .gb-acc__tete::after { display: none !important; }
@@ -812,6 +813,7 @@
   .w-wuit { color: var(--blue-france-main-525); }
     .w-bandeau__role { margin-left: .5rem; white-space: nowrap; align-self: center; }
     .w-bandeau__role.fr-badge { font-size: 1rem; line-height: 2rem; min-height: 2rem; padding: 0 .75rem; }
+    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
     @media (max-width: 30em) { .w-bandeau__role.fr-badge { font-size: .75rem; line-height: 1rem; min-height: 1rem; padding: 0 .375rem; } }
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
@@ -929,7 +931,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 1;
+var ESSAI_WIDGET = 2;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
     return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
@@ -11645,7 +11647,8 @@ function rendreDepart(bloc) {
     if (!rubriques.some(function (r) { return r.cle === b.rubrique; })) {
         b.rubrique = 'pages';
     }
-    var menu = creer('nav', { classe: 'gb-accueil__menu', attrs: { 'aria-label': 'Accueil' } });
+    var menu = creer('nav', { classe: 'gb-accueil__menu', attrs: { 'aria-label': 'Paramétrage' } });
+    menu.appendChild(creer('p', { classe: 'gb-resultat__titre gb-titre-param gb-accueil__titre', texte: 'Paramétrage' }));
     rubriques.forEach(function (r, k) {
         if (k === 1) {
             menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: 'Créer' }));
@@ -11986,7 +11989,7 @@ function rendreReglages(zone) {
     if (!sections.some(function (g) { return g.cle === _sectionReglages; })) {
         _sectionReglages = sections[0].cle;
     }
-    var nav = creer('div', { classe: 'gb-acc w-reglages__nav', attrs: { role: 'list' } });
+    var nav = creer('div', { classe: 'gb-acc', attrs: { role: 'list', 'aria-labelledby': 'rTitreParam' } });
     var corps = creer('div', { classe: 'w-reglages__corps', id: 'rCorps' });
     sections.forEach(function (g, k) {
         var ouvert = _sectionReglages === g.cle;
@@ -12006,7 +12009,7 @@ function rendreReglages(zone) {
         });
         nav.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt]));
     });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'w-reglages' }, [nav, corps])]));
+    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'w-reglages' }, [creer('div', { classe: 'w-reglages__nav' }, [creer('p', { classe: 'gb-resultat__titre gb-titre-param', id: 'rTitreParam', texte: 'Paramétrage' }), nav]), corps])]));
 }
 function nomElementValide() {
     var b = etat.construction.b;
