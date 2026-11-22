@@ -307,6 +307,27 @@
     .w-etape--verrouillee .w-etape__tete { cursor: not-allowed; }
     .w-etape--verrouillee .w-etape__nom, .w-etape--verrouillee .w-etape__resume { color: var(--text-disabled-grey); }
     .w-etape--verrouillee .w-etape__num { background: var(--background-disabled-grey); color: var(--text-disabled-grey); border-color: var(--border-disabled-grey); }
+    .w-filtres__ligne { display: flex !important; align-items: flex-start; gap: .5rem; }
+    .w-filtres__ligne > .w-filtres__conj, .w-filtres__ligne > .w-filtres__conj-choix { flex: none; width: 3.75rem; }
+    .w-filtres__conj { color: var(--text-default-grey); padding-top: .375rem; }
+    .w-filtres__conj-choix { border: 0; box-shadow: none; background-color: transparent; }
+    .w-filtres__ligne .csnc-condition-ligne, .w-etape__corps .w-filtres__ligne .csnc-condition-ligne { flex: 1 1 auto; min-width: 0; max-width: 40rem; display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-filtres__ligne .csnc-condition-ligne > * { border-right: 1px solid var(--border-default-grey); }
+    .w-filtres__ligne .csnc-condition-ligne > :last-child { border-right: 0; }
+    .w-filtres__ligne .csnc-condition-ligne > .fr-select-group:nth-child(1) { flex: 1 1 9rem; min-width: 7rem; }
+    .w-filtres__ligne .csnc-condition-ligne > .fr-select-group:nth-child(2) { flex: 1 1 8rem; min-width: 6rem; }
+    .w-filtres__ligne .csnc-condition-ligne > .fr-input-group { flex: 2 1 11rem; min-width: 9rem; position: relative; }
+    .w-filtres__ligne .fr-select, .w-filtres__ligne .fr-input, .w-filtres__ligne .w-multi__bouton { height: 2rem; min-height: 2rem; margin: 0; padding: .25rem 1.75rem .25rem .5rem; font-size: .875rem; box-shadow: none; border: 0; border-radius: 0; background-color: transparent; background-position: calc(100% - .5rem) 50%; }
+    .w-filtres__ligne .fr-input { padding-right: .5rem; }
+    .w-filtres__ligne .w-multi__bouton { height: auto; }
+    .w-filtres__ligne .csnc-condition-ligne > .fr-btn, .w-af__btn { flex: none; width: 2rem; min-height: 2rem; margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; }
+    .w-af__poignee { color: var(--text-mention-grey); cursor: grab; font-size: 1rem; }
+    .w-filtres__ligne--groupe > .w-filtres__groupe { flex: 1 1 auto; min-width: 0; max-width: 44rem; }
+    .w-filtres__groupe-titre { color: var(--text-mention-grey); }
+    .w-multi__puce--grist { padding: 0 .375rem; }
+    #filtres-ajouts[hidden] { display: none; }
+    .w-toutes-lignes { margin-bottom: .5rem; }
+    .w-filtres--inactif { opacity: .45; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -414,15 +435,15 @@
             </div>
           </li>
           <li class="w-etape" data-etape="lignes" id="etape-lignes">
-            <button type="button" class="w-etape__tete" id="etape-lignes-tete" aria-expanded="false" aria-controls="etape-lignes-corps"><span class="w-etape__num" aria-hidden="true">3</span><span class="w-etape__textes"><span class="w-etape__nom">Les lignes</span><span class="w-etape__resume" id="etape-lignes-resume"></span></span></button>
+            <button type="button" class="w-etape__tete" id="etape-lignes-tete" aria-expanded="false" aria-controls="etape-lignes-corps"><span class="w-etape__num" aria-hidden="true">3</span><span class="w-etape__textes"><span class="w-etape__nom">Quelles lignes exporter ?</span><span class="w-etape__resume" id="etape-lignes-resume"></span></span></button>
             <div class="w-etape__corps" id="etape-lignes-corps" hidden>
               <p class="w-etape__feuille" id="feuilleLignes"></p>
-              <p class="w-mention">Garder les lignes</p>
+              <div class="fr-checkbox-group fr-checkbox-group--sm w-toutes-lignes"><input type="checkbox" id="cb-toutes-lignes" autocomplete="off"><label class="fr-label" for="cb-toutes-lignes">Toutes les lignes</label></div>
               <div id="groupes-container">
               <p class="csnc-aucun-filtre" id="aucun-filtre-message">Toutes les lignes sont gardées.</p>
             </div>
-            <div class="csnc-actions-ligne fr-mt-2w">
-              <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-condition">Ajouter un filtre</button>
+            <div class="csnc-actions-ligne fr-mt-2w" id="filtres-ajouts">
+              <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-condition">Ajouter un filtre</button>
               <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-groupe">Ajouter un groupe de filtres</button>
             </div>
               <p class="w-mention w-filtres__phrase" id="filtres-phrase" hidden></p>
@@ -505,7 +526,7 @@ var SOCLE = {
                 ]
             },
             {
-                "nom": "Les lignes",
+                "nom": "Quelles lignes exporter ?",
                 "titre": "étape 3 : gardez seulement certaines lignes.",
                 "points": [
                     "Chaque filtre se lit comme une phrase : « Où » une colonne, un filtre, une valeur. Pour une liste de choix, cochez une ou plusieurs valeurs.",
@@ -814,6 +835,7 @@ function brancherSocle() {
 </script>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
+var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function echapperHTML(texte) {
     if (!texte && texte !== 0)
@@ -1665,12 +1687,14 @@ async function chargerMetadonneesColonnes() {
                     continue;
                 if (estTableExclue(tableId))
                     continue;
-                var choix = null;
+                var choix = null, couleurs = null;
                 if (widgetOpt) {
                     try {
                         var opts = JSON.parse(widgetOpt);
                         if (opts && Array.isArray(opts.choices))
                             choix = opts.choices.slice();
+                        if (opts && opts.choiceOptions && typeof opts.choiceOptions === 'object')
+                            couleurs = opts.choiceOptions;
                     }
                     catch (e) {
                         logSecurite('AVERTISSEMENT', 'Options de colonne illisibles pour ' + tableId + '.' + colId, e);
@@ -1678,7 +1702,7 @@ async function chargerMetadonneesColonnes() {
                 }
                 if (!mapping[tableId])
                     mapping[tableId] = [];
-                mapping[tableId].push({ colId: colId, label: label || colId, type: type || 'Text', choix: choix, visibleCol: visibleCol });
+                mapping[tableId].push({ colId: colId, label: label || colId, type: type || 'Text', choix: choix, couleurs: couleurs, visibleCol: visibleCol });
             }
         }
         etat.metadonneesColonnes = mapping;
@@ -2408,16 +2432,18 @@ function rendreNoeudFiltres(n, niveau) {
         if (x.groupe) {
             var boite = el('div', { class: 'w-filtres__groupe', role: 'group', 'aria-label': 'Groupe de filtres' });
             var ajouts = [{ libelle: 'Ajouter un filtre au groupe', icone: 'add-line', id: 'gAjF' + x.id, action: function () { x.items.push(nouveauFiltre()); apresChangementFiltres(); } }];
-            if (niveau + 1 < 2) {
+            if (niveau + 1 < 3) {
                 ajouts.push({ libelle: 'Ajouter un groupe de filtres', icone: 'add-line', id: 'gAjG' + x.id, action: function () { x.items.push({ id: nouvelIdFiltre(), groupe: true, conj: 'et', items: [nouveauFiltre()] }); apresChangementFiltres(); } });
             }
             var bSup = el('button', { type: 'button', class: 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line fr-btn--icon-only w-infobulle w-infobulle--gauche', 'aria-label': 'Supprimer ce groupe de filtres', 'data-infobulle': 'Supprimer le groupe' });
             bSup.addEventListener('click', function () { retirerFiltre(x.id); });
-            var titreGroupe = x.items.length > 1 ? (x.conj === 'ou' ? 'Groupe : au moins un filtre' : 'Groupe : tous les filtres') : 'Groupe';
+            var titreGroupe = x.conj === 'ou' ? 'Au moins un des filtres suivants est vrai…' : 'Tous les filtres suivants sont vrais…';
             boite.appendChild(el('div', { class: 'w-filtres__groupe-tete' }, el('span', { class: 'w-filtres__groupe-titre', text: titreGroupe }),
                 el('span', { class: 'w-filtres__groupe-outils' }, menuActions('Ajouter au groupe', 'gAj' + x.id, ajouts, 'add-line', 'Ajouter'), bSup)));
             boite.appendChild(rendreNoeudFiltres(x, niveau + 1));
-            liste.appendChild(el('div', { class: 'w-filtres__ligne w-filtres__ligne--groupe' }, pref, boite));
+            var ligneGroupe = el('div', { class: 'w-filtres__ligne w-filtres__ligne--groupe' }, pref, boite);
+            boite.querySelector('.w-filtres__groupe-outils').appendChild(poigneeFiltre(n, x, ligneGroupe, 'grp-poignee-' + x.id));
+            liste.appendChild(ligneGroupe);
         }
         else {
             liste.appendChild(construireConditionLigne(n, x, pref));
@@ -2431,16 +2457,49 @@ function afficherFiltresPanneau() {
     if (!container)
         return;
     var r = racineFiltres();
-    if (!r.items.length)
+    if (etat.filtres.toutesLignes === undefined)
+        etat.filtres.toutesLignes = !listerConditions(etat.filtres).length;
+    var toutes = etat.filtres.toutesLignes;
+    var cbT = document.getElementById('cb-toutes-lignes');
+    if (cbT && !cbT._branche) {
+        cbT._branche = true;
+        cbT.addEventListener('change', function () {
+            etat.filtres.toutesLignes = cbT.checked;
+            var rr = racineFiltres();
+            rr.items = cbT.checked ? [] : [nouveauFiltre()];
+            apresChangementFiltres();
+            if (!cbT.checked) {
+                var c = document.querySelector('#groupes-container select');
+                if (c)
+                    c.focus();
+            }
+        });
+    }
+    if (cbT)
+        cbT.checked = toutes;
+    var ajouts = document.getElementById('filtres-ajouts');
+    if (ajouts) {
+        ajouts.hidden = false;
+        ajouts.inert = toutes;
+        ajouts.classList.toggle('w-filtres--inactif', toutes);
+    }
+    container.inert = toutes;
+    container.classList.toggle('w-filtres--inactif', toutes);
+    if (toutes)
+        r.items = [];
+    else if (!r.items.length)
         r.items.push(nouveauFiltre());
     Array.from(container.children).forEach(function (x) {
         if (x.id !== 'aucun-filtre-message')
             container.removeChild(x);
     });
     if (msgVide)
-        msgVide.style.display = r.items.length ? 'none' : '';
+        msgVide.style.display = 'none';
     if (r.items.length) {
         container.appendChild(rendreNoeudFiltres(r, 0));
+    }
+    else if (toutes) {
+        container.appendChild(rendreNoeudFiltres({ conj: 'et', items: [{ id: 'inactif', colId: '', operateur: 'contient', valeur: '' }] }, 0));
     }
     var phrase = document.getElementById('filtres-phrase');
     if (phrase) {
@@ -2621,7 +2680,7 @@ function construireConditionLigne(parent, cond, prefixe) {
                 if (!cond.valeurs.length) {
                     boutonMulti.appendChild(el('span', { class: 'w-multi__vide', text: 'Choisir…' }));
                 }
-                cond.valeurs.forEach(function (v) { boutonMulti.appendChild(el('span', { class: 'w-multi__puce', text: v })); });
+                cond.valeurs.forEach(function (v) { boutonMulti.appendChild(pastilleChoix(col, v)); });
                 boutonMulti.setAttribute('aria-label', 'Valeurs : ' + (cond.valeurs.length ? cond.valeurs.join(', ') : 'aucune'));
             };
             var boite = el('div', { class: 'csnc-valeurs-multi w-multi__panneau', id: 'cond-val-' + cond.id + '-liste', role: 'group', 'aria-label': 'Valeurs de ' + col.label });
@@ -2665,7 +2724,7 @@ function construireConditionLigne(parent, cond, prefixe) {
                     afficherFiltresTags();
                     rafraichirPreview();
                 });
-                boite.appendChild(el('div', { class: 'csnc-valeurs-multi__item' }, cbv, el('label', { for: idc, text: v })));
+                boite.appendChild(el('div', { class: 'csnc-valeurs-multi__item' }, cbv, el('label', { for: idc }, pastilleChoix(col, v))));
             });
             majBoutonMulti();
             multi.appendChild(boutonMulti);
@@ -2749,10 +2808,62 @@ function construireConditionLigne(parent, cond, prefixe) {
     corps.appendChild(grpCol);
     corps.appendChild(grpOp);
     corps.appendChild(grpVal);
+    corps.appendChild(btnSup);
+    corps.appendChild(poigneeFiltre(parent, cond, ligne, 'cond-poignee-' + cond.id));
     ligne.appendChild(prefixe);
     ligne.appendChild(corps);
-    ligne.appendChild(btnSup);
     return ligne;
+}
+function pastilleChoix(col, v) {
+    var sp = el('span', { class: 'w-multi__puce', text: v });
+    var o = col && col.couleurs && col.couleurs[v];
+    if (o && (o.fillColor || o.textColor)) {
+        sp.classList.add('w-multi__puce--grist');
+        if (o.fillColor)
+            sp.style.backgroundColor = o.fillColor;
+        if (o.textColor)
+            sp.style.color = o.textColor;
+        if (o.fontBold)
+            sp.style.fontWeight = '700';
+    }
+    return sp;
+}
+var _glisseFiltre = null;
+function poigneeFiltre(parent, x, ligne, id) {
+    var b = el('button', { type: 'button', class: 'w-af__btn w-af__poignee w-infobulle w-infobulle--gauche', id: id, text: '\u283f', 'aria-label': 'Déplacer (flèches haut et bas)', 'data-infobulle': 'Déplacer' });
+    b.addEventListener('keydown', function (e) {
+        var i = parent.items.indexOf(x);
+        var cible = e.key === 'ArrowUp' ? i - 1 : e.key === 'ArrowDown' ? i + 1 : -1;
+        if (cible < 0 || cible >= parent.items.length)
+            return;
+        e.preventDefault();
+        parent.items.splice(cible, 0, parent.items.splice(i, 1)[0]);
+        apresChangementFiltres();
+        var f = document.getElementById(id);
+        if (f)
+            f.focus();
+    });
+    b.addEventListener('mousedown', function () { ligne.draggable = true; });
+    ligne.addEventListener('dragstart', function (e) { _glisseFiltre = { parent: parent, x: x }; e.dataTransfer.effectAllowed = 'move'; try {
+        e.dataTransfer.setData('text/plain', 'filtre');
+    }
+    catch (er) { } e.stopPropagation(); });
+    ligne.addEventListener('dragend', function () { ligne.draggable = false; _glisseFiltre = null; });
+    ligne.addEventListener('dragover', function (e) { if (_glisseFiltre && _glisseFiltre.parent === parent) {
+        e.preventDefault();
+        e.stopPropagation();
+    } });
+    ligne.addEventListener('drop', function (e) {
+        if (!_glisseFiltre || _glisseFiltre.parent !== parent || _glisseFiltre.x === x)
+            return;
+        e.preventDefault();
+        e.stopPropagation();
+        var de = parent.items.indexOf(_glisseFiltre.x), vers = parent.items.indexOf(x);
+        parent.items.splice(vers, 0, parent.items.splice(de, 1)[0]);
+        _glisseFiltre = null;
+        apresChangementFiltres();
+    });
+    return b;
 }
 function obtenirValeursColonne(col, lignes) {
     if (col && Array.isArray(col.choix) && col.choix.length > 0)
@@ -4464,7 +4575,7 @@ brancherSocle();
 (function () {
     var v = document.getElementById('bandeauVersion');
     if (v)
-        v.textContent = 'v' + VERSION_WIDGET;
+        v.textContent = 'v' + VERSION_WIDGET + (ESSAI_WIDGET ? ' · essai ' + ESSAI_WIDGET : '');
     var badge = document.getElementById('bandeauHomologue');
     if (badge)
         badge.hidden = !HOMOLOGUE;
