@@ -983,7 +983,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 3;
+var ESSAI_WIDGET = 4;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -3299,7 +3299,7 @@ function rendrePrincipal() {
     creer('span', { classe: 'w-zoom', id: 'vZoom', attrs: { 'aria-live': 'off' } }),
     bouton('Zoomer', 'discret', null, function () { zoomerCentre(1.2); }, { svg: 'plus', id: 'bZoomer' }),
     bouton('Recentrer', 'discret', null, function () { recentrer(); }, { svg: 'recentrer', id: 'bRecentrer' }),
-    etat.peutModifier ? bouton('Ranger le schéma', 'discret', null, function (ev) { ouvrirRanger(ev.currentTarget); }, { svg: 'ranger', id: 'bRanger', attrs: { 'aria-haspopup': 'true' } }) : null,
+    etat.peutModifier ? bouton('Ranger', 'tertiaire', iconeDispo(['layout-masonry-line', 'layout-grid-line', 'node-tree']), function (ev) { ouvrirRanger(ev.currentTarget); }, { petit: true, id: 'bRanger', attrs: { 'aria-haspopup': 'true', title: 'Ranger le schéma' } }) : null,
     bouton(etat.agrandi ? 'Quitter le plein écran' : 'Plein écran', 'discret', null, basculerPleinEcran, { svg: 'plein', id: 'bPlein', classe: 'w-bulle--droite' })]));
   var barre = creer('div', { classe: 'w-barre' }, [creer('div', { classe: 'w-barre__gauche' }, [
     creer('h2', { classe: 'fr-h5 w-titre-vue', id: 'titreVue', texte: t.nom, attrs: { tabindex: '-1' } }),
@@ -4784,31 +4784,33 @@ function selectionnerDessous(id, x, y) {
   return true;
 }
 
-/* Arriere-plan : l'element passe sous les autres (au-dessus des sections). */
-async function arrierePlan() {
-  var sel = elementsSelectionnes().filter(function (e) { return e.type !== 'Section'; });
-  if (!sel.length) { annoncer('Les sections restent toujours sous les autres éléments.'); return; }
-  var tous = elementsDuTableau().filter(function (e) { return e.type !== 'Section'; });
-  var min = tous.reduce(function (m, e) { return Math.min(m, e.ordre || 0); }, Infinity);
+/* Premier plan et arriere-plan : chaque element change de rang parmi ceux de
+   sa sorte ; les sections restent sous les autres elements, mais se
+   superposent entre elles. */
+async function changerPlan(premier) {
+  var sel = elementsSelectionnes();
+  if (!sel.length) { return; }
+  var tous = elementsDuTableau();
   var avant = sel.map(function (e) { return e.ordre; });
-  sel.forEach(function (e, i) { e.ordre = min - sel.length + i; });
+  [true, false].forEach(function (section) {
+    var lot = sel.filter(function (e) { return (e.type === 'Section') === section; });
+    if (!lot.length) { return; }
+    var memes = tous.filter(function (e) { return (e.type === 'Section') === section; });
+    if (premier) {
+      var max = memes.reduce(function (m, e) { return Math.max(m, e.ordre || 0); }, 0);
+      lot.forEach(function (e, k) { e.ordre = max + 1 + k; });
+    } else {
+      var min = memes.reduce(function (m, e) { return Math.min(m, e.ordre || 0); }, Infinity);
+      lot.forEach(function (e, k) { e.ordre = min - lot.length + k; });
+    }
+  });
   rendreMonde();
-  await ecrire(sel.map(function (e) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: e.ordre }]; }), 'Passé à l\'arrière-plan.', function () {
-    return sel.map(function (e, i) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: avant[i] }]; });
+  await ecrire(sel.map(function (e) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: e.ordre }]; }), premier ? 'Passé au premier plan.' : 'Passé à l\'arrière-plan.', function () {
+    return sel.map(function (e, k) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: avant[k] }]; });
   });
 }
-
-async function premierPlan() {
-  var sel = elementsSelectionnes().filter(function (e) { return e.type !== 'Section'; });
-  if (!sel.length) { annoncer('Les sections restent toujours sous les autres éléments.'); return; }
-  var base = ordreMax();
-  var avant = sel.map(function (e) { return e.ordre; });
-  sel.forEach(function (e, i) { e.ordre = base + 1 + i; });
-  rendreMonde();
-  await ecrire(sel.map(function (e) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: e.ordre }]; }), 'Passé au premier plan.', function () {
-    return sel.map(function (e, i) { return ['UpdateRecord', etat.tables.el, e.id, { ORDRE: avant[i] }]; });
-  });
-}
+async function arrierePlan() { return changerPlan(false); }
+async function premierPlan() { return changerPlan(true); }
 
 /* Duplication : les elements choisis (decales) et les connecteurs entre
    eux. */
