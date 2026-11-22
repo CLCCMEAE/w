@@ -1350,7 +1350,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 15;
+var ESSAI_WIDGET = 16;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3348,6 +3348,13 @@ function renderTableBody() {
         });
         (function (rowId, ctrlActif, ctrlStatut, ctrlRole, rowTr) {
             var statutPrec = ctrlStatut ? ctrlStatut.value : '';
+            if (ctrlRole) {
+                ctrlRole.addEventListener('change', function () {
+                    if (ctrlRole.value && _toast.type === 'erreur' && String(_toast.message || '').indexOf('Choisissez un rôle') === 0) {
+                        fermerToast();
+                    }
+                });
+            }
             if (ctrlActif) {
                 ctrlActif.addEventListener('change', function () {
                     var isActif = !!ctrlActif.checked;
@@ -3356,7 +3363,7 @@ function renderTableBody() {
                         flashError(ctrlActif);
                         if (ctrlRole)
                             flashError(ctrlRole);
-                        afficherErreur('Attribuez un Rôle avant d\'activer cet utilisateur.');
+                        afficherErreur('Choisissez un rôle avant d\'autoriser cette personne.');
                         return;
                     }
                     var newStatut = isActif ? STATUT_AUTORISE : 'Accès fermé';
@@ -5726,7 +5733,7 @@ function creerEl(tag, classe, texte, attrs, enfants) {
 function viderEl(n) { while (n && n.firstChild) {
     n.removeChild(n.firstChild);
 } }
-var _toast = { minuterie: null, texte: null, type: null };
+var _toast = { minuterie: null, texte: null, type: null, message: null };
 function toast(message, opts) {
     opts = opts || {};
     var z = document.getElementById('wToast');
@@ -5736,6 +5743,7 @@ function toast(message, opts) {
     fermerToast();
     var type = opts.type || 'info';
     _toast.type = type;
+    _toast.message = message;
     z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[type] || 'info');
     z.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', type === 'erreur' ? 'assertive' : 'polite');
@@ -5765,6 +5773,7 @@ function fermerToast() {
     clearTimeout(_toast.texte);
     _toast.texte = null;
     _toast.type = null;
+    _toast.message = null;
     var z = document.getElementById('wToast');
     if (z && !z.hidden) {
         var focusDedans = z.contains(document.activeElement);
