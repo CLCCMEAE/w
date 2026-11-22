@@ -255,6 +255,7 @@
     .w-reglages { display: flex; gap: 1.5rem; align-items: flex-start; }
     .w-reglages__nav { flex: 0 0 15rem; position: sticky; top: 0; display: flex; flex-direction: column; gap: .75rem; }
     .gb-accueil__titre { margin-bottom: .5rem; }
+    .gb-accueil__droits { display: flex; flex-direction: column; gap: 1.5rem; }
     .w-reglages__corps { flex: 1 1 0; min-width: 0; }
     .w-reglages__nav .gb-acc__tete { width: 100%; text-align: left; }
     .w-reglages__nav .gb-acc__tete::after { display: none !important; }
@@ -931,7 +932,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
     return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
@@ -8363,7 +8364,7 @@ function majBandeauRole() {
     b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
     var pb = document.getElementById('bandeauParametres');
     if (pb) {
-        pb.hidden = !admin;
+        pb.hidden = true;
         pb.setAttribute('aria-pressed', etat.vue === 'reglages' ? 'true' : 'false');
         if (!pb.dataset.branche) {
             pb.dataset.branche = '1';
@@ -8688,9 +8689,6 @@ function afficherVue(vue, garderFocus) {
     }
     else if (vue === 'construction') {
         rendreConstruction(zone);
-    }
-    else if (vue === 'reglages') {
-        rendreReglages(zone);
     }
     else if (vue === 'echec') {
         rendreEchec(zone);
@@ -11643,7 +11641,8 @@ function rendreDepart(bloc) {
     var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [] };
     var items = (etat.reprises || []).filter(function (it) { return !it.vide; });
     var rubriques = [{ cle: 'pages', titre: 'Mes pages publiées', icone: 'layout-grid-line' }].concat(RANGS_DEPART.map(function (r) { return { cle: r.cle, titre: r.titre, glyphe: r.glyphe }; }),
-        [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : []);
+        [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : [],
+        [{ cle: 'droits', titre: 'Les droits', icone: 'lock-line', groupe: 'Réglages' }]);
     if (!rubriques.some(function (r) { return r.cle === b.rubrique; })) {
         b.rubrique = 'pages';
     }
@@ -11653,6 +11652,9 @@ function rendreDepart(bloc) {
         if (k === 1) {
             menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: 'Créer' }));
         }
+        if (r.groupe) {
+            menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: r.groupe }));
+        }
         var on = b.rubrique === r.cle;
         var publiees = r.cle === 'pages' && etat.tableaux.some(function (t) { return pagesDuTableau(t.cle).length > 0; });
         var it = creer('button', { classe: 'gb-accueil__item' + (publiees ? ' gb-accueil__item--publie' : ''), id: 'dR-' + r.cle, attrs: { type: 'button', 'aria-current': on ? 'page' : null } }, [
@@ -11660,8 +11662,8 @@ function rendreDepart(bloc) {
         it.addEventListener('click', function () {
             b.rubrique = r.cle;
             b.choix = null;
-            if (r.cle === 'pages') {
-                relayer(majPages().then(function () { redessinerParam('dR-pages'); }), 'Lecture des pages');
+            if (r.cle === 'pages' || r.cle === 'droits') {
+                relayer(majPages().then(function () { redessinerParam('dR-' + r.cle); }), 'Lecture des pages');
                 return;
             }
             redessinerParam('dR-' + r.cle);
@@ -11697,6 +11699,9 @@ function rendreDepart(bloc) {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
         }, false, 'Partir de zéro : un tableau de bord'));
         bas.push(bouton('Partir d\'un modèle', 'secondaire', 'layout-grid-line', function () { return choisirDepart('modele'); }, { id: 'dModele' }));
+    }
+    else if (b.rubrique === 'droits') {
+        grille = creer('div', { classe: 'gb-accueil__droits' }, [contenuDroits()]);
     }
     else if (b.rubrique === 'reprise') {
         items.forEach(function (it, k) {
@@ -11953,63 +11958,10 @@ async function ouvrirReglages() {
         await terminerEdition(true);
     }
     await majPages();
-    afficherVue('reglages');
-}
-async function fermerReglages() {
-    demarrerCreation();
+    demarrerCreation('droits');
 }
 function pagesDesLecteurs() {
     return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.nomsPages && etat.nomsPages[x]; });
-}
-function contenuReglagesLecteurs() {
-    var cachee = !!etat.pageProtegee;
-    var admin = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecAdmin' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecAdmin', texte: 'Page admin' })]),
-        creer('p', { classe: 'w-reglages__etat' }, [creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (cachee ? 'fr-badge--success' : 'fr-badge--warning'), texte: cachee ? 'Cachée aux utilisateurs' : 'Visible par tous' })]),
-        cachee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null)
-            : bouton('Cacher la page admin', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' })]);
-    var liste = creer('ul', { classe: 'w-reglages__pages' });
-    pagesDesLecteurs().forEach(function (x) {
-        liste.appendChild(creer('li', {}, [creer('strong', { texte: etat.nomsPages[x] }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]));
-    });
-    var pages = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecPages' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecPages', texte: 'Pages publiées' })]),
-        liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', id: 'rPagesVide', texte: 'Aucune page publiée' })]);
-    return creer('div', { classe: 'w-general' }, [grilleParam([[admin], [pages]], '1-1')]);
-}
-function rendreReglages(zone) {
-    var haut = creer('div', { classe: 'gb-constr__haut' }, [
-        bouton('Accueil', 'secondaire', 'arrow-left-line', fermerReglages, { id: 'rRetour' }),
-        creer('h2', { classe: 'fr-h5 fr-m-0', id: 'titreVue', texte: 'Paramètres', attrs: { tabindex: '-1' } })]);
-    var n = pagesDesLecteurs().length;
-    var sections = [
-        { cle: 'droits', nom: 'Les droits', resume: etat.pageProtegee ? 'Page admin cachée' : 'Page admin visible', contenu: contenuDroits },
-        { cle: 'lecteurs', nom: 'Page des utilisateurs', resume: n ? n + (n > 1 ? ' pages publiées' : ' page publiée') : 'Aucune page publiée', contenu: contenuReglagesLecteurs }
-    ];
-    if (!sections.some(function (g) { return g.cle === _sectionReglages; })) {
-        _sectionReglages = sections[0].cle;
-    }
-    var nav = creer('div', { classe: 'gb-acc', attrs: { role: 'list', 'aria-labelledby': 'rTitreParam' } });
-    var corps = creer('div', { classe: 'w-reglages__corps', id: 'rCorps' });
-    sections.forEach(function (g, k) {
-        var ouvert = _sectionReglages === g.cle;
-        if (ouvert) {
-            corps.appendChild(g.contenu());
-        }
-        var bt = creer('button', { classe: 'gb-acc__tete', id: 'rSec-' + g.cle, attrs: { type: 'button', 'aria-current': ouvert ? 'step' : null } }, [
-            creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
-            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), creer('span', { classe: 'gb-acc__resume', texte: g.resume })])]);
-        bt.addEventListener('click', function () {
-            _sectionReglages = g.cle;
-            afficherVue('reglages', true);
-            var f = document.getElementById('rSec-' + g.cle);
-            if (f) {
-                f.focus();
-            }
-        });
-        nav.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt]));
-    });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'w-reglages' }, [creer('div', { classe: 'w-reglages__nav' }, [creer('p', { classe: 'gb-resultat__titre gb-titre-param', id: 'rTitreParam', texte: 'Paramétrage' }), nav]), corps])]));
 }
 function nomElementValide() {
     var b = etat.construction.b;
