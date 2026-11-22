@@ -592,6 +592,9 @@
     .gb-rang__carte--brouillon { border: 2px dashed var(--border-default-grey); }
     .gb-etat.gb-rang__etat--brouillon { background: var(--background-contrast-warning); color: var(--text-default-warning); }
     .gb-etat.gb-rang__etat--suggestion { background: var(--background-contrast-info); color: var(--text-default-info); }
+    .gb-etat.gb-rang__etat--modele { background: var(--background-contrast-purple-glycine); color: var(--text-label-purple-glycine); }
+    .gb-mini--type .gb-mini__t svg, .gb-mini--type .gb-mini__t .gb-glyphe { transform: scale(1.6); transform-origin: center; }
+    .gb-rang__pied { margin-top: auto; align-self: flex-end; display: inline-flex; align-items: center; gap: .25rem; padding: .25rem .75rem; font-size: .875rem; color: var(--text-action-high-blue-france); box-shadow: inset 0 0 0 1px var(--border-action-high-blue-france); }
     #gOngletNouveau { margin-right: .5rem; }
     .gb-rang__carte { position: relative; }
     .gb-rang__carte .gb-rang__maj { margin: auto 0 0; padding-top: .25rem; align-self: stretch; text-align: right; }
@@ -664,6 +667,18 @@
       background: var(--background-contrast-success); color: var(--text-default-success); }
     .gb-etat--modifie { background: var(--background-contrast-warning); color: var(--text-default-warning); }
     .gb-danger { color: var(--text-default-error) !important; }
+    .gb-constr__haut--simple { align-items: center; }
+    .gb-constr__titre { font-size: 1.25rem; font-weight: 700; color: var(--text-title-grey); }
+    .gb-etat--bouton { border: 0; cursor: pointer; font-family: inherit; }
+    .gb-etat--bouton:hover { text-decoration: underline; }
+    .gb-param-fin { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-default-grey); display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+    .gb-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .gb-param-fin .w-mention { margin: 0; }
+    .gb-param-fin--danger .gb-param-fin__titre { color: var(--text-default-error); }
+    .gb-bouton-danger { box-shadow: inset 0 0 0 1px var(--border-plain-error) !important; }
+    .gb-param-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+    .gb-param-actions .fr-btn { margin: 0; }
+    .gb-param-actions--separe { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-default-grey); }
     .gb-edition__nom { width: min(20rem, 100%); }
     .gb-edition__nom .fr-input { margin: 0; }
     .gb-acc { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .375rem; }
@@ -969,7 +984,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
     return /^#[0-9a-f]{3,8}$/i.test(x) ? x : '';
@@ -10055,6 +10070,9 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
     }
     var liste = creer(o.panneau ? 'ol' : 'div', { classe: 'gb-acc' + (o.panneau ? ' gb-etapes' : ''), attrs: o.panneau ? {} : { role: 'list' } });
     var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' || (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
+    var sup = {};
+    (o.avant || []).concat(o.apres || []).forEach(function (e) { sup[e.cle] = e; contenus[e.cle] = e.contenu(); });
+    visibles = (o.avant || []).concat(visibles).concat(o.apres || []);
     visibles.forEach(function (g, k) {
         var c = contenus[g.cle];
         Array.prototype.forEach.call(c.querySelectorAll('.gb-section'), function (sct) {
@@ -10071,7 +10089,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         }
         var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
             presentation: function () { return o.sansTaille ? (b.fond ? 'Fond ' + minuscule(nomFond(b.fond)) : 'Par défaut') : 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
-        resume = resume ? resume() : resumeDepuisChamps(c);
+        resume = sup[g.cle] ? sup[g.cle].resume() : (resume ? resume() : resumeDepuisChamps(c));
         if (o.panneau && !visibles.some(function (v) { return v.cle === _sectionTuile; })) {
             _sectionTuile = visibles[0].cle;
         }
@@ -10096,6 +10114,9 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         liste.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt, c]));
     });
     form.appendChild(liste);
+    (o.sousListe || []).forEach(function (n) { if (n) {
+        form.appendChild(n);
+    } });
 }
 function nomFond(code) { return (FONDS_TUILE.filter(function (f) { return f.code === code; })[0] || {}).nom || ''; }
 function resumeReperes(b) {
@@ -11464,7 +11485,7 @@ function configDepuisModele(m, T) {
 }
 var ETAPES_CREATION = ['Point de départ', 'La liste', 'Les tuiles', 'Affichage et filtres', 'Récapitulatif'];
 var ETAPES_PARAMETRAGE = ['Général', 'Les tuiles', 'Affichage et filtres', 'Publication'];
-var LIBELLES_ETAPES_TDB = { 'Général': 'La liste', 'Les tuiles': 'Les tuiles', 'Affichage et filtres': 'Les filtres', 'Publication': 'Publication' };
+var LIBELLES_ETAPES_TDB = { 'Général': 'Le nom et la liste', 'Les tuiles': 'Les tuiles', 'Affichage et filtres': 'Les filtres', 'Publication': 'Publier' };
 function demarrerCreation(rubrique) {
     if (!etat.peutParametrer) {
         return;
@@ -11666,19 +11687,15 @@ function rendreAtelierTdb(zone) {
     var noms = ETAPES_PARAMETRAGE;
     var nom = nomEtape(b);
     var publie = pagesDuTableau(etat.cleConfig).length > 0;
-    var nomChamp = saisie('wNom', b.cfg.nom, {});
-    nomChamp.addEventListener('input', function () { b.cfg.nom = nomChamp.value; majAttente(); });
-    var actions = [];
-    if (!publie) {
-        actions.push(bouton('Publier', null, 'send-plane-line', publierTdbAtelier, { id: 'aPublier' }));
-    }
-    actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerTableau, { id: 'aSupprimer', classe: 'gb-danger' }));
-    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', allerAccueil, { id: 'aRetour' }),
+    var titreNom = creer('span', { classe: 'gb-constr__titre', id: 'aTitreNom', texte: b.cfg.nom || 'Sans nom' });
+    var kPub = noms.indexOf('Publication');
+    var etatBt = creer('button', { classe: 'gb-etat gb-etat--bouton' + (publie ? '' : ' gb-etat--brouillon'), id: 'aEtat', attrs: { type: 'button', title: 'Aller à l\'étape Publier' }, texte: publie ? 'Publié' : 'Brouillon' });
+    etatBt.addEventListener('click', function () { if (kPub !== -1) {
+        relayer(allerEtape(kPub + 1).then(function () { remettreFocus('#aEt-' + kPub); }), 'Publier');
+    } });
+    var haut = creer('div', { classe: 'gb-constr__haut gb-constr__haut--simple' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', allerAccueil, { id: 'aRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: 'Modifier « ' + (b.cfg.nom || '') + ' »', attrs: { tabindex: '-1' } }),
-        creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'wNom' }, texte: 'Nom de la page' }),
-                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'aAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nomChamp]),
-        creer('span', { classe: 'gb-etat' + (publie ? '' : ' gb-etat--brouillon'), id: 'aEtat', texte: publie ? 'Publié' : 'Brouillon' }),
-        creer('span', { classe: 'w-pousse' })].concat(actions));
+        titreNom, etatBt]);
     var ol = creer('ol', { classe: 'gb-acc gb-etapes' });
     noms.forEach(function (n, k) {
         var on = k === b.etape - 1;
@@ -11691,10 +11708,30 @@ function rendreAtelierTdb(zone) {
     var plein = false;
     var panneau = creer('section', { classe: 'gb-constr__panneau' + (plein ? ' gb-constr__panneau--plein' : ''), attrs: { 'aria-label': LIBELLES_ETAPES_TDB[nom] } });
     var corps = contenuEtape(nom);
+    if (nom === 'Général') {
+        var nomChamp = saisie('wNom', b.cfg.nom, {});
+        nomChamp.addEventListener('input', function () {
+            b.cfg.nom = nomChamp.value;
+            titreNom.textContent = nomChamp.value || 'Sans nom';
+            majAttente();
+        });
+        panneau.appendChild(creer('div', { classe: 'fr-input-group gb-constr__nom fr-mb-3w' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'wNom' }, texte: 'Nom du tableau de bord' }),
+                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'aAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nomChamp,
+            creer('p', { classe: 'w-mention fr-mt-1w', texte: 'C\'est aussi le nom proposé pour la page des utilisateurs.' })]));
+    }
+    if (nom === 'Publication' && !publie) {
+        panneau.appendChild(creer('div', { classe: 'gb-publier-tdb fr-mb-3w' }, [
+            creer('p', { classe: 'w-texte', texte: 'Publier crée une nouvelle page dans le document. Les utilisateurs y voient ce tableau de bord, sans pouvoir modifier son paramétrage.' }),
+            creer('p', { classe: 'w-texte' }, ['Nom de la page : ', creer('strong', { texte: b.cfg.nom || 'Sans nom' })]),
+            creer('div', { classe: 'gb-param-actions' }, [bouton('Publier la page', null, 'send-plane-line', publierTdbAtelier, { id: 'aPublier' })])]));
+    }
     if (corps) {
         panneau.appendChild(corps);
     }
-    var cols = [creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } }, [titreParametrageAtelier(), ol]), panneau];
+    var danger = creer('div', { classe: 'gb-param-fin gb-param-fin--danger' }, [creer('p', { classe: 'gb-param-fin__titre', texte: 'Supprimer le tableau de bord' }),
+        creer('p', { classe: 'w-mention', texte: 'Ses réglages sont effacés. Vos listes ne sont pas touchées.' }),
+        bouton('Supprimer le tableau de bord', 'secondaire', 'delete-line', supprimerTableau, { petit: true, id: 'aSupprimer', classe: 'gb-danger gb-bouton-danger' })]);
+    var cols = [creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } }, [titreParametrageAtelier(), ol, danger]), panneau];
     if (!plein) {
         cols.push(creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }),
             b.cfg.tuiles.length ? creer('div', { classe: 'gb-apercu-fond', id: 'aApercuLecteur' }, [apercuLecteurTdb(b.cfg, nom === 'Les tuiles')]) : etatVide('Aucune tuile', '')]));
@@ -11886,15 +11923,20 @@ function suggestionsElements() {
     });
     return res;
 }
-function carteSuggestion(id, titre, sous, visuel, action, etatTexte) {
+function carteSuggestion(id, titre, sous, visuel, action, etatTexte, pied) {
     if (!etat.majA) {
         etat.majA = new Date();
     }
-    var sug = etatTexte === 'Suggestion';
+    var modele = etatTexte === 'Modèle';
+    var sug = etatTexte === 'Suggestion' || modele;
+    if (pied === undefined) {
+        pied = { 'Suggestion': 'Utiliser cette suggestion', 'Brouillon': 'Modifier mon brouillon', 'Publié': 'Modifier', 'Modèle': 'Utiliser ce modèle' }[etatTexte] || 'Reprendre ces réglages';
+    }
     var bt = creer('button', { classe: 'gb-rang__carte' + (sug ? ' gb-rang__carte--suggestion' : (etatTexte ? ' gb-rang__carte--cree ' + (etatTexte === 'Publié' ? 'gb-rang__carte--publie' : 'gb-rang__carte--brouillon') : '')), id: id, attrs: { type: 'button', 'aria-label': titre + (etatTexte ? ', ' + etatTexte : '') + (sous ? ', ' + (typeof sous === 'string' ? sous : sous.textContent) : '') } }, [visuel,
-        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : (sug ? ' gb-rang__etat--suggestion' : ' gb-rang__etat--brouillon')), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
+        etatTexte ? creer('span', { classe: 'gb-etat gb-rang__etat' + (etatTexte === 'Publié' ? '' : (modele ? ' gb-rang__etat--modele' : (sug ? ' gb-rang__etat--suggestion' : ' gb-rang__etat--brouillon'))), texte: etatTexte, attrs: { 'aria-hidden': 'true' } }) : null,
         creer('span', { classe: 'gb-rang__titre', texte: titre }), sous ? creer('span', { classe: 'gb-rang__sous' }, [typeof sous === 'string' ? document.createTextNode(sous) : sous]) : null,
-        sug ? null : creer('span', { classe: 'gb-tuile__maj gb-rang__maj', texte: texteMiseAJour(), attrs: { 'aria-hidden': 'true' } })]);
+        sug ? null : creer('span', { classe: 'gb-tuile__maj gb-rang__maj', texte: texteMiseAJour(), attrs: { 'aria-hidden': 'true' } }),
+        pied ? creer('span', { classe: 'gb-rang__pied', attrs: { 'aria-hidden': 'true' } }, [pied, creer('span', { classe: 'fr-icon-arrow-right-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } })]) : null]);
     bt.addEventListener('click', function () { relayer(action(), titre); });
     return bt;
 }
@@ -11998,6 +12040,28 @@ function rendreDepart(bloc) {
             var vis = vignetteReelle({ tuiles: [t2] }, 'dv' + rang.cle + k + '-', 460) || miniApercu([t]);
             grille.appendChild(carteSuggestion('dS-' + rang.cle + '-' + k, t.titre, etiquetteTable(t.table), vis, function () { ouvrirConstructionAvec(t); return Promise.resolve(); }, 'Suggestion'));
         });
+        if (rang.cle === 'bar') {
+            rang.types.forEach(function (ty) {
+                var src = tuileModeleDeType(ty);
+                var def = TYPES_TUILES.filter(function (x) { return x.code === ty; })[0] || { nom: ty, desc: '' };
+                grille.appendChild(carteSuggestion('dM-bar-' + ty, def.nom, src ? 'Modèle « ' + src.m.nom + ' »' : 'Modèle « ' + MODELES[0].nom + ' »', vignetteType(ty, def.nom), function () { return src ? utiliserModeleElement(src.m, src.k) : utiliserModeleType(MODELES[0], ty); }, 'Modèle'));
+            });
+        }
+        else {
+            MODELES.forEach(function (m) {
+                var cfgF = configModeleFictive(m);
+                var k = -1;
+                cfgF.tuiles.some(function (t, i) { if (rang.types.indexOf(categorieTuile(t)) !== -1) {
+                    k = i;
+                    return true;
+                } return false; });
+                if (k === -1) {
+                    return;
+                }
+                var t = cfgF.tuiles[k];
+                grille.appendChild(carteSuggestion('dM-' + rang.cle + '-' + m.id, t.titre, 'Modèle « ' + m.nom + ' »', miniApercu([Object.assign(cloner(t), { taille: 'XL' })], true), function () { return utiliserModeleElement(m, k); }, 'Modèle', 'Utiliser ce modèle'));
+            });
+        }
         grille.appendChild(carteZero('dZ-' + rang.cle, 'Ajouter', function () { return ouvrirConstructionNeuve(rang.cle); }, !aDesDonnees, 'Partir de zéro : ' + minuscule(rang.titre)));
     }
     else if (b.rubrique === 'tdb') {
@@ -12005,10 +12069,12 @@ function rendreDepart(bloc) {
         (charge ? suggestionsDocument().filter(function (x) { return !dejaCree(x.nom); }).slice(0, 3) : []).forEach(function (x, k) {
             grille.appendChild(carteSuggestion('dS-tdb-' + k, x.nom, etiquetteTable(x.table), vignetteReelle(x, 'dvt' + k + '-') || miniApercu(x.tuiles), function () { return utiliserConfig(cloner(x)); }, 'Suggestion'));
         });
+        MODELES.forEach(function (m) {
+            grille.appendChild(carteSuggestion('dM-tdb-' + m.id, m.nom, m.description, miniApercu(configModeleFictive(m).tuiles), function () { return utiliserModele(m); }, 'Modèle', 'Utiliser ce modèle'));
+        });
         grille.appendChild(carteZero('dZ-tdb', 'Ajouter', function () {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
         }, false, 'Partir de zéro : un tableau de bord'));
-        bas.push(bouton('Partir d\'un modèle', 'secondaire', 'layout-grid-line', function () { return choisirDepart('modele'); }, { id: 'dModele' }));
     }
     else if (b.rubrique === 'droits') {
         grille = creer('div', { classe: 'gb-accueil__droits' }, [contenuDroits()]);
@@ -12110,24 +12176,35 @@ function rendreConstruction(zone) {
     var existe = !!c.cle;
     var publie = existe && pagesDuTableau(c.cle).length > 0;
     var modifie = constructionModifiee();
-    var nom = champSaisie('eNomElement', b.titre || '', function (v) { b.titre = v; majEtatConstruction(); majApercu(); });
-    nom.setAttribute('aria-label', 'Nom de la page');
-    var actions = [bouton('Transformer en tableau de bord', 'secondaire', 'layout-grid-line', ajouterAutresTuiles, { id: 'eAutres' })];
-    if (!publie) {
-        actions.push(bouton('Publier', null, 'send-plane-line', publierElement, { id: 'ePublier' }));
-    }
-    else {
-        actions.push(bouton('Publier les modifications', null, 'send-plane-line', publierModifications, { id: 'ePublier', desactive: !modifie }));
-    }
-    if (existe) {
-        actions.push(bouton('Supprimer', 'tertiaire', 'delete-line', supprimerElement, { id: 'eSupprimer', classe: 'gb-danger' }));
-    }
-    var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', quitterConstruction, { id: 'eRetour' }),
+    var titreNom = creer('span', { classe: 'gb-constr__titre', id: 'eTitreNom', texte: b.titre || 'Sans nom' });
+    var etatBt = creer('button', { classe: 'gb-etat gb-etat--bouton' + (publie ? (modifie ? ' gb-etat--modifie' : '') : ' gb-etat--brouillon'), id: 'eEtat', attrs: { type: 'button', title: 'Aller à l\'étape Publier' }, texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' });
+    etatBt.addEventListener('click', function () { _sectionTuile = 'publier'; redessiner('eSec-publier'); });
+    var haut = creer('div', { classe: 'gb-constr__haut gb-constr__haut--simple' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', quitterConstruction, { id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
-        creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }),
-                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom]),
-        creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' }),
-        creer('span', { classe: 'w-pousse' })].concat(actions));
+        titreNom, etatBt]);
+    var etapeNom = { cle: 'nom', nom: 'Le nom', resume: function () { return String(b.titre || '').trim() || 'À donner'; }, contenu: function () {
+            var nom = champSaisie('eNomElement', b.titre || '', function (v) {
+                b.titre = v;
+                titreNom.textContent = v || 'Sans nom';
+                var r = document.querySelector('#eSec-nom .gb-acc__resume');
+                if (r) {
+                    r.textContent = String(v || '').trim() || 'À donner';
+                }
+                majEtatConstruction();
+                majApercu();
+            });
+            return creer('div', { classe: 'gb-acc__contenu' }, [creer('div', { classe: 'fr-input-group gb-constr__nom' }, [
+                    creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom' }),
+                        boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom,
+                    creer('p', { classe: 'w-mention fr-mt-1w', texte: 'C\'est aussi le nom de la page des utilisateurs, si vous la publiez.' })])]);
+        } };
+    var etapePublier = { cle: 'publier', nom: 'Publier', resume: function () { return publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon'; }, contenu: function () { return contenuPublierElement(c, publie, modifie, function () { _sectionTuile = 'nom'; redessiner('eSec-nom'); }); } };
+    var autres = creer('div', { classe: 'gb-param-fin' }, [creer('p', { classe: 'gb-param-fin__titre', texte: 'Autres actions' }),
+        creer('p', { classe: 'w-mention', texte: 'Ajoutez d\'autres tuiles autour de cet élément : il devient un tableau de bord.' }),
+        bouton('Transformer en tableau de bord', 'secondaire', 'layout-grid-line', ajouterAutresTuiles, { petit: true, id: 'eAutres' })]);
+    var danger = existe ? creer('div', { classe: 'gb-param-fin gb-param-fin--danger' }, [creer('p', { classe: 'gb-param-fin__titre', texte: 'Supprimer l\'élément' }),
+        creer('p', { classe: 'w-mention', texte: publie ? 'L\'élément et sa page disparaissent du document. Vos listes ne sont pas touchées.' : 'L\'élément disparaît du document. Vos listes ne sont pas touchées.' }),
+        bouton('Supprimer l\'élément', 'secondaire', 'delete-line', supprimerElement, { petit: true, id: 'eSupprimer', classe: 'gb-danger gb-bouton-danger' })]) : null;
     var form = creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } });
     var panneau = creer('section', { classe: 'gb-constr__panneau', attrs: { 'aria-label': 'Réglages' } });
     var apercu = creer('div', { classe: 'gb-apercu-fond' });
@@ -12154,7 +12231,7 @@ function rendreConstruction(zone) {
             f.focus();
         }
     };
-    construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true, panneau: panneau });
+    construireFormulaire(form, b, redessiner, majApercu, { sansTitre: true, sansTexte: true, sansTaille: true, panneau: panneau, avant: [etapeNom], apres: [etapePublier], sousListe: [autres, danger] });
     form.insertBefore(titreParametrageAtelier(), form.firstChild);
     zone.appendChild(creer('div', { classe: 'gb-constr' + (etat.entreeVue ? ' gb-constr--entree' : '') }, [haut, creer('div', { classe: 'gb-constr__corps' }, [form, panneau, creer('div', { classe: 'gb-constr__resultat' }, [creer('h3', { classe: 'gb-resultat__titre', texte: 'Aperçu' }), apercu, compte])])]));
     majApercu();
@@ -12170,6 +12247,18 @@ function majEtatConstruction() {
     if (e) {
         e.textContent = pub ? (m ? 'Modifications non publiées' : 'Publié') : 'Brouillon';
         e.classList.toggle('gb-etat--modifie', pub && m);
+    }
+    var rp = document.querySelector('#eSec-publier .gb-acc__resume');
+    if (rp) {
+        rp.textContent = pub ? (m ? 'Modifications non publiées' : 'Publié') : 'Brouillon';
+    }
+    var mp = document.getElementById('ePublierModifie');
+    if (mp) {
+        mp.hidden = !(pub && m);
+    }
+    var np = document.getElementById('ePublierNom');
+    if (np) {
+        np.textContent = String(c.b.titre || '').trim() || 'Sans nom';
     }
     var p = document.getElementById('ePublier');
     if (p && pub) {
@@ -12279,6 +12368,7 @@ function nomElementValide() {
     var b = etat.construction.b;
     var nom = String(b.titre || '').trim();
     if (!nom) {
+        montrerChampNom();
         marquerInvalide('eNomElement', 'Donnez un nom.');
         return null;
     }
@@ -12376,6 +12466,66 @@ function menuActions(libelle, id, items) {
     } });
     return racine;
 }
+function montrerChampNom() {
+    if (etat.vue === 'construction' && !document.getElementById('eNomElement')) {
+        _sectionTuile = 'nom';
+        afficherVue('construction', true);
+    }
+}
+function contenuPublierElement(c, publie, modifie, allerNom) {
+    var b = c.b;
+    var nom = String(b.titre || '').trim();
+    var err = validerTuile(b);
+    var enfants = [];
+    if (!publie) {
+        enfants.push(creer('p', { classe: 'w-texte', texte: 'Publier crée une nouvelle page dans le document. Les utilisateurs y voient cet élément, sans pouvoir modifier son paramétrage.' }));
+        enfants.push(creer('p', { classe: 'w-texte' }, ['Nom de la page : ', creer('strong', { id: 'ePublierNom', texte: nom || 'Sans nom' }), ' ', bouton('Modifier le nom', 'tertiaire', 'edit-line', allerNom, { petit: true, id: 'ePublierAllerNom' })]));
+        if (err) {
+            enfants.push(creer('p', { classe: 'w-mention', id: 'ePublierAttente', texte: 'À terminer avant de publier : ' + minuscule(err) }));
+        }
+        var bp = bouton('Publier la page', null, 'send-plane-line', publierElement, { id: 'ePublier' });
+        enfants.push(creer('div', { classe: 'gb-param-actions' }, [bp]));
+    }
+    else {
+        var pages = pagesDuTableau(c.cle);
+        enfants.push(creer('p', { classe: 'w-texte' }, ['Page publiée : ', creer('strong', { id: 'ePublierNom', texte: pages.map(function (x) { return etat.nomsPages[x] || ''; }).join(', ') || nom })]));
+        enfants.push(creer('p', { classe: 'w-mention', id: 'ePublierModifie', texte: 'Le paramétrage a changé depuis la publication.', attrs: modifie ? {} : { hidden: 'hidden' } }));
+        enfants.push(creer('div', { classe: 'gb-param-actions' }, [bouton('Mettre à jour la page', 'secondaire', 'refresh-line', publierModifications, { petit: true, id: 'ePublier', desactive: !modifie })]));
+        enfants.push(creer('div', { classe: 'gb-param-actions gb-param-actions--separe' }, pages.map(function (x, k) {
+            return bouton(pages.length > 1 ? 'Retirer la page « ' + (etat.nomsPages[x] || '') + ' »' : 'Retirer la page', 'tertiaire', 'close-line', function () { return retirerPageElement(x); }, { petit: true, id: 'eRetirerPage' + k, classe: 'gb-danger' });
+        })));
+    }
+    return creer('div', { classe: 'gb-acc__contenu' }, enfants);
+}
+async function retirerPageElement(badge) {
+    var nom = etat.nomsPages[badge] || '';
+    var ok = await confirmerAction('Retirer la page « ' + nom + ' » ?', 'La page disparaît du document. L\'élément reste dans vos brouillons, et vos listes ne sont pas touchées.', 'Retirer la page', { danger: true });
+    if (!ok) {
+        return;
+    }
+    afficherLoader('Retrait de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadge(d, badge);
+        var actions = [['RemoveRecord', etat.biblio, etat.copies[badge].ligne]];
+        if (vue) {
+            actions.unshift(['RemoveRecord', '_grist_Views', vue]);
+        }
+        await agir(actions);
+        await lireTableaux();
+        await majPages();
+        masquerLoader();
+        afficherSucces('La page « ' + nom + ' » est retirée.');
+        if (etat.vue === 'construction') {
+            afficherVue('construction', true);
+            remettreFocus('#eSec-publier');
+        }
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de retirer cette page.' : 'La page n\'a pas été retirée. Réessayez.', e);
+    }
+}
 async function publierElement() {
     var nom = nomElementValide();
     if (!nom) {
@@ -12387,6 +12537,7 @@ async function publierElement() {
     }
     await majPages();
     if (nomElementPris(nom)) {
+        montrerChampNom();
         marquerInvalide('eNomElement', 'Une page porte déjà ce nom dans le document.');
         return;
     }
@@ -12716,6 +12867,75 @@ function blocModeles() {
     });
     bloc.appendChild(grille);
     return bloc;
+}
+function tuileModeleDeType(ty) {
+    var r = null;
+    MODELES.some(function (m) {
+        var tu = configModeleFictive(m).tuiles;
+        for (var i = 0; i < tu.length; i++) {
+            if (tu[i].type === ty) {
+                r = { m: m, k: i };
+                return true;
+            }
+        }
+        return false;
+    });
+    return r;
+}
+function vignetteType(ty, nom) {
+    return creer('div', { classe: 'gb-mini gb-mini--grand gb-mini--type', attrs: { 'aria-hidden': 'true' } }, [creer('div', { classe: 'gb-mini__t gb-mini__t--XL' }, [creer('span', { classe: 'gb-mini__nom', texte: nom }), glypheType(ty)])]);
+}
+async function utiliserModeleType(m, ty) {
+    var rep = await choisirTablesModele(m, 'Le widget va créer ' + (m.tables.length > 1 ? 'les listes ' : 'la liste ') + m.tables.map(function (t) { return t.titre; }).join(' et ') + ' dans votre document, avec leurs colonnes et leurs listes de choix. Elles restent dans le document, même si vous abandonnez cet élément.', 'Ajouter des lignes d\'exemple (datées autour d\'aujourd\'hui), pour voir tout de suite l\'élément à l\'œuvre');
+    if (rep === null) {
+        return;
+    }
+    afficherLoader('Création des listes…');
+    try {
+        var res = await creerTablesModele(m, rep.avec, rep.choix);
+        var b = etat.brouillon;
+        if (b) {
+            res.creees.forEach(function (t) { b.tablesCreees.push(t); });
+            b.tablesModele = res.modes;
+        }
+        var table = res.T[m.tables[0].id];
+        await chargerDonneesTables([table]);
+        masquerLoader();
+        var t = nouvelleTuile(ty, table);
+        t.titre = (TYPES_TUILES.filter(function (x) { return x.code === ty; })[0] || {}).nom || ty;
+        ouvrirConstructionAvec(t);
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer des listes.' : 'Les listes du modèle n\'ont pas pu être créées.', e);
+    }
+}
+function configModeleFictive(m) {
+    return m.tableau(m.tables.reduce(function (o, t) { o[t.id] = t.id; return o; }, {}));
+}
+async function utiliserModeleElement(m, k) {
+    var b = etat.brouillon;
+    var rep = await choisirTablesModele(m, 'Le widget va créer ' + (m.tables.length > 1 ? 'les listes ' : 'la liste ') + m.tables.map(function (t) { return t.titre; }).join(' et ') + ' dans votre document, avec leurs colonnes et leurs listes de choix. Elles restent dans le document, même si vous abandonnez cet élément.', 'Ajouter des lignes d\'exemple (datées autour d\'aujourd\'hui), pour voir tout de suite l\'élément à l\'œuvre');
+    if (rep === null) {
+        return;
+    }
+    afficherLoader('Création des listes…');
+    try {
+        var res = await creerTablesModele(m, rep.avec, rep.choix);
+        if (b) {
+            res.creees.forEach(function (t) { b.tablesCreees.push(t); });
+            b.tablesModele = res.modes;
+        }
+        var cfg = configDepuisModele(m, res.T);
+        await chargerDonneesTables(tablesDuTableau(cfg));
+        masquerLoader();
+        afficherSucces((res.creees.length ? 'Listes prêtes : ' : 'Listes existantes utilisées : ') + Object.keys(res.T).map(function (x) { return libelleTable(res.T[x]); }).join(' et ') + '.');
+        ouvrirConstructionAvec(cfg.tuiles[k]);
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits sur ce document ne permettent pas de créer des listes.' : 'Les listes du modèle n\'ont pas pu être créées.', e);
+    }
 }
 async function utiliserModele(m) {
     var b = etat.brouillon;
