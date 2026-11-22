@@ -935,6 +935,26 @@
     #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
     .w-disposition--admin > .w-volet[hidden] { display: none; }
     .w-ouvrir-param { margin: 0 .75rem 0 0; flex: none; }
+    .w-contenu--accueil { padding: 0; }
+    .w-acc { display: flex; min-height: 100%; }
+    .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
+    .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
+    .w-acc__item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .5rem .75rem; border: 0; border-left: 3px solid transparent; background: transparent; font: inherit; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__item:hover { background: var(--background-default-grey-hover); }
+    .w-acc__item--actif { border-left-color: var(--border-action-high-blue-france); background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
+    .w-acc__ico::before { --icon-size: 1.25rem; }
+    .w-acc__creer { margin: .5rem 0 1rem; }
+    .w-acc__creer .fr-btn { margin: 0; width: auto; }
+    .w-acc__creer { align-self: flex-start; }
+    .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
+    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
+    .w-acc__carte-nom { font-weight: 700; }
+    .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
+    .w-acc__carte-bas .fr-btn { margin: 0; }
 </style>
 </head>
 <body>
@@ -983,7 +1003,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 5;
+var ESSAI_WIDGET = 6;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -3310,7 +3330,10 @@ function rendrePrincipal() {
   var pageAdmin = etat.peutParametrer && !etat.page;
   if (pageAdmin) {
     var gaucheBarre = barre.querySelector('.w-barre__gauche');
-    gaucheBarre.insertBefore(bouton('Retour au paramétrage', 'secondaire', 'arrow-left-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'vParametrerBarre', classe: 'w-ouvrir-param' }), gaucheBarre.firstChild);
+    var bAcc = boutonAccueil('vAccueil');
+    bAcc.classList.add('w-ouvrir-param');
+    gaucheBarre.insertBefore(bAcc, gaucheBarre.firstChild);
+    droite.appendChild(bouton('Paramétrage', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'vParametrerBarre', classe: 'w-ouvrir-param' }));
     volet.hidden = true;
   }
   zone.appendChild(creer('div', { classe: 'w-disposition' + (pageAdmin ? ' w-disposition--admin' : '') }, [volet, principal]));
@@ -6167,7 +6190,7 @@ function rendreCreation() {
       resume: i === 0 ? (c.depart === 'donnees' ? libelleTable(c.source.table) : ((MODELES.filter(function (x) { return x.cle === c.modele; })[0] || {}).nom || '')) : (i === 1 ? String(c.nom || '') : ''),
       corps: function () { return corpsCourant; } };
   });
-  var tete = [listeTableauxAtelier(null, true), creer('div', { classe: 'w-atl-tete' }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Nouveau tableau blanc', attrs: { tabindex: '-1' } })])];
+  var tete = [creer('div', { classe: 'w-atl-tete' }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Nouveau tableau blanc', attrs: { tabindex: '-1' } })])];
   var pan = panneauAtelier(tete, listeEtapesAtelier(items, c.etape, aller, 'cEtape'), [
     bouton('Annuler la création', 'tertiaire', 'close-line', function () { return annulerCreation(); }, { petit: true, id: 'cAnnuler' }),
     creer('span', { classe: 'w-pousse' }),
@@ -6180,7 +6203,8 @@ async function annulerCreation() {
   var ok = await confirmer('Abandonner la création ?', 'Les choix faits dans l\'assistant seront perdus.', 'Abandonner', { destructif: true });
   if (!ok) { return; }
   etat.creation = null;
-  if (tableaux().length) { if (!tableauCourant()) { choisirTableau(tableaux()[0].id); } if (etat.peutParametrer && !etat.page) { ouvrirParametrage(0); } else { rendrePrincipal(); } }
+  if (etat.peutParametrer && !etat.page) { rendreAccueil('tableaux'); }
+  else if (tableaux().length) { if (!tableauCourant()) { choisirTableau(tableaux()[0].id); } rendrePrincipal(); }
   else { rendreMessage('aucun'); }
 }
 
@@ -6578,6 +6602,63 @@ function rafraichirApresDroits(focusId) {
         f.focus();
     }
 }
+function rendreAccueil(rubrique) {
+  etat.vue = 'accueil';
+  etat.param = null;
+  etat.creation = null;
+  etat.rubriqueAccueil = rubrique || etat.rubriqueAccueil || 'tableaux';
+  rendreOnglets();
+  majBandeauRole();
+  var zone = contenu();
+  vider(zone);
+  zone.className = 'w-contenu w-contenu--accueil';
+  var rub = etat.rubriqueAccueil;
+  var item = function (cle, texte, icone) {
+    var b = creer('button', { classe: 'w-acc__item' + (rub === cle ? ' w-acc__item--actif' : ''), id: 'aRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [creer('span', { classe: 'fr-icon-' + icone + ' w-acc__ico', attrs: { 'aria-hidden': 'true' } }), texte]);
+    b.addEventListener('click', function () { if (rub !== cle) { rendreAccueil(cle); var f = document.getElementById('aRub_' + cle); if (f) { f.focus(); } } });
+    return b;
+  };
+  var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [
+    creer('h2', { classe: 'w-titre-fluo', texte: 'Paramétrage' }),
+    item('tableaux', 'Mes tableaux blancs', 'git-merge-line'),
+    creer('div', { classe: 'w-acc__creer' }, [bouton('Créer un nouveau tableau blanc', null, 'add-line', ouvrirCreation, { petit: true, id: 'aCreer' })]),
+    creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }),
+    item('droits', 'Les droits', 'lock-line')]);
+  var scene = creer('div', { classe: 'w-acc__scene' });
+  if (rub === 'droits') {
+    scene.appendChild(creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Les droits', attrs: { tabindex: '-1' } }));
+    scene.appendChild(contenuDroits());
+  } else {
+    scene.appendChild(creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Mes tableaux blancs', attrs: { tabindex: '-1' } }));
+    var l = tableaux();
+    if (!l.length) {
+      scene.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun tableau blanc pour l’instant.' }));
+    } else {
+      var grille = creer('div', { classe: 'w-acc__cartes' });
+      l.forEach(function (t, k) {
+        var publie = pagesDuTableau(t.id).length > 0;
+        var ouvrir = function () { choisirTableau(t.id); etat.signature = ''; relayer(chargerDonnees().then(function () { return ouvrirParametrage(0); }), 'Ouverture du tableau blanc'); };
+        var b = bouton('Ouvrir', 'secondaire', 'arrow-right-line', ouvrir, { petit: true, id: 'aOuvrir' + k, iconeDroite: true });
+        var vig;
+        try { vig = vignetteModele(t.modele && t.modele !== 'donnees' ? t.modele : 'vierge'); } catch (e) { vig = creer('span'); }
+        var carte = creer('div', { classe: 'w-acc__carte' }, [vig,
+          creer('div', { classe: 'w-acc__carte-texte' }, [
+            badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
+            creer('span', { classe: 'w-acc__carte-nom', texte: t.nom }),
+            t.description ? creer('span', { classe: 'w-mention', texte: t.description }) : null]),
+          creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+        carte.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { ouvrir(); } });
+        grille.appendChild(carte);
+      });
+      scene.appendChild(grille);
+    }
+  }
+  zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
+  majAideEtape();
+}
+function boutonAccueil(id) {
+  return bouton('Accueil', 'secondaire', 'arrow-left-line', function () { etat.editionPage = null; rendreAccueil('tableaux'); var t = document.getElementById('titreVue'); if (t) { t.focus(); } }, { petit: true, id: id });
+}
 var ETAPES_ATELIER = ['Le tableau blanc', 'Formes et couleurs', 'La fiche', 'Affichage et filtres'];
 function panneauAtelier(tete, etapes, bas) {
   var pan = creer('aside', { classe: 'w-atelier', id: 'wAtelier', attrs: { 'aria-label': 'Paramétrage du tableau blanc' } });
@@ -6633,7 +6714,7 @@ function rendreParametrage() {
   var aller = function (i) { p.etape = i; if (i !== 5) { etat.editionPage = null; } rendreParametrage(); var h = document.getElementById('pEtape' + i); if (h) { h.focus(); } majAideEtape(); };
   var publie = pagesDuTableau(t.id).length > 0;
   var tete = [
-    listeTableauxAtelier(t.id, false),
+    creer('div', { classe: 'w-atl-tete' }, [boutonAccueil('pAccueil')]),
     creer('div', { classe: 'w-atl-tete' }, [
       creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Paramétrage du tableau blanc', attrs: { tabindex: '-1' } }),
       creer('span', { classe: 'w-pousse' }),
@@ -6652,7 +6733,6 @@ function rendreParametrage() {
     } };
   });
   items.push({ cle: 5, icone: 'pages-line', nom: 'Page des utilisateurs', resume: publie ? pluriel(pagesDuTableau(t.id).length, 'page publiée', 'pages publiées') : 'À faire', separe: true, corps: function () { return enBlocs(colonnesPages()); } });
-  items.push({ cle: 4, icone: 'lock-line', nom: 'Les droits', corps: contenuDroits });
   var pan = panneauAtelier(tete, listeEtapesAtelier(items, p.etape, aller, 'pEtape'), [creer('p', { classe: 'w-mention w-statut', id: 'pStatut', attrs: { role: 'status' }, texte: p.statut })]);
   dispo.appendChild(pan);
   var d = document.getElementById('wAtelierDefile');
@@ -6684,7 +6764,7 @@ function etapeGeneral(t) {
     col1.push(creer('p', { classe: 'w-texte', texte: 'Table source : ' + libelleTable(t.source.table) }));
     col1.push(creer('div', {}, [bouton('Ajouter les nouvelles lignes', 'secondaire', 'add-line', function () { return ajouterNouvellesLignes(t); }, { petit: true, id: 'pNouvelles' })]));
   }
-  var col2 = [titreColonne('Les droits', 'pTitreDroits', null), creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { etat.param.etape = 4; rendreParametrage(); }, { petit: true, id: 'aVersDroits' })]),
+  var col2 = [titreColonne('Les droits', 'pTitreDroits', null), creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { rendreAccueil('droits'); }, { petit: true, id: 'aVersDroits' })]),
     titreColonne('Supprimer le tableau blanc', 'pTitreSuppr', null), creer('div', { classe: 'w-zone-retrait' }, [
       creer('p', { classe: 'w-texte', texte: 'Supprime le tableau blanc « ' + t.nom + ' », ' + pluriel(els.length, 'élément', 'éléments') + ' et ' + pluriel(nl, 'connecteur', 'connecteurs') + '. Les tables et les autres tableaux blancs restent dans le document.' }),
       bouton('Supprimer le tableau blanc', 'secondaire', 'delete-line', function () { return supprimerTableau(t); }, { petit: true, id: 'pSupprimer', classe: 'w-bouton-danger' })])];
@@ -6746,7 +6826,8 @@ async function supprimerTableau(t) {
     etat.param = null;
     etat.signature = '';
     var reste = tableaux();
-    if (reste.length) { choisirTableau(reste[0].id); await chargerDonnees(); rendrePrincipal(); }
+    if (etat.peutParametrer && !etat.page) { if (reste.length) { choisirTableau(reste[0].id); } rendreAccueil('tableaux'); }
+    else if (reste.length) { choisirTableau(reste[0].id); await chargerDonnees(); rendrePrincipal(); }
     else { etat.tableauId = null; rendreMessage('aucun'); }
     afficherToast('Tableau blanc « ' + t.nom + ' » supprimé.');
   } catch (e) { masquerLoader(); erreurEcriture(e, 'La suppression n\'a pas abouti.'); }
@@ -8237,7 +8318,7 @@ async function chargerTout() {
     await lireInfosPj();
     masquerLoader();
     etat.enCours = false;
-    if (etat.peutParametrer && !etat.page) { await ouvrirParametrage(0); }
+    if (etat.peutParametrer && !etat.page) { rendreAccueil('tableaux'); }
     else { rendrePrincipal(); var t = document.getElementById('vToile'); if (t) { t.focus({ preventScroll: true }); } }
   } catch (e) {
     masquerLoader();
