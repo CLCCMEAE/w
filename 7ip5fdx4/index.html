@@ -325,6 +325,8 @@
     .w-filtres__ligne--groupe > .w-filtres__groupe { flex: 1 1 auto; min-width: 0; max-width: 44rem; }
     .w-filtres__groupe-titre { color: var(--text-mention-grey); }
     .w-multi__puce--grist { padding: 0 .375rem; }
+    #filtres-ajouts[hidden] { display: none; }
+    .w-toutes-lignes { margin-bottom: .5rem; }
 </style>
 </head>
 <body>
@@ -435,11 +437,11 @@
             <button type="button" class="w-etape__tete" id="etape-lignes-tete" aria-expanded="false" aria-controls="etape-lignes-corps"><span class="w-etape__num" aria-hidden="true">3</span><span class="w-etape__textes"><span class="w-etape__nom">Quelles lignes exporter ?</span><span class="w-etape__resume" id="etape-lignes-resume"></span></span></button>
             <div class="w-etape__corps" id="etape-lignes-corps" hidden>
               <p class="w-etape__feuille" id="feuilleLignes"></p>
-              <p class="w-mention">Garder les lignes</p>
+              <div class="fr-checkbox-group fr-checkbox-group--sm w-toutes-lignes"><input type="checkbox" id="cb-toutes-lignes" autocomplete="off"><label class="fr-label" for="cb-toutes-lignes">Toutes les lignes</label></div>
               <div id="groupes-container">
               <p class="csnc-aucun-filtre" id="aucun-filtre-message">Toutes les lignes sont gardées.</p>
             </div>
-            <div class="csnc-actions-ligne fr-mt-2w">
+            <div class="csnc-actions-ligne fr-mt-2w" id="filtres-ajouts">
               <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-condition">Ajouter un filtre</button>
               <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-add-line fr-btn--icon-left" id="btn-ajouter-groupe">Ajouter un groupe de filtres</button>
             </div>
@@ -832,7 +834,7 @@ function brancherSocle() {
 </script>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 1;
+var ESSAI_WIDGET = 2;
 var HOMOLOGUE = false;
 function echapperHTML(texte) {
     if (!texte && texte !== 0)
@@ -2454,14 +2456,39 @@ function afficherFiltresPanneau() {
     if (!container)
         return;
     var r = racineFiltres();
-    if (!r.items.length)
+    if (etat.filtres.toutesLignes === undefined)
+        etat.filtres.toutesLignes = !listerConditions(etat.filtres).length;
+    var toutes = etat.filtres.toutesLignes;
+    var cbT = document.getElementById('cb-toutes-lignes');
+    if (cbT && !cbT._branche) {
+        cbT._branche = true;
+        cbT.addEventListener('change', function () {
+            etat.filtres.toutesLignes = cbT.checked;
+            var rr = racineFiltres();
+            rr.items = cbT.checked ? [] : [nouveauFiltre()];
+            apresChangementFiltres();
+            if (!cbT.checked) {
+                var c = document.querySelector('#groupes-container select');
+                if (c)
+                    c.focus();
+            }
+        });
+    }
+    if (cbT)
+        cbT.checked = toutes;
+    var ajouts = document.getElementById('filtres-ajouts');
+    if (ajouts)
+        ajouts.hidden = toutes;
+    if (toutes)
+        r.items = [];
+    else if (!r.items.length)
         r.items.push(nouveauFiltre());
     Array.from(container.children).forEach(function (x) {
         if (x.id !== 'aucun-filtre-message')
             container.removeChild(x);
     });
     if (msgVide)
-        msgVide.style.display = r.items.length ? 'none' : '';
+        msgVide.style.display = 'none';
     if (r.items.length) {
         container.appendChild(rendreNoeudFiltres(r, 0));
     }
