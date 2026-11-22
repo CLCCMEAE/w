@@ -740,6 +740,7 @@
     .w-acc__donnees { max-width: 40rem; display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
+    .w-disposition--admin > .w-volet[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -796,7 +797,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 4;
+var ESSAI_WIDGET = 5;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -3554,6 +3555,7 @@ function lireTableauMemorise() {
 }
 function memoriserTableau(cle) {
     etat.surAccueil = false;
+    etat.ouvrirParamApres = pageAdminKb();
     etat.tableauSession = cle;
     if (etat.page) {
         try {
@@ -8753,7 +8755,12 @@ function rendreTableau(zone) {
     if (adminKb) {
         zone.appendChild(enteteAdminKb());
     }
-    var dispoKb = creer('div', { classe: 'w-disposition' + (paramKb ? ' w-disposition--param' : '') }, [volet, principal]);
+    if (adminKb) {
+        volet.hidden = true;
+        principal.insertBefore(creer('h3', { classe: 'w-titre-fluo fr-mb-2w', texte: 'Aperçu' }), principal.firstChild);
+        principal.appendChild(creer('p', { classe: 'w-mention fr-mt-1w', texte: 'Aperçu en lecture : les cartes s\'ajoutent et se déplacent sur la page des utilisateurs, selon ce que vous leur permettez à l\'étape « Publier ».' }));
+    }
+    var dispoKb = creer('div', { classe: 'w-disposition' + (paramKb ? ' w-disposition--param' : '') + (adminKb ? ' w-disposition--admin' : '') }, [volet, principal]);
     if (paramKb) {
         dispoKb.appendChild(panneauParamKb());
     }
@@ -11270,6 +11277,9 @@ async function chargerTout() {
             await lireTableaux();
         }
     }
+    if (pageAdminKb()) {
+        etat.peutModifier = false;
+    }
     choisirTableau();
     if (pageAdminKb() && (etat.surAccueil || !etat.config) && !enCreation() && etat.vue !== 'branchement') {
         etat.brouillon = null;
@@ -11296,6 +11306,10 @@ async function chargerTout() {
     }
     await chargerDonnees();
     afficherVue('tableau');
+    if (pageAdminKb() && etat.ouvrirParamApres && !etat.brouillon) {
+        etat.ouvrirParamApres = false;
+        await ouvrirPersonnalisation();
+    }
     if (etat.page && !etat.etapes.length && etat.cartes.length) {
         logSecurite('INFO', 'Toutes les colonnes de ce Kanban sont masquées par la page');
     }
