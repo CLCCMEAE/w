@@ -869,7 +869,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 7;
+var ESSAI_WIDGET = 8;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9342,6 +9342,19 @@ async function creerDirectCa(parcours, tid) {
         b.colDateFin = '';
         b.approximatif = false;
         b.nom = nomLibreCa('Nouvelle carte');
+        choixTablesModele(b);
+        definitionsModele(b).forEach(function (d) {
+            var ch = b.choixTables[d.cle];
+            if (ch.mode === 'nouvelle' && !String(ch.nom || '').trim()) {
+                var nomT = 'Lieux ' + b.nom;
+                var k = 2;
+                while (tableExistante(idDepuisNomTable(nomT))) {
+                    nomT = 'Lieux ' + b.nom + ' ' + k;
+                    k++;
+                }
+                ch.nom = nomT;
+            }
+        });
     }
     else {
         var t = tid || tablesProposees()[0];
@@ -9357,22 +9370,25 @@ async function creerDirectCa(parcours, tid) {
         b.nom = nomLibreCa(b.nom || libelleTable(t));
     }
     var noms = nomsEtapes(b);
+    var echec = function (raison) {
+        etat.brouillon = null;
+        etat.surAccueil = true;
+        afficherVue('accueil');
+        afficherErreur('La carte n\'a pas été créée : ' + raison);
+    };
     for (var i = 1; i < noms.length; i++) {
         if (!validerEtapeSilencieuse(noms[i])) {
-            etat.surAccueil = false;
-            b.etape = i;
-            b.etapeMax = i;
-            afficherVue('assistant');
-            validerEtape(noms[i]);
+            echec(noms[i] === 'La fiche' ? 'la table « ' + libelleTable(b.table) + ' » n\'a pas de colonne pour le nom des lieux.' : 'la table « ' + libelleTable(b.table) + ' » ne permet pas de placer les lieux.');
             return;
         }
     }
+    if (b.parcours === 'vierge' && !validerTablesModele(b)) {
+        echec('la table des lieux n\'a pas pu être préparée.');
+        return;
+    }
     await creerCarte();
     if (etat.brouillon === b) {
-        etat.surAccueil = false;
-        b.etape = noms.length - 1;
-        b.etapeMax = b.etape;
-        afficherVue('assistant');
+        echec('vérifiez vos droits sur le document.');
     }
 }
 function choixTableCa() {
