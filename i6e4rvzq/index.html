@@ -1034,7 +1034,7 @@
           <h3 class="w-titre-fluo" id="titreParam">Paramétrage</h3>
           <ol class="w-etapes">
           <li class="w-etape" data-etape="table" id="etape-table">
-            <button type="button" class="w-etape__tete" id="etape-table-tete" aria-expanded="false" aria-controls="etape-table-corps"><span class="w-etape__num" aria-hidden="true">1</span><span class="w-etape__textes"><span class="w-etape__nom">La table</span><span class="w-etape__resume" id="etape-table-resume"></span></span></button>
+            <button type="button" class="w-etape__tete" id="etape-table-tete" aria-expanded="false" aria-controls="etape-table-corps"><span class="w-etape__num" aria-hidden="true">1</span><span class="w-etape__textes"><span class="w-etape__nom">La table à nettoyer</span><span class="w-etape__resume" id="etape-table-resume"></span></span></button>
             <div class="w-etape__corps" id="etape-table-corps" hidden>
 
         <div id="alert1" role="status"></div>
@@ -3590,6 +3590,7 @@ function setEmpty(icon, title, desc) {
     el.querySelector('.w-empty__icon').textContent = icon;
     el.querySelector('h3').textContent = title;
     el.querySelector('p').textContent = desc;
+    el.querySelector('p').hidden = !desc;
 }
 function bindGlobal() {
     ecouter('tableSelect', 'change', () => {
@@ -3957,7 +3958,7 @@ var AIDE = {
     fonctions: ['Choisir les colonnes à comparer, à l\'identique ou de façon approchée', 'Ne chercher que parmi certaines lignes grâce aux filtres', 'Voir les doublons groupe par groupe', 'Choisir la ligne à garder et, colonne par colonne, la valeur à conserver', 'Fusionner un groupe ou tous les groupes d\'un coup ; les liens des autres tables suivent la ligne gardée'],
     avant: ['Il faut le droit de modifier la table : la fusion supprime des lignes.', 'Pensez à une copie du document avant une grosse reprise de données.'],
     etapes: {
-        'La table': { titre: 'choisissez la table à analyser.', points: ['Le nombre de lignes s\'affiche à côté.', 'Les tables techniques ne sont pas proposées.'] },
+        'La table à nettoyer': { titre: 'la table où chercher les doublons.', points: ['Le nombre de lignes s\'affiche à côté.', 'Les tables techniques ne sont pas proposées.'] },
         'Les colonnes à comparer': { titre: 'les colonnes qui doivent se ressembler.', points: ['Ajoutez une ou plusieurs colonnes depuis la recherche.', 'Pour chacune, choisissez une correspondance exacte ou approchée.'] },
         'Les lignes': { titre: 'facultatif : ne chercher que parmi certaines lignes.', points: ['Chaque filtre se lit « Où colonne filtre valeur » ; « et » ou « ou » les relie.', 'Exemple : « Où Statut n\'est pas Parti » pour ne pas fusionner les personnes en poste avec les anciennes.', 'Cliquez ensuite sur « Chercher les doublons », en bas du paramétrage.'] },
         'Les doublons': { titre: 'à droite, un groupe à la fois.', points: ['Cliquez la ligne à conserver.', 'Cliquez une valeur d\'une autre ligne pour la reprendre dans la ligne gardée.', '« Fusionner et supprimer » garde une ligne et supprime les autres ; « Ignorer ce groupe » passe au suivant.', '« Tout fusionner » traite tous les groupes avec vos choix.'] }
@@ -5112,7 +5113,7 @@ function majResumes() {
             x.textContent = t;
     };
     majVerrousEtapes();
-    r('table', S.selectedTable ? libelleTable(S.selectedTable) : 'Choisissez une table');
+    r('table', S.selectedTable ? libelleTable(S.selectedTable) : '');
     var noms = (S.selectedFields || []).map(function (f) {
         var col = (S.allColumns || []).find(function (c) { return c.id === f.fieldId; });
         return (col ? col.label : f.fieldId) + (f.mode === 'exact' ? ' (exact)' : ' (similaire)');
@@ -5144,7 +5145,7 @@ function zoneEnAttente(attente) {
         var vide = $('emptyState');
         if (vide)
             vide.style.display = '';
-        setEmpty('🔎', 'Pas encore de recherche', 'Choisissez la table et les colonnes à comparer, puis cliquez sur « Chercher les doublons ».');
+        setEmpty('🔎', 'Pas encore de recherche', '');
     }
 }
 (function brancherEtapes() {
@@ -5154,7 +5155,7 @@ function zoneEnAttente(attente) {
     document.getElementById('btnAjouterFiltre').addEventListener('click', function () { majDonneesFiltres(); ajouterCondition(); });
     document.getElementById('btnAjouterGroupe').addEventListener('click', function () { majDonneesFiltres(); ajouterGroupe(); });
 })();
-var ETAPES_AIDE = ['La table', 'Les colonnes à comparer', 'Les lignes', 'Les doublons'];
+var ETAPES_AIDE = ['La table à nettoyer', 'Les colonnes à comparer', 'Les lignes', 'Les doublons'];
 function contexteAide() { return { etapes: ETAPES_AIDE, courante: S.currentStep === 3 ? 3 : Math.max(0, ['table', 'colonnes', 'lignes'].indexOf(_vue.etape)) }; }
 grist.ready({ requiredAccess: 'full', columns: [], allowSelectBy: true });
 async function demarrer() {
