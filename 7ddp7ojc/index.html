@@ -933,6 +933,8 @@
     .w-atl-gauche { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; padding: 0 1rem 1rem 0; display: flex; flex-direction: column; gap: 1rem; }
     .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
     #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
+    .w-disposition--admin > .w-volet[hidden] { display: none; }
+    .w-ouvrir-param { margin: 0 0 0 .5rem; }
 </style>
 </head>
 <body>
@@ -981,7 +983,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 2;
+var ESSAI_WIDGET = 3;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -3305,7 +3307,12 @@ function rendrePrincipal() {
     creer('ul', { classe: 'w-presents', id: 'vPresents', attrs: { 'aria-label': 'Personnes présentes sur ce tableau blanc' } })]), droite]);
   var scene = creer('div', { classe: 'w-scene', id: 'vScene' });
   var principal = creer('div', { classe: 'w-principal' }, [barre, creer('p', { classe: 'w-mention-papier', id: 'vPapier' }), scene]);
-  zone.appendChild(creer('div', { classe: 'w-disposition' }, [volet, principal]));
+  var pageAdmin = etat.peutParametrer && !etat.page;
+  if (pageAdmin) {
+    droite.appendChild(bouton('Paramétrage', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'vParametrerBarre', classe: 'w-ouvrir-param' }));
+    volet.hidden = true;
+  }
+  zone.appendChild(creer('div', { classe: 'w-disposition' + (pageAdmin ? ' w-disposition--admin' : '') }, [volet, principal]));
   majVolet();
   rendreScene();
   majBarre();
@@ -6618,8 +6625,8 @@ function rendreParametrage() {
   rendrePrincipal();
   etat.vue = 'parametrage';
   var dispo = contenu().querySelector('.w-disposition');
-  var v = document.getElementById('vVolet');
-  if (v) { v.classList.add('w-volet--replie'); }
+  var bp = document.getElementById('vParametrerBarre');
+  if (bp) { bp.parentNode.removeChild(bp); }
   var aller = function (i) { p.etape = i; if (i !== 5) { etat.editionPage = null; } rendreParametrage(); var h = document.getElementById('pEtape' + i); if (h) { h.focus(); } majAideEtape(); };
   var publie = pagesDuTableau(t.id).length > 0;
   var tete = [
@@ -6627,7 +6634,7 @@ function rendreParametrage() {
     creer('div', { classe: 'w-atl-tete' }, [
       creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Paramétrage du tableau blanc', attrs: { tabindex: '-1' } }),
       creer('span', { classe: 'w-pousse' }),
-      bouton('Retour au tableau blanc', 'secondaire', 'arrow-left-line', quitterParametrage, { petit: true, id: 'pFermer' })]),
+      bouton('Masquer le paramétrage', 'secondaire', 'arrow-right-line', quitterParametrage, { petit: true, id: 'pFermer', iconeDroite: true })]),
     creer('div', { classe: 'w-atl-ident' }, [
       creer('span', { classe: 'w-atl-ident__nom', id: 'pTitre', texte: t.nom }),
       badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
