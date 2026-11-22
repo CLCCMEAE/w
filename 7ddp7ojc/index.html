@@ -986,6 +986,12 @@
     .w-acc__carte-texte { padding: .75rem .75rem 0; }
     .w-acc__carte-nom { font-size: .875rem; color: var(--text-title-grey); }
     .w-acc__carte-bas { padding: .75rem; }
+    .w-etat-bouton { border: 0; cursor: pointer; font-family: inherit; }
+    .w-etat-bouton:hover { text-decoration: underline; }
+    .w-param-fin { margin: 1.5rem .75rem 0; padding-top: 1rem; border-top: 1px solid var(--border-default-grey); display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+    .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
+    .w-param-fin .w-mention { margin: 0; }
+    .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
 </style>
 </head>
 <body>
@@ -1034,7 +1040,7 @@
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 17;
+var ESSAI_WIDGET = 18;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
 var HOMOLOGUE = false;
@@ -1846,9 +1852,9 @@ function colonnesPages() {
         bouton('Supprimer « ' + nom + ' »', 'discret', 'delete-line', function () { return supprimerPageConsultation(x); }, { petit: true, iconeSeule: true, id: 'pPageSuppr' + k, classe: 'w-bulle--dessus w-bulle--droite' })]));
     });
     consult = creer('div', { classe: 'w-colonne w-colonne-page' }, [titreColonne('Page des utilisateurs', 'pTitreConsult', null),
-      creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce tableau blanc sans paramétrages, avec leurs propres réglages. ', ic.bouton]), ic.panneau,
+      ul.childNodes.length ? creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce tableau blanc sans paramétrages, avec leurs propres réglages. ', ic.bouton]) : creer('p', { classe: 'w-texte' }, ['Publier crée une nouvelle page dans le document. Les utilisateurs y voient ce tableau blanc, sans pouvoir modifier son paramétrage. Vous la nommez et choisissez ce qu\'ils peuvent y faire. ', ic.bouton]), ic.panneau,
       ul.childNodes.length ? ul : creer('p', { classe: 'w-mention', id: 'pPagesVide', texte: 'Ce tableau blanc n\'est montré sur aucune page du document.' }),
-      creer('div', { classe: 'w-section-page__bas' }, [bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { editerPage(null, false); }, { petit: true, id: 'pPageConsultation' })])]);
+      creer('div', { classe: 'w-section-page__bas' }, [ul.childNodes.length ? bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { editerPage(null, false); }, { petit: true, id: 'pPageConsultation' }) : bouton('Publier la page', null, 'send-plane-line', function () { editerPage(null, false); }, { id: 'pPageConsultation' })])]);
   }
   return [admin, consult];
 }
@@ -3368,13 +3374,7 @@ function rendrePrincipal() {
     zone.appendChild(creer('div', { classe: 'w-entete-admin' }, [
       boutonAccueil('vAccueil'),
       creer('h2', { classe: 'w-entete-admin__nom', id: 'titreVue', texte: t.nom, attrs: { tabindex: '-1' } }),
-      badge(publie ? 'Publié' : 'Brouillon', publie ? 'success' : 'new'),
-      creer('span', { classe: 'w-pousse' }),
-      bouton('Publier', null, 'send-plane-line', function () {
-        var ouvrirPub = function () { etat.param.etape = 5; if (!publie) { editerPage(null, false); } else { rendreParametrage(); } };
-        if (etat.vue !== 'parametrage') { ouvrirParametrage(5).then(function () { if (!publie) { editerPage(null, false); } }); } else { ouvrirPub(); }
-      }, { id: 'vPublier' }),
-      bouton('Supprimer', 'tertiaire', 'delete-line', function () { return supprimerTableau(t); }, { id: 'vSupprimer', classe: 'w-bouton-danger' })]));
+      etiquetteEtatPublication(publie)]));
     volet.hidden = true;
   }
   zone.appendChild(creer('div', { classe: 'w-disposition' + (pageAdmin ? ' w-disposition--admin' : '') }, [volet, principal]));
@@ -6752,7 +6752,7 @@ function rendreAccueil(rubrique) {
     tableaux().filter(function (t) { return sorteDuTableau(t) === rub; }).forEach(function (t, k) {
       var publie = pagesDuTableau(t.id).length > 0;
       var ouvrir = function () { choisirTableau(t.id); etat.signature = ''; relayer(chargerDonnees().then(function () { return ouvrirParametrage(0); }), 'Ouverture du tableau blanc'); };
-      var b = bouton('Ouvrir', 'secondaire', 'arrow-right-line', ouvrir, { petit: true, id: 'aOuvrir' + k, iconeDroite: true });
+      var b = bouton(publie ? 'Modifier' : 'Modifier mon brouillon', 'secondaire', 'arrow-right-line', ouvrir, { petit: true, id: 'aOuvrir' + k, iconeDroite: true });
       var vig;
       try { vig = vignetteTableau(t); } catch (e) { vig = creer('span'); }
       var carte = creer('div', { classe: 'w-acc__carte' }, [vig,
@@ -6773,7 +6773,7 @@ function rendreAccueil(rubrique) {
         var f = document.getElementById('cNom'); if (f) { f.focus(); }
       };
       var bm = bouton('Utiliser ce modèle', 'secondaire', 'arrow-right-line', utiliser, { petit: true, id: 'aModele_' + m.cle, iconeDroite: true });
-      var etq = badge('Suggestion', 'info');
+      var etq = badge('Modèle', 'purple-glycine');
       etq.classList.add('w-acc__suggestion', 'fr-badge--sm');
       var vm = vignetteModele(m.cle); vm.appendChild(etq);
       var cm = creer('div', { classe: 'w-modele' }, [vm,
@@ -6789,6 +6789,15 @@ function rendreAccueil(rubrique) {
   }
   zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
   majAideEtape();
+}
+function etiquetteEtatPublication(publie) {
+  var e = creer('button', { classe: 'fr-badge fr-badge--' + (publie ? 'success' : 'new') + ' w-etat-bouton', id: 'vEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
+  e.addEventListener('click', function () {
+    if (etat.vue === 'parametrage' && etat.param) { etat.param.etape = 5; etat.editionPage = null; rendreParametrage(); }
+    else { ouvrirParametrage(5); }
+    var h = document.getElementById('pEtape5'); if (h) { h.focus(); }
+  });
+  return e;
 }
 function boutonAccueil(id) {
   return bouton('Accueil', 'secondaire', 'arrow-left-line', function () { etat.editionPage = null; rendreAccueil(); var t = document.getElementById('titreVue'); if (t) { t.focus(); } }, { petit: true, id: id });
@@ -6876,8 +6885,11 @@ function rendreParametrage() {
       return enBlocs([editeurAffichage(t, enregistrerReglages, 'pAff')]);
     } };
   });
-  items.push({ cle: 5, icone: 'pages-line', nom: 'Page des utilisateurs', resume: publie ? pluriel(pagesDuTableau(t.id).length, 'page publiée', 'pages publiées') : 'À faire', separe: true, corps: function () { return enBlocs(colonnesPages()); } });
-  var pan = panneauAtelier(tete, listeEtapesAtelier(items, p.etape, aller, 'pEtape'), [creer('p', { classe: 'w-mention w-statut', id: 'pStatut', attrs: { role: 'status' }, texte: p.statut })]);
+  items.push({ cle: 5, num: String(ETAPES_ATELIER.length + 1), nom: 'Publier', resume: publie ? pluriel(pagesDuTableau(t.id).length, 'page publiée', 'pages publiées') : 'Brouillon', corps: function () { return enBlocs(colonnesPages()); } });
+  var danger = creer('div', { classe: 'w-param-fin w-param-fin--danger' }, [creer('p', { classe: 'w-param-fin__titre', texte: 'Supprimer le tableau blanc' }),
+    creer('p', { classe: 'w-mention', texte: 'Ses éléments et ses connecteurs sont supprimés du document' + (publie ? ', et ses pages ne le montreront plus.' : '.') }),
+    bouton('Supprimer le tableau blanc', 'secondaire', 'delete-line', function () { return supprimerTableau(t); }, { petit: true, id: 'pSupprimer', classe: 'w-bouton-danger' })]);
+  var pan = panneauAtelier(tete, creer('div', {}, [listeEtapesAtelier(items, p.etape, aller, 'pEtape'), danger]), [creer('p', { classe: 'w-mention w-statut', id: 'pStatut', attrs: { role: 'status' }, texte: p.statut })]);
   dispo.appendChild(pan);
   var d = document.getElementById('wAtelierDefile');
   if (d) { d.scrollTop = defil; }
@@ -6890,6 +6902,7 @@ function etapeGeneral(t) {
     if (!nom.value.trim()) { statutParam('Le nom ne peut pas être vide.', true); return; }
     t.nom = nom.value.trim();
     var h = document.getElementById('pTitre'); if (h) { h.textContent = 'Paramétrages de « ' + t.nom + ' »'; }
+    var hv = document.getElementById('titreVue'); if (hv && etat.vue === 'parametrage') { hv.textContent = t.nom; }
     enregistrerReglages();
   });
   var desc = saisie('pDescription', t.description, { multiligne: true, lignes: 2 });
