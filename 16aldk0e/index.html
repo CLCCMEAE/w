@@ -78,6 +78,10 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .w-panneau-fiche__corps .fr-input-group,.w-panneau-fiche__corps .fr-select-group {margin:0}
 .w-panneau-fiche__corps textarea {min-height:6rem;resize:vertical}
 .w-panneau-fiche__corps #poserReponse {min-height:10rem}
+#ficheCorps textarea {min-height:4rem;resize:vertical;overflow:auto}
+#ficheCorps .admin-accordion__row {margin-top:0}
+#ficheCorps .admin-accordion__meta {white-space:normal;flex-basis:100%}
+.admin-accordion__btn--courant {background:var(--background-action-low-blue-france);box-shadow:inset 4px 0 0 var(--border-active-blue-france)}
 .w-panneau-fiche__actions {display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.5rem;padding:.75rem 1rem;border-top:1px solid var(--border-default-grey)}
 .w-panneau-fiche__actions .fr-btn {margin:0}
 .addMsg:not(:empty) {min-height:1.1em}
@@ -90,13 +94,7 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .admin-accordion__btn {width:100%;display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:none;border:none;border-top:1px solid var(--border-default-grey);font-family:inherit;font-size:.9rem;font-weight:400;color:var(--text-action-high-blue-france);text-align:left;cursor:pointer;transition:background .15s}
 .admin-accordion__btn:hover {background:var(--background-default-grey-hover)}
 .admin-accordion__btn:focus {outline:2px solid var(--border-action-high-blue-france);outline-offset:-2px}
-.admin-accordion__btn[aria-expanded="true"] {background:var(--background-alt-blue-france)}
 .admin-accordion__label {flex:1;min-width:0}
-.admin-accordion__chevron {flex-shrink:0;font-size:.75rem;color:var(--text-action-high-blue-france);transition:transform .2s}
-.admin-accordion__btn[aria-expanded="true"] .admin-accordion__chevron {transform:rotate(180deg)}
-.admin-accordion__content {display:none;padding:.75rem 1rem .75rem;border-top:1px solid var(--border-default-grey)}
-.admin-accordion__content.actif {display:block;background:var(--background-contrast-grey);color:var(--text-default-grey);border-left:3px solid var(--background-action-high-blue-france)}
-.admin-accordion__content textarea {min-height:2.5rem;resize:none;overflow:hidden}
 .admin-accordion__row {display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;font-size:.8125rem}
 .admin-accordion__row select {min-width:0;flex-shrink:1}
 .admin-accordion__row input[type=checkbox] {width:auto;margin:0;transform:scale(1.1);cursor:pointer}
@@ -104,9 +102,6 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
 .admin-accordion__row label.clickable {cursor:pointer}
 .admin-accordion__meta {color:var(--text-mention-grey);font-size:.75rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-accordion__avert {margin:0 0 .5rem}
-.params-grid {display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;align-items:start}
-@media(max-width:600px){.params-grid {grid-template-columns:1fr}}
-.params-col__title {font-size:.8125rem;font-weight:600;color:var(--text-title-grey);margin-bottom:.4rem}
 .cat-list {list-style:none;margin:0;padding:0}
 .cat-list__item {display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;border:1px solid var(--border-default-grey);margin-bottom:-1px;background:var(--background-default-grey);color:var(--text-default-grey);font-size:.8125rem;cursor:grab}
 .cat-list__item:active {cursor:grabbing}
@@ -399,6 +394,11 @@ body {margin:0;font-family:"Marianne",Arial,sans-serif;background:var(--backgrou
     <button class="fr-btn fr-btn--secondary" id="btnBrouillonQ" type="button" hidden>Enregistrer sans publier</button>
     <button class="fr-btn" id="btnEnvoyerQ" type="button">Envoyer</button>
   </div>
+</aside>
+<aside class="w-panneau-fiche" id="ficheQuestion" role="region" aria-labelledby="ficheTitre" hidden>
+  <div class="w-panneau-fiche__tete"><h2 class="w-panneau-fiche__titre" id="ficheTitre" tabindex="-1">Modifier la question</h2><button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only fr-icon-close-line w-infobulle" id="btnFermerFiche" aria-label="Fermer" data-infobulle="Fermer"><span class="fr-sr-only">Fermer</span></button></div>
+  <div class="w-panneau-fiche__corps" id="ficheCorps"></div>
+  <div class="w-panneau-fiche__actions" id="ficheActions"></div>
 </aside>
 <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
 </div>
@@ -946,6 +946,8 @@ document.addEventListener('keydown', function (e) {
             _fermerConfirm(false);
         else if (!$('poserOverlay').hidden)
             fermerSaisieQuestion();
+        else if (!$('ficheQuestion').hidden)
+            fermerFicheQuestion();
     }
 });
 function flashSaved(el) {
@@ -2948,6 +2950,9 @@ function ouvrirSaisieQuestion(admin) {
     $('poserReponseBloc').hidden = !_saisieAdmin;
     $('btnBrouillonQ').hidden = !_saisieAdmin;
     $('btnEnvoyerQ').textContent = _saisieAdmin ? 'Publier' : 'Envoyer';
+    if (!$('ficheQuestion').hidden) {
+        fermerFicheQuestion(true);
+    }
     var p = $('poserOverlay');
     if (p.hidden) {
         _focusAvantSaisie = document.activeElement;
@@ -3121,15 +3126,16 @@ function depublierPourCorriger(r, btnPub, sStatut) {
         afficherErreur("La question n'a pas pu être retirée de la consultation.", e);
     });
 }
-var adminOuvertes = {};
+var _ficheId = null, _focusAvantFiche = null;
 function creerAdminAccordion(r, accGroup) {
-    var contentId = 'admin-acc-' + r.id;
-    var ouvert = adminOuvertes[r.id] === true;
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'admin-accordion__btn';
-    btn.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
-    btn.setAttribute('aria-controls', contentId);
+    btn.className = 'admin-accordion__btn' + (_ficheId === r.id ? ' admin-accordion__btn--courant' : '');
+    btn.id = 'admItem_' + r.id;
+    btn.setAttribute('aria-controls', 'ficheQuestion');
+    if (_ficheId === r.id) {
+        btn.setAttribute('aria-current', 'true');
+    }
     var labelSpan = document.createElement('span');
     labelSpan.className = 'admin-accordion__label';
     labelSpan.textContent = r.QUESTION || '(sans question)';
@@ -3146,30 +3152,104 @@ function creerAdminAccordion(r, accGroup) {
     }
     btn.appendChild(labelSpan);
     btn.appendChild(statusPill(r.STATUT));
-    var chevron = document.createElement('span');
-    chevron.className = 'admin-accordion__chevron';
-    chevron.setAttribute('aria-hidden', 'true');
-    chevron.textContent = '▼';
-    btn.appendChild(chevron);
-    btn.addEventListener('click', function () {
-        var expanded = this.getAttribute('aria-expanded') === 'true';
-        this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-        adminOuvertes[r.id] = !expanded;
-        var panel = document.getElementById(this.getAttribute('aria-controls'));
-        if (expanded) {
-            panel.classList.remove('actif');
+    btn.addEventListener('click', function () { ouvrirFicheQuestion(r.id); });
+    accGroup.appendChild(btn);
+}
+function ouvrirFicheQuestion(id) {
+    if (!$('poserOverlay').hidden) {
+        fermerSaisieQuestion();
+    }
+    var p = $('ficheQuestion');
+    if (p.hidden) {
+        _focusAvantFiche = document.activeElement;
+    }
+    _ficheId = id;
+    p.hidden = false;
+    rendreFicheQuestion();
+    Array.prototype.forEach.call(document.querySelectorAll('.admin-accordion__btn'), function (b) {
+        var courant = b.id === 'admItem_' + id;
+        b.classList.toggle('admin-accordion__btn--courant', courant);
+        if (courant) {
+            b.setAttribute('aria-current', 'true');
         }
         else {
-            panel.classList.add('actif');
-            panel.querySelectorAll('textarea').forEach(function (ta) { autoResize(ta); });
+            b.removeAttribute('aria-current');
         }
     });
-    accGroup.appendChild(btn);
-    var panel = document.createElement('div');
-    panel.className = 'admin-accordion__content';
-    panel.id = contentId;
-    if (ouvert)
-        panel.classList.add('actif');
+    var q = $('admQuestion_' + id);
+    if (q) {
+        q.focus();
+    }
+}
+function fermerFicheQuestion(sansFocus) {
+    var id = _ficheId;
+    _ficheId = null;
+    $('ficheQuestion').hidden = true;
+    vider($('ficheCorps'));
+    vider($('ficheActions'));
+    Array.prototype.forEach.call(document.querySelectorAll('.admin-accordion__btn--courant'), function (b) {
+        b.classList.remove('admin-accordion__btn--courant');
+        b.removeAttribute('aria-current');
+    });
+    var prec = _focusAvantFiche;
+    _focusAvantFiche = null;
+    if (sansFocus) {
+        return;
+    }
+    var cible = id ? $('admItem_' + id) : null;
+    if (cible) {
+        cible.focus();
+    }
+    else if (prec && typeof prec.focus === 'function' && document.contains(prec)) {
+        prec.focus();
+    }
+}
+function rendreFicheQuestion() {
+    var z = $('ficheCorps');
+    var r = records.find(function (x) { return x.id === _ficheId; });
+    if (!r) {
+        fermerFicheQuestion(true);
+        return;
+    }
+    var valeurs = {};
+    Array.prototype.forEach.call(z.querySelectorAll('textarea'), function (t) { valeurs[t.id] = t.value; });
+    var actif = document.activeElement && z.contains(document.activeElement) ? document.activeElement : null;
+    var idActif = actif ? actif.id : null, debut = actif && 'selectionStart' in actif ? actif.selectionStart : null, fin = actif && 'selectionEnd' in actif ? actif.selectionEnd : null;
+    vider(z);
+    vider($('ficheActions'));
+    construireFicheQuestion(r, z);
+    var bSup = $('ficheSupprimer'), bPub = $('fichePublier');
+    if (bSup && bPub) {
+        bSup.className = 'fr-btn fr-btn--tertiary fr-icon-delete-line fr-btn--icon-left';
+        bPub.className = 'fr-btn' + (r.STATUT === 'Publiée' ? ' fr-btn--secondary' : '');
+        bPub.style.cssText = '';
+        var pousse = document.createElement('span');
+        pousse.style.flex = '1 1 auto';
+        $('ficheActions').appendChild(bSup);
+        $('ficheActions').appendChild(pousse);
+        $('ficheActions').appendChild(bPub);
+    }
+    Array.prototype.forEach.call(z.querySelectorAll('textarea'), function (t) { autoResize(t); });
+    Object.keys(valeurs).forEach(function (k) {
+        var t = $(k);
+        if (t && t.value !== valeurs[k]) {
+            t.value = valeurs[k];
+        }
+    });
+    if (idActif && $(idActif)) {
+        $(idActif).focus();
+        if (debut !== null) {
+            try {
+                $(idActif).setSelectionRange(debut, fin);
+            }
+            catch (eS) {
+                logSecurite('INFO', 'Position du curseur non rétablie', eS);
+            }
+        }
+    }
+}
+ecouter('btnFermerFiche', 'click', function () { fermerFicheQuestion(); });
+function construireFicheQuestion(r, panel) {
     if (r.STATUT === 'Brouillon') {
         var avert = document.createElement('p');
         avert.className = 'admin-accordion__avert fr-alert fr-alert--warning fr-alert--sm';
@@ -3292,6 +3372,7 @@ function creerAdminAccordion(r, accGroup) {
     btnPub.style.cssText = estPublieeAdm
         ? 'padding:.2rem .75rem;font-size:.75rem'
         : 'padding:.2rem .75rem;font-size:.75rem;background:var(--background-action-high-success);color:var(--text-inverted-success)';
+    btnPub.id = 'fichePublier';
     btnPub.addEventListener('click', function () {
         if (estPublieeAdm)
             depublierPourCorriger(r, btnPub, sStatut);
@@ -3331,13 +3412,14 @@ function creerAdminAccordion(r, accGroup) {
     btnDel.type = 'button';
     btnDel.className = 'fr-btn fr-btn--sm fr-btn--secondary';
     btnDel.textContent = 'Supprimer la question';
-    btnDel.style.cssText = 'padding:.2rem .5rem;font-size:.75rem';
+    btnDel.id = 'ficheSupprimer';
     btnDel.addEventListener('click', async function () {
         if (!await confirmerAction('Supprimer cette question ?'))
             return;
         apiDelete([r.id]).then(function () {
             return refreshFaq(true);
         }).then(function () {
+            fermerFicheQuestion(true);
             renderAdminList();
             focaliserConteneur('adminList');
             toast('Question supprimée.', { type: 'succes' });
@@ -3345,10 +3427,6 @@ function creerAdminAccordion(r, accGroup) {
     });
     row.appendChild(btnDel);
     panel.appendChild(row);
-    accGroup.appendChild(panel);
-    if (ouvert) {
-        panel.querySelectorAll('textarea').forEach(function (ta) { autoResize(ta); });
-    }
 }
 function renderAdminList() {
     var textFilter = ($('adminSearch').value || '').toLowerCase().trim();
@@ -3415,6 +3493,9 @@ function renderAdminList() {
         sec.appendChild(panelCat);
         list.appendChild(sec);
     });
+    if (_ficheId !== null && !$('ficheQuestion').hidden) {
+        rendreFicheQuestion();
+    }
 }
 ecouter('adminSearch', 'input', function () { renderAdminList(); });
 ecouter('adminStatut', 'change', function () { renderAdminList(); });
@@ -3688,7 +3769,7 @@ setTimeout(function () {
     });
 }, 1500);
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 1;
+var ESSAI_WIDGET = 2;
 var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
