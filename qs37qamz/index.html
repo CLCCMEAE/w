@@ -1071,6 +1071,15 @@
     .s-acc-ajout { padding: .5rem .75rem .25rem; }
     .s-acc-ajout .fr-btn { margin: 0; }
     .w-acc__scene .s-fiche-salle__tete { display: none; }
+    .w-acc__scene .w-assistant { gap: 1rem; }
+    .w-acc__scene .w-entete-param:not(:has(.w-statut:not(:empty))) { display: none; }
+    .w-acc__scene .w-grille { padding: 0; background: transparent; }
+    .w-acc__scene .w-grille--2-1 { grid-template-columns: minmax(0, 1fr); }
+    .w-acc__scene .w-param-apercu { grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr); gap: 1.5rem; }
+    .w-acc__scene .w-param-apercu > :last-child { position: sticky; top: 1rem; }
+    .w-acc__scene .s-fiche-salle__cadre { border: 0; padding: 0; }
+    .w-acc__scene .w-general > p.w-texte { margin: 0 0 1rem; max-width: 60rem; }
+    @media (max-width: 62em) { .w-acc__scene .w-param-apercu { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -1126,7 +1135,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 3;
+var ESSAI_WIDGET = 4;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -15620,13 +15629,17 @@ function envelopperConsoleSl(zone) {
     var ajout = bouton('Ajouter une salle', 'secondaire', 'add-line', function () { allerA('Les salles', '__nouvelle__'); }, { petit: true, id: 'pAjouterSalle' });
     menu.appendChild(creer('div', { classe: 's-acc-ajout' }, [ajout]));
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Pour toutes les salles' }));
-    var communs = [['Les règles', 'Règles communes', 'settings-5-line'], ['Les colonnes', 'Les colonnes', 'table-line'], ['Le formulaire', 'Le formulaire', 'file-text-line'], ['Publier', 'Publier', 'send-plane-line'], ['Les droits', 'Les droits', 'lock-line']];
-    communs.forEach(function (d) {
-        if (noms.indexOf(d[0]) === -1) {
-            return;
+    var communs = [['Les colonnes', 'Les colonnes'], ['Les règles', 'Règles communes'], ['Le formulaire', 'Le formulaire'], ['Publier', 'Publier']].filter(function (d) { return noms.indexOf(d[0]) !== -1; });
+    communs.forEach(function (d, k) {
+        item('pParam_' + noms.indexOf(d[0]), d[1], null, etapeOuverte === d[0] || (d[0] === 'Les règles' && etapeOuverte === 'Général'), function () { allerA(d[0]); }, null,
+            creer('span', { classe: 's-acc-num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }));
+        menu.lastChild.classList.add('s-acc-etape');
+        if (k === communs.length - 1) {
+            menu.lastChild.classList.add('s-acc-etape--derniere');
         }
-        item('pParam_' + noms.indexOf(d[0]), d[1], d[2], etapeOuverte === d[0] || (d[0] === 'Les règles' && etapeOuverte === 'Général'), function () { allerA(d[0]); });
     });
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
+    item('pParam_' + noms.indexOf('Les droits'), 'Les droits', 'lock-line', etapeOuverte === 'Les droits', function () { allerA('Les droits'); });
     var titres = { reservations: 'Calendrier partagé', atraiter: 'Validations et demandes spéciales', statistiques: 'Statistiques' };
     var titre;
     if (ouvertSalles) {
