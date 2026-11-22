@@ -52,85 +52,6 @@
     color: var(--text-default-grey);
   }
   .w-section__alert { margin-bottom: 0.75rem; }
-  .w-search {
-    position: relative;
-  }
-  .w-search__dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: var(--background-default-grey);
-    border: 1px solid var(--border-default-grey);
-    border-radius: 0;
-    max-height: 360px;
-    overflow-y: auto;
-    z-index: 100;
-    display: none;
-    color: var(--text-default-grey);
-  }
-  .w-search__dropdown.open { display: block; }
-  .w-search__dd-header {
-    padding: 0.5rem 1rem 0.25rem;
-    font-size: .75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: var(--text-mention-grey);
-    position: sticky;
-    top: 0;
-    background: var(--background-default-grey);
-    z-index: 1;
-    border-bottom: 1px solid var(--border-default-grey);
-  }
-  .w-search__dd-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.625rem 1rem;
-    cursor: pointer;
-    gap: 0.5rem;
-    transition: background 0.15s;
-    border-bottom: 1px solid var(--border-default-grey);
-    color: var(--text-default-grey);
-  }
-  .w-search__dd-item:last-child { border-bottom: none; }
-  .w-search__dd-item:hover { background: var(--background-alt-blue-france); }
-  .w-search__dd-item:hover .w-search__dd-add {
-    color: var(--text-action-high-blue-france);
-  }
-  .w-search__dd-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-  }
-  .w-search__dd-name {
-    font-size: .875rem;
-    font-weight: 500;
-    color: var(--text-title-grey);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .w-search__dd-meta {
-    font-size: .75rem;
-    color: var(--text-mention-grey);
-    font-family: ui-monospace, 'SFMono-Regular', monospace;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .w-search__dd-add {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--text-mention-grey);
-    font-size: .8125rem;
-    font-weight: 600;
-    flex-shrink: 0;
-    transition: color 0.15s;
-  }
   .w-criteria {
     display: flex;
     flex-direction: column;
@@ -883,10 +804,18 @@
   .w-dbl { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); padding: .75rem; }
   .w-dbl--attente #resolveRecap, .w-dbl--attente .w-resolve__toolbar, .w-dbl--attente .w-resolve__footer { display: none; }
   .w-etapes__actions.w-config__actions { margin-top: 1rem; }
-  .w-etape__corps .w-search { margin-bottom: .75rem; }
   .w-etape--verrouillee .w-etape__tete { cursor: not-allowed; }
   .w-etape--verrouillee .w-etape__nom, .w-etape--verrouillee .w-etape__resume { color: var(--text-disabled-grey); }
   .w-etape--verrouillee .w-etape__num { background: var(--background-disabled-grey); color: var(--text-disabled-grey); border-color: var(--border-disabled-grey); }
+  .w-criteria-intro { margin: 0 0 .75rem; }
+  .w-criterion__choix { flex: 1 1 auto; min-width: 0; margin: 0; }
+  .w-criterion__choix .fr-label { font-size: .8125rem; }
+  .w-criterion__info { align-items: flex-end; }
+  .w-criteria-ajout { margin-top: .75rem; }
+  .w-criteria-legende { margin-top: .75rem; padding: .5rem .75rem; background: var(--background-alt-grey); }
+  .w-criteria-legende p { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
+  .w-criteria-legende p + p { margin-top: .25rem; }
+  .w-criteria-casse { margin-top: .75rem; }
 </style>
 </head>
 <body>
@@ -1000,26 +929,17 @@
             <div class="w-etape__corps" id="etape-colonnes-corps" hidden>
 
         <div id="alert2" role="status"></div>
-        <div class="w-search">
-          <div class="fr-input-group w-search__champ">
-            <label class="fr-label" for="fieldSearchInput">Ajouter une colonne</label>
-            <input
-              class="fr-input"
-              type="search"
-              id="fieldSearchInput"
-              placeholder="Nom de la colonne"
-              autocomplete="off"
-              aria-autocomplete="list"
-              aria-controls="fieldDropdown"
-            />
-          </div>
-          <div class="w-search__dropdown" id="fieldDropdown" role="listbox"></div>
+        <p class="w-mention w-criteria-intro">Deux lignes sont des doublons quand elles se ressemblent sur <strong>toutes</strong> les colonnes choisies. Exemple : avec Nom et Prénom, Jean Dupont et Marie Dupont ne sont pas confondus.</p>
+        <div class="w-criteria" id="criteriaList" aria-live="polite"></div>
+        <button type="button" class="fr-btn fr-btn--tertiary fr-btn--sm fr-icon-add-line fr-btn--icon-left w-criteria-ajout" id="btnAjouterCritere">Ajouter une colonne pour comparer</button>
+        <div class="fr-checkbox-group fr-checkbox-group--sm w-criteria-casse">
+          <input type="checkbox" id="casseCheck" autocomplete="off">
+          <label class="fr-label" for="casseCheck">Tenir compte des majuscules et minuscules</label>
         </div>
-        <div class="w-criteria" id="criteriaList" aria-live="polite">
-          <div class="w-criteria-empty">
-            <span aria-hidden="true">↑</span>
-            Aucune colonne choisie. Ajoutez-en avec la recherche ci-dessus.
-          </div>
+        <div class="w-criteria-legende">
+          <p><strong>Identique</strong> : la même valeur, sans tenir compte des accents ni des espaces en trop (« Hélène » et « Helene »).</p>
+          <p><strong>Approchant</strong> : des valeurs proches, qui tolèrent aussi les fautes de frappe (« Dupont » et « Dupond »).</p>
+          <p id="casseLegende">Les majuscules ne comptent pas : « Dupont » et « DUPONT » sont des doublons.</p>
         </div>
         
             </div>
@@ -1452,7 +1372,7 @@ const S = {
     hideIdentical: false,
     hideFormulas: true,
     sortMode: 'default',
-    searchQuery: '',
+    respecterCasse: false,
     currentStep: 1,
     mergeCount: 0,
     mergeErrors: 0,
@@ -2206,72 +2126,20 @@ function resetScan() {
     zoneEnAttente(true);
     majResumes();
 }
-function renderFieldDropdown() {
-    const dd = $('fieldDropdown');
-    const q = S.searchQuery.toLowerCase().trim();
-    const selIds = new Set(S.selectedFields.map(f => f.fieldId));
-    let pool = S.allColumns.filter(c => !selIds.has(c.id));
-    pool = pool.filter(c => !isHelper(c.id));
+function colonnesComparables(fidCourant) {
+    const prises = new Set(S.selectedFields.map(f => f.fieldId).filter(id => id !== fidCourant));
+    let pool = S.allColumns.filter(c => !prises.has(c.id) && !isHelper(c.id));
     if (S.hideFormulas)
-        pool = pool.filter(c => !isPureFormula(c.id));
-    if (q) {
-        pool = pool.filter(c => {
-            const meta = S.colMeta[c.id];
-            const cat = meta ? typeCategory(meta.type).toLowerCase() : '';
-            const typ = meta ? (meta.type || '').toLowerCase() : '';
-            return c.label.toLowerCase().includes(q)
-                || c.id.toLowerCase().includes(q)
-                || cat.includes(q)
-                || typ.includes(q);
-        });
-    }
-    pool.sort((a, b) => (a.label || a.id).toLowerCase()
-        .localeCompare((b.label || b.id).toLowerCase()));
-    if (!pool.length) {
-        dd.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-mention-grey);font-size:.875rem;">' +
-            (q ? 'Aucune colonne ne correspond à « ' + echapperHTML(q) + ' »' : 'Aucune colonne disponible') +
-            '</div>';
-        return;
-    }
-    let h = '<div class="w-search__dd-header">Champs disponibles (' + pool.length + ')</div>';
-    pool.forEach(c => {
-        const meta = S.colMeta[c.id];
-        const cat = meta ? typeCategory(meta.type) : 'Non défini';
-        const typeStr = meta ? (meta.type || '') : '';
-        let formulaBadge = '';
-        if (isPureFormula(c.id)) {
-            formulaBadge = '<span class="fr-badge fr-badge--sm fr-badge--no-icon w-formula-badge" title="Formule pure (calculée automatiquement) - non éditable">ƒ</span>';
-        }
-        else if (isDefaultFormula(c.id)) {
-            formulaBadge = '<span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--blue-cumulus w-formula-badge" title="Valeur par défaut calculée à la création">ƒ₀</span>';
-        }
-        h += '<div class="w-search__dd-item" data-cid="' + echapperHTML(c.id) + '" role="option">' +
-            '<div class="w-search__dd-info">' +
-            '<span class="w-search__dd-name">' + formulaBadge + echapperHTML(c.label) + '</span>' +
-            '<span class="w-search__dd-meta">' + echapperHTML(c.id) + ' · ' + echapperHTML(cat) + (typeStr !== cat ? ' (' + echapperHTML(typeStr) + ')' : '') + '</span>' +
-            '</div>' +
-            '<span class="w-search__dd-add" aria-hidden="true">' +
-            '<span class="fr-icon-add-line" aria-hidden="true"></span>&nbsp;Ajouter' +
-            '</span>' +
-            '</div>';
-    });
-    dd.innerHTML = h;
-    dd.querySelectorAll('.w-search__dd-item').forEach(item => {
-        item.addEventListener('click', () => {
-            addField(item.dataset.cid, 'exact', 80);
-        });
-    });
+        pool = pool.filter(c => c.id === fidCourant || !isPureFormula(c.id));
+    return pool.sort((a, b) => comparerNomsTables(a.label || a.id, b.label || b.id));
 }
 function addField(fid, mode, thr) {
     if (S.selectedFields.some(f => f.fieldId === fid))
         return;
     const safeThr = validerNombre(thr, 1, 100, 80);
     S.selectedFields.push({ fieldId: fid, mode, threshold: safeThr });
-    S.searchQuery = '';
-    $('fieldSearchInput').value = '';
     resetScan();
     renderChips();
-    $('fieldDropdown').classList.remove('open');
 }
 function removeField(fid) {
     S.selectedFields = S.selectedFields.filter(f => f.fieldId !== fid);
@@ -2279,49 +2147,98 @@ function removeField(fid) {
     renderChips();
 }
 const SIMILAR_THRESHOLD = 80;
+var _criteresVides = [];
+function ligneCritere(k, fid, mode, surColonne, surMode, surRetrait) {
+    const meta = fid ? S.colMeta[fid] : null;
+    const cat = meta ? typeCategory(meta.type) : '';
+    const catShort = meta ? typeCategoryShort(cat) : '';
+    const row = creerEl('div', 'w-criterion');
+    const info = creerEl('div', 'w-criterion__info');
+    const grp = creerEl('div', 'fr-select-group w-criterion__choix');
+    const lab = creerEl('label', 'fr-label', 'Colonne à comparer', { for: 'crit-col-' + k });
+    const sel = creerEl('select', 'fr-select', null, { id: 'crit-col-' + k, autocomplete: 'off' });
+    sel.appendChild(creerEl('option', null, 'Choisir une colonne…', { value: '' }));
+    colonnesComparables(fid).forEach(c => {
+        const o = creerEl('option', null, c.label || c.id, { value: c.id });
+        if (c.id === fid)
+            o.selected = true;
+        sel.appendChild(o);
+    });
+    sel.addEventListener('change', () => surColonne(sel.value));
+    grp.appendChild(lab);
+    grp.appendChild(sel);
+    info.appendChild(grp);
+    if (catShort)
+        info.appendChild(creerEl('span', 'fr-badge fr-badge--sm fr-badge--no-icon w-criterion__type-badge', catShort, { title: cat }));
+    const sup = creerEl('button', 'fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-delete-line fr-btn--icon-only w-criterion__remove w-infobulle w-infobulle--gauche', null, { type: 'button', 'aria-label': 'Retirer cette colonne', 'data-infobulle': 'Retirer' });
+    sup.addEventListener('click', surRetrait);
+    info.appendChild(sup);
+    row.appendChild(info);
+    const modes = creerEl('div', 'w-criterion__modes', null, { role: 'radiogroup', 'aria-label': 'Ressemblance attendue' });
+    [['exact', 'Identique'], ['similar', 'Approchant']].forEach(m => {
+        const b = creerEl('button', 'w-criterion__mode-btn' + (mode === m[0] ? ' active ' + m[0] : ''), m[1], { type: 'button', role: 'radio', 'aria-checked': String(mode === m[0]), id: 'crit-mode-' + k + '-' + m[0] });
+        b.addEventListener('click', () => surMode(m[0]));
+        modes.appendChild(b);
+    });
+    row.appendChild(modes);
+    return row;
+}
+function focaliser(id) {
+    const e = document.getElementById(id);
+    if (e)
+        e.focus();
+}
 function renderCriteria() {
     const ct = $('criteriaList');
-    ct.innerHTML = '';
-    if (S.selectedFields.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'w-criteria-empty';
-        empty.innerHTML = '<span aria-hidden="true">↑</span> Aucune colonne choisie. Ajoutez-en avec la recherche ci-dessus.';
-        ct.appendChild(empty);
+    if (!ct)
         return;
-    }
-    S.selectedFields.forEach((f, idx) => {
+    viderEl(ct);
+    S.selectedFields.forEach(f => {
         if (f.mode === 'fuzzy')
             f.mode = 'similar';
-        const col = S.allColumns.find(c => c.id === f.fieldId);
-        const meta = S.colMeta[f.fieldId];
-        const cat = meta ? typeCategory(meta.type) : '';
-        const catShort = meta ? typeCategoryShort(cat) : '';
-        const name = col ? col.label : f.fieldId;
-        const idDiff = formeIdentifiant(name) !== formeIdentifiant(f.fieldId);
-        const row = document.createElement('div');
-        row.className = 'w-criterion';
-        row.innerHTML =
-            '<div class="w-criterion__info">' +
-                '<span class="w-criterion__textes"><span class="w-criterion__name" title="' + echapperHTML(name) + '">' + echapperHTML(name) + '</span>' +
-                (idDiff ? '<span class="w-criterion__name-meta">(id : ' + echapperHTML(f.fieldId) + ')</span>' : '') + '</span>' +
-                (catShort ? '<span class="fr-badge fr-badge--sm fr-badge--no-icon w-criterion__type-badge" title="' + echapperHTML(cat) + '">' + echapperHTML(catShort) + '</span>' : '') +
-                '<button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-delete-line fr-btn--icon-only w-criterion__remove w-infobulle w-infobulle--gauche" data-remove="' + echapperHTML(f.fieldId) + '" aria-label="Retirer la colonne ' + echapperHTML(name) + '" data-infobulle="Retirer"></button>' +
-                '</div>' +
-                '<div class="w-criterion__modes" role="radiogroup" aria-label="Comparaison de ' + echapperHTML(name) + '">' +
-                '<button type="button" role="radio" aria-checked="' + (f.mode === 'exact') + '" class="w-criterion__mode-btn' + (f.mode === 'exact' ? ' active exact' : '') + '" data-mode="exact" data-f="' + echapperHTML(f.fieldId) + '" title="Les valeurs doivent être exactement les mêmes">Identique</button>' +
-                '<button type="button" role="radio" aria-checked="' + (f.mode === 'similar') + '" class="w-criterion__mode-btn' + (f.mode === 'similar' ? ' active similar' : '') + '" data-mode="similar" data-f="' + echapperHTML(f.fieldId) + '" title="Les valeurs peuvent différer un peu : fautes de frappe, accents, espaces">Approchant</button>' +
-                '</div>';
-        row.querySelectorAll('.w-criterion__mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-                const fid = btn.dataset.f;
-                setCriterionMode(fid, mode);
-            });
-        });
-        row.querySelector('.w-criterion__remove').addEventListener('click', () => {
+    });
+    if (!S.selectedFields.length && !_criteresVides.length)
+        _criteresVides.push({ mode: 'exact' });
+    let k = 0;
+    S.selectedFields.forEach((f, i) => {
+        const kk = k++;
+        ct.appendChild(ligneCritere(kk, f.fieldId, f.mode, v => {
+            if (!v) {
+                S.selectedFields.splice(i, 1);
+                _criteresVides.unshift({ mode: f.mode });
+            }
+            else {
+                f.fieldId = v;
+            }
+            resetScan();
+            renderChips();
+            focaliser('crit-col-' + kk);
+        }, m => {
+            setCriterionMode(f.fieldId, m);
+            renderChips();
+            focaliser('crit-mode-' + kk + '-' + m);
+        }, () => {
             removeField(f.fieldId);
-        });
-        ct.appendChild(row);
+            focaliser('btnAjouterCritere');
+        }));
+    });
+    _criteresVides.forEach((v, j) => {
+        const kk = k++;
+        ct.appendChild(ligneCritere(kk, '', v.mode, val => {
+            if (!val)
+                return;
+            _criteresVides.splice(j, 1);
+            addField(val, v.mode, 80);
+            focaliser('crit-col-' + (S.selectedFields.length - 1));
+        }, m => {
+            v.mode = m;
+            renderCriteria();
+            focaliser('crit-mode-' + kk + '-' + m);
+        }, () => {
+            _criteresVides.splice(j, 1);
+            renderCriteria();
+            focaliser('btnAjouterCritere');
+        }));
     });
 }
 function setCriterionMode(fid, mode) {
@@ -2357,8 +2274,16 @@ function lev(a, b) {
     }
     return m[b.length][a.length];
 }
+function normaliserComparaison(v) {
+    if (!S.respecterCasse)
+        return normalize(v);
+    return valStr(v)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\s\u00a0\u202f]+/g, ' ')
+        .trim();
+}
 function levSim(a, b) {
-    const na = normalize(a), nb = normalize(b);
+    const na = normaliserComparaison(a), nb = normaliserComparaison(b);
     if (na === nb)
         return 100;
     if (!na.length || !nb.length)
@@ -2367,7 +2292,7 @@ function levSim(a, b) {
 }
 function fScore(va, vb, mode) {
     if (mode === 'exact')
-        return normalize(va) === normalize(vb) ? 100 : 0;
+        return normaliserComparaison(va) === normaliserComparaison(vb) ? 100 : 0;
     return levSim(va, vb);
 }
 async function startScan() {
@@ -2406,7 +2331,7 @@ async function startScan() {
                     ecartee = true;
                     break;
                 }
-                const v = normalize(displayValue(sf.fieldId, brut));
+                const v = normaliserComparaison(displayValue(sf.fieldId, brut));
                 if (!v) {
                     ecartee = true;
                     break;
@@ -3540,6 +3465,7 @@ function bindGlobal() {
         relayer((async () => {
             S.selectedTable = $('tableSelect').value;
             S.selectedFields = [];
+            _criteresVides = [];
             etat.filtres = { racine: { conj: 'et', items: [] } };
             resetScan();
             if (!S.selectedTable) {
@@ -3561,28 +3487,9 @@ function bindGlobal() {
                 majStats();
             }
             majDonneesFiltres();
+            renderCriteria();
             majResumes();
         })(), 'Changement de table impossible');
-    });
-    ecouter('fieldSearchInput', 'focus', () => {
-        renderFieldDropdown();
-        const dd = $('fieldDropdown');
-        if (dd)
-            dd.classList.add('open');
-    });
-    ecouter('fieldSearchInput', 'input', () => {
-        S.searchQuery = $('fieldSearchInput').value;
-        renderFieldDropdown();
-        const dd = $('fieldDropdown');
-        if (dd)
-            dd.classList.add('open');
-    });
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.w-search')) {
-            const dd = $('fieldDropdown');
-            if (dd)
-                dd.classList.remove('open');
-        }
     });
     ecouter('scanBtn', 'click', () => relayer(startScan(), 'Analyse impossible'));
     ecouter('navPrev', 'click', () => navGroup(-1));
@@ -3599,9 +3506,7 @@ function bindGlobal() {
         S.hideFormulas = $('hideFormulasCheck').checked;
         if (S.duplicateGroups.length && S.currentStep === 3)
             renderGroup();
-        const dd = $('fieldDropdown');
-        if (dd && dd.classList.contains('open'))
-            renderFieldDropdown();
+        renderCriteria();
     });
     ecouter('sortSelect', 'change', () => {
         S.sortMode = $('sortSelect').value;
@@ -5095,6 +5000,25 @@ function zoneEnAttente(attente) {
         setEmpty('🔎', 'Pas encore de recherche', '');
     }
 }
+(function brancherCasse() {
+    var c = document.getElementById('casseCheck');
+    c.addEventListener('change', function () {
+        S.respecterCasse = c.checked;
+        document.getElementById('casseLegende').textContent = c.checked
+            ? 'Les majuscules comptent : « Dupont » et « DUPONT » ne sont pas des doublons.'
+            : 'Les majuscules ne comptent pas : « Dupont » et « DUPONT » sont des doublons.';
+        resetScan();
+    });
+})();
+(function brancherCriteres() {
+    document.getElementById('btnAjouterCritere').addEventListener('click', function () {
+        _criteresVides.push({ mode: 'exact' });
+        renderCriteria();
+        var sels = document.querySelectorAll('#criteriaList select');
+        if (sels.length)
+            sels[sels.length - 1].focus();
+    });
+})();
 (function brancherEtapes() {
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape__tete'), function (t) {
         t.addEventListener('click', function () { ouvrirEtape(t.closest('.w-etape').getAttribute('data-etape')); });
