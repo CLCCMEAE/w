@@ -822,6 +822,8 @@
     .w-atelier .fr-fieldset > .fr-checkbox-group, .w-atelier .fr-fieldset > .fr-radio-group { margin: 0; padding: 0; width: 100%; }
     .w-atelier .fr-checkbox-group .fr-label, .w-atelier .fr-radio-group .fr-label { font-size: 1rem; line-height: 1.5rem; }
     .w-atelier .fr-hint-text, .w-atelier .w-mention { font-size: .875rem; }
+    .w-choix-table-ca { max-width: 32rem; margin-top: 1.25rem; }
+    .w-choix-table-ca__bas { display: flex; justify-content: flex-end; gap: .5rem; }
 </style>
 </head>
 <body>
@@ -867,7 +869,7 @@
   </div>
 <script>'use strict';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 6;
+var ESSAI_WIDGET = 7;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -9302,15 +9304,32 @@ function ouvrirCarteAccueil(cle, publier) {
         allerPublierCa();
     } }), 'Ouverture de la carte');
 }
-function creerDepuisAccueilCa(parcours, tid, p) {
-    var gardees = etat.donneesAssistant;
-    etat.surAccueil = false;
-    demarrerCreation();
-    etat.donneesAssistant = gardees || {};
-    var b = etat.brouillon;
-    b.parcours = parcours;
-    b.preparation = parcours;
-    b.nom = '';
+function nomLibreCa(base) {
+    var pris = etat.cartes.map(function (t) { return (t.config && t.config.nom) || ''; });
+    if (pris.indexOf(base) === -1) {
+        return base;
+    }
+    var k = 2;
+    while (pris.indexOf(base + ' ' + k) !== -1) {
+        k++;
+    }
+    return base + ' ' + k;
+}
+function creerDepuisAccueilCa(parcours, tid) {
+    relayer(creerDirectCa(parcours, tid), 'Création de la carte');
+}
+async function creerDirectCa(parcours, tid) {
+    if (!etat.peutParametrer) {
+        return;
+    }
+    var gardees = etat.donneesAssistant || {};
+    detruireCarte();
+    etat.fiche = null;
+    etat.choisi = null;
+    etat.choixTableCa = false;
+    etat.donneesAssistant = gardees;
+    var b = { mode: 'creation', parcours: parcours, preparation: parcours, etape: 0, etapeMax: 0, nom: '', apparence: Object.assign({}, APPARENCE_DEFAUT) };
+    etat.brouillon = b;
     if (parcours === 'vierge') {
         b.table = null;
         b.ajoutCoords = false;
@@ -9322,17 +9341,51 @@ function creerDepuisAccueilCa(parcours, tid, p) {
         b.colDate = '';
         b.colDateFin = '';
         b.approximatif = false;
-        b.apparence = Object.assign({}, APPARENCE_DEFAUT);
-        allerEtape(1);
-        return;
+        b.nom = nomLibreCa('Nouvelle carte');
     }
-    b.apparence = Object.assign({}, APPARENCE_DEFAUT);
+    else {
+        var t = tid || tablesProposees()[0];
+        await lireDonneesAssistant([t]);
+        if (etat.brouillon !== b) {
+            return;
+        }
+        choisirTable(t);
+        var p = proposerColonnes(t);
+        if (!p.colLat && !p.colAdresse && p.colPays) {
+            b.apparence.representation = 'pays';
+        }
+        b.nom = nomLibreCa(b.nom || libelleTable(t));
+    }
+    var noms = nomsEtapes(b);
+    for (var i = 1; i < noms.length; i++) {
+        if (!validerEtapeSilencieuse(noms[i])) {
+            etat.surAccueil = false;
+            b.etape = i;
+            b.etapeMax = i;
+            afficherVue('assistant');
+            validerEtape(noms[i]);
+            return;
+        }
+    }
+    await creerCarte();
+    if (etat.brouillon === b) {
+        etat.surAccueil = false;
+        b.etape = noms.length - 1;
+        b.etapeMax = b.etape;
+        afficherVue('assistant');
+    }
+}
+function choixTableCa() {
     var tables = tablesProposees();
-    choisirTable(tid || tables[0]);
-    if (p && !p.colLat && !p.colAdresse) {
-        b.apparence.representation = 'pays';
-    }
-    allerEtape(tid ? 2 : 1);
+    var sel = liste('cChoixTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+    var ok = bouton('Créer la carte', null, 'arrow-right-line', function () { creerDepuisAccueilCa('donnees', sel.value); }, { id: 'cChoixTableOk', iconeDroite: true });
+    var annuler = bouton('Annuler', 'tertiaire', null, function () { etat.choixTableCa = false; afficherVue('accueil', true); var f = document.getElementById('cDonnees'); if (f) {
+        f.focus();
+    } }, { id: 'cChoixTableAnnuler' });
+    return creer('div', { classe: 'w-section w-choix-table-ca' }, [
+        creer('div', { classe: 'fr-select-group fr-mb-0' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'cChoixTable' }, texte: 'Table des lieux' }), sel]),
+        creer('p', { classe: 'w-mention', texte: 'Si la table n\'a pas de colonnes de latitude et de longitude, le widget les y ajoute.' }),
+        creer('div', { classe: 'w-choix-table-ca__bas' }, [annuler, ok])]);
 }
 function rendreAccueilCa(zone) {
     var rub = etat.rubCa;
@@ -9405,12 +9458,22 @@ function rendreAccueilCa(zone) {
                     return;
                 }
                 var desc = p.lignes + (p.lignes > 1 ? ' lignes' : ' ligne') + ' · ' + (p.colLat ? 'coordonnées ' + lib(tid, p.colLat) + ' et ' + lib(tid, p.colLon) : (p.colAdresse ? 'adresses ' + lib(tid, p.colAdresse) : 'un cercle par pays'));
-                grilleD.appendChild(carteAccueilCa(vignetteLieuxCa(tid), badgeCa('Suggestion', 'info'), 'Carte « ' + libelleTable(tid) + ' »', desc, 'Utiliser cette suggestion', function () { creerDepuisAccueilCa('donnees', tid, p); }, 'cSuggestion' + k));
+                grilleD.appendChild(carteAccueilCa(vignetteLieuxCa(tid), badgeCa('Suggestion', 'info'), 'Carte « ' + libelleTable(tid) + ' »', desc, 'Utiliser cette suggestion', function () { creerDepuisAccueilCa('donnees', tid); }, 'cSuggestion' + k));
             });
             var plusD = creer('button', { classe: 'w-acc__plus', id: 'cDonnees', attrs: { type: 'button', 'aria-label': 'Choisir moi-même la table de ma carte' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-            plusD.addEventListener('click', function () { creerDepuisAccueilCa('donnees'); });
+            plusD.addEventListener('click', function () {
+                etat.choixTableCa = true;
+                afficherVue('accueil', true);
+                var f = document.getElementById('cChoixTable');
+                if (f) {
+                    f.focus();
+                }
+            });
             grilleD.appendChild(plusD);
             scene.appendChild(grilleD);
+            if (etat.choixTableCa) {
+                scene.appendChild(choixTableCa());
+            }
         }
     }
     else {
