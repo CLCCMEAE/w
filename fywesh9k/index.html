@@ -1246,6 +1246,15 @@ nav[hidden],
 .w-carte-param--verrouillee { background: transparent; border-style: dashed; }
 .w-carte-param--verrouillee .w-carte-param__titre { color: var(--text-disabled-grey); }
 .w-carte-param__verrou { margin: 0; }
+.w-resultat-defile > .w-carte-param, .w-resultat-defile > .w-apercu-filtres, .w-resultat-defile > .fr-alert { width: 100%; max-width: 60rem; box-sizing: border-box; }
+.w-carte-param .w-radios { display: flex; flex-direction: column; gap: .25rem; margin: 0; padding: 0; }
+.w-carte-param .w-radios > legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.w-carte-param .w-radios .fr-radio-group { margin: 0; max-width: none; }
+.w-champs-vider .w-cases { display: flex; flex-direction: column; gap: .25rem; }
+.w-champs-vider .w-cases .fr-checkbox-group { margin: 0; }
+.w-champs-vider .w-cases .fr-label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+.w-champs-vider .w-cases > .fr-btn { align-self: flex-start; margin: .25rem 0 0; }
+.w-tag-sugg { margin-left: .25rem; }
 </style>
 </head>
 <body>
@@ -1292,7 +1301,7 @@ nav[hidden],
 <script>
 "use strict";
 var VERSION_WIDGET = "1.0.0";
-var ESSAI_WIDGET = 7;
+var ESSAI_WIDGET = 8;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -4873,13 +4882,15 @@ function apercuFiltres(c) {
 function majApercuFiltres(c, idBase) {
   var phrase = document.getElementById(idBase + "Phrase");
   if (phrase) {
-    phrase.textContent = c.filtres.conditions.length ? "Se lit : " + libelleCritere(c) + "." : "";
-    phrase.hidden = !c.filtres.conditions.length;
+    var complet = c.filtres.conditions.length && !problemeFiltres(c);
+    phrase.textContent = complet ? "Se lit : " + libelleCritere(c) + "." : "";
+    phrase.hidden = !complet;
   }
+  var montrer = idBase !== "c" || c.tente;
   c.filtres.conditions.forEach(function(k, n) {
     var e = document.getElementById(idBase + "F" + n + "Err");
     if (e) {
-      var p = problemeCondition(c.table, k);
+      var p = montrer ? problemeCondition(c.table, k) : "";
       e.textContent = p ? "À compléter : " + p + "." : "";
     }
   });
@@ -5346,7 +5357,7 @@ function rendreEditeur(c, idBase) {
         return bloc;
       }), v[2] ? null : 3));
     // dernière carte : le nom
-    var nom = saisie(idBase + "Nom", c.nom, { indice: libelleTable(c.table) });
+    var nom = saisie(idBase + "Nom", c.nom);
     nom.addEventListener("input", function() {
       if (!creation && !nom.value.trim()) {
         statutParam("Le nom ne peut pas être vide.", true);
@@ -5701,6 +5712,8 @@ async function lancerCreation() {
     marquerInvalide("cTable", "Choisissez la table des dossiers.");
     return;
   }
+  c.tente = true;
+  majApercuFiltres(c, "c");
   if (problemeFiltres(c)) {
     signalerSaisie(problemeFiltres(c));
     refocaliser(c.filtres.conditions.length ? "cF0Col" : "cAjouter");
