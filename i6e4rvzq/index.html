@@ -939,6 +939,9 @@
   .w-dbl--attente #resolveRecap, .w-dbl--attente .w-resolve__toolbar, .w-dbl--attente .w-resolve__footer { display: none; }
   .w-etapes__actions.w-config__actions { margin-top: 1rem; }
   .w-etape__corps .w-search { margin-bottom: .75rem; }
+  .w-etape--verrouillee .w-etape__tete { cursor: not-allowed; }
+  .w-etape--verrouillee .w-etape__nom, .w-etape--verrouillee .w-etape__resume { color: var(--text-disabled-grey); }
+  .w-etape--verrouillee .w-etape__num { background: var(--background-disabled-grey); color: var(--text-disabled-grey); border-color: var(--border-disabled-grey); }
 </style>
 </head>
 <body>
@@ -5065,7 +5068,22 @@ async function majLibellesTables(meta) {
             _libellesTables[t] = String(titre).trim();
     });
 }
+function etapeAccessible(cle) {
+    return cle === 'table' || !!S.selectedTable;
+}
+function majVerrousEtapes() {
+    ['colonnes', 'lignes'].forEach(function (cle) {
+        var t = document.getElementById('etape-' + cle + '-tete');
+        if (!t)
+            return;
+        var ok = etapeAccessible(cle);
+        t.disabled = !ok;
+        t.closest('.w-etape').classList.toggle('w-etape--verrouillee', !ok);
+    });
+}
 function ouvrirEtape(cle, sansFocus) {
+    if (!etapeAccessible(cle))
+        cle = 'table';
     _vue.etape = cle;
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape'), function (li) {
         var ouvert = li.getAttribute('data-etape') === cle;
@@ -5093,14 +5111,18 @@ function majResumes() {
         if (x)
             x.textContent = t;
     };
+    majVerrousEtapes();
     r('table', S.selectedTable ? libelleTable(S.selectedTable) : 'Choisissez une table');
     var noms = (S.selectedFields || []).map(function (f) {
         var col = (S.allColumns || []).find(function (c) { return c.id === f.fieldId; });
         return (col ? col.label : f.fieldId) + (f.mode === 'exact' ? ' (exact)' : ' (similaire)');
     });
-    r('colonnes', noms.length ? noms.join(', ') : 'Aucune colonne');
+    r('colonnes', !S.selectedTable ? 'Choisissez d\u2019abord une table' : (noms.length ? noms.join(', ') : 'Aucune colonne'));
     var nf = nbConditionsFiltres();
-    if (!nf) {
+    if (!S.selectedTable) {
+        r('lignes', 'Choisissez d\u2019abord une table');
+    }
+    else if (!nf) {
         r('lignes', 'Toutes les lignes');
     }
     else {
