@@ -69,7 +69,6 @@ table.utable {border-collapse:collapse;font-size:.875rem;width:max-content;min-w
 .w-switch input:not(:checked)+.w-slider {background:var(--border-plain-error)}
 .w-switch input:not(:checked)+.w-slider::before {left:3px}
 .w-switch input:focus+.w-slider {outline:2px solid var(--border-action-high-blue-france);outline-offset:2px}
-.cell-meta {font-size:.75rem;color:var(--text-mention-grey);line-height:1.3;max-width:160px;white-space:normal}
 .addMsg {font-size:.8125rem;min-height:1.2em;margin-top:.25rem}
 .addMsg--err {color:var(--text-default-error)}.addMsg--ok {color:var(--text-default-success)}
 .w-section {background:var(--background-alt-grey);border-left:4px solid var(--border-action-high-blue-france);padding:1rem 1.25rem;margin-bottom:1.25rem;color:var(--text-default-grey)}
@@ -1351,7 +1350,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 12;
+var ESSAI_WIDGET = 13;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1533,7 +1532,7 @@ function getTableCols() {
     customFields.forEach(function (f) { preferred.push(f.id); });
     var result = [], seen = new Set();
     var EXCLUDED = {
-        ACTIF: 1, MODE_ADMIN: 1, ROLE_GRIST: 1, LIBELLE: 1, VOIR_EN_TANT_QUE: 1, CREE_PAR: 1, CREE_LE: 1, MODIFIE_PAR: 1, MODIFIE_LE: 1
+        ACTIF: 1, MODE_ADMIN: 1, ROLE_GRIST: 1, LIBELLE: 1, VOIR_EN_TANT_QUE: 1, CREE_PAR: 1, CREE_LE: 1, MODIFIE_PAR: 1, MODIFIE_LE: 1, AUTORISE_LE: 1
     };
     preferred.forEach(function (c) {
         if (existingCols.size === 0 || existingCols.has(c)) {
@@ -2555,10 +2554,64 @@ var COLONNES_EXPIRATION_ADMIN = [
         description: 'Vrai tant que le mode structure est activé et que l’heure de fin n’est pas passée. C’est cette colonne que teste la règle de structure des permissions avancées.' }
 ];
 function estColonneExpirationAdmin(colId) {
-    return COLONNES_EXPIRATION_ADMIN.some(function (c) { return c.id === colId; });
+    return colId === 'AUTORISE_LE' || COLONNES_EXPIRATION_ADMIN.some(function (c) { return c.id === colId; });
 }
 function expirationAdminEnPlace() {
     return existingCols.has('MODE_ADMIN_VALIDE') && existingCols.has('MODE_ADMIN_FIN');
+}
+var COLONNE_AUTORISATION = { id: 'AUTORISE_LE', label: 'AUTORISATION MODIFIÉE LE', type: 'DateTime:Europe/Paris', formula: 'NOW() if $ACTIF or value else None',
+    description: 'Date et heure du dernier changement de l’interrupteur Autorisé (colonne ACTIF), posées automatiquement par le document.' };
+function texteDateAutorisation(valeur, autorise) {
+    if (typeof valeur !== 'number' || valeur <= 0) {
+        return '';
+    }
+    var d = new Date(valeur * 1000);
+    if (isNaN(d)) {
+        return '';
+    }
+    return (autorise ? 'depuis le ' : 'retirée le ') + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function majDateAutorisation(tr, autorise) {
+    var sp = tr ? tr.querySelector('td[data-col="ACTIF"] .w-autorise-date') : null;
+    if (!sp) {
+        return;
+    }
+    sp.textContent = texteDateAutorisation(Date.now() / 1000, autorise);
+    sp.hidden = false;
+}
+var _colonneAutorisationTentee = false;
+async function assurerColonneDateAutorisation() {
+    if (_colonneAutorisationTentee)
+        return false;
+    _colonneAutorisationTentee = true;
+    try {
+        var cols = await lireColonnesCentrale();
+        if (!cols)
+            return false;
+        var colActif = cols.find(function (c) { return c.colId === 'ACTIF'; });
+        if (!colActif)
+            return false;
+        var col = COLONNE_AUTORISATION;
+        var trouvee = trouverColonne(cols, col.id);
+        if (trouvee && (trouvee.colId !== col.id || trouvee.formule))
+            return false;
+        if (!trouvee)
+            await ajouterColonneSure(col.id);
+        var actions = [['ModifyColumn', NOM_TABLE_CENTRALE, col.id, { type: col.type, label: col.label, untieColIdFromLabel: true, isFormula: false, formula: col.formula, recalcWhen: 0, recalcDeps: ['L', colActif.ref] }]];
+        try {
+            await ecrireDocument(actions.concat([['ModifyColumn', NOM_TABLE_CENTRALE, col.id, { description: col.description }]]));
+        }
+        catch (eLot) {
+            logSecurite('INFO', 'Date d’autorisation : lot avec description refusé, nouvel essai sans', eLot);
+            await ecrireDocument(actions);
+        }
+        existingCols.add(col.id);
+        return true;
+    }
+    catch (e) {
+        logSecurite('INFO', 'Colonne de date d’autorisation non créée (structure verrouillée ou droits insuffisants)', e);
+        return false;
+    }
 }
 var _colonnesExpirationTentees = false;
 async function assurerColonnesExpirationAdmin() {
@@ -2728,6 +2781,12 @@ async function refreshUsers(silent) {
         if (existingCols.size > 0 && !existingCols.has('MODE_ADMIN')) {
             await assurerColonneModeAdmin();
         }
+        if (existingCols.has('ACTIF') && !existingCols.has(COLONNE_AUTORISATION.id)) {
+            if (await assurerColonneDateAutorisation()) {
+                await rechargerRecords();
+                await loadColumnMeta();
+            }
+        }
         if (existingCols.has('MODE_ADMIN')) {
             if (await assurerColonnesExpirationAdmin()) {
                 await rechargerRecords();
@@ -2832,11 +2891,6 @@ function renderTableHeader() {
         enTeteTriable(th, colId, f ? f.label.toUpperCase() : colId.toUpperCase());
         tr.appendChild(th);
     });
-    var thMeta = document.createElement('th');
-    thMeta.setAttribute('scope', 'col');
-    thMeta.style.cssText = 'font-size:.75rem;color:var(--text-mention-grey);font-weight:400;min-width:120px';
-    enTeteTriable(thMeta, 'MODIFIE_LE', 'MODIFIÉ LE');
-    tr.appendChild(thMeta);
     var thDel = document.createElement('th');
     thDel.setAttribute('scope', 'col');
     thDel.style.width = '32px';
@@ -3231,6 +3285,11 @@ function renderTableBody() {
         lblSwitch.appendChild(cbACTIF);
         lblSwitch.appendChild(spanSlider);
         tdActif.appendChild(lblSwitch);
+        var spAut = document.createElement('span');
+        spAut.className = 'w-admin-fin w-autorise-date';
+        spAut.textContent = texteDateAutorisation(r.AUTORISE_LE, !!r.ACTIF);
+        spAut.hidden = !spAut.textContent;
+        tdActif.appendChild(spAut);
         tdActif.dataset.col = 'ACTIF';
         tr.appendChild(tdActif);
         rowCtrls.ACTIF = cbACTIF;
@@ -3367,6 +3426,7 @@ function renderTableBody() {
                     }
                     apiUpdate(rowId, data).then(function () {
                         rechargerRecords();
+                        majDateAutorisation(rowTr, isActif);
                         flashSaved(ctrlActif);
                         if (ctrlStatut)
                             flashSaved(ctrlStatut);
@@ -3384,9 +3444,10 @@ function renderTableBody() {
                         flashError(ctrlStatut);
                         if (ctrlRole)
                             flashError(ctrlRole);
-                        afficherErreur('Attribuez un Rôle avant de passer le statut à ACTIF.');
+                        afficherErreur('Choisissez un rôle avant de passer le statut à « Autorisée ».');
                         return;
                     }
+                    var autorisationChangee = !!(ctrlActif && ctrlActif.checked !== shouldBeActif);
                     if (ctrlActif && ctrlActif.checked !== shouldBeActif)
                         ctrlActif.checked = shouldBeActif;
                     setRowClass(rowTr, rowClass(newStatut, shouldBeActif));
@@ -3399,6 +3460,8 @@ function renderTableBody() {
                     }
                     apiUpdate(rowId, data).then(function () {
                         rechargerRecords();
+                        if (autorisationChangee)
+                            majDateAutorisation(rowTr, shouldBeActif);
                         flashSaved(ctrlStatut);
                         if (!shouldBeActif && ctrlRole)
                             flashSaved(ctrlRole);
@@ -3406,23 +3469,6 @@ function renderTableBody() {
                 });
             }
         })(r.id, rowCtrls.ACTIF, rowCtrls.STATUT, rowCtrls.ROLE_GRIST, tr);
-        var tdMeta = document.createElement('td');
-        tdMeta.className = 'cell-meta';
-        var metaTexte = '';
-        var mLe = '';
-        try {
-            var d2 = (typeof r.MODIFIE_LE === 'number' && r.MODIFIE_LE > 0) ? new Date(r.MODIFIE_LE * 1000) : null;
-            if (d2 && !isNaN(d2))
-                mLe = d2.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-        }
-        catch (e) {
-            logSecurite('AVERTISSEMENT', 'Date de modification illisible', e);
-        }
-        if (mLe)
-            metaTexte = 'Modifié le ' + mLe;
-        tdMeta.textContent = metaTexte;
-        tdMeta.dataset.col = 'MODIFIE_LE';
-        tr.appendChild(tdMeta);
         var tdDel = document.createElement('td');
         tdDel.style.textAlign = 'center';
         var btnD = document.createElement('button');
