@@ -339,7 +339,7 @@ h2.w-section__title {margin:0}
 .w-ajout__bouton .fr-btn { margin: 0; }
 .w-mention { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
 .w-cadre-journal { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
-.w-cadre-filtres { display: grid; grid-template-columns: minmax(9rem, 1.6fr) repeat(4, minmax(5.5rem, 1fr)); gap: .5rem .75rem; align-items: end; }
+.w-cadre-filtres { display: grid; grid-template-columns: minmax(10rem, 1.6fr) repeat(auto-fit, minmax(7rem, 1fr)); gap: .5rem .75rem; align-items: end; }
 @media (max-width: 70em) { .w-cadre-filtres { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); } }
 .w-cadre-filtres > div { min-width: 0; margin: 0; }
 .w-cadre-filtres > div.fr-select-group:not(:last-child), .w-cadre-filtres > div.fr-input-group:not(:last-child), .w-cadre-filtres > div.fr-select-group, .w-cadre-filtres > div.fr-input-group { margin-bottom: 0; }
@@ -438,10 +438,11 @@ h2.w-section__title {margin:0}
       <label class="fr-label" for="searchUsers">Rechercher</label>
       <input class="fr-input" type="search" id="searchUsers" placeholder="Prénom, nom ou adresse…" autocomplete="off">
      </div>
-     <div class="fr-select-group"><label class="fr-label" for="filtreStatut">Statut</label><select class="fr-select" id="filtreStatut" autocomplete="off"></select></div>
-     <div class="fr-select-group"><label class="fr-label" for="filtreRole">Rôle</label><select class="fr-select" id="filtreRole" autocomplete="off"></select></div>
-     <div class="fr-select-group"><label class="fr-label" for="filtreType">Type</label><select class="fr-select" id="filtreType" autocomplete="off"></select></div>
      <div class="fr-select-group"><label class="fr-label" for="filtreActif">Autorisé</label><select class="fr-select" id="filtreActif" autocomplete="off"><option value="">Tous</option><option value="oui">Oui</option><option value="non">Non</option></select></div>
+     <div class="fr-select-group"><label class="fr-label" for="filtreMode">Mode structure</label><select class="fr-select" id="filtreMode" autocomplete="off"><option value="">Tous</option><option value="oui">Ouvert</option><option value="non">Fermé</option></select></div>
+     <div class="fr-select-group"><label class="fr-label" for="filtreRole">Rôle</label><select class="fr-select" id="filtreRole" autocomplete="off"></select></div>
+     <div class="fr-select-group"><label class="fr-label" for="filtreStatut">Statut</label><select class="fr-select" id="filtreStatut" autocomplete="off"></select></div>
+     <div class="fr-select-group"><label class="fr-label" for="filtreType">Type</label><select class="fr-select" id="filtreType" autocomplete="off"></select></div>
     </div>
     <div class="w-cadre-outils">
      <p class="w-note-admin" id="alerteModeAdmin" role="status" hidden><span class="fr-icon-lock-unlock-line fr-icon--sm" aria-hidden="true"></span> <span id="alerteModeAdminTexte"></span></p>
@@ -1350,7 +1351,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var VERSION_WIDGET = '1.0.0';
-var ESSAI_WIDGET = 11;
+var ESSAI_WIDGET = 12;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -5531,6 +5532,11 @@ function utilisateursDuRegistre() {
     return records.filter(function (r) { return r.EMAIL !== '__PARAM__'; });
 }
 var FILTRES_UT = [['filtreStatut', 'STATUT', 'Tous'], ['filtreRole', 'ROLE_GRIST', 'Tous'], ['filtreType', 'TYPE_UTILISATEUR', 'Tous']];
+function champsFiltrables() {
+    return getTableCols().filter(function (c) { return !CORE_FIELDS.some(function (cf) { return cf.id === c; }); }).map(getFieldDef).filter(function (f) {
+        return f && (String(f.type).indexOf('Choice') === 0) && Array.isArray(f.choices) && f.choices.length;
+    });
+}
 function remplirFiltres() {
     FILTRES_UT.forEach(function (f) {
         var sel = $(f[0]);
@@ -5541,6 +5547,40 @@ function remplirFiltres() {
         sel.appendChild(new Option(f[2], ''));
         ((def && def.choices) || []).forEach(function (c) { sel.appendChild(new Option(c, c)); });
         sel.addEventListener('change', appliquerRecherche);
+    });
+    var conteneur = document.querySelector('.w-cadre-filtres');
+    if (!conteneur) {
+        return;
+    }
+    var perso = champsFiltrables();
+    var voulus = perso.map(function (f) { return 'filtrePerso_' + f.id; });
+    Array.prototype.slice.call(conteneur.querySelectorAll('[data-filtre-perso]')).forEach(function (g) {
+        if (voulus.indexOf(g.getAttribute('data-filtre-perso')) === -1) {
+            g.remove();
+        }
+    });
+    perso.forEach(function (f) {
+        var id = 'filtrePerso_' + f.id;
+        if ($(id)) {
+            return;
+        }
+        var g = document.createElement('div');
+        g.className = 'fr-select-group';
+        g.setAttribute('data-filtre-perso', id);
+        var lab = document.createElement('label');
+        lab.className = 'fr-label';
+        lab.setAttribute('for', id);
+        lab.textContent = f.label || f.id;
+        var sel = document.createElement('select');
+        sel.className = 'fr-select';
+        sel.id = id;
+        sel.autocomplete = 'off';
+        sel.appendChild(new Option('Tous', ''));
+        f.choices.forEach(function (c) { sel.appendChild(new Option(c, c)); });
+        sel.addEventListener('change', appliquerRecherche);
+        g.appendChild(lab);
+        g.appendChild(sel);
+        conteneur.appendChild(g);
     });
 }
 function ligneRetenueParFiltres(rec) {
@@ -5554,6 +5594,20 @@ function ligneRetenueParFiltres(rec) {
     var fa = $('filtreActif');
     if (ok && fa && fa.value) {
         ok = (fa.value === 'oui') === !!rec.ACTIF;
+    }
+    var fm = $('filtreMode');
+    if (ok && fm && fm.value) {
+        ok = (fm.value === 'oui') === modeAdminEnVigueur(rec);
+    }
+    if (ok) {
+        ok = champsFiltrables().every(function (f) {
+            var sel = $('filtrePerso_' + f.id);
+            if (!sel || !sel.value) {
+                return true;
+            }
+            var v = rec[f.id];
+            return Array.isArray(v) ? decodeList(v).indexOf(sel.value) !== -1 : String(v || '') === sel.value;
+        });
     }
     return ok;
 }
@@ -5604,7 +5658,6 @@ function appliquerRecherche() {
     var rows = document.querySelectorAll('#tbody tr');
     var visible = 0;
     var autorisesVisibles = 0;
-    var filtresActifs = !!filtre || FILTRES_UT.concat([['filtreActif']]).some(function (f) { var x = $(f[0]); return !!(x && x.value); });
     for (var i = 0; i < rows.length; i++) {
         var texte = rows[i].textContent.toLowerCase();
         var champs = rows[i].querySelectorAll('input:not([type=checkbox]):not([type=date]):not([type=datetime-local]),select');
@@ -5674,6 +5727,7 @@ function exporterCsv() {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 ecouter('filtreActif', 'change', appliquerRecherche);
+ecouter('filtreMode', 'change', appliquerRecherche);
 ecouter('tbody', 'change', function (e) {
     if (e.target && e.target.closest && e.target.closest('td[data-col="ACTIF"], td[data-col="STATUT"]')) {
         setTimeout(appliquerRecherche, 0);
