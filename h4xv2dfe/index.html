@@ -252,17 +252,8 @@
     .w-infobulle.w-astuce-nom[data-infobulle]::after { left: 0; right: auto; white-space: normal !important; width: 17rem !important; }
     .gb-constr__etiquette { display: flex; align-items: center; gap: .125rem; }
     .gb-constr__etiquette .fr-btn { margin: 0; }
-    .w-reglages { display: flex; gap: 1.5rem; align-items: flex-start; }
-    .w-reglages__nav { flex: 0 0 15rem; position: sticky; top: 0; }
-    .w-reglages__corps { flex: 1 1 0; min-width: 0; }
-    .w-reglages__nav .gb-acc__tete { width: 100%; text-align: left; }
-    .w-reglages__nav .gb-acc__tete::after { display: none !important; }
-    .w-reglages__nav .gb-acc__item--ouvert .gb-acc__resume { display: block; }
-    @media (max-width: 52em) { .w-reglages { flex-direction: column; } .w-reglages__nav { flex-basis: auto; width: 100%; position: static; } }
-    .w-reglages__etat { margin: 0 0 .5rem; }
-    .w-reglages__pages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-reglages__pages li { display: flex; flex-direction: column; gap: .125rem; }
-    .w-reglages__pages strong { overflow-wrap: anywhere; }
+    .gb-accueil__titre { margin-bottom: .5rem; }
+    .gb-accueil__droits { display: flex; flex-direction: column; gap: 1.5rem; }
     @container assistant (max-width: 40rem) { .w-page-lecteur { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 40em) { .w-page-lecteur { grid-template-columns: minmax(0, 1fr); } }
     .w-titre-aide { display: flex; align-items: center; gap: .125rem; flex-wrap: wrap; }
@@ -812,6 +803,7 @@
   .w-wuit { color: var(--blue-france-main-525); }
     .w-bandeau__role { margin-left: .5rem; white-space: nowrap; align-self: center; }
     .w-bandeau__role.fr-badge { font-size: 1rem; line-height: 2rem; min-height: 2rem; padding: 0 .75rem; }
+    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
     @media (max-width: 30em) { .w-bandeau__role.fr-badge { font-size: .75rem; line-height: 1rem; min-height: 1rem; padding: 0 .375rem; } }
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
@@ -1640,7 +1632,7 @@ function formulairePage() {
         cond.push(editeurConditions(ed, 'conditions', 'aPc', redessiner, function () { }));
     }
     noeuds.push(creer('fieldset', { classe: 'w-page-filtre w-page-conditions' }, cond));
-    noeuds.push(creer('div', { classe: 'w-page-lecteurs' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux lecteurs' })].concat(lignesLecteurs(ed))));
+    noeuds.push(creer('div', { classe: 'w-page-lecteurs' }, [creer('p', { classe: 'w-page-sous-titre', texte: 'Filtres laissés aux utilisateurs' })].concat(lignesLecteurs(ed))));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
         bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerParam('#aPageConsultation'); }, { petit: true, id: 'aPageAnnuler' }),
         bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'aPageEnregistrer' })
@@ -1727,7 +1719,7 @@ async function enregistrerPage() {
         await majPages();
         etat.editionPage = null;
         masquerLoader();
-        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses lecteurs verront le changement à la prochaine ouverture.');
+        afficherSucces('La page « ' + nom + ' » est enregistrée. Ses utilisateurs verront le changement à la prochaine ouverture.');
         redessinerParam('#aPageConsultation');
     }
     catch (e) {
@@ -1823,13 +1815,13 @@ function sectionPage(id, titre, noeuds, action) {
 }
 function sectionsPages() {
     var centrale = etat.biblioCentrale || !etat.biblio;
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la liste « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette liste est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de lecteurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
+    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la liste « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette liste est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages de utilisateurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
     var admin = sectionPage('aSecAdmin', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les tableaux de bord et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la liste « ' + titreOwner() + ' ».' : 'Cette page montre tous les tableaux de bord et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
-    var ic = aide('aAideConsult', 'Où les lecteurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide, sans onglet « Nouveau tableau de bord » et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux lecteurs. Ce ne sont pas des droits : une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.');
+    var ic = aide('aAideConsult', 'Où les utilisateurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide, sans onglet « Nouveau tableau de bord » et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux utilisateurs. Ce ne sont pas des droits : une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.');
     if (etat.editionPage) {
-        return [admin, sectionPage('aSecConsult', 'Où les lecteurs la voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null)];
+        return [admin, sectionPage('aSecConsult', 'Où les utilisateurs la voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null)];
     }
     var liste = creer('ul', { classe: 'w-pages-liste' });
     pagesDuTableau(etat.cleConfig).forEach(function (x, k) {
@@ -1841,7 +1833,7 @@ function sectionsPages() {
             boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
         ]));
     });
-    var consult = sectionPage('aSecConsult', 'Où les lecteurs la voient', [
+    var consult = sectionPage('aSecConsult', 'Où les utilisateurs la voient', [
         creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce tableau de bord sans paramétrages, avec leurs propres filtres. ', ic.bouton]), ic.panneau,
         liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce tableau de bord n\'est montré sur aucune page du document.' })
     ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { return editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
@@ -1960,7 +1952,7 @@ var TYPES_TUILES = [
     { code: 'gantt', nom: 'Diagramme de Gantt', icone: 'calendar-2-line', desc: 'Des tâches sur une ligne de temps, de leur début à leur fin.', taille: 'XL' },
     { code: 'progress', nom: 'Liste de progression', icone: 'equalizer-line', desc: 'Une barre par catégorie, comparée à son objectif.', taille: 'M' },
     { code: 'latest', nom: 'Dernières lignes', icone: 'time-line', desc: 'Les lignes les plus récentes, selon une colonne de date.', taille: 'M' },
-    { code: 'text', nom: 'Texte ou intertitre', icone: 'article-line', desc: 'Un titre ou une note pour les lecteurs.', taille: 'XL' }
+    { code: 'text', nom: 'Texte ou intertitre', icone: 'article-line', desc: 'Un titre ou une note pour les utilisateurs.', taille: 'XL' }
 ];
 var AGREGATS = [
     { code: 'count', nom: 'Nombre de lignes', col: 0 },
@@ -8360,7 +8352,7 @@ function majBandeauRole() {
     b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
     var pb = document.getElementById('bandeauParametres');
     if (pb) {
-        pb.hidden = !admin;
+        pb.hidden = true;
         pb.setAttribute('aria-pressed', etat.vue === 'reglages' ? 'true' : 'false');
         if (!pb.dataset.branche) {
             pb.dataset.branche = '1';
@@ -8685,9 +8677,6 @@ function afficherVue(vue, garderFocus) {
     }
     else if (vue === 'construction') {
         rendreConstruction(zone);
-    }
-    else if (vue === 'reglages') {
-        rendreReglages(zone);
     }
     else if (vue === 'echec') {
         rendreEchec(zone);
@@ -10294,7 +10283,7 @@ function formulaireDernieres(form, b, redessiner, maj) {
     form.appendChild(section('Colonnes affichées', [listeCases('eTCols', optionsColonnes(b.table), b.colonnes || [], function (l) { b.colonnes = l; maj(); })]));
 }
 function formulaireTexte(form, b, redessiner, maj) {
-    form.appendChild(groupe('Style', champListe('eStyle', [{ valeur: 'titre', libelle: 'Intertitre (un titre de partie sur le tableau de bord)' }, { valeur: 'note', libelle: 'Note (un texte mis en avant pour les lecteurs)' }], b.style || 'note', function (v) { b.style = v; maj(); })));
+    form.appendChild(groupe('Style', champListe('eStyle', [{ valeur: 'titre', libelle: 'Intertitre (un titre de partie sur le tableau de bord)' }, { valeur: 'note', libelle: 'Note (un texte mis en avant pour les utilisateurs)' }], b.style || 'note', function (v) { b.style = v; maj(); })));
     form.appendChild(groupe('Texte', champSaisie('eTexte', b.texte || '', function (v) { b.texte = v; maj(); }, { multiligne: true, lignes: 6 }), 'Texte simple. Les adresses web (https://...) deviennent des liens.'));
 }
 function listeCases(id, options, choisis, surChange) {
@@ -11223,7 +11212,7 @@ function apercuLecteurTdb(cfg, glisser) {
     etat.filtres = { cle: 'apercu', periode: (cfg.periode && cfg.periode.defaut) || 'all', debut: '', fin: '', choix: (cfg.filtres || []).map(function (x) { return (x && x.defaut) || ''; }) };
     nouveauCalcul();
     var v = filtresVolet(cfg);
-    var volet = v ? creer('aside', { classe: 'gb-apercu-lecteur__volet', attrs: { inert: '', 'aria-label': 'Filtres des lecteurs' } }, [v]) : null;
+    var volet = v ? creer('aside', { classe: 'gb-apercu-lecteur__volet', attrs: { inert: '', 'aria-label': 'Filtres des utilisateurs' } }, [v]) : null;
     return creer('div', { classe: 'gb-apercu-lecteur' }, [volet, creer('div', { classe: 'gb-apercu-lecteur__tuiles' }, [grilleApercuTdb(cfg, glisser)])]);
 }
 function grilleApercuTdb(cfg, glisser) {
@@ -11365,7 +11354,7 @@ function rendreAtelierTdb(zone) {
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', allerAccueil, { id: 'aRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: 'Modifier « ' + (b.cfg.nom || '') + ' »', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'wNom' }, texte: 'Nom de la page' }),
-                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des lecteurs.', 'information-line', function () { }, { variante: 'discret', id: 'aAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nomChamp]),
+                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'aAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nomChamp]),
         creer('span', { classe: 'gb-etat' + (publie ? '' : ' gb-etat--brouillon'), id: 'aEtat', texte: publie ? 'Publié' : 'Brouillon' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var ol = creer('ol', { classe: 'gb-acc gb-etapes' });
@@ -11640,14 +11629,19 @@ function rendreDepart(bloc) {
     var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [] };
     var items = (etat.reprises || []).filter(function (it) { return !it.vide; });
     var rubriques = [{ cle: 'pages', titre: 'Mes pages publiées', icone: 'layout-grid-line' }].concat(RANGS_DEPART.map(function (r) { return { cle: r.cle, titre: r.titre, glyphe: r.glyphe }; }),
-        [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : []);
+        [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : [],
+        [{ cle: 'droits', titre: 'Les droits', icone: 'lock-line', groupe: 'Réglages' }]);
     if (!rubriques.some(function (r) { return r.cle === b.rubrique; })) {
         b.rubrique = 'pages';
     }
-    var menu = creer('nav', { classe: 'gb-accueil__menu', attrs: { 'aria-label': 'Accueil' } });
+    var menu = creer('nav', { classe: 'gb-accueil__menu', attrs: { 'aria-label': 'Paramétrage' } });
+    menu.appendChild(creer('p', { classe: 'gb-resultat__titre gb-titre-param gb-accueil__titre', texte: 'Paramétrage' }));
     rubriques.forEach(function (r, k) {
         if (k === 1) {
             menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: 'Créer' }));
+        }
+        if (r.groupe) {
+            menu.appendChild(creer('p', { classe: 'gb-accueil__groupe', texte: r.groupe }));
         }
         var on = b.rubrique === r.cle;
         var publiees = r.cle === 'pages' && etat.tableaux.some(function (t) { return pagesDuTableau(t.cle).length > 0; });
@@ -11656,8 +11650,8 @@ function rendreDepart(bloc) {
         it.addEventListener('click', function () {
             b.rubrique = r.cle;
             b.choix = null;
-            if (r.cle === 'pages') {
-                relayer(majPages().then(function () { redessinerParam('dR-pages'); }), 'Lecture des pages');
+            if (r.cle === 'pages' || r.cle === 'droits') {
+                relayer(majPages().then(function () { redessinerParam('dR-' + r.cle); }), 'Lecture des pages');
                 return;
             }
             redessinerParam('dR-' + r.cle);
@@ -11693,6 +11687,9 @@ function rendreDepart(bloc) {
             return utiliserConfig({ nom: '', description: '', table: meilleureListe() || tables[0] || null, periode: null, filtres: [], tuiles: [] });
         }, false, 'Partir de zéro : un tableau de bord'));
         bas.push(bouton('Partir d\'un modèle', 'secondaire', 'layout-grid-line', function () { return choisirDepart('modele'); }, { id: 'dModele' }));
+    }
+    else if (b.rubrique === 'droits') {
+        grille = creer('div', { classe: 'gb-accueil__droits' }, [contenuDroits()]);
     }
     else if (b.rubrique === 'reprise') {
         items.forEach(function (it, k) {
@@ -11804,7 +11801,7 @@ function rendreConstruction(zone) {
     var haut = creer('div', { classe: 'gb-constr__haut' }, [bouton('Accueil', 'secondaire', 'arrow-left-line', quitterConstruction, { id: 'eRetour' }),
         creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: existe ? 'Modifier « ' + (b.titre || '') + ' »' : 'Nouvel élément', attrs: { tabindex: '-1' } }),
         creer('div', { classe: 'gb-constr__nom' }, [creer('div', { classe: 'gb-constr__etiquette' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'eNomElement' }, texte: 'Nom de la page' }),
-                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des lecteurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom]),
+                boutonIcone('Ajoutez un emoji au début du nom : il s\'affichera aussi dans le nom de la page des utilisateurs.', 'information-line', function () { }, { variante: 'discret', id: 'eAstuceNom', classe: 'w-infobulle--dessus w-astuce-nom' })]), nom]),
         creer('span', { classe: 'gb-etat' + (publie && modifie ? ' gb-etat--modifie' : ''), id: 'eEtat', texte: publie ? (modifie ? 'Modifications non publiées' : 'Publié') : 'Brouillon' }),
         creer('span', { classe: 'w-pousse' })].concat(actions));
     var form = creer('nav', { classe: 'gb-constr__etapes', attrs: { 'aria-label': 'Étapes' } });
@@ -11949,63 +11946,10 @@ async function ouvrirReglages() {
         await terminerEdition(true);
     }
     await majPages();
-    afficherVue('reglages');
-}
-async function fermerReglages() {
-    demarrerCreation();
+    demarrerCreation('droits');
 }
 function pagesDesLecteurs() {
     return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.nomsPages && etat.nomsPages[x]; });
-}
-function contenuReglagesLecteurs() {
-    var cachee = !!etat.pageProtegee;
-    var admin = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecAdmin' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecAdmin', texte: 'Page admin' })]),
-        creer('p', { classe: 'w-reglages__etat' }, [creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (cachee ? 'fr-badge--success' : 'fr-badge--warning'), texte: cachee ? 'Cachée aux lecteurs' : 'Visible par tous' })]),
-        cachee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null)
-            : bouton('Cacher la page admin', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' })]);
-    var liste = creer('ul', { classe: 'w-reglages__pages' });
-    pagesDesLecteurs().forEach(function (x) {
-        liste.appendChild(creer('li', {}, [creer('strong', { texte: etat.nomsPages[x] }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]));
-    });
-    var pages = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'rSecPages' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'rSecPages', texte: 'Pages publiées' })]),
-        liste.childNodes.length ? liste : creer('p', { classe: 'w-mention', id: 'rPagesVide', texte: 'Aucune page publiée' })]);
-    return creer('div', { classe: 'w-general' }, [grilleParam([[admin], [pages]], '1-1')]);
-}
-function rendreReglages(zone) {
-    var haut = creer('div', { classe: 'gb-constr__haut' }, [
-        bouton('Accueil', 'secondaire', 'arrow-left-line', fermerReglages, { id: 'rRetour' }),
-        creer('h2', { classe: 'fr-h5 fr-m-0', id: 'titreVue', texte: 'Paramètres', attrs: { tabindex: '-1' } })]);
-    var n = pagesDesLecteurs().length;
-    var sections = [
-        { cle: 'droits', nom: 'Les droits', resume: etat.pageProtegee ? 'Page admin cachée' : 'Page admin visible', contenu: contenuDroits },
-        { cle: 'lecteurs', nom: 'Page des lecteurs', resume: n ? n + (n > 1 ? ' pages publiées' : ' page publiée') : 'Aucune page publiée', contenu: contenuReglagesLecteurs }
-    ];
-    if (!sections.some(function (g) { return g.cle === _sectionReglages; })) {
-        _sectionReglages = sections[0].cle;
-    }
-    var nav = creer('div', { classe: 'gb-acc w-reglages__nav', attrs: { role: 'list' } });
-    var corps = creer('div', { classe: 'w-reglages__corps', id: 'rCorps' });
-    sections.forEach(function (g, k) {
-        var ouvert = _sectionReglages === g.cle;
-        if (ouvert) {
-            corps.appendChild(g.contenu());
-        }
-        var bt = creer('button', { classe: 'gb-acc__tete', id: 'rSec-' + g.cle, attrs: { type: 'button', 'aria-current': ouvert ? 'step' : null } }, [
-            creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
-            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), creer('span', { classe: 'gb-acc__resume', texte: g.resume })])]);
-        bt.addEventListener('click', function () {
-            _sectionReglages = g.cle;
-            afficherVue('reglages', true);
-            var f = document.getElementById('rSec-' + g.cle);
-            if (f) {
-                f.focus();
-            }
-        });
-        nav.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt]));
-    });
-    zone.appendChild(creer('div', { classe: 'gb-constr' }, [haut, creer('div', { classe: 'w-reglages' }, [nav, corps])]));
 }
 function nomElementValide() {
     var b = etat.construction.b;
@@ -12593,11 +12537,11 @@ function etapeAffichage() {
     if (cfg.periode) {
         var def = liste('wPeriodeDef', PERIODES.filter(function (p) { return p.code !== 'custom'; }).map(function (p) { return { valeur: p.code, libelle: p.nom }; }), cfg.periode.defaut || 'all');
         def.addEventListener('change', function () { cfg.periode.defaut = def.value; majAttente(); });
-        colPer.push(groupeChamp('Période affichée à l\'ouverture du tableau de bord', def, 'Chaque lecteur peut la changer ; son choix est retenu par son navigateur.'));
+        colPer.push(groupeChamp('Période affichée à l\'ouverture du tableau de bord', def, 'Chaque utilisateur peut la changer ; son choix est retenu par son navigateur.'));
     }
     var cats = optionsColonnesDoc(estCategorie);
     cfg.filtres = cfg.filtres || [];
-    var colChoix = [titreColonne('Filtres de choix (3 au plus)', 'Les lecteurs choisissent une valeur dans le volet de gauche. Avec une valeur à l\'ouverture, le tableau de bord s\'ouvre déjà filtré ; chaque lecteur peut la changer, et son choix est retenu par son navigateur.', 'wFiltresChoix')];
+    var colChoix = [titreColonne('Filtres de choix (3 au plus)', 'Les utilisateurs choisissent une valeur dans le volet de gauche. Avec une valeur à l\'ouverture, le tableau de bord s\'ouvre déjà filtré ; chaque utilisateur peut la changer, et son choix est retenu par son navigateur.', 'wFiltresChoix')];
     cfg.filtres.forEach(function (f, k) {
         var s = liste('wFiltre' + k, cats, f.table + '\u0001' + f.col);
         s.addEventListener('change', function () { var p = s.value.split('\u0001'); f.table = p[0]; f.col = p[1]; f.libelle = libCol(p[0], p[1]); f.defaut = null; redessinerParam('#wFiltre' + k); });
@@ -12653,7 +12597,7 @@ function etapeRecapitulatif() {
     var ecrit = creer('p', { classe: 'w-mention', texte: (etat.biblio ? 'Une ligne de réglages dans la liste ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La liste partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages pour ce tableau de bord.') +
             (b.tablesModele && b.tablesModele.length ? ' Listes du modèle : ' + b.tablesModele.map(function (x) { return libelleTable(x.id) + (x.mode === 'existante' ? ' (existante)' : (x.mode === 'nouvelle' ? ' (nouvelle liste, nommée par vous)' : ' (créée pour vous)')); }).join(', ') + '.' : '') });
     return grilleParam([], '1-1', [titreColonne('Le tableau de bord', null, 'aSecNom'), groupeChamp('Nom du tableau de bord', nom, 'Affiché sur son onglet.', true),
-        groupeChamp('Description', desc, 'Une phrase pour les lecteurs, sous le nom.'),
+        groupeChamp('Description', desc, 'Une phrase pour les utilisateurs, sous le nom.'),
         titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes), titreColonne('Ce qui sera écrit', null, 'aSecEcrit'), ecrit], apercuEtape('Récapitulatif'));
 }
 function texteFiltrePeriode(cfg) {
@@ -12664,7 +12608,7 @@ function texteFiltrePeriode(cfg) {
 }
 var TEXTES_DROITS = {
     usages: 'Un tableau de bord n\'écrit jamais dans vos listes. Toute personne qui peut ouvrir le document consulte les tableaux de bord, utilise les filtres, ouvre les vues de données et exporte. Seuls les propriétaires créent, modifient et suppriment les tableaux de bord, une fois les règles d\'accès posées.',
-    figer: 'Signaler aux lecteurs la consultation seule',
+    figer: 'Signaler aux utilisateurs la consultation seule',
     pluriel: 'les tableaux de bord'
 };
 var AIDE = {
@@ -12676,7 +12620,7 @@ var AIDE = {
         'Ouvrir « Voir les données » d\'une tuile, ou l\'exporter en CSV.',
         'Ajouter, modifier, redimensionner et réordonner les tuiles avec « Modifier le tableau de bord ».',
         'Imprimer ou enregistrer en PDF, en bas du volet de gauche ; passer en plein écran en haut à droite.',
-        'Publier un ou plusieurs tableaux de bord sur une page pour les lecteurs, sans paramétrages, avec son titre de bandeau et ses propres filtres.'
+        'Publier un ou plusieurs tableaux de bord sur une page pour les utilisateurs, sans paramétrages, avec son titre de bandeau et ses propres filtres.'
     ],
     avant: [
         'Une ou plusieurs listes avec des lignes : demandes, dépenses, inscriptions, projets...',
@@ -12697,12 +12641,12 @@ var AIDE = {
         'Les tuiles': { titre: 'les indicateurs et les graphiques.', points: [
                 '« Ajouter une tuile » : nombre, grille d\'indicateurs, barres, courbe, anneau, radar, tableau, progression, texte ou dernières lignes.',
                 'Chaque tuile se modifie, se duplique, change de taille ou de place (glisser la poignée, ou Placer avant / Placer après).',
-                'Les tuiles sont dessinées avec vos données : ce que vous voyez est ce que verront les lecteurs.',
+                'Les tuiles sont dessinées avec vos données : ce que vous voyez est ce que verront les utilisateurs.',
                 '« Annuler le dernier changement » revient en arrière d\'un pas.'
             ] },
         'Affichage et filtres': { titre: 'les filtres du volet et leurs valeurs à l\'ouverture.', points: [
                 '« Filtre de période sur la colonne de date » : propose Cette semaine, Ce mois-ci, Cette année...',
-                '« Période affichée à l\'ouverture du tableau de bord » : chaque lecteur peut la changer.',
+                '« Période affichée à l\'ouverture du tableau de bord » : chaque utilisateur peut la changer.',
                 '« Ajouter un filtre de choix » : trois au plus, avec leur libellé dans le volet et leur valeur à l\'ouverture.',
                 'Un filtre s\'applique aux tuiles dont la liste a la même colonne ; l\'aperçu indique les tuiles non filtrées.'
             ] },
@@ -12716,11 +12660,11 @@ var AIDE = {
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
                 '« Imprimer la marche à suivre » : pour l\'avoir sous les yeux pendant le réglage.'
             ] },
-        'Général': { titre: 'le nom, la liste, les droits, les pages des lecteurs et la suppression.', points: [
+        'Général': { titre: 'le nom, la liste, les droits, les pages des utilisateurs et la suppression.', points: [
                 '« Nom du tableau de bord » et « Description » : affichés sur l\'onglet et au-dessus des tuiles.',
                 '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
                 '« Cette page » : « Cacher cette page » pose sur la page une vue de la liste « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette liste la cache aux autres personnes. Le « i » voisin donne la règle.',
-                '« Où les lecteurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les tableaux de bord montrés, les conditions fixes et les filtres laissés aux lecteurs. Chaque page se modifie, se duplique ou se supprime depuis la liste.',
+                '« Où les utilisateurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les tableaux de bord montrés, les conditions fixes et les filtres laissés aux utilisateurs. Chaque page se modifie, se duplique ou se supprime depuis la liste.',
                 '« Supprimer le tableau de bord » : il disparaît des onglets, vos listes et leurs lignes restent dans le document.'
             ] }
     },
@@ -12736,7 +12680,7 @@ var AIDE = {
         { q: 'Comment publier un seul graphique ?', r: 'Sur la tuile, le bouton « Publier cette tuile seule » prépare une page de consultation qui ne montre qu\'elle. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
         { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos listes seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
         { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos listes et leurs lignes restent dans le document.' },
-        { q: 'Comment montrer un tableau de bord sans les paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Où les lecteurs la voient », puis « Publier sur une nouvelle page ». La nouvelle page montre le tableau de bord sans aide ni paramétrages, avec son propre titre de bandeau, ses conditions fixes et les filtres que vous laissez aux lecteurs.' },
+        { q: 'Comment montrer un tableau de bord sans les paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Où les utilisateurs la voient », puis « Publier sur une nouvelle page ». La nouvelle page montre le tableau de bord sans aide ni paramétrages, avec son propre titre de bandeau, ses conditions fixes et les filtres que vous laissez aux utilisateurs.' },
         { q: 'Comment cacher la page des paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la liste « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les tableaux de bord : la page disparaît de leur liste des pages.' },
         { q: 'Les conditions d\'une page de consultation protègent-elles les données ?', r: 'Non : elles règlent ce que la page montre. Une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.' },
         { q: 'Comment coller un graphique dans Tchap, un courriel ou un document ?', r: 'Icône « Copier l\'image » en haut à droite de la tuile, puis Ctrl+V (ou Cmd+V) dans le message. Si le navigateur refuse la copie, l\'image est téléchargée : glissez-la dans le message.' },
