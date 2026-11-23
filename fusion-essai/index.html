@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.8-essai - 23/11/2026
+  Version : 1.3.9-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -251,6 +251,7 @@
     .w-atelier .w-rg__lib { font-size: .875rem; color: var(--text-mention-grey); }
     .w-atelier .w-rg__ctl .fr-select, .w-atelier .w-rg__ctl .fr-input { margin: 0; padding-top: .25rem; padding-bottom: .25rem; font-size: .875rem; }
     .w-atelier .w-rg__val { font-size: .875rem; }
+    .w-atelier .w-rg__note { grid-column: 1 / -1; margin: 0; font-size: .8125rem; }
     .w-atelier .w-rg__ok { font-size: .875rem; color: var(--text-default-success); }
     .w-atelier .w-rg__groupe { margin: .75rem 0 0; font-size: .75rem; font-weight: 700; text-transform: none; letter-spacing: .02em; color: var(--text-title-grey); border-bottom: 1px solid var(--border-default-grey); padding-bottom: .125rem; }
     .w-multi { position: relative; }
@@ -1178,6 +1179,9 @@
     .p-foot__num { flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .p-foot--center { justify-content: center; text-align: center; } .p-foot--center .p-foot__txt { flex: 0 1 auto; }
     .p-foot--right .p-foot__txt { text-align: right; }
+    .p-foot--num-left .p-foot__num { order: -1; }
+    .p-foot--num-left .p-foot__txt, .p-foot--num-right .p-foot__txt { flex: 1 1 auto; }
+    .p-foot--num-center { flex-wrap: wrap; justify-content: center; } .p-foot--num-center .p-foot__txt { flex: 1 1 100%; } .p-foot--num-center .p-foot__num { flex: 1 1 100%; text-align: center; }
     .p-frame { position: absolute; pointer-events: none; }
     .p-frame--thin { border: 1pt solid var(--p-brand); }
     .p-frame--double { border: 5pt double var(--p-brand); }
@@ -1249,7 +1253,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.8-essai';
+var VERSION_WIDGET = '1.3.9-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -4171,13 +4175,18 @@ function compacterCorrespondance(racine) {
         vide.parentNode.removeChild(vide);
         return;
     }
-    var relies = sels.filter(function (s) { return !!s.value; }).length;
+    /* Rien quand chaque information du modèle a sa colonne ; sinon,
+       seulement les informations sans colonne, avec leur choix. */
     var section = tab.closest('.w-section') || tab.parentNode;
     var parent = section.parentNode;
-    var d = replie('pCorrReplie', [creer('span', { classe: 'w-rg__lib' }, [picto('colonne'), 'Infos du modèle']), creer('span', { classe: relies === sels.length ? 'w-rg__ok' : 'w-rg__val', texte: (relies === sels.length ? 'Toutes trouvées dans la table' : relies + ' sur ' + sels.length + ' trouvées dans la table') + ' · voir' })], [
-        creer('p', { classe: 'w-mention', texte: 'Le modèle a besoin de ces informations. Pour chacune, la colonne de la table qui la donne.' }), section], relies < sels.length);
-    d.setAttribute('title', 'Les informations que le modèle remplit (nom, adresse…) et la colonne de la table qui donne chacune.');
-    parent.appendChild(d);
+    var manquants = sels.filter(function (s) { return !s.value; });
+    section.parentNode.removeChild(section);
+    manquants.forEach(function (s) {
+        var lab = tab.querySelector('label[for="' + s.id + '"]');
+        var ligne = ligneReglage(lab ? lab.textContent : s.id, s, s.id, 'colonne');
+        ligne.appendChild(creer('p', { classe: 'w-mention w-rg__note', texte: 'Aucune colonne de la table ne donne cette information. Choisissez-en une, ou laissez « Aucune » si le document s\'en passe.' }));
+        parent.appendChild(ligne);
+    });
 }
 function etapeDonneesFu(b) {
     var d = etapeDonnees();
@@ -6588,14 +6597,101 @@ function uniteSignature(b, rc) {
     el.appendChild(ligne);
     return [{ el: el }];
 }
+/* Le numéro de page va toujours dans le pied de page : il s'affiche sur
+   chaque page, au même endroit, sans pousser le texte. */
+function estNumeroPage(v) { var s = String(v || '').toLowerCase(); return s === 'page' || s === 'pages'; }
+function positionDepot(e) {
+    var f = null;
+    var l = document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [];
+    for (var k = 0; k < l.length && !f; k++) {
+        if (l[k].classList && (l[k].classList.contains('w-ec-feuille') || l[k].classList.contains('p-page'))) {
+            f = l[k];
+        }
+    }
+    if (!f) {
+        return null;
+    }
+    var r = f.getBoundingClientRect();
+    var t = (e.clientX - r.left) / Math.max(1, r.width);
+    return t < 1 / 3 ? 'left' : (t > 2 / 3 ? 'right' : 'center');
+}
+function placerNumeroPage(pos) {
+    var b = etat.brouillon;
+    if (!b) {
+        return;
+    }
+    var pied = (b.blocks || []).filter(function (x) { return x.type === 'footer'; })[0];
+    if (!pied) {
+        pied = B('footer', { text: '', align: 'left', pageNumbers: true });
+        b.blocks.push(pied);
+    }
+    pied.pageNumbers = true;
+    pied.numPos = pos || pied.numPos || 'right';
+    b.choisi = pied.id;
+    apresStructure(pied.id, 'Numéro de page placé dans le pied de page : il s\'affiche sur chaque page.');
+}
+/* Anciens documents : un paragraphe qui ne contient que le numéro de page
+   (« {page} », « Page {page} sur {pages} »…) passe dans le pied de page. */
+function migrerNumerosPage(b) {
+    if (!b || !Array.isArray(b.blocks)) {
+        return false;
+    }
+    var aDeplacer = b.blocks.filter(function (x) {
+        if (!x || x.type !== 'paragraph' || typeof x.text !== 'string' || !/\{pages?\}/i.test(x.text)) {
+            return false;
+        }
+        return x.text.replace(/\{pages?\}/gi, '').replace(/\*|_|~|=/g, '').replace(/page|sur|de|\/|-|\s/gi, '') === '';
+    });
+    if (!aDeplacer.length) {
+        return false;
+    }
+    var court = !/\{pages\}/i.test(aDeplacer[0].text) && !/page/i.test(aDeplacer[0].text.replace(/\{pages?\}/gi, ''));
+    var pos = valeurDans(aDeplacer[0].align, ['left', 'center', 'right'], 'right');
+    b.blocks = b.blocks.filter(function (x) { return aDeplacer.indexOf(x) === -1; });
+    var pied = b.blocks.filter(function (x) { return x.type === 'footer'; })[0];
+    if (!pied) {
+        pied = B('footer', { text: '', align: 'left' });
+        b.blocks.push(pied);
+    }
+    pied.pageNumbers = true;
+    pied.numPos = pos;
+    if (court) {
+        pied.numFormat = 'court';
+    }
+    return true;
+}
+function reglageNumeroPied(bl) {
+    var actif = bl.pageNumbers !== false;
+    var fmt = liste(idEd(bl, 'numfmt'), [{ valeur: 'aucun', libelle: 'Aucun' }, { valeur: 'long', libelle: '« Page 1 sur 2 »' }, { valeur: 'court', libelle: '« 1 »' }], actif ? (bl.numFormat === 'court' ? 'court' : 'long') : 'aucun');
+    fmt.addEventListener('change', function () {
+        bl.pageNumbers = fmt.value !== 'aucun';
+        if (fmt.value === 'court') {
+            bl.numFormat = 'court';
+        }
+        else {
+            delete bl.numFormat;
+        }
+        changeBloc();
+        majPanneauElement();
+    });
+    var l = [groupeChamp('Numéro de page', fmt)];
+    if (actif) {
+        var pos = liste(idEd(bl, 'numpos'), [{ valeur: 'left', libelle: 'À gauche' }, { valeur: 'center', libelle: 'Au centre' }, { valeur: 'right', libelle: 'À droite' }], bl.numPos || 'right');
+        pos.addEventListener('change', function () { bl.numPos = pos.value; changeBloc(); });
+        l.push(groupeChamp('Place du numéro', pos));
+    }
+    return creer('div', { classe: 'w-ligne2' }, l);
+}
 function construirePied(b, rc, geo) {
     var al = valeurDans(b.align, ['left', 'center', 'right'], 'left');
-    var pied = creer('div', { classe: 'p-foot' + (al !== 'left' ? ' p-foot--' + al : '') });
+    var np = b.pageNumbers !== false ? valeurDans(b.numPos, ['left', 'center', 'right'], 'right') : '';
+    var pied = creer('div', { classe: 'p-foot' + (al !== 'left' ? ' p-foot--' + al : '') + (np ? ' p-foot--num-' + np : '') });
     var txt = creer('div', { classe: 'p-foot__txt' });
     rendreRiche(txt, b.text, rc);
     pied.appendChild(txt);
-    if (b.pageNumbers !== false) {
-        pied.appendChild(creer('div', { classe: 'p-foot__num' }, ['Page ', creer('span', { classe: 'p-pn', attrs: { 'data-pn': 'page' } }), ' sur ', creer('span', { classe: 'p-pn', attrs: { 'data-pn': 'pages' } })]));
+    if (np) {
+        var pn = creer('span', { classe: 'p-pn', attrs: { 'data-pn': 'page' } });
+        pied.appendChild(creer('div', { classe: 'p-foot__num' }, b.numFormat === 'court' ? [pn] : ['Page ', pn, ' sur ', creer('span', { classe: 'p-pn', attrs: { 'data-pn': 'pages' } })]));
     }
     pied.style.left = geo.m + 'px';
     pied.style.right = geo.m + 'px';
@@ -9714,6 +9810,10 @@ function listeChampsDisponibles() {
 }
 function insererChampDepuisPanneau(valeur) {
     var b = etat.brouillon;
+    if (estNumeroPage(valeur)) {
+        placerNumeroPage(null);
+        return;
+    }
     if (!b.avance && document.getElementById('pCourrier')) {
         var z = zoneActive();
         if (!z) {
@@ -11150,12 +11250,15 @@ function analyserLignes(cfg, tid) {
         }
     });
     var longues = [];
+    var pmin = 0, pmax = 0;
     var tmp = creer('div', { classe: 'w-hors-ecran', attrs: { 'aria-hidden': 'true' } });
     document.body.appendChild(tmp);
     try {
         lignes.slice(0, VERIF_MAX_PAGES).forEach(function (i) {
             var n = rendreDocuments(tmp, cfg, [i], { tid: tid, apercu: false, editeur: false, logos: etat.brouillon ? logosApercu(etat.brouillon) : null }, {});
             vider(tmp);
+            pmin = pmin ? Math.min(pmin, n) : n;
+            pmax = Math.max(pmax, n);
             if (n > 1) {
                 longues.push(libelleLigne(cfg, i) + ' (' + pluriel(n, 'page') + ')');
             }
@@ -11164,7 +11267,7 @@ function analyserLignes(cfg, tid) {
     finally {
         document.body.removeChild(tmp);
     }
-    return { vides: vides, longues: longues, nb: lignes.length };
+    return { vides: vides, longues: longues, nb: lignes.length, pmin: pmin, pmax: pmax };
 }
 function calculerAlertesVerif() {
     var zone = document.getElementById('pAlertesVerif');
@@ -11200,11 +11303,11 @@ function calculerAlertesVerif() {
                 return creer('li', { texte: '« ' + v.libelle + ' » est vide pour ' + pluriel(v.noms.length, 'ligne') + ' : ' + listeNoms(v.noms) + '.' });
             }))]);
     }
-    if (r.longues.length) {
-        ligne('alerte', 'warning-line', [creer('p', { classe: 'w-verif__titre', texte: 'Plus d\'une page' }), creer('p', { id: 'pAlerteLongues', texte: 'Le document dépasse une page pour ' + pluriel(r.longues.length, 'ligne') + ' : ' + listeNoms(r.longues) + '.' })]);
+    if (!r.vides.length) {
+        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Aucun champ vide.' })]);
     }
-    if (!r.vides.length && !r.longues.length) {
-        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Tout est bon : aucun champ vide, et chaque document tient sur une page.' })]);
+    if (r.pmax) {
+        ligne('info', 'file-text-line', [creer('p', { id: 'pInfoPages', texte: 'Nombre de pages : ' + (r.pmin === r.pmax ? pluriel(r.pmax, 'page') + (r.nb > 1 ? ' par document' : '') : formaterNombre(r.pmin) + ' à ' + pluriel(r.pmax, 'page') + ' selon les lignes') + '.' })]);
     }
     if (r.nb > Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) {
         zone.appendChild(creer('p', { classe: 'w-indice', texte: 'Vérification faite sur les ' + formaterNombre(Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) + ' premières lignes pour les pages, ' + formaterNombre(VERIF_MAX_LIGNES) + ' pour les champs.' }));
@@ -11361,6 +11464,9 @@ async function ouvrirEdition() {
         name: c.name, table: c.table, labelCol: c.labelCol, layout: c.layout || 'record', blocks: c.blocks, page: c.page, writeBack: c.writeBack || { enabled: false, col: null },
         logos: (Array.isArray(c.logos) ? c.logos : (c.logo ? [c.logo] : [])).map(function (id) { return { id: id }; }), sampleId: c.sampleId || etat.idCourant || null, filtre: c.filtre || null, nomFichier: c.nomFichier || '', description: c.description || '' };
     b.filtres = c.filtres && c.filtres.racine ? normaliserFiltresFu(c.filtres) : filtresDepuisAncien(c.filtre, c.table);
+    if (migrerNumerosPage(b)) {
+        b.touche = true;
+    }
     if (nomDocumentsVide(b)) {
         b.nomFichier = nomDocumentsDefaut(b);
     }
@@ -12364,7 +12470,8 @@ function editeurBloc(bl, dedans, o) {
         case 'footer':
             l.push(creer('p', { classe: 'w-indice', texte: 'Répété en bas de chaque page.' }));
             l.push(champTexteRiche(bl, 'text', 'Texte du pied de page', { lignes: 2 }));
-            l.push(creer('div', { classe: 'w-ligne2' }, [segmentAlign(bl, 'align'), caseBloc(bl, 'pageNumbers', 'Afficher « Page 1 sur 2 »', true)]));
+            l.push(creer('div', { classe: 'w-ligne2' }, [segmentAlign(bl, 'align'), ]));
+            l.push(reglageNumeroPied(bl));
             break;
         default: break;
     }
@@ -14471,6 +14578,10 @@ function surDeposerZone(e, z) {
     var s = window.getSelection();
     s.removeAllRanges();
     s.addRange(r);
+    if (estNumeroPage(champDepose)) {
+        placerNumeroPage(positionDepot(e));
+        return;
+    }
     if (champDepose) {
         var selC = selectionZone(z);
         if (selC) {
@@ -15673,6 +15784,10 @@ function brancherGlisserBlocs(cont) {
             }
             catch (er) {
                 v = '';
+            }
+            if (estNumeroPage(v)) {
+                placerNumeroPage(positionDepot(e));
+                return;
             }
             var cc = depotChampHorsTexte(e);
             if (v && cc) {
