@@ -764,7 +764,10 @@
     .w-acc__sous li::marker { content: none; }
     .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
     .w-acc__sous-item:hover { background: var(--background-alt-grey); }
-    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .w-acc__sous-item { position: relative; align-items: flex-start; }
+    .w-acc__sous-item[data-nom]::after { content: attr(data-nom); position: absolute; z-index: 40; left: 0; bottom: calc(100% + .25rem); max-width: 16rem; width: max-content; padding: .25rem .5rem; font-size: .75rem; line-height: 1.4; font-weight: 400; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); pointer-events: none; opacity: 0; visibility: hidden; }
+    .w-acc__sous-item[data-nom]:hover::after, .w-acc__sous-item[data-nom]:focus-visible::after { opacity: 1; visibility: visible; }
     .w-acc__sous-item .fr-badge { flex: none; }
     .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
     .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
@@ -5535,7 +5538,7 @@ function rendreAccueilKb(zone) {
     if (etat.tableaux.length) {
         var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Mes Kanbans' } });
         etat.tableaux.forEach(function (t, k) {
-            var b = creer('button', { classe: 'w-acc__sous-item', id: 'kMenu' + k, attrs: { type: 'button' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.nom || 'Kanban sans nom' }), badgeStatutKb(t, false)]);
+            var b = creer('button', { classe: 'w-acc__sous-item', id: 'kMenu' + k, attrs: { type: 'button', 'data-nom': t.config.nom || '' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.nom || 'Kanban sans nom' }), badgeStatutKb(t, false)]);
             b.addEventListener('click', function () { return ouvrirKanbanAccueil(t.cle); });
             sous.appendChild(creer('li', {}, [b]));
         });
