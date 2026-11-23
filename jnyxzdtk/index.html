@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.6 - 23/11/2026
+  Version : 1.1.7 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -180,7 +180,7 @@
     .w-aide__texte { flex: 1 0 100%; margin: .25rem 0 0; padding: .75rem; font-size: .8125rem; line-height: 1.45; color: var(--text-default-grey); background: var(--background-alt-grey); border-left: 3px solid var(--border-action-high-blue-france); }
     /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
-    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
+    .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
       padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
       color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
@@ -262,6 +262,8 @@
       background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
     .w-palette__item:hover { border-color: var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .w-palette__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 1px; }
+    .w-ecran > [class*="fr-icon-"], .w-onglet-btn > [class*="fr-icon-"] { margin-right: .375rem; }
+    .w-carte-q__meta [class*="fr-icon-"], .w-faux-champ > [class*="fr-icon-"], .w-fichiers [class*="fr-icon-"] { margin-right: .25rem; }
     .w-palette__icone { width: 1.25rem; text-align: center; color: var(--text-action-high-blue-france); }
     .w-editeur__centre { overflow-y: auto; padding: 1rem 1.25rem; background: var(--background-alt-grey); color: var(--text-default-grey); }
     .w-pages-gauche { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
@@ -1142,7 +1144,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.6';
+var VERSION_WIDGET = '1.1.7';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -1164,7 +1166,7 @@ DF.schema = (function () {
         { id: 'montant', libelle: 'Montant', groupe: 'Saisie', icone: '€', famille: 'nombre', colonne: 'Numeric' },
         { id: 'calcul', libelle: 'Calcul', groupe: 'Saisie', icone: 'Σ', famille: 'nombre', colonne: 'Calcul' },
         { id: 'url', libelle: 'Adresse web', groupe: 'Saisie', icone: '🔗', famille: 'texte', colonne: 'Text' },
-        { id: 'masque', libelle: 'Champ formaté', groupe: 'Saisie', icone: '▭', famille: 'texte', colonne: 'Text' },
+        { id: 'masque', libelle: 'Saisie au format imposé', groupe: 'Saisie', icone: '▭', famille: 'texte', colonne: 'Text' },
         { id: 'iban', libelle: 'IBAN', groupe: 'Saisie', icone: '🏦', famille: 'texte', colonne: 'Text' },
         { id: 'siret', libelle: 'SIRET ou SIREN', groupe: 'Saisie', icone: '🏢', famille: 'texte', colonne: 'Text' },
         { id: 'choix', libelle: 'Choix unique', groupe: 'Choix', icone: '◉', famille: 'choix', colonne: 'Choice', options: true },
@@ -1189,10 +1191,10 @@ DF.schema = (function () {
         { id: 'classement', libelle: 'Classement', groupe: 'Évaluation', icone: '⇅', famille: 'choixMultiples', colonne: 'ChoiceList', options: true },
         { id: 'fichier', libelle: 'Fichier', groupe: 'Fichiers et données', icone: '📎', famille: 'fichier', colonne: 'Attachments' },
         { id: 'signature', libelle: 'Signature', groupe: 'Fichiers et données', icone: '✍', famille: 'fichier', colonne: 'Attachments' },
-        { id: 'reference', libelle: 'Ligne d\'une table', groupe: 'Fichiers et données', icone: '🔗', famille: 'reference', colonne: 'Ref' },
+        { id: 'reference', libelle: 'Ligne d\'une liste', groupe: 'Fichiers et données', icone: '🔗', famille: 'reference', colonne: 'Ref' },
         { id: 'lienDossier', libelle: 'Lien vers un autre dossier', groupe: 'Fichiers et données', icone: '⇢', famille: 'reference', colonne: 'Ref' },
         { id: 'tableau', libelle: 'Tableau répétable', groupe: 'Fichiers et données', icone: '⊞', famille: 'tableau', colonne: 'Tableau' },
-        { id: 'cache', libelle: 'Champ caché', groupe: 'Fichiers et données', icone: '⦸', famille: 'texte', colonne: 'Text' },
+        { id: 'cache', libelle: 'Valeur cachée', groupe: 'Fichiers et données', icone: '⦸', famille: 'texte', colonne: 'Text' },
         { id: 'titre', libelle: 'Titre et texte', groupe: 'Mise en page', icone: 'H', famille: 'aucune', colonne: null },
         { id: 'encadre', libelle: 'Encadré d\'information', groupe: 'Mise en page', icone: 'ℹ', famille: 'aucune', colonne: null },
         { id: 'image', libelle: 'Image', groupe: 'Mise en page', icone: '🖼', famille: 'aucune', colonne: null },
@@ -1479,7 +1481,7 @@ DF.schema = (function () {
                     noms[n] = noms[n] || q.libelle;
                 }
                 else if (noms[n]) {
-                    pb.push('Deux champs portent le nom « ' + n + ' » : « ' + noms[n] + ' » et « ' + q.libelle + ' ». Donnez-leur des noms différents (champ « Nom du champ » de la question).');
+                    pb.push('Deux questions portent le nom de colonne « ' + n + ' » : « ' + noms[n] + ' » et « ' + q.libelle + ' ». Donnez-leur des noms différents (réglage « Nom de la colonne » de la question).');
                 }
                 noms[n] = q.libelle;
             }
@@ -5182,7 +5184,7 @@ function onglets(id, items, actif, surChoix, o) {
     var ul = creer('ul', { classe: 'w-onglets-liste' + (o.classe ? ' ' + o.classe : ''), id: id, attrs: { role: 'tablist', 'aria-label': o.aria || 'Onglets' } });
     items.forEach(function (it, i) {
         var choisi = it.cle === actif;
-        var b = creer('button', { classe: 'w-onglet-btn', id: id + '_' + it.cle, attrs: { role: 'tab', 'aria-selected': choisi ? 'true' : 'false', tabindex: choisi ? '0' : '-1' } }, [it.icone ? creer('span', { texte: it.icone + ' ', attrs: { 'aria-hidden': 'true' } }) : null, it.libelle,
+        var b = creer('button', { classe: 'w-onglet-btn', id: id + '_' + it.cle, attrs: { role: 'tab', 'aria-selected': choisi ? 'true' : 'false', tabindex: choisi ? '0' : '-1' } }, [it.icone ? icoFo(it.icone) : null, it.libelle,
             it.n !== undefined && it.n !== null ? creer('span', { classe: 'w-onglet-n', texte: String(it.n) }) : null,
             it.pastille ? creer('span', { classe: 'w-pastille-rouge', attrs: { 'aria-hidden': 'true' } }) : null,
             it.pastille ? creer('span', { classe: 'fr-sr-only', texte: ' (nouveautés)' }) : null]);
@@ -5446,7 +5448,7 @@ function marquerInvalide(id, message, sansFocus) {
     annoncer(message);
 }
 function etapeReglesWidget() {
-    return { titre: 'Les règles des formulaires', sansTables: true, texte: 'Le widget les pose lui-même : onglet « Partager », bouton « Poser les règles d\'accès ». Il protège la bibliothèque des formulaires et les tables de réponses (qui répond, qui instruit, qui gère). Vérifiez ensuite dans les Permissions avancées : ses règles portent un mémo qui commence par « ' + DF.acces.MEMO.trim() + ' ». Les règles ajoutées à la main sont conservées et placées après les siennes.' };
+    return { titre: 'Les règles des formulaires', sansTables: true, texte: 'Le widget les pose lui-même : dans chaque formulaire, Réglages, rubrique « Les droits », bouton « Poser ou mettre à jour les règles d\'accès ». Il protège la bibliothèque des formulaires et les tables de réponses (qui répond, qui instruit, qui gère). Vérifiez ensuite dans les Permissions avancées : ses règles portent un mémo qui commence par « ' + DF.acces.MEMO.trim() + ' ». Les règles ajoutées à la main sont conservées et placées après les siennes.' };
 }
 var _statutMinuterie = null;
 function statutSauvegarde(texte, erreur) {
@@ -5709,7 +5711,7 @@ var AIDE = {
     fonctions: [
         'Concevoir un formulaire en glissant des questions : plus de quarante types, pages, colonnes, conditions ET/OU imbriquées, calculs, quiz.',
         'Régler le chemin entre les pages : « si … aller à … », plusieurs fins possibles.',
-        'Faire remplir le formulaire page par page, avec la barre d\'étapes, les erreurs sous les champs, une page de vérification et un accusé de réception.',
+        'Faire remplir le formulaire page par page, avec la barre d\'étapes, les erreurs sous les questions, une page de vérification et un accusé de réception.',
         'Suivre les réponses : tableau, synthèse, exports, et, si l\'instruction est activée, traiter les dossiers comme une démarche en ligne.',
         'Partager le formulaire aux personnes du document ou à toute personne qui a le lien : le widget pose et vérifie lui-même les règles d\'accès.',
         'Joindre une aide pour remplir et des notices PDF, et poser un document à télécharger entre les questions.',
@@ -5729,9 +5731,9 @@ var AIDE = {
             ] },
         'Général': { titre: 'nom, description, aide pour remplir et pages des utilisateurs', points: ['Le nom s\'affiche en haut du formulaire et dans l\'onglet.', '« Aide pour remplir » : un texte et des notices PDF, ouverts par un bouton au-dessus du formulaire.', '« Cette page » : « Cacher cette page » pose sur la page une vue de la table « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette table la cache aux autres personnes. Le « i » voisin donne la règle.', '« Où les utilisateurs le voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les formulaires, les écrans, les dossiers montrés, ce que les instructeurs peuvent y faire et les filtres laissés dans le panneau.', 'La suppression retire le formulaire de la bibliothèque ; la table et les réponses restent dans le document.'] },
         'Dates et limites': { titre: 'ouverture, clôture, nombre de réponses', points: ['Le formulaire s\'ouvre et se ferme seul aux dates choisies ; la clôture vaut jusqu\'à la fin du dernier jour.', 'Un nombre maximal de réponses ferme aussi le formulaire une fois atteint (0 : illimité).', 'Pour une fermeture stricte, passez le formulaire à l\'état « Fermé » (rubrique Général).'] },
-        'Colonnes enregistrées': { titre: 'où vont les réponses', points: ['Chaque question enregistre sa réponse dans une colonne, nommée une fois pour toutes.', 'Renommer le nom du champ dans l\'éditeur renomme la colonne sans toucher aux réponses.'] },
+        'Colonnes enregistrées': { titre: 'où vont les réponses', points: ['Chaque question enregistre sa réponse dans une colonne, nommée une fois pour toutes.', 'Renommer le nom de la colonne dans l\'éditeur renomme la colonne sans toucher aux réponses.'] },
         'Réglages': { titre: 'tous les réglages du formulaire', points: ['Choisissez une rubrique dans le sommaire à gauche : pas d\'ordre à suivre.', '« Supprimer le formulaire » est en bas du sommaire.'] },
-        'Qui peut répondre': { titre: 'public, adresses, dates', points: ['Sans connexion : l\'adresse e-mail est demandée en premier, vérifiée, et comparée aux adresses acceptées et refusées.', 'Le testeur d\'adresses montre ce qui arrivera à une adresse donnée.', 'Les dates ouvrent et ferment le formulaire automatiquement.'] },
+        'Qui peut répondre': { titre: 'public, adresses, dates', points: ['Sans connexion : l\'adresse e-mail est demandée en premier, vérifiée, et comparée aux adresses acceptées et refusées.', 'Le testeur d\'adresses montre ce qui arrivera à une adresse donnée.', 'Toute personne qui a le lien : le widget pose les règles, les relit et refuse si une autre table resterait lisible ; activez ensuite le lien public dans le menu de partage du document.', 'Les dates ouvrent et ferment le formulaire automatiquement.'] },
         'L\'instruction': { titre: 'utilisateurs, groupes, fléchage', points: ['Branchez la table des personnes du document (ou laissez le widget la créer).', 'Composez les groupes d\'instructeurs ; un groupe « Gestion » voit tous les dossiers.', 'Les règles de fléchage envoient chaque dossier au premier groupe dont la condition est vraie.', 'Annotations privées et étiquettes ne sont vues que des instructeurs.'] },
         'Affichage': { titre: 'présentation du formulaire', points: ['Barre de progression, numérotation des questions, page d\'accueil.', 'Mode quiz : score, correction et résultats selon le score.'] },
         'Concevoir': { titre: 'l\'éditeur', points: ['À gauche la palette : cliquez sur un type pour l\'ajouter sous la question choisie, ou glissez-le dans la page.', 'Au clavier : chaque question a ses boutons Monter, Descendre, Dupliquer et Supprimer.', 'À droite, les réglages de la question choisie en trois onglets : Question, Validation, Affichage (conditions ET/OU).', 'La colonne enregistrée est indiquée sous chaque question.'] },
@@ -5740,8 +5742,7 @@ var AIDE = {
         'Réponses': { titre: 'les réponses reçues', points: ['Le tableau montre une ligne par réponse ; choisissez les colonnes affichées.', 'La synthèse résume les réponses aux questions de choix et aux nombres.', 'Imprimer, PDF, XLS et ZIP exportent ce qui est affiché.'] },
         'Dossiers': { titre: 'instruire les dossiers', points: ['Les onglets trient les dossiers : à suivre, suivis par moi, traités, expirant bientôt, à archiver, corbeille.', 'La pastille rouge signale du nouveau sur un dossier : dépôt, message, avis.', 'Cochez plusieurs dossiers pour agir en une fois.'] },
         'Fiche du dossier': { titre: 'traiter un dossier', points: ['À gauche le dossier en onglets ; à droite les décisions, le suivi, le groupe, les avis et les étiquettes.', 'Refuser et classer sans suite demandent une motivation, visible du répondant.', 'Tout est inscrit dans l\'historique.'] },
-        'Partager': { titre: 'ouvrir le formulaire', points: ['Personnes du document : elles ouvrent cette page et voient « Répondre » et « Mes dossiers ».', 'Toute personne qui a le lien : le widget pose les règles, les relit et refuse si une autre table resterait lisible.', 'Ensuite seulement, activez le lien public dans le menu de partage du document.'] },
-        'Répondre': { titre: 'remplir le formulaire', points: ['Une page à la fois ; l\'étape suivante est annoncée sous la barre.', 'Les erreurs s\'affichent sous le champ concerné.', 'Le « i » à côté d\'une question ouvre son explication ici.'] },
+        'Répondre': { titre: 'remplir le formulaire', points: ['Une page à la fois ; l\'étape suivante est annoncée sous la barre.', 'Les erreurs s\'affichent sous la question concernée.', 'Le « i » à côté d\'une question ouvre son explication ici.'] },
         'Mes dossiers': { titre: 'retrouver vos réponses', points: ['Continuez un brouillon, corrigez un dossier quand on vous le demande, lisez les messages des instructeurs.', 'Téléchargez le récapitulatif d\'un dossier en PDF.'] }
     },
     questions: [
@@ -5755,7 +5756,7 @@ var AIDE = {
         { q: 'Comment cacher la page de conception ?', r: 'Dans « Réglages », rubrique « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les formulaires : la page disparaît de leur liste des pages.' },
         { q: 'Comment joindre une notice ?', r: 'Dans « Réglages », rubrique « Général », « Aide pour remplir », puis « Joindre une notice (PDF) ». Pour un document à un endroit précis, ajoutez l\'élément « Document à télécharger » de la palette, dans « Mise en page ».' },
         { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
-        { q: 'Comment réserver le paramétrage ?', r: 'Posez les règles d\'accès depuis l\'onglet « Partager » : seuls les propriétaires verront alors les onglets de conception.' }
+        { q: 'Comment réserver le paramétrage ?', r: 'Posez les règles d\'accès depuis Réglages, rubrique « Les droits » : seuls les propriétaires verront alors les onglets de conception.' }
     ]
 };
 var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
@@ -5772,7 +5773,7 @@ function ecrireEtatAide() { ecrirePref(CLE_AIDE, { ouvert: _aide.ouvert, onglet:
 function contexteAide() {
     var v = etat.vue;
     if (v === 'accueil' && pageAdminFo()) {
-        return { etapes: ['Accueil', 'Concevoir', 'Logique', 'Réglages', 'Aperçu', instructionActive() ? 'Dossiers' : 'Réponses', 'Partager'], courante: 0, repere: 'Ouvrez un formulaire ou créez-en un depuis l\'accueil.' };
+        return { etapes: ['Accueil', 'Concevoir', 'Logique', 'Réglages', 'Aperçu', instructionActive() ? 'Dossiers' : 'Réponses'], courante: 0, repere: 'Ouvrez un formulaire ou créez-en un depuis l\'accueil.' };
     }
     if (v === 'reglages') {
         var r = RUBRIQUES_REGLAGES.filter(function (x) { return x.cle === (etat.param.rubrique || 'general'); })[0] || RUBRIQUES_REGLAGES[0];
@@ -5781,8 +5782,8 @@ function contexteAide() {
     if (v === 'remplir' || v === 'mesdossiers') {
         return { etapes: ['Répondre', 'Mes dossiers'], courante: v === 'remplir' ? 0 : 1 };
     }
-    var ecrans = ['Concevoir', 'Logique', 'Réglages', 'Aperçu', instructionActive() ? 'Dossiers' : 'Réponses', 'Partager'];
-    var idx = { concevoir: 0, logique: 1, reglages: 2, apercu: 3, reponses: 4, partager: 5 }[v];
+    var ecrans = ['Concevoir', 'Logique', 'Réglages', 'Aperçu', instructionActive() ? 'Dossiers' : 'Réponses'];
+    var idx = { concevoir: 0, logique: 1, reglages: 2, apercu: 3, reponses: 4 }[v];
     if (v === 'dossier') {
         return { etapes: ['Dossiers', 'Fiche du dossier'], courante: 1 };
     }
@@ -6061,12 +6062,12 @@ function formulairesPage() {
     return p.formulaires.map(function (id) { return l.filter(function (f) { return f.def.id === id; })[0]; }).filter(Boolean);
 }
 function ecransPage(def) {
-    var res = [{ cle: 'remplir', libelle: 'Répondre', icone: '✏️' }];
+    var res = [{ cle: 'remplir', libelle: 'Répondre', icone: ['edit-box-line', 'edit-line'] }];
     if (etat.page.mesDossiers && etat.moi.connu) {
-        res.push({ cle: 'mesdossiers', libelle: 'Mes dossiers', icone: '📂' });
+        res.push({ cle: 'mesdossiers', libelle: 'Mes dossiers', icone: ['folder-user-line', 'folder-2-line'] });
     }
     if (etat.page.instruction && def && def.instruction && def.instruction.actif && estInstructeur(def)) {
-        res.push({ cle: 'reponses', libelle: 'Dossiers à instruire', icone: '🗂' });
+        res.push({ cle: 'reponses', libelle: 'Dossiers à instruire', icone: ['todo-line', 'folder-2-line'] });
     }
     return res;
 }
@@ -7735,13 +7736,28 @@ async function verifierReglesPubliques() {
     return { lisibles: tablesLisiblesVisiteur(regles, tables, [etat.biblio]), nombre: nos };
 }
 var ECRANS_AUTEUR = [
-    { cle: 'concevoir', libelle: 'Concevoir', icone: '✏️' },
-    { cle: 'logique', libelle: 'Logique', icone: '🔀' },
-    { cle: 'reglages', libelle: 'Réglages', icone: '⚙️' },
-    { cle: 'apercu', libelle: 'Aperçu', icone: '👁' },
-    { cle: 'reponses', libelle: 'Réponses', icone: '📥' },
-    { cle: 'partager', libelle: 'Partager', icone: '🔗' }
+    { cle: 'concevoir', libelle: 'Concevoir', icone: ['edit-line'] },
+    { cle: 'logique', libelle: 'Logique', icone: ['git-merge-line', 'git-branch-line'] },
+    { cle: 'reglages', libelle: 'Réglages', icone: ['settings-5-line'] },
+    { cle: 'apercu', libelle: 'Aperçu', icone: ['eye-line'] },
+    { cle: 'reponses', libelle: 'Réponses', icone: ['file-list-line', 'file-text-line'] }
 ];
+var ICONES_TYPES = {
+    court: ['text', 'edit-line'], long: ['align-left', 'article-line'], email: ['mail-line'], telephone: ['phone-line'], adresse: ['map-pin-2-line'],
+    nombre: ['hashtag'], montant: ['money-euro-circle-line'], calcul: ['calculator-line', 'equalizer-line', 'hashtag'], url: ['links-line'],
+    masque: ['input-method-line', 'code-s-slash-line'], iban: ['bank-line', 'bank-card-line', 'money-euro-circle-line'], siret: ['building-line'],
+    choix: ['radio-button-line', 'checkbox-circle-line'], liste: ['arrow-down-s-line'], multiples: ['checkbox-multiple-line', 'list-check', 'checkbox-line'],
+    cases: ['checkbox-line'], civilite: ['user-line'], ouinon: ['question-answer-line', 'chat-3-line'], listesLiees: ['node-tree', 'git-branch-line'],
+    territoire: ['earth-line', 'road-map-line', 'map-pin-2-line'], 'case': ['checkbox-blank-line', 'checkbox-line'], interrupteur: ['toggle-line', 'checkbox-circle-line'],
+    images: ['gallery-line', 'image-line'], grille: ['layout-grid-line', 'table-line'], date: ['calendar-line'], dateheure: ['calendar-event-line'],
+    heure: ['time-line'], periode: ['calendar-2-line'], etoiles: ['star-line'], curseur: ['equalizer-line', 'subtract-line'],
+    echelle: ['bar-chart-2-line', 'bar-chart-box-line'], classement: ['list-ordered', 'arrow-up-down-line'], fichier: ['attachment-line'],
+    signature: ['pen-nib-line', 'edit-line'], reference: ['table-line'], lienDossier: ['folder-2-line', 'links-line'], tableau: ['table-2', 'table-line'],
+    cache: ['eye-off-line'], titre: ['title', 'h-1', 'text', 'article-line'], encadre: ['information-line'], image: ['image-line'],
+    document: ['file-download-line', 'file-line'], separateur: ['separator', 'subtract-line'], section: ['arrow-right-s-line'], chapitre: ['list-ordered', 'article-line']
+};
+function icoFo(c) { return creer('span', { classe: 'fr-icon-' + (Array.isArray(c) ? iconeDispo(c) : c) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }); }
+function icoType(t) { return icoFo(ICONES_TYPES[t && t.id] || ['question-line']); }
 function zoneContenu() { return document.getElementById('contenu'); }
 function estInstructeur(def) {
     if (!def || !(def.instruction && def.instruction.actif)) {
@@ -7777,14 +7793,14 @@ function ecransDisponibles(def) {
         return ecransPage(def);
     }
     if (etat.peutParametrer) {
-        return ECRANS_AUTEUR.map(function (e) { return e.cle === 'reponses' && def.instruction && def.instruction.actif ? { cle: 'reponses', libelle: 'Dossiers', icone: '🗂' } : e; });
+        return ECRANS_AUTEUR.map(function (e) { return e.cle === 'reponses' && def.instruction && def.instruction.actif ? { cle: 'reponses', libelle: 'Dossiers', icone: ['folder-2-line'] } : e; });
     }
-    var res = [{ cle: 'remplir', libelle: 'Répondre', icone: '✏️' }];
+    var res = [{ cle: 'remplir', libelle: 'Répondre', icone: ['edit-box-line', 'edit-line'] }];
     if (etat.moi.connu) {
-        res.push({ cle: 'mesdossiers', libelle: 'Mes dossiers', icone: '📂' });
+        res.push({ cle: 'mesdossiers', libelle: 'Mes dossiers', icone: ['folder-user-line', 'folder-2-line'] });
     }
     if (estInstructeur(def)) {
-        res.push({ cle: 'reponses', libelle: 'Dossiers à instruire', icone: '🗂' });
+        res.push({ cle: 'reponses', libelle: 'Dossiers à instruire', icone: ['todo-line', 'folder-2-line'] });
     }
     return res;
 }
@@ -7806,7 +7822,7 @@ function enTeteFormulaire(def) {
     var groupe = creer('div', { classe: 'w-ecrans', attrs: { role: 'group', 'aria-label': 'Écrans du formulaire' } }, ecrans.map(function (e) {
         var actif = etat.vue === e.cle || (e.cle === 'reponses' && etat.vue === 'dossier');
         return creer('button', { classe: 'w-ecran' + (actif ? ' w-ecran--actif' : ''), id: 'wEcran_' + e.cle, attrs: { 'aria-pressed': actif ? 'true' : 'false' },
-            clic: function () { afficherVue(e.cle); } }, [creer('span', { texte: e.icone + ' ', attrs: { 'aria-hidden': 'true' } }), e.libelle]);
+            clic: function () { afficherVue(e.cle); } }, [icoFo(e.icone), e.libelle]);
     }));
     var cmd = [ecrans.length > 1 || etat.peutParametrer ? groupe : null];
     if (etat.peutParametrer) {
@@ -8152,6 +8168,11 @@ function afficherVue(vue, o) {
         etat.creation = null;
         vue = pageAdminFo() ? 'accueil' : (etat.courant ? 'remplir' : 'accueil');
     }
+    if (vue === 'partager') {
+        etat.param = etat.param || {};
+        etat.param.rubrique = 'droits';
+        vue = 'reglages';
+    }
     majBandeauRole();
     o = o || {};
     if (vue) {
@@ -8194,7 +8215,7 @@ function afficherVue(vue, o) {
     var zone = creer('div', { classe: 'w-vue', id: 'wVue' });
     main.appendChild(zone);
     var rendus = { concevoir: rendreConcevoir, logique: rendreLogique, apercu: rendreApercu, reponses: rendreReponses, dossier: rendreFicheDossier,
-        partager: rendrePartager, reglages: rendreReglages, remplir: rendreRemplir, mesdossiers: rendreMesDossiers };
+        reglages: rendreReglages, remplir: rendreRemplir, mesdossiers: rendreMesDossiers };
     var f = rendus[etat.vue] || rendreRemplir;
     if (['reponses', 'dossier', 'concevoir', 'logique', 'reglages'].indexOf(etat.vue) !== -1) {
         main.classList.add('w-contenu--plein');
@@ -8838,7 +8859,7 @@ function rendreReglages(zone, def) {
         creer('ul', {}, liens),
         creer('div', { classe: 'w-reg-som__bas' }, [bouton('Supprimer le formulaire', 'discret', 'delete-line', supprimerFormulaire, { petit: true, id: 'aSupprimerForm', classe: 'w-reg-som__suppr' })])
     ]);
-    var corps = { general: paramGeneral, qui: paramQui, dates: paramDates, instruction: paramInstruction, affichage: paramAffichage, colonnes: paramColonnes, droits: function () { return contenuDroits(); } }[rub.cle](def);
+    var corps = { general: paramGeneral, qui: paramQui, dates: paramDates, instruction: paramInstruction, affichage: paramAffichage, colonnes: paramColonnes, droits: function (d) { return creer('div', { classe: 'w-pile' }, [blocRegles(d), contenuDroits()]); } }[rub.cle](def);
     var tete = creer('div', { classe: 'w-reg-tete' }, [
         creer('h3', { classe: 'fr-h5 w-reg-tete__titre', id: 'titreVue', texte: rub.libelle, attrs: { tabindex: '-1' } }),
         creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: '' })
@@ -8881,8 +8902,7 @@ function paramGeneral(def) {
     return creer('div', { classe: 'w-general' }, [creer('div', { classe: 'w-grille w-grille--1-1-1' }, [
         creer('div', { classe: 'w-grille__col' }, [section('Le formulaire', null, 'aSecGeneral', [nom, desc]), sectionAideRemplir(def)]),
         creer('div', { classe: 'w-grille__col' }, [pages[0], pages[1]]),
-        creer('div', { classe: 'w-grille__col' }, [section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme]),
-            section('Les droits', null, 'aSecVersDroits', [creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerRubrique('droits'); }, { petit: true, id: 'aVersDroits' })])])])
+        creer('div', { classe: 'w-grille__col' }, [section('Publication', 'Un formulaire publié reçoit des réponses ; vous pouvez encore le modifier.', 'aSecPub', [statut, ferme])])
     ])]);
 }
 async function supprimerFormulaire() {
@@ -8914,14 +8934,14 @@ async function supprimerFormulaire() {
 function paramColonnes(def) {
     var lignes = DF.schema.toutesQuestions(def).filter(function (x) { return DF.schema.produitValeur(x.q) && x.q.enregistrer !== false; });
     var tab = creer('table', { classe: 'w-table' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Questions et colonnes' }),
-        creer('thead', {}, [creer('tr', {}, ['Nom du champ', 'Question', 'Page', 'Type', 'Identifiant'].map(function (t) { return creer('th', { texte: t, attrs: { scope: 'col' } }); }))]),
+        creer('thead', {}, [creer('tr', {}, ['Nom de la colonne', 'Question', 'Page', 'Type', 'Identifiant'].map(function (t) { return creer('th', { texte: t, attrs: { scope: 'col' } }); }))]),
         creer('tbody', {}, lignes.map(function (x) {
             return creer('tr', {}, [creer('td', {}, [creer('strong', { texte: DF.schema.nomChamp(x.q) })]), creer('td', { texte: x.q.libelle }), creer('td', { texte: x.page.titre || '' }), creer('td', { texte: DF.schema.type(x.q.type).libelle }),
                 creer('td', {}, [x.q.colonne ? creer('code', { texte: x.q.colonne }) : creer('span', { classe: 'w-mention', texte: 'créée à la publication' })])]);
         }))]);
     return creer('div', { classe: 'w-grille w-grille--2-1' }, [
-        creer('div', { classe: 'w-grille__col' }, [section('Colonnes enregistrées', 'Chaque question enregistre sa réponse dans une colonne. Le nom du champ est le libellé de la colonne : le renommer dans l\'éditeur renomme la colonne sans toucher aux réponses ; l\'identifiant, lui, ne change jamais.', 'aSecCols', [creer('div', { classe: 'w-table-defil' }, [tab])])]),
-        creer('div', { classe: 'w-grille__col' }, [section('Table des réponses', null, 'aSecTable', [creer('p', { classe: 'w-texte' }, ['Table : ', creer('code', { texte: def.table || 'créée à la publication' })]),
+        creer('div', { classe: 'w-grille__col' }, [section('Colonnes enregistrées', 'Chaque question enregistre sa réponse dans une colonne. Le nom de la colonne est son libellé : le renommer dans l\'éditeur renomme la colonne sans toucher aux réponses ; l\'identifiant, lui, ne change jamais.', 'aSecCols', [creer('div', { classe: 'w-table-defil' }, [tab])])]),
+        creer('div', { classe: 'w-grille__col' }, [section('Liste des réponses', null, 'aSecTable', [creer('p', { classe: 'w-texte' }, ['Liste : ', creer('code', { texte: def.table || 'créée à la publication' })]),
                 creer('p', { classe: 'w-mention', texte: lignes.length + (lignes.length > 1 ? ' questions enregistrées, ' : ' question enregistrée, ') + (def.calculs || []).length + ((def.calculs || []).length > 1 ? ' calculs.' : ' calcul.') })]),
             creer('div', {}, [bouton('Modifier les questions', 'secondaire', 'edit-line', function () { relayer(attendreSauvegarde().then(function () { afficherVue('concevoir'); }), 'Enregistrement'); }, { id: 'aOuvrirEditeur' })])])
     ]);
@@ -8941,6 +8961,7 @@ function paramQui(def) {
     var qui = radios('aQui', 'Qui peut répondre ?', [{ valeur: 'connectes', libelle: 'Les personnes qui ont accès au document', aide: 'Nom et adresse préremplis depuis le compte ; chacun retrouve ses réponses.' },
         { valeur: 'public', libelle: 'Toute personne qui a le lien, sans se connecter', aide: 'L\'adresse e-mail est demandée en premier et vérifiée.' }], rg.public ? 'public' : 'connectes', function (v) { rg.public = v === 'public'; maj(); planifierSauvegarde(true); });
     zonePublic.appendChild(caseLiee('aDouble', 'Faire saisir l\'adresse deux fois', rg, 'emailDoubleSaisie'));
+    zonePublic.appendChild(blocPublic(def));
     zoneConnecte.appendChild(caseLiee('aUne', 'Une seule réponse par personne', rg, 'uneReponseParPersonne', { aide: 'Contrôlé par le widget.' }));
     zoneConnecte.appendChild(caseLiee('aModif', 'Modifier sa réponse après l\'envoi (tant qu\'elle n\'est pas en instruction)', rg, 'modifierApresEnvoi', { sync: true }));
     var acc = saisie('aAcceptees', lignesTexte(rg.adressesAcceptees), { multiligne: true, indice: '@exemple.fr' });
@@ -9357,15 +9378,15 @@ function blocChampsTable(def) {
     }
     var m = tableMeta(def.table);
     var z = creer('div', { classe: 'w-palette__champs', id: 'cChampsTable' });
-    z.appendChild(creer('h3', { classe: 'w-palette__titre', texte: 'Champs de votre table' }));
+    z.appendChild(creer('h3', { classe: 'w-palette__titre', texte: 'Colonnes de votre liste' }));
     if (!libres.length) {
         if (!def.origineTable) {
             return null;
         }
-        z.appendChild(creer('p', { classe: 'w-mention', texte: 'Tous les champs de la table ' + def.table + ' sont dans le formulaire.' }));
+        z.appendChild(creer('p', { classe: 'w-mention', texte: 'Toutes les colonnes de la liste ' + def.table + ' sont dans le formulaire.' }));
         return z;
     }
-    z.appendChild(creer('p', { classe: 'w-mention', texte: libres.length + (libres.length > 1 ? ' champs de la table ' : ' champ de la table ') + def.table + ' pas encore dans le formulaire.' }));
+    z.appendChild(creer('p', { classe: 'w-mention', texte: libres.length + (libres.length > 1 ? ' colonnes de la liste ' : ' colonne de la liste ') + def.table + ' pas encore dans le formulaire.' }));
     var parGroupe = {};
     libres.forEach(function (k) { var q = questionDepuisColonne(def.table, k); var g = DF.schema.type(q.type).groupe; (parGroupe[g] = parGroupe[g] || []).push({ k: k, q: q }); });
     GROUPES_PALETTE.concat(Object.keys(parGroupe).filter(function (g) { return GROUPES_PALETTE.indexOf(g) === -1; })).forEach(function (g) {
@@ -9375,7 +9396,7 @@ function blocChampsTable(def) {
         z.appendChild(creer('h4', { classe: 'w-palette__sous-titre', texte: g }));
         z.appendChild(creer('ul', { classe: 'w-palette__liste' }, parGroupe[g].map(function (x) {
             var k = x.k, t = DF.schema.type(x.q.type);
-            var b = creer('button', { classe: 'w-palette__item w-palette__item--champ', id: 'cChamp_' + k, attrs: { draggable: 'true', 'aria-label': 'Ajouter le champ de la table : ' + (m.colonnes[k].label || k) + ' (' + t.libelle + ')' } }, [creer('span', { classe: 'w-palette__icone', texte: t.icone, attrs: { 'aria-hidden': 'true' } }), m.colonnes[k].label || k]);
+            var b = creer('button', { classe: 'w-palette__item w-palette__item--champ', id: 'cChamp_' + k, attrs: { draggable: 'true', 'aria-label': 'Ajouter la colonne : ' + (m.colonnes[k].label || k) + ' (' + t.libelle + ')' } }, [creer('span', { classe: 'w-palette__icone' }, [icoType(t)]), m.colonnes[k].label || k]);
             b.addEventListener('click', function () { ajouterChampTable(def, k); });
             b.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', 'col:' + k); e.dataTransfer.effectAllowed = 'copy'; });
             return creer('li', {}, [b]);
@@ -9393,7 +9414,7 @@ function blocChampsTable(def) {
             } });
             modifie();
             redessinerEditeur('cChampsTable');
-            annoncer(libres.length + ' champs ajoutés');
+            annoncer(libres.length + ' colonnes ajoutées');
         }, { id: 'cToutAjouter' }));
     }
     return z;
@@ -9408,7 +9429,7 @@ function palette(def) {
         var ouvert = !!etat.conc.nouveauChamp;
         var types = creer('div', { classe: 'w-palette__types', id: 'cTypesNouveaux' });
         types.hidden = !ouvert;
-        var bn = bouton('Nouveau champ', 'secondaire', 'add-line', function () {
+        var bn = bouton('Nouvelle colonne', 'secondaire', 'add-line', function () {
             etat.conc.nouveauChamp = types.hidden;
             types.hidden = !types.hidden;
             bn.setAttribute('aria-expanded', types.hidden ? 'false' : 'true');
@@ -9422,7 +9443,7 @@ function palette(def) {
         var types = DF.schema.TYPES.filter(function (t) { return t.groupe === g; });
         cible.appendChild(creer('h3', { classe: 'w-palette__titre', texte: g }));
         cible.appendChild(creer('ul', { classe: 'w-palette__liste' }, types.map(function (t) {
-            var b = creer('button', { classe: 'w-palette__item', id: 'cPal_' + t.id, attrs: { draggable: 'true', 'aria-label': 'Ajouter : ' + t.libelle } }, [creer('span', { classe: 'w-palette__icone', texte: t.icone, attrs: { 'aria-hidden': 'true' } }), t.libelle]);
+            var b = creer('button', { classe: 'w-palette__item', id: 'cPal_' + t.id, attrs: { draggable: 'true', 'aria-label': 'Ajouter : ' + t.libelle } }, [creer('span', { classe: 'w-palette__icone' }, [icoType(t)]), t.libelle]);
             b.addEventListener('click', function () { ajouterQuestion(t.id); });
             b.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', 'type:' + t.id); e.dataTransfer.effectAllowed = 'copy'; });
             return creer('li', {}, [b]);
@@ -9527,7 +9548,7 @@ function editeurPage(def, p) {
     }
     var ol = creer('ol', { classe: 'w-questions', id: 'cQuestions', attrs: { 'aria-label': 'Questions de la page' } });
     (p.questions || []).forEach(function (q, i) { ol.appendChild(carteQuestion(def, p, q, i, p.questions)); });
-    var fin = creer('li', { classe: 'w-questions__fin', id: 'cDepot', texte: p.questions.length ? 'Déposez ici pour ajouter à la fin' : (tableMeta(def.table) && def.origineTable ? 'Cliquez sur un champ de votre table à gauche, ou glissez-le ici.' : 'Cliquez sur un type de la palette, ou glissez-le ici.') });
+    var fin = creer('li', { classe: 'w-questions__fin', id: 'cDepot', texte: p.questions.length ? 'Déposez ici pour ajouter à la fin' : (tableMeta(def.table) && def.origineTable ? 'Cliquez sur une colonne de votre liste à gauche, ou glissez-la ici.' : 'Cliquez sur un type de la palette, ou glissez-le ici.') });
     brancherDepot(fin, def, p.questions, p.questions.length);
     ol.appendChild(fin);
     carte.appendChild(ol);
@@ -9628,8 +9649,8 @@ function contenuCarte(def, q) {
             cond ? creer('span', { classe: 'w-pill-cond', texte: cond.length > 50 ? cond.slice(0, 48) + '…' : cond }) : null
         ])];
     lignes.push(creer('span', { classe: 'w-carte-q__apercu' }, [apercuChamp(def, q)]));
-    var col = t.colonne && q.enregistrer !== false ? 'Champ ' + DF.schema.nomChamp(q) + (q.colonne ? '' : ' (colonne créée à l\'enregistrement)') : 'Non enregistré';
-    lignes.push(creer('span', { classe: 'w-carte-q__meta' }, [creer('span', { texte: t.icone + ' ' + t.libelle }), creer('span', { texte: ' · ' + col })]));
+    var col = t.colonne && q.enregistrer !== false ? 'Colonne ' + DF.schema.nomChamp(q) + (q.colonne ? '' : ' (colonne créée à l\'enregistrement)') : 'Non enregistré';
+    lignes.push(creer('span', { classe: 'w-carte-q__meta' }, [creer('span', {}, [icoType(t), ' ' + t.libelle]), creer('span', { texte: ' · ' + col })]));
     return lignes;
 }
 function apercuChamp(def, q) {
@@ -9650,7 +9671,7 @@ function apercuChamp(def, q) {
             return creer('span', { classe: 'w-faux-sep' });
         }
         if (q.type === 'document') {
-            return creer('span', { classe: 'w-mention', texte: q.piece ? '📄 ' + (q.nomFichier || 'Fichier joint') : 'Aucun fichier joint' });
+            return creer('span', { classe: 'w-mention' }, q.piece ? [icoType(t), ' ' + (q.nomFichier || 'Fichier joint')] : ['Aucun fichier joint']);
         }
         return creer('span', { classe: 'w-mention', texte: String(q.texte || '').slice(0, 120) });
     }
@@ -9661,11 +9682,11 @@ function apercuChamp(def, q) {
         var c = (def.calculs || []).filter(function (x) { return x.id === q.calcul; })[0];
         return creer('span', { classe: 'w-mention', texte: c ? 'Calcul : ' + c.nom : 'Aucun calcul choisi' });
     }
-    var indice = { date: 'jj/mm/aaaa', dateheure: 'jj/mm/aaaa hh:mm', heure: 'hh:mm', email: 'nom@domaine.fr', fichier: '📎 Joindre un fichier', signature: '✍ Signer', periode: 'du jj/mm/aaaa au jj/mm/aaaa', long: '' }[q.type];
+    var indice = { date: 'jj/mm/aaaa', dateheure: 'jj/mm/aaaa hh:mm', heure: 'hh:mm', email: 'nom@domaine.fr', fichier: 'Joindre un fichier', signature: 'Signer', periode: 'du jj/mm/aaaa au jj/mm/aaaa', long: '' }[q.type];
     if (q.prerempli && q.prerempli.source === 'utilisateur') {
         indice = 'Prérempli : ' + (q.prerempli.champ === 'nom' ? 'nom' : 'adresse') + ' du compte';
     }
-    return creer('span', { classe: 'w-faux-champ' + (q.type === 'long' ? ' w-faux-champ--long' : ''), texte: indice || '' });
+    return creer('span', { classe: 'w-faux-champ' + (q.type === 'long' ? ' w-faux-champ--long' : '') }, [q.type === 'fichier' || q.type === 'signature' ? icoType(t) : null, indice || '']);
 }
 function marquerChoisie(id) {
     Array.prototype.forEach.call(document.querySelectorAll('.w-carte-q'), function (n) {
@@ -9771,7 +9792,7 @@ async function supprimerQuestion(def, liste, q) {
     (def.calculs || []).forEach(function (c) { if (String(c.formule || '').indexOf('{q:' + q.id + '}') !== -1) {
         cite.push('formule du calcul « ' + c.nom + ' »');
     } });
-    var garde = q.colonne ? 'Rien n\'est effacé dans vos données : la colonne « ' + libelleColonne(def, q.colonne) + ' »' + ' et les réponses déjà reçues restent dans la table' + (tableMeta(def.table) ? ', et le champ revient dans « Champs de votre table » à gauche.' : '.') : 'Cette question n\'a pas encore de colonne dans la table.';
+    var garde = q.colonne ? 'Rien n\'est effacé dans vos données : la colonne « ' + libelleColonne(def, q.colonne) + ' »' + ' et les réponses déjà reçues restent dans la table' + (tableMeta(def.table) ? ', et la colonne revient dans « Colonnes de votre liste » à gauche.' : '.') : 'Cette question n\'a pas encore de colonne dans la table.';
     var ok = await confirmerAction('Retirer « ' + q.libelle + ' » du formulaire ?', garde + ' Pour la cacher sans la retirer, utilisez plutôt l\'œil (Masquer).' + (cite.length ? ' Attention, des conditions la citent : ' + cite.join(', ') + '.' : ''), 'Retirer du formulaire', true);
     if (!ok) {
         return;
@@ -9898,13 +9919,13 @@ function reglagesQuestion(def, q, corps, maj) {
                 q.nomColonne = n || DF.schema.proposerNomChamp(q.libelle);
                 var doublon = autreChampNomme(def, q);
                 if (doublon) {
-                    marquerInvalide('cNomChamp', 'Ce nom est déjà celui du champ « ' + doublon + ' ». Choisissez un autre nom.', true);
+                    marquerInvalide('cNomChamp', 'Ce nom est déjà celui de la colonne « ' + doublon + ' ». Choisissez un autre nom.', true);
                 }
                 redessinerInfoColonne(q);
                 rafraichirCarte(def, q);
                 modifie(!!q.colonne);
             });
-            corps.appendChild(groupeChamp('Nom du champ', champNom, q.colonne ? 'Libellé de la colonne ' + q.colonne + ' : le renommer garde les réponses ; l\'identifiant de la colonne ne change pas.' : 'Court, en majuscules : c\'est le libellé de la colonne. Proposé à partir des premiers mots de la question, modifiable.'));
+            corps.appendChild(groupeChamp('Nom de la colonne', champNom, q.colonne ? 'Libellé de la colonne ' + q.colonne + ' : le renommer garde les réponses ; l\'identifiant de la colonne ne change pas.' : 'Court, en majuscules : c\'est le libellé de la colonne. Proposé à partir des premiers mots de la question, modifiable.'));
         }
     }
     if (DF.schema.estSaisie(q)) {
@@ -10102,7 +10123,7 @@ function editeurImage(obj, cle, id, maj) {
     return z;
 }
 function editeurOptions(def, q, maj) {
-    var z = section('Options', 'Une ligne par option. « Autre » ajoute un champ libre ; le mélange garde le même ordre pour une même personne.', 'cSecOptions', [], 'w-section--compacte');
+    var z = section('Options', 'Une ligne par option. « Autre » ajoute une zone de saisie libre ; le mélange garde le même ordre pour une même personne.', 'cSecOptions', [], 'w-section--compacte');
     var dyn = !!(q.source && q.source.table) && q.type !== 'reference';
     var corpsO = creer('div', { classe: 'w-pile', id: 'cOptions' });
     function dessiner(focus) {
@@ -10154,7 +10175,7 @@ function editeurOptions(def, q, maj) {
             corpsO.appendChild(lienAction('+ Option', function () { q.options = q.options || []; q.options.push({ id: DF.outils.nouvelId('o'), libelle: 'Option ' + (q.options.length + 1) }); maj(); dessiner('cOpt' + (q.options.length - 1)); }, { id: 'cOptAjout' }));
         }
         if (['choix', 'liste', 'multiples', 'cases'].indexOf(q.type) !== -1) {
-            corpsO.appendChild(lierCase('cAutre', 'Ajouter « Autre » avec un champ libre', q, 'autre', maj));
+            corpsO.appendChild(lierCase('cAutre', 'Ajouter « Autre » avec une zone de saisie libre', q, 'autre', maj));
         }
         if (q.type !== 'civilite') {
             corpsO.appendChild(lierCase('cMelanger', 'Mélanger l\'ordre des options', q, 'melanger', maj));
@@ -11026,7 +11047,7 @@ function etapePage(s, carte) {
         carte.appendChild(creer('p', { classe: 'w-texte w-remplir__intro', texte: def.description }));
     }
     if ((p.questions || []).some(function (q) { return q.obligatoire && !q.horsFormulaire; })) {
-        carte.appendChild(creer('p', { classe: 'w-mention', texte: 'Les champs suivis d\'un astérisque (*) sont obligatoires.' }));
+        carte.appendChild(creer('p', { classe: 'w-mention', texte: 'Les questions suivies d\'un astérisque (*) sont obligatoires.' }));
     }
     var form = creer('form', { classe: 'w-remplir__champs', id: 'rForm', attrs: { novalidate: true, 'aria-labelledby': 'titreVue' } });
     form.addEventListener('submit', function (e) { e.preventDefault(); avancerPage(s); });
@@ -11483,7 +11504,7 @@ function champFichier(s, q, v, maj, lib) {
     function dessiner() {
         vider(listeF);
         val.forEach(function (f, i) {
-            listeF.appendChild(creer('li', {}, [creer('span', { texte: '📎 ' + (f.nom || ('Pièce ' + f.id)) + (f.taille ? ' (' + Math.ceil(f.taille / 1024) + ' Ko)' : '') }),
+            listeF.appendChild(creer('li', {}, [creer('span', {}, [icoFo(['attachment-line']), ' ' + (f.nom || ('Pièce ' + f.id)) + (f.taille ? ' (' + Math.ceil(f.taille / 1024) + ' Ko)' : '')]),
                 lienAction('Retirer', function () { val.splice(i, 1); maj(val.slice()); dessiner(); input.focus(); }, { id: id + '_suppr' + i, aria: 'Retirer ' + (f.nom || 'le fichier') })]));
         });
     }
@@ -12163,7 +12184,7 @@ function voletReponses(def, instr) {
     filtres.push(sf);
     var blocs = [
         !pageInstruire() ? null : instr ? ajoutVolet('Déposer un dossier', function () { ouvrirPourTiers(def); }, 'dAjouter') : ajoutVolet('Ajouter une réponse', function () { ouvrirPourTiers(def); }, 'dAjouter'),
-        !lecteurPeut('recherche') ? null : creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('search-line', 'Rechercher', 'dAideRech', 'Tous les champs du dossier, sans tenir compte des accents.'),
+        !lecteurPeut('recherche') ? null : creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('search-line', 'Rechercher', 'dAideRech', 'Toutes les réponses du dossier, sans tenir compte des accents.'),
             creer('div', { classe: 'fr-input-group fr-mb-0' }, [creer('label', { classe: 'fr-label fr-sr-only', attrs: { 'for': 'dRecherche' }, texte: 'Rechercher' }), rech])]),
         creer('div', { classe: 'w-volet__bloc' }, [enteteVolet('filter-line', 'Filtres', 'dAideFiltres', 'Les filtres se combinent. « Mes filtres » garde vos conditions ET/OU pour les retrouver.')].concat(filtres, [
             instr ? caseACocher('dArchives', 'Inclure les dossiers archivés dans « Tous »', l.archives, function (v) { l.archives = v; dessinerListe(def); }) : null,
@@ -12283,7 +12304,7 @@ function tableDossiers(def, ds, instr) {
         cols.forEach(function (q) {
             var v = q.type === 'calcul' ? d[q.colonne] : reps[q.id];
             var txt = q.type === 'calcul' ? (v === null || v === undefined ? '' : DF.outils.nombreLisible(v)) : DF.calc.formater(q, v);
-            tr.appendChild(creer('td', { texte: (q.type === 'fichier' || q.type === 'signature') && listeCellule(d[q.colonne]).length ? '📎 ' + listeCellule(d[q.colonne]).length : txt }));
+            tr.appendChild((q.type === 'fichier' || q.type === 'signature') && listeCellule(d[q.colonne]).length ? creer('td', {}, [icoFo(['attachment-line']), ' ' + listeCellule(d[q.colonne]).length]) : creer('td', { texte: txt }));
         });
         tr.appendChild(creer('td', {}, [pastilleDossier(d)]));
         if (instr) {
@@ -12744,7 +12765,7 @@ function filMessages(msgs, sensMoi) {
     return creer('ol', { classe: 'w-messages' }, msgs.slice().sort(function (a, b) { return (a.CREE_LE || 0) - (b.CREE_LE || 0); }).map(function (m) {
         var moi = m.SENS === sensMoi;
         return creer('li', { classe: 'w-message' + (moi ? ' w-message--moi' : '') }, [creer('p', { classe: 'w-message__tete', texte: (m.CREE_PAR || m.SENS) + ' · ' + dateCellule(m.CREE_LE, true) }),
-            creer('p', { classe: 'w-message__texte', texte: m.TEXTE || '' }), creer('p', {}, listeCellule(m.PIECES).map(function (id) { return creer('span', { classe: 'w-pj' }, ['📎 ', lienPieceJointe(id, nomPj(id))]); }))]);
+            creer('p', { classe: 'w-message__texte', texte: m.TEXTE || '' }), creer('p', {}, listeCellule(m.PIECES).map(function (id) { return creer('span', { classe: 'w-pj' }, [icoFo(['attachment-line']), ' ', lienPieceJointe(id, nomPj(id))]); }))]);
     }));
 }
 function zoneNouveauMessage(prefixe, envoyerFn) {
@@ -13146,12 +13167,12 @@ function paramInstruction(def) {
         sf.appendChild(alerte('warning', null, creer('ul', {}, pbs.map(function (m) { return creer('li', { texte: m }); }))));
     }
     droite.appendChild(sf);
-    droite.appendChild(section('Cloisonnement', 'Assuré par les règles d\'accès posées depuis l\'onglet « Partager » : sans elles, toute personne du document verrait tous les dossiers.', 'aSecCloison', [
+    droite.appendChild(section('Cloisonnement', 'Assuré par les règles d\'accès posées depuis Réglages, rubrique « Les droits » : sans elles, toute personne du document verrait tous les dossiers.', 'aSecCloison', [
         creer('p', { classe: 'w-texte', texte: 'Un instructeur ne voit que les dossiers de son groupe et ceux qu\'il suit ; un gestionnaire voit tout ; un expert lit sans modifier ; le répondant ne voit que ses dossiers.' })
     ]));
-    var sa = section('Annotations privées', 'Champs réservés aux instructeurs, jamais montrés au répondant.', 'aSecAnnot', []);
+    var sa = section('Annotations privées', 'Colonnes réservées aux instructeurs, jamais montrées au répondant.', 'aSecAnnot', []);
     sa.appendChild(creer('ul', { classe: 'w-liste-simple' }, (ins.annotations || []).map(function (a, i) {
-        return creer('li', {}, [(DF.schema.type(a.type) || {}).icone + ' ' + a.libelle + (a.options ? ' (' + a.options.map(function (o) { return o.libelle; }).join(' / ') + ')' : '') + ' ',
+        return creer('li', {}, [icoType(DF.schema.type(a.type) || {}), ' ' + a.libelle + (a.options ? ' (' + a.options.map(function (o) { return o.libelle; }).join(' / ') + ')' : '') + ' ',
             lienAction('Retirer', function () { ins.annotations.splice(i, 1); planifierSauvegarde(true); afficherVue('reglages'); }, { id: 'aAnnotSuppr' + i, aria: 'Retirer l\'annotation ' + a.libelle })]);
     })));
     sa.appendChild(lienAction('+ Annotation', function () { ajouterAnnotation(def); }, { id: 'aPlusAnnot' }));
@@ -13351,36 +13372,6 @@ async function inscrireSuivant(def, attente) {
     }
 }
 var _verif = { faite: false, lisibles: [], nombre: 0, erreur: '' };
-function rendrePartager(zone, def) {
-    var rg = def.reglages;
-    zone.appendChild(creer('h2', { classe: 'fr-h5', id: 'titreVue', texte: 'Partager le formulaire', attrs: { tabindex: '-1' } }));
-    zone.appendChild(creer('p', { classe: 'w-texte', id: 'pVersPages' }, ['Pour donner aux personnes une page sans les écrans de conception : ', lienAction('Réglages, « Où les utilisateurs le voient »', function () { ouvrirReglages('general'); var s = document.getElementById('aSecConsult'); if (s && s.scrollIntoView) {
-            s.scrollIntoView({ block: 'start' });
-        } }, { id: 'pAllerPages' }), '.']));
-    if (rg.statut === 'brouillon') {
-        zone.appendChild(alerte('warning', 'Le formulaire est en brouillon', creer('p', {}, ['Il ne reçoit pas encore de réponses. ', lienAction('Publier maintenant', function () { return publierFormulaire(); }, { id: 'pPublier' })])));
-    }
-    var carteDoc = creer('section', { classe: 'w-partage' + (!rg.public ? ' w-partage--choisi' : ''), id: 'pCarteDoc', attrs: { 'aria-labelledby': 'pTitreDoc' } }, [
-        creer('h3', { classe: 'w-partage__titre', id: 'pTitreDoc' }, [creer('span', { texte: '👥 ', attrs: { 'aria-hidden': 'true' } }), 'Personnes qui ont accès au document']),
-        creer('p', { classe: 'w-texte', texte: 'Agents invités dans le document : ils ouvrent la page qui contient ce widget.' }),
-        creer('ul', { classe: 'w-texte' }, ['Adresse e-mail préremplie depuis leur compte', '« Mes dossiers » : chacun retrouve et modifie les siennes', 'Réponses en cours enregistrées dans la table'].map(function (t) { return creer('li', { texte: t }); })),
-        !rg.public ? creer('p', { classe: 'w-pret' }, [rg.statut === 'brouillon' ? 'À publier : les personnes du document verront ensuite l\'onglet « Répondre ».' : 'Prêt : les personnes du document voient l\'onglet « Répondre » dans cette page.']) :
-            bouton('Choisir ce mode', 'secondaire', null, function () { rg.public = false; planifierSauvegarde(true); afficherVue('partager'); }, { petit: true, id: 'pChoisirDoc' })
-    ]);
-    var cartePub = creer('section', { classe: 'w-partage' + (rg.public ? ' w-partage--choisi' : ''), id: 'pCartePublic', attrs: { 'aria-labelledby': 'pTitrePub' } }, [
-        creer('h3', { classe: 'w-partage__titre', id: 'pTitrePub' }, [creer('span', { texte: '🌍 ', attrs: { 'aria-hidden': 'true' } }), 'Toute personne qui a le lien, sans se connecter']),
-        creer('p', { classe: 'w-texte', texte: 'Pour un public extérieur ou des agents sans compte.' }),
-        creer('ul', { classe: 'w-texte' }, ['Le widget pose les règles : ajouter une réponse seulement, aucune lecture des autres réponses ni des autres tables', 'Adresse e-mail demandée en premier et vérifiée', 'Réponses en cours gardées sur l\'appareil de la personne', 'Option : code d\'accès à saisir avant de commencer'].map(function (t) { return creer('li', { texte: t }); }))
-    ]);
-    if (!rg.public) {
-        cartePub.appendChild(bouton('Ouvrir à toute personne qui a le lien', 'secondaire', null, function () { rg.public = true; _verif.faite = false; planifierSauvegarde(true); afficherVue('partager'); }, { petit: true, id: 'pChoisirPublic' }));
-    }
-    else {
-        cartePub.appendChild(blocPublic(def));
-    }
-    zone.appendChild(creer('div', { classe: 'w-partages' }, [carteDoc, cartePub]));
-    zone.appendChild(blocRegles(def));
-}
 function blocPublic(def) {
     var z = creer('div', { classe: 'w-pile', id: 'pZonePublic' });
     z.appendChild(creer('div', { classe: 'w-attention' }, [creer('p', { texte: 'À activer par un propriétaire : le document devient accessible par lien. Les règles sont vérifiées avant d\'afficher le lien, et le widget refuse si une table resterait lisible.' })]));
@@ -13445,8 +13436,8 @@ async function poserEtVerifier(def) {
     finally {
         masquerLoader();
     }
-    afficherVue('partager');
-    var b = document.getElementById('pVerifier');
+    afficherVue('reglages');
+    var b = document.getElementById('pVerifier') || document.getElementById('pPoserRegles');
     if (b) {
         b.focus();
     }
