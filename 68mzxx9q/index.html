@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitCarte
-  Version : 1.1.5 - 23/11/2026
+  Version : 1.2.0 - 23/11/2026
   Description : carte des lieux d'une table, avec fiches, filtres et pages pour les utilisateurs.
 -->
 <head>
@@ -80,6 +80,10 @@
     .w-fiche__meta-ligne + .w-fiche__pied { border-top: 0; }
     .w-badge-choix { border: 1px solid transparent; }
     .w-mention { color: var(--text-mention-grey); font-size: .8125rem; margin: 0; }
+    .w-ref-puces, .w-pj-liste { list-style: none; margin: .25rem 0 .5rem; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
+    .w-ref-puce { display: inline-flex; align-items: center; gap: .125rem; padding: 0 0 0 .5rem; border-radius: 1rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-size: .875rem; }
+    .w-pj-liste li { display: inline-flex; align-items: center; gap: .125rem; }
+    .w-ref-filtre .fr-input { margin-bottom: .25rem; }
     .w-texte { font-size: .875rem; line-height: 1.55; margin: 0; color: var(--text-default-grey); }
     .w-bandeau{display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem;background:var(--background-default-grey);border-bottom:1px solid var(--border-default-grey);flex-shrink:0;color:var(--text-default-grey)}
     #bandeau-logo{width:80px;flex-shrink:0}
@@ -912,7 +916,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.5';
+var VERSION_WIDGET = '1.2.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -1101,7 +1105,7 @@ var COLONNES_LIEUX = [
 ].concat(COLONNES_META);
 var DESCRIPTION_TABLE_LIEUX = 'Lieux des cartes créées par le widget WuitCarte. Une ligne par lieu ; la colonne CARTE indique la carte. Une liste de lieux peut être collée ici, depuis Données source, puis placée depuis la carte.';
 var IDS_META = ['CREE_LE', 'CREE_PAR', 'MODIFIE_LE', 'MODIFIE_PAR'];
-var GENRES_MODIFIABLES = ['texte', 'texte_long', 'date', 'dateheure', 'nombre', 'oui_non', 'choix', 'etiquettes', 'lien'];
+var GENRES_MODIFIABLES = ['texte', 'texte_long', 'date', 'dateheure', 'nombre', 'oui_non', 'choix', 'etiquettes', 'lien', 'reference', 'references', 'pj'];
 var GENRES_FILTRABLES = ['choix', 'etiquettes', 'texte', 'oui_non', 'reference'];
 var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 var COULEURS_CATEGORIES = ['--blue-cumulus-main-526', '--red-marianne-main-472', '--green-emeraude-main-632', '--orange-terre-battue-main-645',
@@ -7426,13 +7430,182 @@ function surClicCarte(e) {
         fermerFiche(false);
     }
 }
+/* Référence et Référence multiple : on choisit parmi les lignes de la table
+   liée, nommées par la colonne affichée dans Grist. Au-delà de 25 lignes,
+   un champ de recherche filtre la liste. */
+function editeurReference(col, colId, valeur, id, lib, multiple) {
+    var tid = tableCibleRef(col.type), colAff = colAffichageRef(col);
+    var choisis = multiple ? (Array.isArray(valeur) && valeur[0] === 'L' ? valeur.slice(1).filter(function (v) { return typeof v === 'number' && v > 0; }) : [])
+        : (typeof valeur === 'number' && valeur > 0 ? [valeur] : []);
+    var carte = etat.refs[tid + '|' + (colAff || '')] || null;
+    var nom = function (v) { return carte && carte[v] ? carte[v] : 'Ligne ' + v; };
+    var sel = creer('select', { classe: 'fr-select', id: id, attrs: multiple ? { 'aria-describedby': id + 'Choisis' } : {} });
+    var filtre = saisie(id + 'Filtre', '', { type: 'search', indice: 'Chercher' });
+    filtre.setAttribute('aria-label', 'Chercher dans : ' + lib);
+    var zoneFiltre = creer('div', { classe: 'w-ref-filtre' }, [filtre]);
+    zoneFiltre.hidden = true;
+    var puces = multiple ? creer('ul', { classe: 'w-ref-puces', id: id + 'Choisis', attrs: { 'aria-label': lib + ' : valeurs choisies' } }) : null;
+    var remplir = function () {
+        var q = normaliser(filtre.value || '');
+        vider(sel);
+        sel.appendChild(creer('option', { texte: multiple ? 'Ajouter…' : 'Non renseigné', attrs: { value: '' } }));
+        var ids = carte ? Object.keys(carte).map(Number) : choisis.slice();
+        ids.sort(function (a, b) { return nom(a).localeCompare(nom(b), 'fr', { numeric: true }); });
+        var n = 0;
+        ids.forEach(function (v) {
+            if (multiple && choisis.indexOf(v) !== -1) {
+                return;
+            }
+            if (q && normaliser(nom(v)).indexOf(q) === -1 && !(!multiple && choisis[0] === v)) {
+                return;
+            }
+            if (n++ > 500) {
+                return;
+            }
+            sel.appendChild(creer('option', { texte: nom(v), attrs: { value: String(v) } }));
+        });
+        if (!multiple) {
+            sel.value = choisis.length ? String(choisis[0]) : '';
+        }
+        zoneFiltre.hidden = !(carte && Object.keys(carte).length > 25);
+    };
+    var dessinerPuces = function () {
+        if (!puces) {
+            return;
+        }
+        vider(puces);
+        choisis.forEach(function (v) {
+            puces.appendChild(creer('li', {}, [creer('span', { classe: 'w-ref-puce' }, [nom(v),
+                bouton('Retirer ' + nom(v), 'discret', 'close-line', function () { choisis = choisis.filter(function (x) { return x !== v; }); dessinerPuces(); remplir(); annoncer(nom(v) + ' retiré.'); }, { petit: true, iconeSeule: true })])]));
+        });
+        if (!choisis.length) {
+            puces.appendChild(creer('li', { classe: 'w-mention', texte: 'Aucune valeur.' }));
+        }
+    };
+    sel.addEventListener('change', function () {
+        var v = parseInt(sel.value, 10);
+        if (multiple) {
+            if (v > 0 && choisis.indexOf(v) === -1) {
+                choisis.push(v);
+                dessinerPuces();
+                remplir();
+                annoncer(nom(v) + ' ajouté.');
+            }
+            sel.value = '';
+        }
+        else {
+            choisis = v > 0 ? [v] : [];
+        }
+    });
+    filtre.addEventListener('input', remplir);
+    remplir();
+    dessinerPuces();
+    if (!carte && tid) {
+        chargerRef(tid, colAff).then(function (m) { carte = m; remplir(); dessinerPuces(); })
+            .catch(function (e) { logSecurite('AVERTISSEMENT', 'Table liée illisible pour ' + colId, e); sel.disabled = true; });
+    }
+    var noeud = multiple ? creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: lib }), puces, zoneFiltre, sel])
+        : creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: lib }), zoneFiltre, sel]);
+    return { noeud: noeud, champ: sel, lire: function () {
+            if (multiple) {
+                return choisis.length ? ['L'].concat(choisis) : null;
+            }
+            return choisis.length ? choisis[0] : 0;
+        } };
+}
+/* Pièces jointes : les fichiers actuels (ouvrir, retirer) et l'ajout de
+   nouveaux fichiers, envoyés tout de suite dans le document Grist. */
+var _nomsPj = null;
+async function nomsPiecesJointes() {
+    if (_nomsPj) {
+        return _nomsPj;
+    }
+    var m = {};
+    try {
+        var d = await gristAvecTimeout(grist.docApi.fetchTable('_grist_Attachments'), DELAI_API_MS);
+        (d.id || []).forEach(function (id, i) { m[id] = d.fileName ? String(d.fileName[i] || '') : ''; });
+    }
+    catch (e) {
+        logSecurite('INFO', 'Noms des pièces jointes non lus', e);
+    }
+    _nomsPj = m;
+    return m;
+}
+async function envoyerPieceJointe(f) {
+    var t = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: false }), DELAI_API_MS);
+    if (!t || !t.token || !t.baseUrl || !/^https:\/\//i.test(t.baseUrl)) {
+        throw new Error('Jeton d\'écriture indisponible');
+    }
+    var fd = new FormData();
+    fd.append('upload', f, f.name);
+    var rep = await Promise.race([fetch(t.baseUrl + '/attachments?auth=' + encodeURIComponent(t.token), { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }),
+        new Promise(function (res, rej) { setTimeout(function () { rej(new Error('Délai dépassé')); }, 120000); })]);
+    if (!rep.ok) {
+        throw new Error('Réponse ' + rep.status);
+    }
+    var ids = await rep.json();
+    if (!Array.isArray(ids) || typeof ids[0] !== 'number') {
+        throw new Error('Réponse inattendue');
+    }
+    if (_nomsPj) {
+        _nomsPj[ids[0]] = f.name;
+    }
+    return ids[0];
+}
+function editeurPiecesJointes(valeur, id, lib) {
+    var ids = Array.isArray(valeur) && valeur[0] === 'L' ? valeur.slice(1).filter(function (v) { return typeof v === 'number'; }) : [];
+    var enCours = 0;
+    var noms = _nomsPj || {};
+    var liste_pj = creer('ul', { classe: 'w-pj-liste', attrs: { 'aria-label': lib + ' : fichiers' } });
+    var etatEnvoi = creer('p', { classe: 'w-mention', attrs: { 'aria-live': 'polite' } });
+    var fichier = creer('input', { classe: 'fr-upload', id: id, attrs: { type: 'file', multiple: 'multiple' } });
+    var dessiner = function () {
+        vider(liste_pj);
+        ids.forEach(function (pj) {
+            var lien = creer('a', { classe: 'fr-link fr-link--sm', texte: noms[pj] || ('Fichier ' + pj), attrs: { href: '#', rel: 'noopener' } });
+            lien.addEventListener('click', function (e) {
+                e.preventDefault();
+                urlPieceJointe(pj).then(function (u) { if (u) {
+                    window.open(u, '_blank', 'noopener');
+                } });
+            });
+            liste_pj.appendChild(creer('li', {}, [lien, bouton('Retirer ' + (noms[pj] || 'le fichier'), 'discret', 'close-line', function () { ids = ids.filter(function (x) { return x !== pj; }); dessiner(); annoncer('Fichier retiré.'); }, { petit: true, iconeSeule: true })]));
+        });
+        if (!ids.length) {
+            liste_pj.appendChild(creer('li', { classe: 'w-mention', texte: 'Aucun fichier.' }));
+        }
+    };
+    fichier.addEventListener('change', function () {
+        var fs = Array.prototype.slice.call(fichier.files || []);
+        fichier.value = '';
+        fs.forEach(function (f) {
+            enCours++;
+            etatEnvoi.textContent = 'Envoi de ' + f.name + '…';
+            envoyerPieceJointe(f).then(function (nid) {
+                ids.push(nid);
+                noms[nid] = f.name;
+                dessiner();
+                etatEnvoi.textContent = f.name + ' ajouté.';
+            }).catch(function (e) {
+                logSecurite('AVERTISSEMENT', 'Pièce jointe non envoyée', e);
+                etatEnvoi.textContent = f.name + ' n\'a pas pu être envoyé.';
+            }).then(function () { enCours--; });
+        });
+    });
+    dessiner();
+    nomsPiecesJointes().then(function (m) { noms = m; dessiner(); });
+    return { noeud: creer('div', { classe: 'fr-upload-group' }, [creer('p', { classe: 'fr-label', texte: lib }), liste_pj,
+            creer('label', { classe: 'fr-label fr-text--sm', attrs: { 'for': id }, texte: 'Ajouter des fichiers' }), fichier, etatEnvoi]),
+        champ: fichier, lire: function () { return ids.length ? ['L'].concat(ids) : null; },
+        verifier: function () { return enCours === 0; }, message: 'Attendez la fin de l\'envoi des fichiers.' };
+}
 function editeurChamp(colId, valeur, idx) {
     var col = colLieux(colId);
     var g = genreDe(col);
     var id = 'eChamp' + idx;
     var lib = libelleCol(colId);
     var c = etat.config;
-    if (colId === c.colCategorie && g !== 'etiquettes') {
+    if (colId === c.colCategorie && g !== 'etiquettes' && g !== 'reference' && g !== 'references' && g !== 'pj') {
         var vals = etat.categories.filter(function (k) { return k.cle !== CLE_SANS_CATEGORIE; }).map(function (k) { return k.cle; });
         choixDe(col).forEach(function (v) { if (vals.indexOf(v) === -1) {
             vals.push(v);
@@ -7447,7 +7620,7 @@ function editeurChamp(colId, valeur, idx) {
             return { noeud: creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': id }, texte: lib }), s]), lire: function () { return s.value || null; } };
         }
     }
-    if (colId === c.colPays && g !== 'choix' && g !== 'etiquettes' && g !== 'reference') {
+    if (colId === c.colPays && g !== 'choix' && g !== 'etiquettes' && g !== 'reference' && g !== 'references' && g !== 'pj') {
         var actuel = valeur === null || valeur === undefined ? '' : String(valeur).trim();
         var liste_p = nomsPays();
         var reconnu = '';
@@ -7501,6 +7674,12 @@ function editeurChamp(colId, valeur, idx) {
         }
         colorerCasesChoix(fs, col);
         return { noeud: fs, lire: function () { return ['L'].concat(cbs.filter(function (b) { return b.checked; }).map(function (b) { return b.getAttribute('data-valeur'); })); } };
+    }
+    if (g === 'reference' || g === 'references') {
+        return editeurReference(col, colId, valeur, id, lib, g === 'references');
+    }
+    if (g === 'pj') {
+        return editeurPiecesJointes(valeur, id, lib);
     }
     if (g === 'oui_non') {
         var cbo = creer('input', { attrs: { type: 'checkbox', id: id }, coche: !!valeur });
