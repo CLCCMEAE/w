@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.4.3-essai - 23/11/2026
+  Version : 1.4.4-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -237,12 +237,17 @@
     .w-fu-ligne { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-fu-ligne .w-echantillon { flex-wrap: wrap; }
     .w-fu-atelier--pleine > .w-atelier { display: none; }
-    .w-ec-poignee { cursor: grab; padding: .25rem; color: var(--text-action-high-blue-france); }
-    .w-ec-poignee:active { cursor: grabbing; }
+    .w-ec-poignee { cursor: grab; }
+    .w-ec-poignee:active, .w-ec-grip:active { cursor: grabbing; }
+    .w-ec-grip { position: absolute; left: -1.75rem; top: 0; width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 25;
+      color: var(--text-mention-grey); opacity: 0; transition: opacity .12s; border-radius: .25rem; }
+    .w-ec-el:hover > .w-ec-grip, .w-ec-el--choisi > .w-ec-grip { opacity: 1; }
+    .w-ec-grip:hover { background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-glisse-en-cours .w-ec-grip { opacity: 0; }
+    .w-ec-depot-ligne { position: absolute; z-index: 40; height: 3px; border-radius: 2px; background: var(--border-action-high-blue-france); pointer-events: none; }
+    .w-glisse-en-cours [contenteditable] { pointer-events: none; }
     .w-fu-centre--ecrire .w-ec-page { background-image: radial-gradient(circle, var(--border-default-grey) 1px, transparent 1.2px); background-size: 1rem 1rem; }
     .w-glisse-en-cours .w-fu-centre--ecrire .w-ec-page { background-image: linear-gradient(var(--border-default-grey) 1px, transparent 1px), linear-gradient(90deg, var(--border-default-grey) 1px, transparent 1px); }
-    .w-ec-depot--avant { box-shadow: 0 -3px 0 0 var(--border-action-high-blue-france); }
-    .w-ec-depot--apres { box-shadow: 0 3px 0 0 var(--border-action-high-blue-france); }
     .w-fu-centre--ecrire .w-ec-cadre { flex: 1 1 auto; min-height: 0; }
     .w-fu-elem:not(:empty) { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-fu-texte__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
@@ -1106,7 +1111,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.4.3-essai';
+var VERSION_WIDGET = '1.4.4-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -13433,6 +13438,9 @@ function elementPage(bl, liste, k, ctx) {
     var b = etat.brouillon;
     var cache = !!(_pageEd.rcVrai && reglesCondition(bl.cond).length && !conditionRemplie(bl.cond, _pageEd.rcVrai));
     var w = creer('div', { classe: 'w-ec-el' + (cache ? ' w-ec-el--cache' : ''), attrs: { 'data-el': bl.id } });
+    if (bl.type !== 'footer') {
+        w.appendChild(gripBloc(bl));
+    }
     var cond = texteCondition(bl);
     if (estZoneCourrier(bl)) {
         w.classList.add('w-ec-el--texte');
@@ -13559,87 +13567,163 @@ function dernierRang(liste) {
     }
     return n;
 }
-/* Glisser-déposer des blocs : on prend le bloc par sa poignée et on le
-   lâche au-dessus ou au-dessous d'un autre bloc du même niveau. Les
-   boutons Monter et Descendre restent pour le clavier. */
+/* Glisser-déposer des blocs : chaque bloc a une poignée (six points) à
+   gauche, visible au survol. On le lâche entre deux blocs du même niveau ;
+   un trait bleu montre où il tombera. Au clavier : la poignée de la barre
+   du bloc, puis flèches haut et bas (Début et Fin pour les extrémités). */
 var MIME_BLOC = 'application/x-wuit-bloc';
 var _glisse = null;
+function demarrerGlisser(e, id, el) {
+    e.stopPropagation();
+    _glisse = id;
+    try {
+        e.dataTransfer.setData(MIME_BLOC, id);
+        e.dataTransfer.effectAllowed = 'move';
+        var w = el.closest('.w-ec-el');
+        if (w && e.dataTransfer.setDragImage) {
+            e.dataTransfer.setDragImage(w, 12, 12);
+        }
+    }
+    catch (er) {
+        logSecurite('INFO', 'Glisser-deposer partiel', er);
+    }
+    document.body.classList.add('w-glisse-en-cours');
+}
+function gripBloc(bl) {
+    var g = creer('span', { classe: 'w-ec-grip fr-icon-' + iconeDispo(['draggable', 'drag-move-2-line', 'drag-move-line']) + ' fr-icon--sm', attrs: { draggable: 'true', title: 'Glisser pour déplacer le bloc', 'aria-hidden': 'true' } });
+    g.addEventListener('dragstart', function (e) { demarrerGlisser(e, bl.id, g); });
+    g.addEventListener('dragend', finGlisser);
+    return g;
+}
 function poigneeGlisser(bl) {
-    var p = creer('span', { classe: 'w-ec-poignee fr-icon-' + iconeDispo(['drag-move-2-line', 'drag-move-line', 'arrow-up-down-line']) + ' fr-icon--sm', attrs: { draggable: 'true', title: 'Glisser pour déplacer le bloc', 'aria-hidden': 'true' } });
-    p.addEventListener('dragstart', function (e) {
+    var p = creer('button', { classe: 'fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-only w-ec-poignee fr-icon-' + iconeDispo(['draggable', 'drag-move-2-line', 'drag-move-line']), id: 'pElGlisser' + bl.id,
+        attrs: { type: 'button', draggable: 'true', title: 'Déplacer : glissez, ou flèches haut et bas', 'aria-label': 'Déplacer ' + nomElement(bl) + ' : flèches haut et bas' } });
+    p.addEventListener('dragstart', function (e) { demarrerGlisser(e, bl.id, p); });
+    p.addEventListener('dragend', finGlisser);
+    p.addEventListener('keydown', function (e) {
+        var em = emplacementBloc(bl.id);
+        if (!em) {
+            return;
+        }
+        var fin = dernierRang(em.liste), j = null;
+        if (e.key === 'ArrowUp') {
+            j = em.k - 1;
+        }
+        else if (e.key === 'ArrowDown') {
+            j = em.k + 1;
+        }
+        else if (e.key === 'Home') {
+            j = 0;
+        }
+        else if (e.key === 'End') {
+            j = fin;
+        }
+        if (j === null) {
+            return;
+        }
+        e.preventDefault();
         e.stopPropagation();
-        _glisse = bl.id;
-        try {
-            e.dataTransfer.setData(MIME_BLOC, bl.id);
-            e.dataTransfer.setData('text/plain', '');
-            e.dataTransfer.effectAllowed = 'move';
-            var w = p.closest('.w-ec-el');
-            if (w && e.dataTransfer.setDragImage) {
-                e.dataTransfer.setDragImage(w, 12, 12);
-            }
+        if (j < 0 || j > fin || j === em.k) {
+            return;
         }
-        catch (er) {
-            logSecurite('INFO', 'Glisser-deposer partiel', er);
-        }
-        document.body.classList.add('w-glisse-en-cours');
+        deplacerElement(bl.id, j);
+        setTimeout(function () { var n = document.getElementById('pElGlisser' + bl.id); if (n) {
+            n.focus({ preventScroll: false });
+        } }, 0);
     });
-    p.addEventListener('dragend', function () { finGlisser(); });
     return p;
 }
 function finGlisser() {
     _glisse = null;
     document.body.classList.remove('w-glisse-en-cours');
-    Array.prototype.slice.call(document.querySelectorAll('.w-ec-depot--avant, .w-ec-depot--apres')).forEach(function (x) { x.classList.remove('w-ec-depot--avant', 'w-ec-depot--apres'); });
+    var l = document.getElementById('pDepotLigne');
+    if (l) {
+        l.hidden = true;
+    }
 }
-function cibleDepot(e) {
-    if (!_glisse) {
+function freresGlisse() {
+    var src = _glisse ? emplacementBloc(_glisse) : null;
+    var cadre = document.getElementById('pCourrierCadre');
+    if (!src || !cadre) {
         return null;
     }
-    var src = emplacementBloc(_glisse);
-    var el = e.target && e.target.closest ? e.target.closest('[data-el]') : null;
-    while (el) {
-        var id = el.getAttribute('data-el');
-        var em = id && id !== _glisse ? emplacementBloc(id) : null;
-        if (em && src && em.liste === src.liste && em.bl.type !== 'footer') {
-            var r = el.getBoundingClientRect();
-            return { el: el, k: em.k, apres: e.clientY > r.top + r.height / 2, src: src };
+    var freres = [];
+    Array.prototype.forEach.call(cadre.querySelectorAll('[data-el]'), function (el) {
+        var em = emplacementBloc(el.getAttribute('data-el'));
+        if (em && em.liste === src.liste && em.bl.type !== 'footer') {
+            freres.push({ el: el, k: em.k });
         }
-        el = el.parentElement ? el.parentElement.closest('[data-el]') : null;
+    });
+    freres.sort(function (a, b) { return a.k - b.k; });
+    return { src: src, freres: freres, cadre: cadre };
+}
+function cibleDepot(e) {
+    var f = freresGlisse();
+    if (!f || !f.freres.length) {
+        return null;
     }
-    return null;
+    var p = 0;
+    f.freres.forEach(function (x, i) {
+        var r = x.el.getBoundingClientRect();
+        if (e.clientY > r.top + r.height / 2) {
+            p = i + 1;
+        }
+    });
+    var j = p;
+    if (f.src.k < j) {
+        j--;
+    }
+    var ref = p < f.freres.length ? f.freres[p].el : f.freres[f.freres.length - 1].el;
+    var rr = ref.getBoundingClientRect(), rc = f.cadre.getBoundingClientRect();
+    var y = (p < f.freres.length ? rr.top - 4 : rr.bottom + 4) - rc.top + f.cadre.scrollTop;
+    return { j: j, y: y, x: rr.left - rc.left + f.cadre.scrollLeft, l: rr.width, cadre: f.cadre, src: f.src };
 }
 function brancherGlisserBlocs(cont) {
     if (cont._glisser) {
         return;
     }
     cont._glisser = true;
-    cont.addEventListener('dragover', function (e) {
-        var c = cibleDepot(e);
-        Array.prototype.slice.call(cont.querySelectorAll('.w-ec-depot--avant, .w-ec-depot--apres')).forEach(function (x) { if (!c || x !== c.el) {
-            x.classList.remove('w-ec-depot--avant', 'w-ec-depot--apres');
-        } });
-        if (!c) {
+    var cadre = cont.closest('#pCourrierCadre') || cont.parentNode;
+    cadre.addEventListener('dragover', function (e) {
+        if (!_glisse) {
             return;
         }
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        c.el.classList.toggle('w-ec-depot--apres', c.apres);
-        c.el.classList.toggle('w-ec-depot--avant', !c.apres);
-    });
-    cont.addEventListener('drop', function (e) {
+        var rc = cadre.getBoundingClientRect();
+        if (e.clientY < rc.top + 48) {
+            cadre.scrollTop -= 14;
+        }
+        else if (e.clientY > rc.bottom - 48) {
+            cadre.scrollTop += 14;
+        }
         var c = cibleDepot(e);
-        var id = _glisse;
-        finGlisser();
-        if (!c || !id) {
+        var l = document.getElementById('pDepotLigne');
+        if (!l) {
+            l = creer('div', { classe: 'w-ec-depot-ligne', id: 'pDepotLigne', attrs: { 'aria-hidden': 'true' } });
+            cadre.appendChild(l);
+        }
+        if (!c) {
+            l.hidden = true;
+            return;
+        }
+        l.hidden = false;
+        l.style.top = Math.round(c.y) + 'px';
+        l.style.left = Math.round(c.x) + 'px';
+        l.style.width = Math.round(c.l) + 'px';
+    }, true);
+    cadre.addEventListener('drop', function (e) {
+        if (!_glisse) {
             return;
         }
         e.preventDefault();
         e.stopPropagation();
-        var j = c.k + (c.apres ? 1 : 0);
-        if (c.src.k < j) {
-            j--;
+        var c = cibleDepot(e);
+        var id = _glisse;
+        finGlisser();
+        if (c && c.j !== c.src.k) {
+            deplacerElement(id, c.j);
         }
-        deplacerElement(id, j);
     }, true);
 }
 function barreElement(id) {
@@ -13659,10 +13743,6 @@ function barreElement(id) {
     };
     if (bl.type !== 'footer') {
         barre.appendChild(poigneeGlisser(bl));
-        barre.appendChild(bt('Tout en haut', iconeExtreme(true), function () { deplacerElement(id, 0); }, k === 0, 'pElHaut2'));
-        barre.appendChild(bt('Monter', 'arrow-up-line', function () { deplacerElement(id, k - 1); }, k === 0, 'pElHaut'));
-        barre.appendChild(bt('Descendre', 'arrow-down-line', function () { deplacerElement(id, k + 1); }, k >= fin, 'pElBas'));
-        barre.appendChild(bt('Tout en bas', iconeExtreme(false), function () { deplacerElement(id, fin); }, k >= fin, 'pElBas2'));
         barre.appendChild(bt('Dupliquer', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () { dupliquerElement(id); }, false, 'pElDup'));
     }
     barre.appendChild(bt('Condition et réglages', 'settings-5-line', function () { ouvrirReglagesBloc(id); }, false, 'pElRegl'));
