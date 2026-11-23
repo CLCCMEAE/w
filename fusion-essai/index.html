@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.10-essai - 23/11/2026
+  Version : 1.3.11-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -229,6 +229,11 @@
     .w-atelier .w-section--seule > .w-champ-aide:first-child { border-bottom: 0; padding-bottom: 0; }
     .w-contenu--atelier { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
     .w-fu-atelier { flex: 1; min-height: 0; display: flex; }
+    .w-fu-vierge__fond { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; padding: 1rem 0; }
+    .w-fu-vierge__page { position: relative; width: 210mm; max-width: 100%; aspect-ratio: 210 / 297; height: auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.15); display: flex; align-items: center; justify-content: center; }
+    .w-fu-vierge__indice { margin: 0; color: var(--text-mention-grey); font-size: .875rem; }
+    .w-fu-vierge__bas { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .5rem; }
+    .w-fu-vierge__bas .fr-btn { margin: 0; }
     .w-fu-centre { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--background-alt-grey); padding: 1rem 1.5rem 0; color: inherit; }
     .w-fu-centre__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; margin-bottom: .75rem; }
     .w-fu-centre__tete .fr-btn { margin: 0; }
@@ -1253,7 +1258,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.10-essai';
+var VERSION_WIDGET = '1.3.11-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -4715,7 +4720,62 @@ function pagesDocFu() {
 function objetsFu() {
     return etat.tableaux.map(function (t) { return { cle: t.cle, config: { name: t.config.name, description: t.config.table ? 'Table « ' + libelleTable(t.config.table) + ' »' : '' } }; });
 }
+/* « Un document vierge » s'ouvre comme le paramétrage : la page au centre,
+   les réglages à droite, dans le même style. */
+function atelierViergeFu(zone) {
+    var tables = tablesAccueilFu();
+    var annuler = function () { etat.choixFu = false; afficherVue('accueil', true); };
+    var page = creer('div', { classe: 'p-page w-fu-vierge__page', attrs: { 'aria-hidden': 'true' } }, [creer('p', { classe: 'w-fu-vierge__indice', texte: 'Votre document s\'écrira ici.' })]);
+    var centre = creer('div', { classe: 'w-fu-centre' }, [
+        creer('div', { classe: 'w-fu-centre__tete' }, [bouton('Accueil', 'tertiaire', 'arrow-left-line', annuler, { petit: true, id: 'pViergeAccueil' }), creer('span', { classe: 'w-fu-centre__nom', texte: 'Nouveau document' })]),
+        creer('div', { classe: 'w-fu-vierge__fond' }, [page])]);
+    var contenu;
+    if (!tables.length) {
+        contenu = [creer('p', { classe: 'w-mention', texte: 'Ce document n\'a pas encore de table : partez d\'un modèle, il crée sa table.' })];
+    }
+    else {
+        var genre = 'libre';
+        var genres = [{ valeur: 'libre', libelle: 'Page blanche', a: 'Une page à écrire vous-même, avec les champs de la table.' }, { valeur: 'record', libelle: 'Fiche', a: 'Une fiche qui reprend tous les champs de la ligne.' },
+            { valeur: 'word', libelle: 'Importer un Word', a: 'Votre courrier Word devient une page blanche à compléter.' }, { valeur: 'modeleWord', libelle: 'Modèle Word', a: 'Votre document Word garde toute sa mise en page.' }];
+        var expl = creer('p', { classe: 'w-mention w-rg__note', id: 'pAccGenreExpl', texte: genres[0].a });
+        var fichier = creer('input', { classe: 'fr-upload', id: 'pAccFichier', attrs: { type: 'file', accept: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document' } });
+        var ligneFichier = ligneReglage('Document Word', fichier, 'pAccFichier');
+        ligneFichier.hidden = true;
+        var choix = groupeRadios('pAccGenre', 'Le document', genres, genre, function (v) {
+            genre = v;
+            expl.textContent = genres.filter(function (g) { return g.valeur === v; })[0].a;
+            ligneFichier.hidden = v !== 'word' && v !== 'modeleWord';
+        });
+        var lg = choix.querySelector('legend');
+        if (lg) {
+            lg.parentNode.removeChild(lg);
+        }
+        choix.classList.remove('w-fs');
+        var sel = liste('pAccTable', tables.map(function (t) { return { valeur: t, libelle: libelleTable(t) }; }), tables[0]);
+        var ok = bouton('Créer le document', null, 'arrow-right-line', function () {
+            if ((genre === 'word' || genre === 'modeleWord') && !(fichier.files && fichier.files[0])) {
+                signalerSaisie('Choisissez le document Word.');
+                fichier.focus();
+                return;
+            }
+            return creerDirectFu(genre === 'word' || genre === 'modeleWord' ? genre : 'type', genre, sel.value, fichier.files && fichier.files[0]);
+        }, { id: 'pAccCreer', iconeDroite: true, petit: true });
+        contenu = [creer('div', { classe: 'w-rgs' }, [
+            sousTitreFu('Le document'), choix, expl, ligneFichier,
+            sousTitreFu('Les données'), ligneReglage('Table', sel, 'pAccTable', 'table'),
+            creer('p', { classe: 'w-mention', texte: 'Le reste se règle ensuite, étape par étape : la page, les filtres, la numérotation, l\'impression et les droits.' }),
+            creer('div', { classe: 'w-fu-vierge__bas' }, [bouton('Annuler', 'tertiaire', null, annuler, { id: 'pAccAnnuler', petit: true }), ok])])];
+    }
+    var aside = creer('aside', { classe: 'w-atelier', id: 'pAtelier', attrs: { 'aria-label': 'Nouveau document vierge' } }, [
+        creer('div', { classe: 'w-atelier__defile' }, [creer('div', { classe: 'w-atl-tete' }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: 'Un document vierge', attrs: { tabindex: '-1' } }), creer('span', { classe: 'w-pousse' }),
+            bouton('Fermer', 'discret', 'close-line', annuler, { petit: true, iconeSeule: true, id: 'pViergeFermer' })])].concat(contenu))]);
+    zone.appendChild(creer('div', { classe: 'w-fu-atelier' }, [centre, aside]));
+}
 function rendreAccueilFu(zone) {
+    if (etat.choixFu && pageAdminFu()) {
+        atelierViergeFu(zone);
+        return;
+    }
     if (!etat.rubFuChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubFu) === -1) {
         etat.rubFu = etat.tableaux.length ? 'mes' : (tablesAccueilFu().length ? 'donnees' : 'modeles');
     }
@@ -4752,7 +4812,7 @@ function rendreAccueilFu(zone) {
         return carteVideFu(id, titre, texte, function () {
             etat.choixFu = true;
             afficherVue('accueil', true);
-            var f = document.getElementById('pAccGenre_libre');
+            var f = document.getElementById('pAccGenre_libre') || document.getElementById('titreVue');
             if (f) {
                 f.focus();
             }
@@ -7431,7 +7491,7 @@ function afficherVue(vue, garderFocus) {
         envelopperOnglets(zone);
     }
     zone.classList.toggle('w-contenu--doc', vue === 'document');
-    zone.classList.toggle('w-contenu--atelier', vue === 'assistant' && pageAdminFu() && !!etat.brouillon && etat.brouillon.mode === 'edition');
+    zone.classList.toggle('w-contenu--atelier', (vue === 'assistant' && pageAdminFu() && !!etat.brouillon && etat.brouillon.mode === 'edition') || (vue === 'accueil' && !!etat.choixFu && pageAdminFu()));
     majTitrePage();
     if (vue === 'document') {
         relayer(Promise.resolve().then(rendreApercuPrincipal), 'Aperçu');
