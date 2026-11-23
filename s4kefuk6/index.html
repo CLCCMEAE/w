@@ -2030,7 +2030,7 @@ function sectionsPages() {
     var admin = sectionPage('aSecAdmin', 'Cette page', [
         creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les tableaux de bord et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la liste « ' + titreOwner() + ' ».' : 'Cette page montre tous les tableaux de bord et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
     ], etat.pageProtegee ? (etat.protection && !etat.protection.repliee ? bouton('Replier la vue de protection', 'secondaire', 'arrow-up-s-line', replierProtection, { petit: true, id: 'aReplierProtection' }) : null) : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
-    var ic = aide('aAideConsult', 'Où les utilisateurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide, sans onglet « Nouveau tableau de bord » et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux utilisateurs. Ce ne sont pas des droits : une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.');
+    var ic = aide('aAideConsult', 'Où les utilisateurs la voient', 'Chaque page de consultation montre un ou plusieurs tableaux de bord, sans aide et sans paramétrages. Ses conditions fixes règlent les lignes qu\'elle montre, et vous choisissez les filtres du volet laissés aux utilisateurs. Ce ne sont pas des droits : une personne qui a accès aux listes par ailleurs voit toutes les lignes. Pour une vraie confidentialité, posez des règles d\'accès sur les listes.');
     if (etat.editionPage) {
         return [admin, sectionPage('aSecConsult', 'Où les utilisateurs la voient', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page de consultation' })].concat(formulairePage()), null)];
     }
@@ -5980,6 +5980,9 @@ function rendreTuile(t, o) {
         art.classList.add('gb-tuile--source');
         art.appendChild(creer('p', { classe: 'gb-tuile__pied gb-tuile__pied--source', texte: 'Le filtre en cours vient de cette tuile.' }));
     }
+    if (t.type === 'alertes' && filtrePeriodeActif(etat.config)) {
+        art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: 'La période choisie ne s\'applique pas aux points d\'attention : ils portent sur l\'état actuel des listes.' }));
+    }
     var na = filtresNonAppliques(t);
     if (na.length && t.type !== 'text') {
         art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: 'Non filtrée par ' + na.join(', ') + ' : sa liste n\'a pas cette colonne.' }));
@@ -9601,7 +9604,7 @@ function rendreTableau(zone) {
     var cfg = etat.config;
     if (etat.proprietaireSurPage) {
         zone.appendChild(creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm fr-mb-2w', id: 'gPageHeritage' }, [
-            creer('p', { texte: 'Cette page a été publiée avec ' + etat.page.heritage + ' : elle s\'affiche en lecture seule. Pour la faire évoluer, ouvrez la page d\'administration, choisissez « Nouveau tableau de bord » puis « Reprendre mes anciens réglages », et republiez la page. Cet encadré n\'est visible que des propriétaires.' })]));
+            creer('p', { texte: 'Cette page a été publiée avec ' + etat.page.heritage + ' : elle s\'affiche en lecture seule. Pour la faire évoluer, ouvrez la page d\'administration, choisissez « Reprendre mes anciens réglages » dans le menu de gauche, puis publiez une nouvelle page. Cet encadré n\'est visible que des propriétaires.' })]));
     }
     initialiserFiltres(cfg);
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [], [menuOutilsLecteur(cfg)]);
@@ -13593,11 +13596,12 @@ var TEXTES_DROITS = {
     pluriel: 'les tableaux de bord'
 };
 var AIDE = {
-    resume: 'WuitViz compose des tableaux de bord à partir des listes du document : nombres clés, totaux, graphiques par catégorie et dans le temps, tableaux. Tout est calculé à partir de vos lignes, sans liste de synthèse ni formule, et vos listes ne sont jamais modifiées.',
+    resume: 'WuitViz compose des tableaux de bord à partir des listes du document : nombres clés, totaux, graphiques par catégorie et dans le temps, tableaux, plannings et points d\'attention. Tout est calculé à partir de vos lignes, sans liste de synthèse ni formule, et vos listes ne sont jamais modifiées.',
     fonctions: [
         'Tenir plusieurs tableaux de bord dans le même document, chacun dans son onglet.',
         'Filtrer toutes les tuiles à la fois depuis le volet de gauche : période et filtres de choix.',
         'Cliquer sur une barre, une part ou un point pour voir les lignes concernées.',
+        'Suivre des points d\'attention : des règles sur une ou plusieurs listes, avec un compteur vert, orange ou rouge et les lignes qui demandent une action.',
         'Ouvrir « Voir les données » d\'une tuile, ou l\'exporter en CSV.',
         'Ajouter, modifier, redimensionner et réordonner les tuiles avec « Modifier le tableau de bord ».',
         'Imprimer ou enregistrer en PDF, en bas du volet de gauche ; passer en plein écran en haut à droite.',
@@ -13610,12 +13614,14 @@ var AIDE = {
     ],
     etapes: {
         'Point de départ': { titre: 'l\'accueil : vos éléments, les suggestions et les modèles.', points: [
-                'À gauche, « Créer » : un graphique, un chiffre, un tableau croisé, un planning ou un tableau de bord. Chaque rubrique montre vos éléments, des suggestions tirées de vos listes et des modèles.',
+                'À gauche, « Créer » : un graphique, des points d\'attention, un chiffre, un tableau croisé, un planning ou un tableau de bord. Chaque rubrique montre vos éléments, des suggestions tirées de vos listes et des modèles.',
                 '« Utiliser cette suggestion » ou « Utiliser ce modèle » crée l\'élément et ouvre aussitôt son paramétrage, l\'aperçu au centre et les étapes à droite. Un modèle crée ses listes, vides, après votre confirmation.',
                 '« Modifier » ouvre un élément existant ; « Mes pages publiées » liste les pages des utilisateurs.'
             ] },
-        'Les tuiles': { titre: 'les indicateurs et les graphiques.', points: [
-                '« Ajouter une tuile » : nombre, grille d\'indicateurs, barres, courbe, anneau, radar, tableau, progression, texte ou dernières lignes.',
+        'Les tuiles': { titre: 'les indicateurs, les graphiques et les points d\'attention.', points: [
+                '« Ajouter une tuile » : chiffre, jauge, grille d\'indicateurs, graphique, tableau, tableau croisé, carte de chaleur, progression, planning, dernières lignes, points d\'attention ou texte.',
+                'Un graphique a son étape « Format du graphique » : barres, courbe, anneau, radar, histogramme ou entonnoir. Pour une autre sorte de tuile, « Changer », sous les étapes.',
+                'Points d\'attention : étape « Les règles ». Chaque règle a son nom, sa liste, ses filtres, ses seuils orange et rouge et les colonnes montrées. Une tuile peut suivre plusieurs listes.',
                 'Chaque tuile se modifie, se duplique, change de taille ou de place (glisser la poignée, ou Placer avant / Placer après).',
                 'Les tuiles sont dessinées avec vos données : ce que vous voyez est ce que verront les utilisateurs.',
                 '« Annuler le dernier changement » revient en arrière d\'un pas.'
@@ -13649,7 +13655,10 @@ var AIDE = {
         { q: 'Pourquoi une tuile indique-t-elle qu\'elle n\'est pas filtrée ?', r: 'Sa liste n\'a pas la colonne du filtre. Les filtres du volet ne s\'appliquent qu\'aux tuiles dont la liste a une colonne de même identifiant.' },
         { q: 'Que se passe-t-il quand je clique sur une barre ou une part ?', r: 'Tout le tableau de bord se filtre sur cette valeur : les autres tuiles dont la liste a la même colonne ne montrent plus que ces lignes. Un bandeau au-dessus des tuiles rappelle le filtre, avec « Voir les lignes » et « Retirer ce filtre ». Un second clic sur la même valeur retire aussi le filtre.' },
         { q: 'Comment voir le détail d\'une courbe ?', r: 'Cliquez sur un point : une année montre ses trimestres, un trimestre ses mois, un mois ses jours. Le chemin au-dessus de la courbe permet de remonter. Ce détail se coupe dans les réglages de la courbe, « Détail au clic ».' },
-        { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : si le document en contient, « Nouveau tableau de bord » propose la carte « Reprendre mes anciens réglages ». WuitViz en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
+        { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : si le document en contient, le menu de gauche de l\'accueil propose « Reprendre mes anciens réglages ». WuitViz en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
+        { q: 'Comment fonctionne la tuile Points d\'attention ?', r: 'Chaque règle compte, à chaque affichage, les lignes de sa liste qui remplissent ses filtres : par exemple Statut n\'est pas Répondu et Échéance est avant aujourd\'hui. Sans ligne, la règle est au vert ; elle passe à l\'orange puis au rouge à partir des seuils choisis. Un clic sur la règle montre les lignes, avec leur détail et l\'export CSV.' },
+        { q: 'Comment une ligne sort-elle d\'un point d\'attention ?', r: 'D\'elle-même, dès qu\'elle ne remplit plus les filtres de la règle : statut passé à Traité, case cochée, responsable renseigné, date mise à jour. La tuile ne mémorise rien : elle se fonde uniquement sur les données de vos listes.' },
+        { q: 'Une page publiée avec WuitBoard ou WuitGraphiques s\'affiche en lecture seule : pourquoi ?', r: 'L\'adresse de ces widgets sert désormais WuitViz, qui montre leurs pages telles qu\'elles étaient, sans rien écrire dans le document. Pour les faire évoluer : accueil, « Reprendre mes anciens réglages » dans le menu de gauche, puis publier une nouvelle page.' },
         { q: 'Comment publier un seul graphique ?', r: 'Créez-le depuis l\'accueil, rubrique « Un graphique » : son étape « Publier » prépare une page qui ne montre que lui. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
         { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos listes seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
         { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos listes et leurs lignes restent dans le document.' },
