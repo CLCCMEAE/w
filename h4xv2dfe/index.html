@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitViz
-  Version : 1.1.5 - 23/11/2026
+  Version : 1.1.6 - 23/11/2026
   Description : graphiques, chiffres clés, tableaux croisés, plannings et tableaux de bord.
 -->
 <head>
@@ -1090,7 +1090,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.5';
+var VERSION_WIDGET = '1.1.6';
 var ESSAI_WIDGET = 0;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1878,7 +1878,7 @@ function formulairePage() {
             ed.conditions = [];
             relayer(assurerDonnees(ed.table).then(function () { redessiner('aPageTable'); }), 'Changement de liste des conditions');
         });
-        cond.push(groupeChamp('Colonnes prises dans la liste', selT));
+        cond.push(groupeChamp(libListe('Colonnes prises dans la liste'), selT));
         cond.push(editeurConditions(ed, 'conditions', 'aPc', redessiner, function () { }));
     }
     noeuds.push(creer('fieldset', { classe: 'w-page-filtre w-page-conditions' }, cond));
@@ -6246,7 +6246,7 @@ function formulaireAlertes(cont, b, redessiner, maj) {
     var tables = tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; });
     cont.appendChild(section('La règle', [
         groupe('Nom de la règle', champSaisie('eAlNom', r.nom || '', function (v) { r.nom = v; majRegle(); }), 'Par exemple : Demandes en retard sans responsable.'),
-        groupe('Liste', champListe('eAlTable', tables, r.table, function (v) {
+        groupe(libListe('Liste'), champListe('eAlTable', tables, r.table, function (v) {
             var neuve = regleAlerteNeuve(v);
             neuve.nom = r.nom || neuve.nom;
             neuve.orange = r.orange;
@@ -10583,7 +10583,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
             formulaireAlertes(contenus.lignes, b, redessiner, maj);
         }
         else {
-        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
+        contenus.lignes.appendChild(groupe(libListe('Liste'), champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleTable(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
             neuve.taille = b.taille;
@@ -10707,7 +10707,7 @@ function resumeLignesTuile(b) {
     var conds = (b.filtres || []).filter(function (c) { return c && c.col && infoColonne(b.table, c.col) && !(Array.isArray(c.val) && !c.val.length); });
     var lien = modeConditions(b.filtres) === 'ou' ? ' ou ' : ', ';
     if ((b.filtres || []).some(estMarqueArbre)) {
-        return libelleIcone(b.table) + ' : ' + phraseArbre(b.table, arbreConditions(b.filtres));
+        return creer('span', { classe: 'w-table' }, [pictoTable(), creer('span', { texte: libelleTable(b.table) + ' : ' + phraseArbre(b.table, arbreConditions(b.filtres)) })]);
     }
     return creer('span', { classe: 'w-table' }, [pictoTable(), creer('span', { texte: libelleTable(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(lien) : 'toutes les lignes') })]);
 }
@@ -10857,7 +10857,7 @@ function editeurCible(b, modes, redessiner, maj) {
         bloc.push(groupe('Valeur de l\'objectif', champSaisie('eCibleVal', c.valeur === null || c.valeur === undefined ? '' : nombreLocale(c.valeur, 6), function (v) { var n = lireNombreSaisi(v); c.valeur = typeof n === 'number' ? n : null; maj(); }, { clavier: 'decimal' }), 'Saisie à la française, par exemple ' + nombreLocale(12500.5, 2)));
     }
     if (c && c.mode === 'somme') {
-        bloc.push(rangee([groupe('Liste', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table || b.table, function (v) {
+        bloc.push(rangee([groupe(libListe('Liste'), champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table || b.table, function (v) {
                 c.table = v;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur || null;
                 relayer(assurerDonnees(v).then(function () { redessiner('eCibleTable'); }), 'Liste de l\'objectif');
@@ -10867,7 +10867,7 @@ function editeurCible(b, modes, redessiner, maj) {
         bloc.push(groupe('Colonne de l\'objectif', champListe('eCibleCol', optionsColonnes(b.table, estNum), c.col, function (v) { c.col = v; maj(); }), 'Additionnée pour chaque catégorie, par exemple BUDGET pour CONSOMME.'));
     }
     if (c && c.mode === 'table') {
-        bloc.push(rangee([groupe('Liste des objectifs', champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table, function (v) {
+        bloc.push(rangee([groupe(libListe('Liste des objectifs'), champListe('eCibleTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), c.table, function (v) {
                 c.table = v;
                 c.cle = (optionsColonnes(v, estCategorie)[0] || {}).valeur;
                 c.col = (optionsColonnes(v, estNum)[0] || {}).valeur;
@@ -11577,12 +11577,13 @@ function nomAvecIcone(tid) {
     return String(libelleTable(tid) || '').trim().replace(/^[^0-9A-Za-zÀ-ÿ(«"]+/, '') || libelleTable(tid);
 }
 function libelleIcone(tid) {
-    return iconeTable(tid) + ' ' + nomAvecIcone(tid);
+    return String(libelleTable(tid) || '').trim() || String(tid || '');
 }
 function pictoTable() {
     return svg('svg', { viewBox: '0 0 24 24', width: 16, height: 16, 'class': 'w-table__ico', focusable: 'false', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linejoin': 'round' }, [
         svg('rect', { x: 3, y: 4, width: 18, height: 16 }), svg('path', { d: 'M3 9.5h18M3 15h18M9 4v16' })]);
 }
+function libListe(texte) { return creer('span', { classe: 'w-table' }, [pictoTable(), creer('span', { texte: texte })]); }
 function etiquetteTable(tid) {
     return creer('span', { classe: 'w-table' }, [pictoTable(), creer('span', { texte: String(libelleTable(tid) || '').trim() })]);
 }
@@ -13735,7 +13736,7 @@ function choixTablePrincipale(cfg) {
     var tables = tablesUtilisateur();
     var mt = liste('wTable', tables.map(function (t) { return { valeur: t, libelle: libelleIcone(t) }; }), cfg.table, { vide: tables.length ? undefined : 'Aucune liste' });
     mt.addEventListener('change', function () { cfg.table = mt.value; majAttente(); });
-    return groupeChamp('Liste principale', mt, 'Utilisée par défaut pour les nouvelles tuiles. Chaque tuile peut utiliser une autre liste.');
+    return groupeChamp(libListe('Liste principale'), mt, 'Utilisée par défaut pour les nouvelles tuiles. Chaque tuile peut utiliser une autre liste.');
 }
 function contexteBrouillon() {
     var b = etat.brouillon;
