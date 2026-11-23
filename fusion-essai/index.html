@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.4.2-essai - 23/11/2026
+  Version : 1.4.3-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -236,6 +236,7 @@
     .w-fu-centre--ecrire .w-ec { flex: 1 1 auto; min-height: 0; gap: .5rem; }
     .w-fu-ligne { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-fu-ligne .w-echantillon { flex-wrap: wrap; }
+    .w-fu-atelier--pleine > .w-atelier { display: none; }
     .w-ec-poignee { cursor: grab; padding: .25rem; color: var(--text-action-high-blue-france); }
     .w-ec-poignee:active { cursor: grabbing; }
     .w-fu-centre--ecrire .w-ec-page { background-image: radial-gradient(circle, var(--border-default-grey) 1px, transparent 1.2px); background-size: 1rem 1rem; }
@@ -1105,7 +1106,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.4.2-essai';
+var VERSION_WIDGET = '1.4.3-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -3010,12 +3011,39 @@ function panneauParamFu(b) {
 /* Le document au centre se modifie directement, comme dans un traitement
    de texte : barre d'outils au-dessus, écriture dans la page, paramétrage
    à droite. Seule la vue « Liste des éléments » reste un aperçu. */
+/* Pleine page : le paramétrage se cache, le document prend toute la
+   largeur. Échap ou le même bouton le fait revenir. */
+function basculerPleinePageFu() {
+    etat.pleinePageFu = !etat.pleinePageFu;
+    var at = document.querySelector('.w-fu-atelier');
+    if (at) {
+        at.classList.toggle('w-fu-atelier--pleine', !!etat.pleinePageFu);
+    }
+    var bt = document.getElementById('pPleinePage');
+    if (bt) {
+        vider(bt);
+        bt.appendChild(document.createTextNode(etat.pleinePageFu ? 'Quitter la pleine page' : 'Pleine page'));
+        bt.classList.remove('fr-icon-fullscreen-line', 'fr-icon-fullscreen-exit-line');
+        bt.classList.add(etat.pleinePageFu ? 'fr-icon-fullscreen-exit-line' : 'fr-icon-fullscreen-line');
+        bt.setAttribute('aria-pressed', etat.pleinePageFu ? 'true' : 'false');
+        bt.setAttribute('title', etat.pleinePageFu ? 'Revenir au paramétrage (Échap)' : 'Cacher le paramétrage pour voir le document en grand');
+    }
+    majApercuBrouillon();
+    annoncer(etat.pleinePageFu ? 'Document en pleine page. Échap pour revenir au paramétrage.' : 'Paramétrage affiché.');
+}
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && etat.pleinePageFu && !e.defaultPrevented && !(typeof _suggestOuverte !== 'undefined' && _suggestOuverte) && !document.querySelector('[role=dialog][open], dialog[open]')) {
+        basculerPleinePageFu();
+    }
+});
 function centreApercuFu(b) {
     var ecrire = !b.avance;
     var tete = creer('div', { classe: 'w-fu-centre__tete' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil' }),
         creer('span', { classe: 'w-fu-centre__nom', texte: b.name || 'Document sans titre' }),
-        ecrire ? (b.vueDonnees ? creer('span', { classe: 'w-mention', texte: 'Avec les données de la ligne affichée, en lecture seule (réglage à l\'étape « Vos données »)' }) : null) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' })]);
+        ecrire ? (b.vueDonnees ? creer('span', { classe: 'w-mention', texte: 'Avec les données de la ligne affichée, en lecture seule (réglage à l\'étape « Vos données »)' }) : null) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
+        creer('span', { classe: 'w-pousse' }),
+        bouton(etat.pleinePageFu ? 'Quitter la pleine page' : 'Pleine page', 'secondaire', etat.pleinePageFu ? 'fullscreen-exit-line' : 'fullscreen-line', basculerPleinePageFu, { petit: true, id: 'pPleinePage', attrs: { 'aria-pressed': etat.pleinePageFu ? 'true' : 'false', title: etat.pleinePageFu ? 'Revenir au paramétrage (Échap)' : 'Cacher le paramétrage pour voir le document en grand' } })]);
     if (ecrire) {
         return creer('section', { classe: 'w-fu-centre w-fu-centre--ecrire', id: 'pDocCentre', attrs: { 'aria-label': estTypeLettre(b.layout) ? 'Le courrier, modifiable dans la page' : 'La page, modifiable' } }, [tete, editeurCourrier()]);
     }
@@ -7623,7 +7651,7 @@ function rendreAssistant(zone) {
     if (b.etape > ETAPES_PARAM.length) {
         b.etape = ETAPES_PARAM.length;
     }
-    zone.appendChild(b.etape === ETAPE_TEXTE ? redactionPleineFu(b) : creer('div', { classe: 'w-fu-atelier' }, [centreApercuFu(b), panneauParamFu(b)]));
+    zone.appendChild(b.etape === ETAPE_TEXTE ? redactionPleineFu(b) : creer('div', { classe: 'w-fu-atelier' + (etat.pleinePageFu ? ' w-fu-atelier--pleine' : '') }, [centreApercuFu(b), panneauParamFu(b)]));
     finRenduAssistant(b, true);
 }
 function finRenduAssistant(b, edition) {
