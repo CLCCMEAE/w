@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.0 - 23/11/2026
+  Version : 1.3.1 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -323,6 +323,7 @@
     .w-nomdoc__puces .w-champ-puce { cursor: pointer; }
     .w-resume-erreur { color: var(--text-default-error); }
     .w-verif--erreur { color: var(--text-default-error); }
+    .w-condition--af .w-af__seg { max-width: 100%; }
     .w-picto { display: inline-flex; flex: none; vertical-align: -.2em; margin-right: .25rem; }
     .w-picto svg { width: 1em; height: 1em; }
     .w-champ-puce .w-picto { margin-right: .125rem; }
@@ -1258,7 +1259,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.0';
+var VERSION_WIDGET = '1.3.1';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -5341,7 +5342,7 @@ var AIDE = {
         { q: 'Comment ajouter un tableau, une image, un encadré ou des colonnes ?', r: 'Cliquez dans la page à l\'endroit voulu, puis « Insérer » dans le bandeau. L\'élément se place au curseur : au milieu d\'un texte, le texte est coupé en deux autour de lui.' },
         { q: 'Comment déplacer, dupliquer ou supprimer un élément ?', r: 'Cliquez sur l\'élément dans la page : une barre apparaît au-dessus de lui, avec « Tout en haut », « Monter », « Descendre », « Tout en bas », « Dupliquer » et « Supprimer ». Au clavier : Alt et flèches pour le déplacer, Suppr pour le supprimer. Dans « Liste des éléments », chaque élément se glisse aussi par sa poignée.' },
         { q: 'Comment écrire un montant ou une date en toutes lettres ?', r: 'Cliquez sur la pastille du champ dans la page, ou placez le curseur juste après elle et tapez Alt+flèche bas : la liste des formats s\'ouvre, avec un exemple pour chacun. Un montant en euros s\'écrit « mille deux cent trente-quatre euros et cinquante centimes », une date « vingt novembre deux mille vingt-six ».' },
-        { q: 'Comment n\'imprimer un passage que dans certains cas ?', r: 'Choisissez l\'élément, puis, dans ses réglages, « Imprimer cet élément » : « Seulement si… ». Une condition porte sur un champ : rempli, vide, vaut, contient, supérieur ou inférieur à une valeur, coché. « Ajouter une condition » en pose plusieurs, toutes à remplir ou une seule. « Sinon, imprimer à la place » donne le texte de remplacement.' },
+        { q: 'Comment n\'afficher un passage que dans certains cas ?', r: 'Choisissez l\'élément, puis, dans ses réglages, « Afficher cet élément » : « Seulement si… ». Les filtres sont les mêmes qu\'à l\'étape « Les filtres » : une colonne, un filtre (est l\'une de, contient, est vide, est coché, est avant le…) et une valeur ; « et » ou « ou » entre les filtres, et des groupes de filtres. « Sinon, afficher à la place » donne le texte de remplacement.' },
         { q: 'Comment encadrer un texte ou placer le logo dans une colonne ?', r: 'Bloc « Encadré » : un cadre, au trait fin, au trait de couleur ou sur fond, dans lequel vous ajoutez les blocs voulus. Bloc « Logo » : le logo du document, à poser où vous voulez, y compris dans une colonne ou un encadré.' },
         { q: 'Puis-je changer le type d\'un bloc ?', r: 'Oui : dans les réglages de l\'élément choisi, « Type du bloc », ou le style dans le bandeau pour passer d\'un paragraphe à un titre. Un paragraphe devient un titre et inversement, une liste de champs ou une signature devient un paragraphe, et tout bloc peut être mis dans un encadré. Le texte est gardé.' },
         { q: 'Comment faire un retrait ou aligner des informations ?', r: 'Tapez des espaces en début de ligne : ils sont gardés dans le document. Pour des colonnes bien alignées, préférez le bloc « Deux colonnes » ou une « Liste de champs ».' },
@@ -6065,6 +6066,9 @@ function conditionRemplie(cond, rc) {
     }
     if (!rc || typeof rc.i !== 'number' || rc.i < 0) {
         return true;
+    }
+    if (cond.filtres && cond.filtres.racine) {
+        return evaluerNoeudFiltre(rc.tid, cond.filtres.racine, rc.i) !== false;
     }
     var regles = reglesCondition(cond);
     if (!regles.length) {
@@ -7671,6 +7675,11 @@ function parcourirCheminsConfig(cfg, f) {
         }
         if (b.cond && typeof b.cond.sinon === 'string') {
             b.cond.sinon = reecrireChamps(b.cond.sinon, function (ch) { return f(tp, ch); });
+        }
+        if (b.cond && b.cond.filtres && b.cond.filtres.racine) {
+            feuillesFiltre(b.cond.filtres.racine).forEach(function (k) { if (typeof k.colonne === 'string' && k.colonne) {
+                k.colonne = f(tp, k.colonne);
+            } });
         }
         if (b.type === 'items' && b.table) {
             ['ref', 'sort', 'sort2', 'groupe', 'amount'].forEach(function (k) { if (typeof b[k] === 'string' && b[k]) {
@@ -10278,10 +10287,7 @@ function confirmerTablesModele(m) {
         if (creees.length) {
             corps.push(creer('p', { classe: 'w-texte w-mention', texte: 'Chaque table créée reçoit aussi les colonnes de suivi CREE_LE, CREE_PAR, MODIFIE_LE et MODIFIE_PAR.' }));
         }
-        var avecLignes = creees.length > 0 || reprises.length > 0;
-        if (avecLignes && !pageAdminFu()) {
-            corps.push(caseACocher('pExemples', 'Ajouter des lignes d\'exemple', true, null, { aide: 'Dans les tables créées ou vides seulement' + (princ && !reprises.some(function (x) { return x.def === princ; }) ? ' (' + pluriel(princ.lignes.length, 'exemple') + ' pour ' + princ.titre + ')' : '') + ', pour voir le document tout de suite. Vous pourrez les supprimer ensuite.' }));
-        }
+        /* Un modèle crée des tables vides : jamais de lignes d'exemple. */
         corps.push(creer('p', { classe: 'w-texte w-mention', texte: 'Si vous abandonnez la création, le widget propose de supprimer les tables créées ; les tables reprises et leurs colonnes ajoutées restent.' }));
         ouvrirModale({
             titre: (creees.length ? 'Créer les tables du modèle « ' : 'Utiliser les tables du modèle « ') + m.nom + ' » ?', etroite: true,
@@ -10289,7 +10295,7 @@ function confirmerTablesModele(m) {
             pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, function () { fermerModale(); }, { id: 'pModAnnuler' }),
                 bouton(creees.length || Object.keys(choix).some(function (k) { return choix[k].mode === 'nouvelle'; }) ? 'Créer les tables' : 'Utiliser ces tables', null, 'check-line', function () { if (!choixValides()) {
                     return;
-                } var c = document.getElementById('pExemples'); finir({ exemples: c ? c.checked : !pageAdminFu(), choix: choix }); fermerModale(); }, { id: 'pModCreer' })],
+                } finir({ exemples: false, choix: choix }); fermerModale(); }, { id: 'pModCreer' })],
             surFermeture: function () { finir(null); }, focus: 'pModCreer'
         });
     });
@@ -13189,6 +13195,9 @@ function reglesCondition(cond) {
     if (!cond || !cond.op) {
         return [];
     }
+    if (cond.filtres && cond.filtres.racine) {
+        return feuillesFiltre(cond.filtres.racine).filter(function (k) { return !!k.colonne; }).map(function (k) { return { op: '_filtre', path: k.colonne }; });
+    }
     return [cond].concat(Array.isArray(cond.plus) ? cond.plus : []).filter(function (r) { return r && r.op && r.path; });
 }
 function nombreCondition(v, col) {
@@ -13262,71 +13271,65 @@ function editeurCondition(bl) {
     var actif = !!c.op;
     var s = liste(idEd(bl, 'cond'), [{ valeur: '', libelle: 'Toujours' }, { valeur: 'si', libelle: 'Seulement si…' }], actif ? 'si' : '');
     s.addEventListener('change', function () {
-        if (s.value) {
-            bl.cond = { op: 'filled', path: '' };
-        }
-        else {
-            bl.cond = { op: '' };
+        bl.cond = s.value ? { op: 'filtres', filtres: { racine: { conj: 'et', items: [normaliserFiltre({})] } }, sinon: c.sinon } : { op: '' };
+        if (!bl.cond.sinon) {
+            delete bl.cond.sinon;
         }
         refaire(idEd(bl, 'cond'));
     });
-    var l = [groupeChamp('Imprimer cet élément', s)];
+    var l = [groupeChamp('Afficher cet élément', s)];
     if (!actif) {
         return creer('div', { classe: 'w-condition' }, l);
     }
-    c.plus = Array.isArray(c.plus) ? c.plus : [];
-    var regles = [c].concat(c.plus);
-    if (regles.length > 1) {
-        var j = liste(idEd(bl, 'condJoin'), [{ valeur: 'and', libelle: 'Toutes les conditions sont remplies' }, { valeur: 'or', libelle: 'Au moins une condition est remplie' }], c.join === 'or' ? 'or' : 'and');
-        j.addEventListener('change', function () { c.join = j.value; changeBloc(); });
-        l.push(groupeChamp('Imprimer quand', j));
+    if (!c.filtres || !c.filtres.racine) {
+        c.filtres = filtresDepuisAncien(c, b.table);
     }
-    regles.forEach(function (r, k) {
-        var suf = k ? String(k) : '';
-        var champs = selectChamps(idEd(bl, 'condCol' + suf), b.table, r.path || '', false, 'Choisir une colonne…');
-        champs.addEventListener('change', function () { r.path = champs.value; changeBloc(); });
-        var ops = liste(idEd(bl, 'condOp' + suf), OPERATEURS_COND.map(function (o) { return { valeur: o.op, libelle: o.nom }; }), r.op || 'filled');
-        ops.addEventListener('change', function () { r.op = ops.value; refaire(idEd(bl, 'condOp' + suf)); });
-        var def = OPERATEURS_COND.filter(function (o) { return o.op === r.op; })[0] || OPERATEURS_COND[0];
-        var ligne = [groupeChamp(k ? 'Colonne (condition ' + (k + 1) + ')' : 'Colonne', champs), groupeChamp('Condition', ops)];
-        if (def.valeur) {
-            var v = saisie(idEd(bl, 'condVal' + suf), r.value || '', { indice: r.op === 'gt' || r.op === 'lt' ? '1000' : 'Payée' });
-            v.addEventListener('input', function () { r.value = v.value; changeBloc(); });
-            ligne.push(groupeChamp('Valeur', v));
+    /* L'ancien format (une règle) est aussi écrit quand il peut représenter le filtre. */
+    var synchro = function () {
+        var anc = ancienFormatFiltres(c.filtres);
+        delete c.plus;
+        delete c.join;
+        delete c.value;
+        c.op = anc ? anc.op : 'filtres';
+        c.path = anc ? anc.path : '';
+        if (anc && anc.value !== undefined) {
+            c.value = anc.value;
         }
-        var rangee = [creer('div', { classe: 'w-ligne2 w-regle' }, ligne)];
-        if (regles.length > 1) {
-            rangee.push(creer('div', { classe: 'w-liens' }, [bouton('Retirer cette condition', 'tertiaire', 'delete-line', function () {
-                    if (k === 0) {
-                        var suivante = c.plus.shift();
-                        c.op = suivante.op;
-                        c.path = suivante.path;
-                        c.value = suivante.value;
-                    }
-                    else {
-                        c.plus.splice(k - 1, 1);
-                    }
-                    if (!c.plus.length) {
-                        delete c.join;
-                    }
-                    refaire(idEd(bl, 'condAjout'));
-                }, { petit: true, id: idEd(bl, 'condRetirer' + suf) })]));
+    };
+    var phrase = creer('p', { classe: 'w-af__phrase', id: idEd(bl, 'condPhrase'), attrs: { 'aria-live': 'polite' } });
+    var majPhrase = function () {
+        feuillesFiltre(c.filtres.racine).forEach(function (k) {
+            var e = document.getElementById((_idsFiltres.get(k) || '') + 'Err');
+            if (e) {
+                var p = problemeFiltre(b.table, k);
+                e.textContent = p ? p.charAt(0).toUpperCase() + p.slice(1) + '.' : '';
+            }
+        });
+        var t = texteCondition(bl);
+        phrase.textContent = t ? 'Se lit : ' + t.charAt(0).toLowerCase() + t.slice(1) : (feuillesFiltre(c.filtres.racine).length ? 'Filtre incomplet : l\'élément est affiché tant que le filtre n\'est pas complet.' : 'Sans filtre, l\'élément est toujours affiché.');
+    };
+    var changer = function (focusId, apres) {
+        synchro();
+        refaire(focusId);
+        if (apres) {
+            apres();
         }
-        l.push(creer('div', { classe: 'w-regle-bloc' }, rangee));
-    });
-    l.push(creer('div', { classe: 'w-liens' }, [bouton('Ajouter une condition', 'tertiaire', 'add-line', function () {
-            c.plus.push({ op: 'filled', path: '' });
-            refaire(idEd(bl, 'condCol' + c.plus.length));
-        }, { petit: true, id: idEd(bl, 'condAjout') })]));
+    };
+    var maj = function () {
+        synchro();
+        changeBloc();
+        majPhrase();
+    };
+    synchro();
+    l.push(editeurFiltresAirtable(b.table, c.filtres, idEd(bl, 'cf'), changer, maj));
+    l.push(phrase);
+    setTimeout(majPhrase, 0);
     if (bl.type !== 'footer') {
         var sinon = saisie(idEd(bl, 'condSinon'), c.sinon || '', { indice: 'Non concerné' });
-        sinon.addEventListener('input', function () { c.sinon = sinon.value; changeBloc(); });
-        l.push(groupeChamp('Sinon, imprimer à la place', sinon, 'Les colonnes s\'écrivent entre accolades : {Nom}.'));
+        sinon.addEventListener('input', function () { c.sinon = sinon.value; changeBloc(); majPhrase(); });
+        l.push(groupeChamp('Sinon, afficher à la place', sinon, 'Les colonnes s\'écrivent entre accolades : {Nom}.'));
     }
-    if (!reglesCondition(c).length) {
-        l.push(creer('p', { classe: 'w-indice', texte: 'Tant qu\'aucune colonne n\'est choisie, l\'élément est toujours imprimé.' }));
-    }
-    return creer('div', { classe: 'w-condition' }, l);
+    return creer('div', { classe: 'w-condition w-condition--af' }, l);
 }
 var MARQUES_TEXTE = { b: '**', i: '*', u: '__', x: '~~', h: '==' };
 function segmentsDe(s) {
@@ -15357,6 +15360,13 @@ function nomElement(bl) {
 }
 function texteCondition(bl) {
     var c = bl && bl.cond;
+    if (c && c.op && c.filtres && c.filtres.racine) {
+        var tidF = etat.brouillon ? etat.brouillon.table : null;
+        if (!feuillesFiltre(c.filtres.racine).length || problemeFiltresFu(tidF, c.filtres)) {
+            return '';
+        }
+        return 'Affiché seulement si ' + phraseNoeudFiltre(tidF, c.filtres.racine) + '.' + (String(c.sinon || '').trim() ? ' Sinon : « ' + texteBrutSinon(c.sinon) + ' ».' : '');
+    }
     var regles = reglesCondition(c);
     if (!regles.length) {
         return '';
@@ -15368,7 +15378,7 @@ function texteCondition(bl) {
             differs: ' ne vaut pas « ' + (r.value || '') + ' »', gt: ' est supérieur à ' + (r.value || ''), lt: ' est inférieur à ' + (r.value || ''),
             contains: ' contient « ' + (r.value || '') + ' »' }[r.op] || '');
     });
-    var t = 'Imprimé seulement si ' + phr.join(c.join === 'or' ? ' ou si ' : ' et si ') + '.';
+    var t = 'Affiché seulement si ' + phr.join(c.join === 'or' ? ' ou si ' : ' et si ') + '.';
     if (String(c.sinon || '').trim()) {
         t += ' Sinon : « ' + texteBrutSinon(c.sinon) + ' ».';
     }
