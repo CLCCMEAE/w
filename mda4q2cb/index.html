@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitCalendrier
-  Version : 1.0.0 - 23/11/2026
+  Version : 1.1.0 - 23/11/2026
   Description : calendriers et plannings tirés d'une table, avec pages pour les utilisateurs.
 -->
 <head>
@@ -805,6 +805,24 @@
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__item--second { font-size: .8125rem; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 1.75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .w-acc__sous-item .fr-badge { flex: none; }
+    .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
+    .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
+    .w-acc__vig--vide { display: flex; align-items: center; justify-content: center; padding: .75rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig--vide span::before { --icon-size: 2.5rem; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .w-acc__ligne-ico { flex: none; color: var(--text-action-high-blue-france); }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__encart { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; color: inherit; }
+    .w-acc__encart p { margin: 0; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-disposition--admin > .w-volet { display: none; }
     .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; color: inherit; }
@@ -888,7 +906,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -4394,8 +4412,8 @@ var AIDE = {
     ],
     avant: [
         'Une table avec une ligne par événement, une colonne de date (ou de date et heure) et une colonne pour le titre.',
-        'Vos événements sont déjà dans une table ? Dans l\'accueil, « À partir de mes données » : « Utiliser cette suggestion », ou le « + » pour choisir la table.',
-        'Pas encore de table ? Dans l\'accueil, « Un calendrier » : « Utiliser ce modèle » ou le « + » la créent pour vous. Le calendrier s\'ouvre aussitôt, avec son paramétrage à droite.',
+        'Vos événements sont déjà dans une table ? Dans l\'accueil, « Mes données sont dans ce document » : « Utiliser cette suggestion », ou « Choisir une table moi-même ».',
+        'Pas encore de table ? Dans l\'accueil, « Je n\'ai pas encore de données » : « Utiliser ce modèle » ou « Une table vide » la créent pour vous. Le calendrier s\'ouvre aussitôt, avec son paramétrage à droite.',
         'Créer ou paramétrer un calendrier demande le droit de modifier le document.'
     ],
     etapes: {
@@ -4445,6 +4463,7 @@ var AIDE = {
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
         { q: 'Qui peut paramétrer un calendrier ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Une ligne de ma table n\'apparaît pas : pourquoi ?', r: 'Elle n\'a pas encore de date, ou elle est en dehors de la période affichée ou des filtres. Les lignes sans date sont dans « À planifier » ; « Effacer les filtres » montre de nouveau tout.' },
         { q: 'Pourquoi un événement ne se déplace-t-il pas ?', r: 'Sa date vient d\'une colonne calculée par une formule, ou vous consultez le document sans pouvoir le modifier. Une date calculée se change dans la table, pas depuis le calendrier.' },
@@ -7546,6 +7565,8 @@ function contenuDroits() {
         inviter,
         creer('h4', { classe: 's-droits__sous-titre', texte: 'Les rôles' }),
         roles,
+        creer('h4', { classe: 's-droits__sous-titre', texte: 'Qui est « Admin » ?' }),
+        creer('p', { classe: 'w-texte', id: 'aQuiAdmin', texte: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' }),
         creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Un rôle seul ne suffit pas : sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.' })
     ]);
     var etat2 = creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'La page Admin porte sa vue de protection : il reste à poser la règle de l\'étape 3.' : 'La page Admin n\'est pas encore protégée.',
@@ -7670,7 +7691,7 @@ function afficherVue(vue, garderFocus) {
 }
 function pageAdminCl() { return !!etat.peutParametrer && !etat.page; }
 etat.surAccueil = true;
-etat.rubCl = 'calendrier';
+etat.rubCl = null;
 function enteteAdminCl() {
     var publie = pagesDuPlan(etat.cleConfig).length > 0;
     var e = creer('button', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (publie ? 'fr-badge--success' : 'w-badge-brouillon') + ' w-etat-bouton', id: 'cEtat', texte: publie ? 'Publié' : 'Brouillon', attrs: { type: 'button', title: 'Aller à l\'étape Publier' } });
@@ -7714,7 +7735,7 @@ async function allerAccueilCl() {
     etat.brouillon = null;
     etat.editionPage = null;
     etat.surAccueil = true;
-    etat.rubCl = 'calendrier';
+    etat.rubClChoisie = false;
     await chargerTout();
 }
 async function rafraichirApercuCl() {
@@ -7962,14 +7983,68 @@ function encadreChoixCl() {
         creer('p', { classe: 'w-mention', texte: 'Le widget reconnaît les dates, le titre et les catégories. Votre table n\'est pas restructurée.' }),
         creer('div', { classe: 'w-choix-table-cl__bas' }, [annuler, bouton('Créer le calendrier', null, 'arrow-right-line', function () { return creerDepuisTableCl(sel.value); }, { id: 'cChoixOk', iconeDroite: true })])]);
 }
+function badgeStatutCl(cle, long) {
+    var n = pagesDuPlan(cle).length;
+    return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (n ? 'fr-badge--success' : 'w-badge-brouillon'), texte: n ? (long ? 'Publié · ' + n + (n > 1 ? ' pages' : ' page') : 'Publié') : 'Brouillon' });
+}
+function carteVideCl(id, titre, texte, action) {
+    var b = bouton('Commencer', null, 'arrow-right-line', action, { petit: true, id: id, iconeDroite: true });
+    var c = creer('div', { classe: 'w-acc__carte w-acc__carte--vide' }, [
+        creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line' })]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: titre }), creer('span', { classe: 'w-mention', texte: texte })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+    c.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+        b.click();
+    } });
+    return c;
+}
+function sousMenuCl(objets, ouvrir) {
+    var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Mes calendriers' } });
+    objets.forEach(function (t, k) {
+        var b = creer('button', { classe: 'w-acc__sous-item', id: 'cMenu' + k, attrs: { type: 'button' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.name || 'Calendrier sans nom' }), badgeStatutCl(t.cle, false)]);
+        b.addEventListener('click', function () { return ouvrir(t.cle); });
+        sous.appendChild(creer('li', {}, [b]));
+    });
+    return sous;
+}
+function listeMesCl(objets, ouvrir) {
+    if (!objets.length) {
+        return creer('p', { classe: 'w-mention', id: 'cAucun', texte: 'Aucun calendrier créé' });
+    }
+    var ul = creer('ul', { classe: 'w-acc__liste' });
+    objets.forEach(function (t, k) {
+        var pages = pagesDuPlan(t.cle).map(function (x) { return etat.nomsPages[x]; }).filter(Boolean);
+        var b = bouton(pages.length ? 'Modifier' : 'Modifier mon brouillon', 'secondaire', 'arrow-right-line', function () { return ouvrir(t.cle); }, { petit: true, id: 'cOuvrir' + k, iconeDroite: true });
+        var li = creer('li', { classe: 'w-acc__ligne w-acc__ligne--clic' }, [
+            creer('span', { classe: 'w-acc__ligne-ico fr-icon-calendar-2-line', attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.name || 'Calendrier sans nom' }),
+                pages.length ? creer('span', { classe: 'w-mention', texte: (pages.length > 1 ? 'Pages : ' : 'Page : ') + pages.join(', ') }) : (t.config.description ? creer('span', { classe: 'w-mention', texte: t.config.description }) : null)]),
+            creer('span', { classe: 'w-pousse' }), badgeStatutCl(t.cle, true), b]);
+        li.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+            b.click();
+        } });
+        ul.appendChild(li);
+    });
+    return ul;
+}
+function encartFichierCl() {
+    return creer('div', { classe: 'w-acc__encart' }, [
+        creer('p', { texte: 'Ce widget ne lit pas les fichiers (Excel, CSV…). Importez d\'abord votre fichier dans ce document avec l\'import de Grist : il crée une table avec vos données.' }),
+        creer('p', {}, [creer('a', { classe: 'fr-link', id: 'cLienImport', texte: 'Comment importer un fichier dans Grist', attrs: { href: 'https://support.getgrist.com/fr/imports/', target: '_blank', rel: 'noopener', title: 'Comment importer un fichier dans Grist - nouvelle fenêtre' } })]),
+        creer('p', { texte: 'Revenez ensuite ici et choisissez « Mes données sont dans ce document » : votre nouvelle table y apparaît.' })]);
+}
 function rendreAccueilCl(zone) {
+    if (!etat.rubClChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubCl) === -1) {
+        etat.rubCl = etat.plans.length ? 'mes' : (tablesBranchables().filter(function (t) { return colonnesDates(t).length > 0; }).length ? 'donnees' : 'modeles');
+    }
     var rub = etat.rubCl;
     var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
-    var item = function (cle, texte, icone) {
-        var bt = creer('button', { classe: 'w-acc__item', id: 'cRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
+    var item = function (cle, texte, icone, second) {
+        var bt = creer('button', { classe: 'w-acc__item' + (second ? ' w-acc__item--second' : ''), id: 'cRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
             creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: texte })]);
         bt.addEventListener('click', function () {
             etat.rubCl = cle;
+            etat.rubClChoisie = true;
             etat.choixCl = null;
             afficherVue('accueil', true);
             var f = document.getElementById('cRub_' + cle);
@@ -7979,17 +8054,20 @@ function rendreAccueilCl(zone) {
         });
         menu.appendChild(bt);
     };
-    item('pages', 'Mes pages publiées', 'layout-grid-line');
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('calendrier', 'Un calendrier', 'calendar-2-line');
-    item('donnees', 'À partir de mes données', 'table-line');
+    item('mes', 'Mes calendriers', 'calendar-2-line');
+    if (etat.plans.length) {
+        menu.appendChild(sousMenuCl(etat.plans, function (cle) { ouvrirPlanAccueil(cle); }));
+    }
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer un nouveau calendrier' }));
+    item('donnees', 'Mes données sont dans ce document', 'table-line');
+    item('modeles', 'Je n\'ai pas encore de données', 'add-circle-line');
+    item('fichier', 'Mes données sont dans un fichier', 'upload-2-line', true);
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
-    var titres = { pages: 'Mes pages publiées', calendrier: 'Mes calendriers', donnees: 'À partir de mes données', droits: 'Les droits' };
+    var titres = { mes: 'Mes calendriers', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
-    var plusBouton = function (id, aria, choix) {
-        var pl = creer('button', { classe: 'w-acc__plus', id: id, attrs: { type: 'button', 'aria-label': aria } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-        pl.addEventListener('click', function () {
+    var plusBouton = function (id, titre, texte, choix) {
+        return carteVideCl(id, titre, texte, function () {
             etat.choixCl = choix;
             afficherVue('accueil', true);
             var f = document.getElementById(choix === 'vierge' ? 'cHeures_oui' : 'cChoixTable') || document.getElementById('cChoixOk');
@@ -7997,23 +8075,12 @@ function rendreAccueilCl(zone) {
                 f.focus();
             }
         });
-        return pl;
     };
-    if (rub === 'pages') {
-        var avec = etat.plans.filter(function (t) { return pagesDuPlan(t.cle).length > 0; });
-        if (!avec.length) {
-            scene.appendChild(creer('p', { classe: 'w-mention', id: 'cAucunePage', texte: 'Aucune page publiée' }));
-        }
-        else {
-            var ul = creer('ul', { classe: 'w-acc__liste' });
-            avec.forEach(function (t, k) {
-                ul.appendChild(creer('li', { classe: 'w-acc__ligne' }, [
-                    creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.name || 'Calendrier sans nom' }), creer('span', { classe: 'w-mention', texte: pagesDuPlan(t.cle).map(function (x) { return etat.nomsPages[x]; }).join(', ') })]),
-                    creer('span', { classe: 'w-pousse' }),
-                    bouton('Modifier', 'secondaire', 'arrow-right-line', function () { ouvrirPlanAccueil(t.cle, true); }, { petit: true, id: 'cPageModif' + k, iconeDroite: true })]));
-            });
-            scene.appendChild(ul);
-        }
+    if (rub === 'mes') {
+        scene.appendChild(listeMesCl(etat.plans, function (cle) { ouvrirPlanAccueil(cle); }));
+    }
+    else if (rub === 'fichier') {
+        scene.appendChild(encartFichierCl());
     }
     else if (rub === 'droits') {
         scene.appendChild(contenuDroits());
@@ -8049,7 +8116,7 @@ function rendreAccueilCl(zone) {
                 grilleD.appendChild(carteAccueilCl(vig, badgeCl('Suggestion', 'info'), sg.cfg.name, pluriel(sg.n, 'ligne') + ' · ' + faitsCfg(sg.cfg, d).slice(0, 2).map(function (f) { return f[0] + ' : ' + f[1]; }).join(' · '),
                     'Utiliser cette suggestion', function () { return creerDepuisTableCl(sg.g.table, sg.cfg); }, 'cSuggestion' + k));
             });
-            grilleD.appendChild(plusBouton('cDonnees', 'Choisir moi-même la table de mon calendrier', 'table'));
+            grilleD.appendChild(plusBouton('cDonnees', 'Choisir une table moi-même', 'Vous choisissez la table et les colonnes de dates.', 'table'));
             scene.appendChild(grilleD);
             if (etat.choixCl === 'table') {
                 scene.appendChild(encadreChoixCl());
@@ -8057,17 +8124,6 @@ function rendreAccueilCl(zone) {
         }
     }
     else {
-        var grille = creer('div', { classe: 'w-acc__cartes' });
-        etat.plans.forEach(function (t, k) {
-            var publie = pagesDuPlan(t.cle).length > 0;
-            grille.appendChild(carteAccueilCl(vignetteCl(t.cle), badgeCl(publie ? 'Publié' : 'Brouillon', publie ? 'success' : ''), t.config.name || 'Calendrier sans nom', t.config.description || '',
-                publie ? 'Modifier' : 'Modifier mon brouillon', function () { ouvrirPlanAccueil(t.cle); }, 'cOuvrir' + k));
-        });
-        grille.appendChild(plusBouton('cCreer', 'Créer un calendrier vierge', 'vierge'));
-        scene.appendChild(grille);
-        if (etat.choixCl === 'vierge') {
-            scene.appendChild(encadreChoixCl());
-        }
         GROUPES_MODELES.forEach(function (g) {
             var lm = MODELES.filter(function (m) { return (m.groupe || 'suivi') === g.id; }).sort(function (x, y) { return x.nom.localeCompare(y.nom, 'fr'); });
             if (!lm.length) {
@@ -8081,6 +8137,12 @@ function rendreAccueilCl(zone) {
             });
             scene.appendChild(gm);
         });
+        var grille = creer('div', { classe: 'w-acc__cartes' });
+        grille.appendChild(plusBouton('cCreer', 'Une table vide', 'Une table avec juste les colonnes indispensables : titre et dates.', 'vierge'));
+        scene.appendChild(grille);
+        if (etat.choixCl === 'vierge') {
+            scene.appendChild(encadreChoixCl());
+        }
     }
     zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
 }

@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitCarte
-  Version : 1.0.0 - 23/11/2026
+  Version : 1.1.0 - 23/11/2026
   Description : carte des lieux d'une table, avec fiches, filtres et pages pour les utilisateurs.
 -->
 <head>
@@ -820,6 +820,24 @@
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__item--second { font-size: .8125rem; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 1.75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .w-acc__sous-item .fr-badge { flex: none; }
+    .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
+    .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
+    .w-acc__vig--vide { display: flex; align-items: center; justify-content: center; padding: .75rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig--vide span::before { --icon-size: 2.5rem; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .w-acc__ligne-ico { flex: none; color: var(--text-action-high-blue-france); }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__encart { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; color: inherit; }
+    .w-acc__encart p { margin: 0; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-disposition--admin > .w-volet { display: none; }
     .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; color: inherit; }
@@ -891,7 +909,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -8941,6 +8959,8 @@ function contenuDroits() {
         inviter,
         creer('h4', { classe: 's-droits__sous-titre', texte: 'Les rôles' }),
         roles,
+        creer('h4', { classe: 's-droits__sous-titre', texte: 'Qui est « Admin » ?' }),
+        creer('p', { classe: 'w-texte', id: 'aQuiAdmin', texte: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' }),
         creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Un rôle seul ne suffit pas : sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.' })
     ]);
     var etat2 = creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'La page Admin porte sa vue de protection : il reste à poser la règle de l\'étape 3.' : 'La page Admin n\'est pas encore protégée.',
@@ -9065,7 +9085,7 @@ function afficherVue(vue, garderFocus) {
 }
 function pageAdminCa() { return !!etat.peutParametrer && !etat.consultation; }
 etat.surAccueil = true;
-etat.rubCa = 'carte';
+etat.rubCa = null;
 function pagesDeCarteCle(cle) {
     return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].carte === cle && etat.nomsPages && etat.nomsPages[x]; });
 }
@@ -9100,7 +9120,7 @@ async function allerAccueilCa() {
     }
     etat.brouillon = null;
     etat.surAccueil = true;
-    etat.rubCa = 'carte';
+    etat.rubCaChoisie = false;
     await lireCartes();
     afficherVue('accueil');
 }
@@ -9361,14 +9381,68 @@ function choixTableCa() {
         creer('p', { classe: 'w-mention', texte: 'Si la table n\'a pas de colonnes de latitude et de longitude, le widget les y ajoute.' }),
         creer('div', { classe: 'w-choix-table-ca__bas' }, [annuler, ok])]);
 }
+function badgeStatutCa(cle, long) {
+    var n = pagesDeCarteCle(cle).length;
+    return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (n ? 'fr-badge--success' : 'w-badge-brouillon'), texte: n ? (long ? 'Publié · ' + n + (n > 1 ? ' pages' : ' page') : 'Publié') : 'Brouillon' });
+}
+function carteVideCa(id, titre, texte, action) {
+    var b = bouton('Commencer', null, 'arrow-right-line', action, { petit: true, id: id, iconeDroite: true });
+    var c = creer('div', { classe: 'w-acc__carte w-acc__carte--vide' }, [
+        creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line' })]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: titre }), creer('span', { classe: 'w-mention', texte: texte })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+    c.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+        b.click();
+    } });
+    return c;
+}
+function sousMenuCa(objets, ouvrir) {
+    var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Mes cartes' } });
+    objets.forEach(function (t, k) {
+        var b = creer('button', { classe: 'w-acc__sous-item', id: 'cMenu' + k, attrs: { type: 'button' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.nom || 'Carte sans nom' }), badgeStatutCa(t.cle, false)]);
+        b.addEventListener('click', function () { return ouvrir(t.cle); });
+        sous.appendChild(creer('li', {}, [b]));
+    });
+    return sous;
+}
+function listeMesCa(objets, ouvrir) {
+    if (!objets.length) {
+        return creer('p', { classe: 'w-mention', id: 'cAucun', texte: 'Aucune carte créée' });
+    }
+    var ul = creer('ul', { classe: 'w-acc__liste' });
+    objets.forEach(function (t, k) {
+        var pages = pagesDeCarteCle(t.cle).map(function (x) { return etat.nomsPages[x]; }).filter(Boolean);
+        var b = bouton(pages.length ? 'Modifier' : 'Modifier mon brouillon', 'secondaire', 'arrow-right-line', function () { return ouvrir(t.cle); }, { petit: true, id: 'cOuvrir' + k, iconeDroite: true });
+        var li = creer('li', { classe: 'w-acc__ligne w-acc__ligne--clic' }, [
+            creer('span', { classe: 'w-acc__ligne-ico fr-icon-map-pin-2-line', attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.nom || 'Carte sans nom' }),
+                pages.length ? creer('span', { classe: 'w-mention', texte: (pages.length > 1 ? 'Pages : ' : 'Page : ') + pages.join(', ') }) : (t.config.description ? creer('span', { classe: 'w-mention', texte: t.config.description }) : null)]),
+            creer('span', { classe: 'w-pousse' }), badgeStatutCa(t.cle, true), b]);
+        li.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+            b.click();
+        } });
+        ul.appendChild(li);
+    });
+    return ul;
+}
+function encartFichierCa() {
+    return creer('div', { classe: 'w-acc__encart' }, [
+        creer('p', { texte: 'Ce widget ne lit pas les fichiers (Excel, CSV…). Importez d\'abord votre fichier dans ce document avec l\'import de Grist : il crée une table avec vos données.' }),
+        creer('p', {}, [creer('a', { classe: 'fr-link', id: 'cLienImport', texte: 'Comment importer un fichier dans Grist', attrs: { href: 'https://support.getgrist.com/fr/imports/', target: '_blank', rel: 'noopener', title: 'Comment importer un fichier dans Grist - nouvelle fenêtre' } })]),
+        creer('p', { texte: 'Revenez ensuite ici et choisissez « Mes données sont dans ce document » : votre nouvelle table y apparaît.' })]);
+}
 function rendreAccueilCa(zone) {
+    if (!etat.rubCaChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubCa) === -1) {
+        etat.rubCa = etat.cartes.length ? 'mes' : (tablesProposees().length ? 'donnees' : 'modeles');
+    }
     var rub = etat.rubCa;
     var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
-    var item = function (cle, texte, icone) {
-        var bt = creer('button', { classe: 'w-acc__item', id: 'cRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
+    var item = function (cle, texte, icone, second) {
+        var bt = creer('button', { classe: 'w-acc__item' + (second ? ' w-acc__item--second' : ''), id: 'cRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
             creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: texte })]);
         bt.addEventListener('click', function () {
             etat.rubCa = cle;
+            etat.rubCaChoisie = true;
             afficherVue('accueil', true);
             var f = document.getElementById('cRub_' + cle);
             if (f) {
@@ -9377,29 +9451,23 @@ function rendreAccueilCa(zone) {
         });
         menu.appendChild(bt);
     };
-    item('pages', 'Mes pages publiées', 'layout-grid-line');
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('carte', 'Une carte', 'map-pin-2-line');
-    item('donnees', 'À partir de mes données', 'table-line');
+    item('mes', 'Mes cartes', 'map-pin-2-line');
+    if (etat.cartes.length) {
+        menu.appendChild(sousMenuCa(etat.cartes, function (cle) { ouvrirCarteAccueil(cle); }));
+    }
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer une nouvelle carte' }));
+    item('donnees', 'Mes données sont dans ce document', 'table-line');
+    item('modeles', 'Je n\'ai pas encore de données', 'add-circle-line');
+    item('fichier', 'Mes données sont dans un fichier', 'upload-2-line', true);
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
-    var titres = { pages: 'Mes pages publiées', carte: 'Mes cartes', donnees: 'À partir de mes données', droits: 'Les droits' };
+    var titres = { mes: 'Mes cartes', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
-    if (rub === 'pages') {
-        var avec = etat.cartes.filter(function (t) { return pagesDeCarteCle(t.cle).length > 0; });
-        if (!avec.length) {
-            scene.appendChild(creer('p', { classe: 'w-mention', id: 'cAucunePage', texte: 'Aucune page publiée' }));
-        }
-        else {
-            var ul = creer('ul', { classe: 'w-acc__liste' });
-            avec.forEach(function (t, k) {
-                ul.appendChild(creer('li', { classe: 'w-acc__ligne' }, [
-                    creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.nom || 'Carte sans nom' }), creer('span', { classe: 'w-mention', texte: pagesDeCarteCle(t.cle).map(function (x) { return etat.nomsPages[x]; }).join(', ') })]),
-                    creer('span', { classe: 'w-pousse' }),
-                    bouton('Modifier', 'secondaire', 'arrow-right-line', function () { ouvrirCarteAccueil(t.cle, true); }, { petit: true, id: 'cPageModif' + k, iconeDroite: true })]));
-            });
-            scene.appendChild(ul);
-        }
+    if (rub === 'mes') {
+        scene.appendChild(listeMesCa(etat.cartes, function (cle) { ouvrirCarteAccueil(cle); }));
+    }
+    else if (rub === 'fichier') {
+        scene.appendChild(encartFichierCa());
     }
     else if (rub === 'droits') {
         scene.appendChild(contenuDroits());
@@ -9410,7 +9478,7 @@ function rendreAccueilCa(zone) {
         var manque = analysees.filter(function (t) { return t && !donneesTable(t); });
         var grilleD = creer('div', { classe: 'w-acc__cartes' });
         if (!tables.length) {
-            scene.appendChild(creer('p', { classe: 'w-mention', texte: 'Ce document n\'a pas encore de table utilisable : partez d\'une carte vierge.' }));
+            scene.appendChild(creer('p', { classe: 'w-mention', texte: 'Ce document ne contient encore aucune table de données : cette possibilité sera proposée dès qu\'il en aura une.' }));
         }
         else if (manque.length) {
             scene.appendChild(creer('p', { classe: 'w-mention', attrs: { role: 'status' }, texte: 'Analyse de vos tables…' }));
@@ -9434,16 +9502,14 @@ function rendreAccueilCa(zone) {
                 var desc = p.lignes + (p.lignes > 1 ? ' lignes' : ' ligne') + ' · ' + (p.colLat ? 'coordonnées ' + lib(tid, p.colLat) + ' et ' + lib(tid, p.colLon) : (p.colAdresse ? 'adresses ' + lib(tid, p.colAdresse) : 'un cercle par pays'));
                 grilleD.appendChild(carteAccueilCa(vignetteLieuxCa(tid), badgeCa('Suggestion', 'info'), 'Carte « ' + libelleTable(tid) + ' »', desc, 'Utiliser cette suggestion', function () { creerDepuisAccueilCa('donnees', tid); }, 'cSuggestion' + k));
             });
-            var plusD = creer('button', { classe: 'w-acc__plus', id: 'cDonnees', attrs: { type: 'button', 'aria-label': 'Choisir moi-même la table de ma carte' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-            plusD.addEventListener('click', function () {
+            grilleD.appendChild(carteVideCa('cDonnees', 'Choisir une table moi-même', 'Vous choisissez la table et les colonnes qui placent les lieux.', function () {
                 etat.choixTableCa = true;
                 afficherVue('accueil', true);
                 var f = document.getElementById('cChoixTable');
                 if (f) {
                     f.focus();
                 }
-            });
-            grilleD.appendChild(plusD);
+            }));
             scene.appendChild(grilleD);
             if (etat.choixTableCa) {
                 scene.appendChild(choixTableCa());
@@ -9452,15 +9518,8 @@ function rendreAccueilCa(zone) {
     }
     else {
         var grille = creer('div', { classe: 'w-acc__cartes' });
-        etat.cartes.forEach(function (t, k) {
-            var publie = pagesDeCarteCle(t.cle).length > 0;
-            grille.appendChild(carteAccueilCa(vignetteLieuxCa(t.cle), badgeCa(publie ? 'Publié' : 'Brouillon', publie ? 'success' : ''), t.config.nom || 'Carte sans nom', t.config.description || '',
-                publie ? 'Modifier' : 'Modifier mon brouillon', function () { ouvrirCarteAccueil(t.cle); }, 'cOuvrir' + k));
-        });
         grille.appendChild(carteAccueilCa(vignetteLieuxCa('modele'), badgeCa('Modèle', 'purple-glycine'), 'Carte de lieux prête à l\'emploi', 'Une table de lieux est créée pour vous : nom, adresse, pays, catégorie, description, lien.', 'Utiliser ce modèle', function () { creerDepuisAccueilCa('vierge'); }, 'cModele'));
-        var plus = creer('button', { classe: 'w-acc__plus', id: 'cCreer', attrs: { type: 'button', 'aria-label': 'Créer une carte vierge' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-        plus.addEventListener('click', function () { creerDepuisAccueilCa('vierge'); });
-        grille.appendChild(plus);
+        grille.appendChild(carteVideCa('cCreer', 'Une table vide', 'Une table de lieux à remplir, avec les colonnes indispensables.', function () { creerDepuisAccueilCa('vierge'); }));
         scene.appendChild(grille);
     }
     zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
@@ -10568,8 +10627,8 @@ var AIDE = {
     ],
     avant: [
         'Une table avec une ligne par lieu et, pour le placer, des coordonnées (latitude et longitude), une adresse ou un pays. Sans coordonnées, le widget ajoute les colonnes de latitude et de longitude à votre table.',
-        'Vos lieux sont déjà dans une table ? Dans l\'accueil, « À partir de mes données » : « Utiliser cette suggestion », ou le « + » pour choisir la table.',
-        'Pas encore de table ? Dans l\'accueil, « Une carte » : « Utiliser ce modèle » ou le « + » créent une table de lieux prête à remplir. La carte s\'ouvre aussitôt, avec son paramétrage à droite.',
+        'Vos lieux sont déjà dans une table ? Dans l\'accueil, « Mes données sont dans ce document » : « Utiliser cette suggestion », ou « Choisir une table moi-même ».',
+        'Pas encore de table ? Dans l\'accueil, « Je n\'ai pas encore de données » : « Utiliser ce modèle » ou « Une table vide » créent une table de lieux prête à remplir. La carte s\'ouvre aussitôt, avec son paramétrage à droite.',
         'Créer ou paramétrer une carte demande le droit de modifier le document.'
     ],
     etapes: {
@@ -10625,6 +10684,7 @@ var AIDE = {
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
         { q: 'Qui peut paramétrer une carte ?', r: 'Toute personne qui voit la page d\'administration et peut modifier le document. Pour la cacher aux autres : Accueil, « Les droits », « Cacher cette page » ; le bouton « i » voisin donne les règles d\'accès à poser.' },
         { q: 'Comment réserver une carte à certaines personnes ?', r: 'Dans « Permissions avancées », sur ' + LABEL_CENTRALE + ', refusez la Lecture avec la condition rec.CLE == clé de la carte (colonne CLÉ de sa ligne) and user.Email not in [...] : son onglet disparaît pour les autres. Pour masquer aussi ses lieux, posez la même restriction sur sa table de lieux.' },
         { q: 'Pourquoi un lieu n\'apparaît-il pas sur la carte ?', r: 'Il n\'a pas encore de coordonnées, ou il est masqué par un filtre, par la légende ou par la colonne « afficher ». La vue en liste permet de le retrouver.' },

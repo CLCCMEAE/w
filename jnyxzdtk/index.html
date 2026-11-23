@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.0.0 - 23/11/2026
+  Version : 1.1.0 - 23/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -862,6 +862,24 @@
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__item--second { font-size: .8125rem; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 1.75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .w-acc__sous-item .fr-badge { flex: none; }
+    .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
+    .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
+    .w-acc__vig--vide { display: flex; align-items: center; justify-content: center; padding: .75rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig--vide span::before { --icon-size: 2.5rem; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .w-acc__ligne-ico { flex: none; color: var(--text-action-high-blue-france); }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__encart { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; color: inherit; }
+    .w-acc__encart p { margin: 0; }
     .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-choix-table-fo { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-fo__bas { display: flex; justify-content: flex-end; gap: .5rem; }
@@ -1085,7 +1103,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -5664,7 +5682,7 @@ var AIDE = {
         'Rien n\'est effacé sans confirmation : une question retirée garde sa colonne et ses réponses.'
     ],
     etapes: {
-        'Accueil': { titre: 'tous vos formulaires', points: ['« Un formulaire » : vos formulaires, avec leur état. « Modifier » ouvre l\'éditeur ; « ← Accueil », en haut du formulaire, ramène ici.', '« Utiliser ce modèle » ou le « + » créent le formulaire et ouvrent l\'éditeur.', '« À partir de mes données » : un formulaire par table du document, une question par colonne ; les réponses arrivent dans cette table.', '« Les droits » : inviter les personnes et poser les règles d\'accès.'] },
+        'Accueil': { titre: 'tous vos formulaires', points: ['« Mes formulaires » : vos formulaires, avec leur état. « Modifier » ouvre l\'éditeur ; « ← Accueil », en haut du formulaire, ramène ici.', '« Je n\'ai pas encore de données » : « Utiliser ce modèle » ou « Une table vide » créent le formulaire et ouvrent l\'éditeur.', '« Mes données sont dans ce document » : un formulaire par table du document, une question par colonne ; les réponses arrivent dans cette table.', '« Mes données sont dans un fichier » : importez d\'abord le fichier dans le document avec l\'import de Grist.', '« Les droits » : inviter les personnes et poser les règles d\'accès.'] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
@@ -5697,6 +5715,7 @@ var AIDE = {
         { q: 'Comment montrer un formulaire sans les écrans de conception ?', r: 'Dans « Réglages », rubrique « Général », « Où les utilisateurs le voient », puis « Publier sur une nouvelle page ». La page montre le formulaire à remplir, sans l\'aide du widget ni la conception, même aux propriétaires. Vous pouvez y ajouter « Mes dossiers » et « Dossiers à instruire ». Avec un lien public, c\'est cette page que voient les visiteurs.' },
         { q: 'Comment cacher la page de conception ?', r: 'Dans « Réglages », rubrique « Général », « Cacher cette page ». Puis, dans « Permissions avancées », refusez la lecture de la table « ❌ ADMIN ONLY ⚡ » aux personnes qui ne gèrent pas les formulaires : la page disparaît de leur liste des pages.' },
         { q: 'Comment joindre une notice ?', r: 'Dans « Réglages », rubrique « Général », « Aide pour remplir », puis « Joindre une notice (PDF) ». Pour un document à un endroit précis, ajoutez l\'élément « Document à télécharger » de la palette, dans « Mise en page ».' },
+        { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
         { q: 'Comment réserver le paramétrage ?', r: 'Posez les règles d\'accès depuis l\'onglet « Partager » : seuls les propriétaires verront alors les onglets de conception.' }
     ]
 };
@@ -7873,6 +7892,8 @@ function contenuDroits() {
         inviter,
         creer('h4', { classe: 's-droits__sous-titre', texte: 'Les rôles' }),
         roles,
+        creer('h4', { classe: 's-droits__sous-titre', texte: 'Qui est « Admin » ?' }),
+        creer('p', { classe: 'w-texte', id: 'aQuiAdmin', texte: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' }),
         creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Un rôle seul ne suffit pas : sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.' })
     ]);
     var etat2 = creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'La page Admin porte sa vue de protection : il reste à poser la règle de l\'étape 3.' : 'La page Admin n\'est pas encore protégée.',
@@ -8207,12 +8228,12 @@ var MODELES = [
         } }
 ];
 function pageAdminFo() { return !etat.page && !!etat.peutParametrer; }
-etat.rubFo = 'formulaire';
+etat.rubFo = null;
 async function allerAccueilFo() {
     await attendreSauvegarde();
     etat.surAccueilFo = true;
     etat.creation = null;
-    etat.rubFo = 'formulaire';
+    etat.rubFoChoisie = false;
     afficherVue('accueil', { focusTitre: true });
 }
 function ouvrirFormulaireAccueil(id, versPages) {
@@ -8298,14 +8319,75 @@ function carteAccueilFo(vig, etiquette, nom, desc, libelle, action, id) {
     return c;
 }
 function badgeFo(texte, variante) { return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (variante ? 'fr-badge--' + variante : 'w-badge-brouillon'), texte: texte }); }
+function badgeStatutFo(cle, long) {
+    var fo = etat.formulaires.filter(function (x) { return x.def.id === cle; })[0];
+    if (fo && fo.def.reglages && fo.def.reglages.statut === 'ferme') {
+        return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--warning', texte: 'Fermé' });
+    }
+    var n = pagesDuFormulaire(cle).length;
+    return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (n ? 'fr-badge--success' : 'w-badge-brouillon'), texte: n ? (long ? 'Publié · ' + n + (n > 1 ? ' pages' : ' page') : 'Publié') : 'Brouillon' });
+}
+function carteVideFo(id, titre, texte, action) {
+    var b = bouton('Commencer', null, 'arrow-right-line', action, { petit: true, id: id, iconeDroite: true });
+    var c = creer('div', { classe: 'w-acc__carte w-acc__carte--vide' }, [
+        creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line' })]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: titre }), creer('span', { classe: 'w-mention', texte: texte })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+    c.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+        b.click();
+    } });
+    return c;
+}
+function sousMenuFo(objets, ouvrir) {
+    var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Mes formulaires' } });
+    objets.forEach(function (t, k) {
+        var b = creer('button', { classe: 'w-acc__sous-item', id: 'fMenu' + k, attrs: { type: 'button' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.nom || 'Sans nom' }), badgeStatutFo(t.cle, false)]);
+        b.addEventListener('click', function () { return ouvrir(t.cle); });
+        sous.appendChild(creer('li', {}, [b]));
+    });
+    return sous;
+}
+function listeMesFo(objets, ouvrir) {
+    if (!objets.length) {
+        return creer('p', { classe: 'w-mention', id: 'fAucun', texte: 'Aucun formulaire créé' });
+    }
+    var ul = creer('ul', { classe: 'w-acc__liste' });
+    objets.forEach(function (t, k) {
+        var pages = pagesDuFormulaire(t.cle).map(function (x) { return etat.nomsPages[x]; }).filter(Boolean);
+        var b = bouton(pages.length ? 'Modifier' : 'Modifier mon brouillon', 'secondaire', 'arrow-right-line', function () { return ouvrir(t.cle); }, { petit: true, id: 'fOuvrir' + k, iconeDroite: true });
+        var li = creer('li', { classe: 'w-acc__ligne w-acc__ligne--clic' }, [
+            creer('span', { classe: 'w-acc__ligne-ico fr-icon-file-text-line', attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.nom || 'Sans nom' }),
+                pages.length ? creer('span', { classe: 'w-mention', texte: (pages.length > 1 ? 'Pages : ' : 'Page : ') + pages.join(', ') }) : (t.config.description ? creer('span', { classe: 'w-mention', texte: t.config.description }) : null)]),
+            creer('span', { classe: 'w-pousse' }), badgeStatutFo(t.cle, true), b]);
+        li.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+            b.click();
+        } });
+        ul.appendChild(li);
+    });
+    return ul;
+}
+function encartFichierFo() {
+    return creer('div', { classe: 'w-acc__encart' }, [
+        creer('p', { texte: 'Ce widget ne lit pas les fichiers (Excel, CSV…). Importez d\'abord votre fichier dans ce document avec l\'import de Grist : il crée une table avec vos données.' }),
+        creer('p', {}, [creer('a', { classe: 'fr-link', id: 'fLienImport', texte: 'Comment importer un fichier dans Grist', attrs: { href: 'https://support.getgrist.com/fr/imports/', target: '_blank', rel: 'noopener', title: 'Comment importer un fichier dans Grist - nouvelle fenêtre' } })]),
+        creer('p', { texte: 'Revenez ensuite ici et choisissez « Mes données sont dans ce document » : votre nouvelle table y apparaît.' })]);
+}
+function objetsFo() {
+    return etat.formulaires.map(function (f) { return { cle: f.def.id, config: f.def }; });
+}
 function rendreAccueilFo(main) {
+    if (!etat.rubFoChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubFo) === -1) {
+        etat.rubFo = etat.formulaires.length ? 'mes' : (tablesSourcesFo().length ? 'donnees' : 'modeles');
+    }
     var rub = etat.rubFo;
     var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
-    var item = function (cle, texte, icone) {
-        var bt = creer('button', { classe: 'w-acc__item', id: 'fRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
+    var item = function (cle, texte, icone, second) {
+        var bt = creer('button', { classe: 'w-acc__item' + (second ? ' w-acc__item--second' : ''), id: 'fRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
             creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: texte })]);
         bt.addEventListener('click', function () {
             etat.rubFo = cle;
+            etat.rubFoChoisie = true;
             etat.choixFo = false;
             afficherVue('accueil', { sansFocus: true });
             var f = document.getElementById('fRub_' + cle);
@@ -8315,34 +8397,26 @@ function rendreAccueilFo(main) {
         });
         menu.appendChild(bt);
     };
-    item('pages', 'Mes pages publiées', 'layout-grid-line');
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('formulaire', 'Un formulaire', 'file-text-line');
-    item('donnees', 'À partir de mes données', 'table-line');
+    item('mes', 'Mes formulaires', 'file-text-line');
+    if (etat.formulaires.length) {
+        menu.appendChild(sousMenuFo(objetsFo(), function (cle) { ouvrirFormulaireAccueil(cle); }));
+    }
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer un nouveau formulaire' }));
+    item('donnees', 'Mes données sont dans ce document', 'table-line');
+    item('modeles', 'Je n\'ai pas encore de données', 'add-circle-line');
+    item('fichier', 'Mes données sont dans un fichier', 'upload-2-line', true);
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
-    var titres = { pages: 'Mes pages publiées', formulaire: 'Mes formulaires', donnees: 'À partir de mes données', droits: 'Les droits' };
+    var titres = { mes: 'Mes formulaires', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
-    var plus = function (id, aria, action) {
-        var pl = creer('button', { classe: 'w-acc__plus', id: id, attrs: { type: 'button', 'aria-label': aria } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-        pl.addEventListener('click', action);
-        return pl;
+    var plus = function (id, titre, texte, action) {
+        return carteVideFo(id, titre, texte, action);
     };
-    if (rub === 'pages') {
-        var avec = etat.formulaires.filter(function (f) { return pagesDuFormulaire(f.def.id).length > 0; });
-        if (!avec.length) {
-            scene.appendChild(creer('p', { classe: 'w-mention', id: 'fAucunePage', texte: 'Aucune page publiée' }));
-        }
-        else {
-            var ul = creer('ul', { classe: 'w-acc__liste' });
-            avec.forEach(function (f, k) {
-                ul.appendChild(creer('li', { classe: 'w-acc__ligne' }, [
-                    creer('div', {}, [creer('strong', { texte: f.def.nom || 'Sans nom' }), creer('br'), creer('span', { classe: 'w-mention', texte: pagesDuFormulaire(f.def.id).map(function (x) { return etat.nomsPages[x]; }).join(', ') })]),
-                    creer('span', { classe: 'w-pousse' }),
-                    bouton('Modifier', 'secondaire', 'arrow-right-line', function () { ouvrirFormulaireAccueil(f.def.id, true); }, { petit: true, id: 'fPageModif' + k, iconeDroite: true })]));
-            });
-            scene.appendChild(ul);
-        }
+    if (rub === 'mes') {
+        scene.appendChild(listeMesFo(objetsFo(), function (cle) { ouvrirFormulaireAccueil(cle); }));
+    }
+    else if (rub === 'fichier') {
+        scene.appendChild(encartFichierFo());
     }
     else if (rub === 'droits') {
         scene.appendChild(contenuDroits());
@@ -8358,7 +8432,7 @@ function rendreAccueilFo(main) {
             grilleD.appendChild(carteAccueilFo(vignetteFo(t), badgeFo('Suggestion', 'info'), 'Formulaire « ' + libelleTable(t) + ' »', nq0 + (nq0 > 1 ? ' questions' : ' question') + ' d\'après les colonnes de la table',
                 'Utiliser cette suggestion', function () { return creerDirectFo('table', '', t); }, 'fSuggestion' + k));
         });
-        grilleD.appendChild(plus('fDonnees', 'Choisir moi-même la table de mon formulaire', function () {
+        grilleD.appendChild(plus('fDonnees', 'Choisir une table moi-même', 'Une question par colonne de la table que vous choisissez.', function () {
             etat.choixFo = true;
             afficherVue('accueil', { sansFocus: true });
             var f = document.getElementById('fChoixTable');
@@ -8383,17 +8457,10 @@ function rendreAccueilFo(main) {
     }
     else {
         var grille = creer('div', { classe: 'w-acc__cartes' });
-        var etats = { brouillon: ['Brouillon', ''], publie: ['Publié', 'success'], ferme: ['Fermé', 'warning'] };
-        etat.formulaires.forEach(function (f, k) {
-            var statut = f.def.reglages && f.def.reglages.statut;
-            var st = statut === 'ferme' ? etats.ferme : (pagesDuFormulaire(f.def.id).length ? etats.publie : etats.brouillon);
-            grille.appendChild(carteAccueilFo(vignetteFo(f.def.id), badgeFo(st[0], st[1]), f.def.nom || 'Sans nom', f.def.description || '',
-                st[0] === 'Brouillon' ? 'Modifier mon brouillon' : 'Modifier', function () { ouvrirFormulaireAccueil(f.def.id); }, 'fOuvrir' + k));
-        });
         MODELES.forEach(function (m) {
             grille.appendChild(carteAccueilFo(vignetteFo(m.cle), badgeFo('Modèle', 'purple-glycine'), m.titre, m.description, 'Utiliser ce modèle', function () { return creerDirectFo('modele', m.cle); }, 'fModele_' + m.cle));
         });
-        grille.appendChild(plus('fCreer', 'Créer un formulaire vierge', function () { relayer(creerDirectFo('zero'), 'Création du formulaire'); }));
+        grille.appendChild(plus('fCreer', 'Une table vide', 'Un formulaire vierge : sa table de réponses se crée avec vos questions.', function () { relayer(creerDirectFo('zero'), 'Création du formulaire'); }));
         scene.appendChild(grille);
     }
     main.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
