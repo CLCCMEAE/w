@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.4-essai - 23/11/2026
+  Version : 1.3.5-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -276,6 +276,12 @@
     .w-atelier .w-a-aide { text-decoration: underline dotted var(--border-default-grey); text-underline-offset: 3px; }
     .w-atelier .w-fu-ligne { margin-bottom: 0; padding-bottom: .5rem; gap: .5rem; }
     .w-atelier .w-donnees-2c { display: block; }
+    .w-atelier .w-donnees-2c__droite::before { display: none; }
+    .w-atelier #pCorrespondance, .w-atelier #pCorrespondance .w-section { border: 0; padding: 0; margin: 0; }
+    .w-atelier .w-replie { border: 0; padding: .125rem 0; }
+    .w-atelier .w-rg__groupe { border-bottom: 0; margin-top: 1rem; }
+    .w-atelier .w-fu-ligne { border-bottom: 0; }
+    .w-atelier .w-garder .w-indice { font-size: .8125rem; }
     .w-atelier .w-choix-tables { border: 0; padding: 0; margin: 0; display: block; }
     .w-atelier #pEtapeDonnees .w-section { margin: 0; padding: 0; }
     .w-atelier .fr-checkbox-group { margin: 0; }
@@ -1176,7 +1182,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.4-essai';
+var VERSION_WIDGET = '1.3.5-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2985,8 +2991,11 @@ function resumeEtapeFu(b, nom) {
     if (nom === 'L\'impression') {
         return b.retouches ? 'Retouches autorisées' : 'Imprimé tel quel';
     }
-    if (nom === 'Vérifier et publier') {
-        return 'Contrôle et droits';
+    if (nom === 'Vérifier') {
+        return 'Champs vides, nombre de pages';
+    }
+    if (nom === 'Les droits') {
+        return 'Qui voit et qui modifie';
     }
     return '';
 }
@@ -3128,9 +3137,9 @@ function nommerParFu(b) {
     }
     var cols = colonnesUtiles(b.table).filter(function (c) { return c.type !== 'Attachments'; });
     var rep = liste('pRepereLignes', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), b.labelCol || '', { vide: 'Numéro de ligne' });
-    rep.setAttribute('title', 'La colonne qui donne son nom à chaque document : dans la liste des documents et dans le nom du fichier (par exemple « Courrier - M. Julien Moreau.pdf »).');
+    rep.setAttribute('title', 'La colonne qui désigne chaque ligne, par exemple « Mme Claire Dubois » : dans le choix de la ligne au-dessus du document et, par défaut, dans le nom des fichiers.');
     rep.addEventListener('change', function () { b.labelCol = rep.value || null; marquerTouche(); redessinerEtape('pRepereLignes'); });
-    return ligneReglage('Nom de chaque document', rep, 'pRepereLignes');
+    return ligneReglage('Lignes désignées par', rep, 'pRepereLignes');
 }
 function compacterChoixTable(racine) {
     var fs = racine.querySelector('#pDonnees');
@@ -3248,10 +3257,28 @@ function etapePageFu(b) {
         groupeRadios('pCadre', 'Cadre', [{ valeur: 'none', libelle: 'Aucun' }, { valeur: 'thin', libelle: 'Filet' }, { valeur: 'double', libelle: 'Double' }], p.border, change('border')),
         caseACocher('pVcentre', 'Centrer verticalement', !!p.vcenter, function (e) { p.vcenter = e.target.checked; marquerTouche(); majApercuBrouillon(); }),
         sousTitreFu('Bloc-marque et logos'),
-        blocLogo()];
+        (function () {
+            var bl = blocLogo();
+            ['pBmType_gouvernement', 'pBmType_rf'].forEach(function (id) { var r = bl.querySelector('#' + id); if (r && !r.checked) {
+                var lab = r.closest('label');
+                if (lab) {
+                    lab.parentNode.removeChild(lab);
+                }
+            } });
+            return bl;
+        })()];
+    l.push(sousTitreFu(b.layout === 'letter' ? 'En-tête, signature et pied de page' : 'Pied de page'));
+    var pied = (b.blocks || []).filter(function (x) { return x.type === 'footer'; })[0];
+    l.push(ligneReglage('Pied de page', creer('span', { classe: 'w-rg__val' }, [pied ? 'Oui · ' : 'Aucun · ', bouton(pied ? 'Modifier' : 'Ajouter', 'tertiaire', null, function () {
+        if (pied) {
+            ouvrirReglagesBloc(pied.id);
+        }
+        else {
+            relayer(insererElementPage('footer').then(function () { redessinerEtape(); }), 'Ajout du pied de page');
+        }
+    }, { petit: true, id: 'pPiedPage' })])));
     if (b.layout === 'letter') {
         var lh = (b.blocks || []).filter(function (x) { return x.type === 'letterhead'; })[0];
-        l.push(sousTitreFu('En-tête et signature'));
         if (lh) {
             l.push(ligneReglage('Normalisée', creer('span', { classe: 'w-rg__val' }, ['Oui · ', bouton('Modifier l\'en-tête', 'tertiaire', null, function () { ouvrirReglagesBloc(lh.id); }, { petit: true, id: 'pModifEntete' })])));
         }
@@ -3277,7 +3304,17 @@ function etapeNumerotationFu(b) {
 /* 5. L'impression */
 function etapeImpressionFu(b) {
     var ret = colonneRetouches().filter(function (n) { return n && !(n.classList && n.classList.contains('w-champ-aide')); });
-    return creer('div', { classe: 'w-rgs' }, [sousTitreFu('Nom des fichiers'), champNomFichier(), sousTitreFu('Retouches')].concat(ret, [sousTitreFu('Après l\'impression'), blocMarquage()]).map(function (n) { if (n && n.querySelectorAll) {
+    ret.forEach(function (n) { var lg = n.querySelector && n.querySelector('legend'); if (lg) {
+        lg.textContent = 'Retouches';
+    } });
+    var marq = blocMarquage();
+    marq.classList.add('w-garder');
+    var lgM = marq.querySelector('legend');
+    if (lgM) {
+        lgM.parentNode.removeChild(lgM);
+    }
+    marq.classList.remove('w-fs');
+    return creer('div', { classe: 'w-rgs' }, [sousTitreFu('Nom des fichiers'), champNomFichier(), sousTitreFu('Retouches des utilisateurs')].concat(ret, [sousTitreFu('Marquer les lignes imprimées'), marq]).map(function (n) { if (n && n.querySelectorAll) {
         Array.prototype.forEach.call(n.querySelectorAll('option'), function (o) { if (o.textContent === 'Insérer une colonne…') {
             o.textContent = 'Ajouter un champ…';
         } });
@@ -3286,9 +3323,8 @@ function etapeImpressionFu(b) {
 /* 6. Vérifier et publier */
 function etapeVerifierPublierFu(b) {
     return creer('div', { classe: 'w-rgs' }, [
-        sousTitreFu('Contrôle sur toutes les lignes'),
-        creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }),
-        replie('pDroitsReplie', [creer('span', { classe: 'w-rg__lib', texte: 'Droits' }), creer('span', { classe: 'w-rg__val', texte: 'Qui voit et qui modifie' })], [contenuDroitsLu()], false)]);
+        creer('p', { classe: 'w-mention', texte: 'Le document est préparé pour chaque ligne de la table.' }),
+        creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } })]);
 }
 function contenuEtapeFu(b, nom) {
     var c = null;
@@ -3307,10 +3343,13 @@ function contenuEtapeFu(b, nom) {
     else if (nom === 'L\'impression') {
         c = etapeImpressionFu(b);
     }
-    else if (nom === 'Vérifier et publier') {
+    else if (nom === 'Vérifier') {
         c = etapeVerifierPublierFu(b);
     }
-    if (c && nom !== 'La numérotation') {
+    else if (nom === 'Les droits') {
+        c = contenuDroitsLu();
+    }
+    if (c && nom !== 'La numérotation' && nom !== 'Les droits') {
         aidesEnInfobulles(c);
     }
     return c;
@@ -5676,6 +5715,13 @@ function paginerDocument(cfg, rc, cible, opts) {
             continue;
         }
     }
+    if (pages.length > 1 && corps && !corps.childNodes.length) {
+        var vide = pages.pop();
+        var enveloppe = vide.parentNode && vide.parentNode.classList && vide.parentNode.classList.contains('p-wrap') ? vide.parentNode : vide;
+        if (enveloppe.parentNode) {
+            enveloppe.parentNode.removeChild(enveloppe);
+        }
+    }
     var aEntete = (cfg.blocks || []).some(function (b) { return b.type === 'letterhead'; });
     if (aEntete && pages.length > 1) {
         pages.forEach(function (p, n) {
@@ -7579,7 +7625,7 @@ function rendreEchec(zone) {
         bouton('Réessayer', null, 'refresh-line', initialiser)]));
 }
 var ETAPES = ['Point de départ', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Récapitulatif'];
-var ETAPES_PARAM = ['Nom et description', 'Les données', 'La page', 'La numérotation', 'L\'impression', 'Vérifier et publier'];
+var ETAPES_PARAM = ['Nom et description', 'Les données', 'La page', 'La numérotation', 'L\'impression', 'Vérifier', 'Les droits'];
 var ETAPE_FINALE = 6;
 var SEUIL_RECHERCHE_TABLES = 8;
 function demarrerCreation() {
@@ -11149,7 +11195,7 @@ function champTexteRiche(bl, cle, libelle, o) {
             fermerSuggestions();
         } }, 0);
     });
-    btnChamp = bouton('Insérer une colonne de la liste', 'secondaire', 'add-line', function () {
+    btnChamp = bouton('Ajouter un champ', 'secondaire', 'add-line', function () {
         if (_suggestOuverte && document.getElementById(id + 'Sugg')) {
             fermerSuggestions();
             return;
