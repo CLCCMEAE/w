@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.4.1-essai - 23/11/2026
+  Version : 1.4.2-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1105,7 +1105,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.4.1-essai';
+var VERSION_WIDGET = '1.4.2-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2924,12 +2924,20 @@ function ligneAfficheeFu(b) {
         b.avance ? null : basculeVueCourrier(),
         donnees ? navEchantillon() : creer('p', { classe: 'w-mention', texte: 'La table n\'a pas encore de ligne : le document montre les champs.' })]);
 }
+function colonnesAInsererFu(b) {
+    if (!b.table || b.vueDonnees) {
+        return null;
+    }
+    return creer('section', { classe: 'w-section w-fu-ligne', attrs: { 'aria-labelledby': 'pColInsTitre' } }, [
+        creer('h3', { classe: 'w-c3__titre', id: 'pColInsTitre', texte: 'Insérer une colonne dans le texte' })].concat(listeChampsDisponibles().concat([
+        creer('p', { classe: 'w-mention', texte: 'Astuce : dans la page, tapez « { » pour choisir une colonne sans quitter le texte. Pour n\'imprimer un bloc que sous condition, cliquez sur le bloc puis sur « Condition et réglages ».' })])));
+}
 function contenuEtapeFu(b, nom) {
     if (nom === 'Général') {
         return creer('section', { classe: 'w-section' }, [champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); })]);
     }
     if (nom === 'Vos données') {
-        return creer('div', {}, [ligneAfficheeFu(b), etapeDonnees()]);
+        return creer('div', {}, [ligneAfficheeFu(b), colonnesAInsererFu(b), etapeDonnees()]);
     }
     if (nom === 'La mise en page') {
         return etapeMiseEnPage();
@@ -13027,33 +13035,6 @@ function barreOutilsCourrier(info) {
                 basculerListe(z);
             } })])
     ];
-    var champ = null;
-    champ = outil('pOutilChamp', 'Insérer une colonne', 'add-line', function () {
-        if (_suggestOuverte && document.getElementById('pCourrierChamps')) {
-            fermerSuggestions();
-            return;
-        }
-        var z = reprendreZone();
-        if (!z) {
-            return;
-        }
-        var sel = selectionZone(z);
-        champ.setAttribute('aria-expanded', 'true');
-        listeSuggestions({ id: 'pCourrierChamps', groupes: optionsChamps(etat.brouillon.table, true), filtre: true, ancre: document.getElementById('pCourrierAncre'), garder: [champ],
-            surChoix: function (valeur) { fermerSuggestions(); z.el.focus({ preventScroll: true }); if (sel) {
-                insererChampCourrier(z, valeur, sel);
-            } },
-            surFermeture: function (parEchap) { champ.setAttribute('aria-expanded', 'false'); if (parEchap) {
-                champ.focus();
-            } } });
-        var br = champ.getBoundingClientRect();
-        placerSuggestion('pCourrierChamps', { left: br.left, bottom: br.bottom });
-        var f = document.getElementById('pCourrierChampsFiltre');
-        if (f) {
-            f.focus();
-        }
-    }, { texte: true, classe: 'fr-btn--secondary', attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pCourrierChampsListe', title: 'Insérer une colonne de la liste (ou tapez « { » dans le texte)' } });
-    champ.classList.remove('fr-btn--tertiary-no-outline');
     var elementsInseres = [inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
     var ins = null;
     ins = outil('pOutilInserer', 'Autres éléments', 'add-circle-line', function () {
@@ -13071,15 +13052,7 @@ function barreOutilsCourrier(info) {
         var br = ins.getBoundingClientRect();
         placerSuggestion('pInserer', { left: br.left, bottom: br.bottom });
     }, { texte: true, attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pInsererListe', title: 'Titre, paragraphe, logo, signature, espace, pied de page…' } });
-    var cond = outil('pOutilCondition', 'Condition', 'filter-line', function () {
-        var z = zoneActive();
-        if (z) {
-            ouvrirReglagesBloc(z.bl.id);
-        }
-    }, { texte: true, attrs: { title: 'Imprimer ce bloc seulement si une colonne est remplie, vide, vaut une valeur…' } });
     var ligne2 = [
-        groupe('Données', [champ, cond]),
-        sep(),
         groupe('Insérer', elementsInseres.concat([ins]))
     ];
     var barre = creer('div', { classe: 'w-outils-texte w-ec-outils', id: 'pOutilsCourrier', attrs: { role: 'toolbar', 'aria-label': etat.brouillon && !estTypeLettre(etat.brouillon.layout) ? 'Barre d\'outils de la page' : 'Barre d\'outils du courrier', 'aria-controls': 'pCourrier' } }, [
