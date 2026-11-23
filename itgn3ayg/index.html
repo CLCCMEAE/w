@@ -329,6 +329,9 @@
     .gb-tuile--S { grid-column: span 3; } .gb-tuile--M { grid-column: span 4; } .gb-tuile--L { grid-column: span 6; } .gb-tuile--XL { grid-column: span 12; }
     @media (max-width: 1100px) { .gb-tuile--S { grid-column: span 6; } .gb-tuile--M { grid-column: span 6; } .gb-tuile--L { grid-column: span 12; } }
     @media (max-width: 640px) { .gb-tuile--S, .gb-tuile--M, .gb-tuile--L, .gb-tuile--XL { grid-column: span 12; } .gb-grille { gap: .75rem; } }
+    :has(> .gb-grille) { container-type: inline-size; container-name: tuiles; }
+    @container tuiles (max-width: 68rem) { .gb-tuile--S { grid-column: span 6; } .gb-tuile--M { grid-column: span 6; } .gb-tuile--L { grid-column: span 12; } }
+    @container tuiles (max-width: 40rem) { .gb-tuile--S, .gb-tuile--M, .gb-tuile--L, .gb-tuile--XL { grid-column: span 12; } }
     .gb-tuile__tete { display: flex; align-items: flex-start; gap: .5rem; min-height: 1.75rem; }
     .gb-tuile__titres { flex: 1 1 auto; min-width: 0; }
     .gb-tuile__titre { margin: 0; font-size: .9rem; line-height: 1.375rem; font-weight: 650; color: var(--text-title-grey); overflow-wrap: anywhere; }
@@ -2172,6 +2175,7 @@ var AGREGATS = [
     { code: 'avg', nom: 'Moyenne', col: 1 },
     { code: 'min', nom: 'Plus petite valeur', col: 1 },
     { code: 'max', nom: 'Plus grande valeur', col: 1 },
+    { code: 'last', nom: 'Dernière valeur (selon une date)', col: 2 },
     { code: 'distinct', nom: 'Nombre de valeurs différentes', col: 1 },
     { code: 'sumProduct', nom: 'Somme de A × B (par exemple quantité × prix)', col: 2 },
     { code: 'avgDuration', nom: 'Durée moyenne de la date A à la date B', col: 2 },
@@ -4533,6 +4537,17 @@ function mesurer(tid, idx, m) {
         }
         return s;
     }
+    if (agg === 'last') {
+        var lv = lecteur(tid, m.col), lt = lecteur(tid, m.col2), meilleur = null, quand = null;
+        for (i = 0; i < idx.length; i++) {
+            var vl = lv(idx[i]), tl = lt(idx[i]);
+            if (typeof vl === 'number' && typeof tl === 'number' && (quand === null || tl >= quand)) {
+                quand = tl;
+                meilleur = vl;
+            }
+        }
+        return meilleur;
+    }
     if (agg === 'avgDuration') {
         var l1 = lecteur(tid, m.col), l2 = lecteur(tid, m.col2);
         for (i = 0; i < idx.length; i++) {
@@ -4699,6 +4714,9 @@ function libelleMesure(tid, m) {
     }
     if (agg === 'avgDuration') {
         return 'Durée moyenne, de ' + libCol(tid, m.col) + ' à ' + libCol(tid, m.col2);
+    }
+    if (agg === 'last') {
+        return 'Dernière valeur de ' + libCol(tid, m.col) + ' (selon ' + libCol(tid, m.col2) + ')';
     }
     var noms = { sum: 'Somme de ', avg: 'Moyenne de ', min: 'Minimum de ', max: 'Maximum de ', distinct: 'Valeurs distinctes de ' };
     return (noms[agg] || '') + libCol(tid, m.col);
@@ -4969,7 +4987,8 @@ function ciblesParCategorie(t) {
         return function (cat) { return res[cat.cle] !== undefined ? res[cat.cle] : null; };
     }
     if (c.mode === 'colonne' && infoColonne(t.table, c.col)) {
-        return function (cat) { return cat.lignes ? mesurer(t.table, cat.lignes, { agg: 'sum', col: c.col }) : null; };
+        var mc = t.mesure && t.mesure.agg === 'last' && infoColonne(t.table, t.mesure.col2) ? { agg: 'last', col: c.col, col2: t.mesure.col2 } : { agg: 'sum', col: c.col };
+        return function (cat) { return cat.lignes ? mesurer(t.table, cat.lignes, mc) : null; };
     }
     if (c.mode === 'fixe') {
         var n = typeof c.valeur === 'number' ? c.valeur : lireNombreSaisi(c.valeur);
@@ -5807,9 +5826,18 @@ function sousTitreAuto(t) {
             morceaux.push('Par ' + p.nom.toLowerCase() + (t.derniers ? ', ' + t.derniers + ' dernières périodes' : '') + (t.cumul ? ', en cumul' : ''));
         }
     }
-    (t.filtres || []).forEach(function (c) { var l = libelleCondition(t.table, c); if (l) {
-        morceaux.push(l);
-    } });
+    var marque = (t.filtres || []).filter(estMarqueArbre)[0];
+    if (marque && t.table) {
+        var ph = phraseArbre(t.table, marque.arbre);
+        if (ph) {
+            morceaux.push(ph);
+        }
+    }
+    else {
+        (t.filtres || []).forEach(function (c) { var l = libelleCondition(t.table, c); if (l) {
+            morceaux.push(l);
+        } });
+    }
     if (repetitionActive(t)) {
         morceaux.push('Un graphique par ' + minuscule(libCol(t.table, t.repeter)));
     }
@@ -7560,12 +7588,25 @@ function rendreGrilleKPI(t, corps) {
     var cibleDe = ciblesParCategorie(t);
     var cibleUnique = t.cible && t.cible.mode === 'fixe';
     var grille = creer('div', { classe: 'gb-kgrille', attrs: { role: 'group', 'aria-label': t.titre || 'Indicateurs' } });
-    var mots = { bon: t.plusBas ? 'Dans l\'objectif' : 'Objectif atteint', proche: 'Proche de l\'objectif', mauvais: t.plusBas ? 'Au-delà de l\'objectif' : 'Sous l\'objectif' };
+    var lSens = t.colSens && infoColonne(tid, t.colSens) ? lecteur(tid, t.colSens) : null;
+    var sensBas = function (c) {
+        if (!lSens || !c.lignes) {
+            return !!t.plusBas;
+        }
+        for (var k = 0; k < c.lignes.length; k++) {
+            var vs = lSens(c.lignes[k]);
+            if (vs !== null && vs !== undefined && vs !== '') {
+                return String(vs) === String(t.valeurPlusBas || 'Plus bas est mieux');
+            }
+        }
+        return !!t.plusBas;
+    };
+    var mots = lSens ? { bon: 'Objectif atteint', proche: 'Proche de l\'objectif', mauvais: 'Hors objectif' } : { bon: t.plusBas ? 'Dans l\'objectif' : 'Objectif atteint', proche: 'Proche de l\'objectif', mauvais: t.plusBas ? 'Au-delà de l\'objectif' : 'Sous l\'objectif' };
     var icones = { bon: 'fr-icon-checkbox-circle-fill', proche: 'fr-icon-error-warning-line', mauvais: 'fr-icon-error-warning-line' };
     var compte = { bon: 0, proche: 0, mauvais: 0 };
     cats.forEach(function (c) {
         var cible = cibleDe(c);
-        var e = etatCible(c.v, cible, t.plusBas);
+        var e = etatCible(c.v, cible, sensBas(c));
         if (e) {
             compte[e]++;
         }
@@ -8217,10 +8258,10 @@ function editeurMesuresX(b, redessiner, maj) {
             }))];
         if (a.col >= 1) {
             var c1 = colonnesPour(tid, m.agg, 1).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
-            champs.push(groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : 'Colonne A') : 'Colonne', champListe(p + 'Col', c1, m.col, function (v) { m.col = v; maj(); })));
+            champs.push(groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : (m.agg === 'last' ? 'Valeur' : 'Colonne A')) : 'Colonne', champListe(p + 'Col', c1, m.col, function (v) { m.col = v; maj(); })));
             if (a.col === 2) {
                 var c2 = colonnesPour(tid, m.agg, 2).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
-                champs.push(groupe(m.agg === 'avgDuration' ? 'À la date (B)' : 'Colonne B', champListe(p + 'Col2', c2, m.col2, function (v) { m.col2 = v; maj(); })));
+                champs.push(groupe(m.agg === 'avgDuration' ? 'À la date (B)' : (m.agg === 'last' ? 'Date du relevé' : 'Colonne B'), champListe(p + 'Col2', c2, m.col2, function (v) { m.col2 = v; maj(); })));
             }
         }
         if (b.mesures.length > 1) {
@@ -8669,7 +8710,7 @@ function visiterReferences(cfg, fT, fC) {
         }
         T(t, 'table');
         var tid = t.table;
-        ['groupe', 'serie', 'colDate', 'triCol', 'lignesPivot', 'colonnesPivot', 'repeter', 'colValeur', 'colTitre', 'colDebut', 'colFin', 'colFinPrevue', 'colCouleur', 'colGroupe'].forEach(function (k) { C(t, k, tid); });
+        ['groupe', 'serie', 'colDate', 'colSens', 'triCol', 'lignesPivot', 'colonnesPivot', 'repeter', 'colValeur', 'colTitre', 'colDebut', 'colFin', 'colFinPrevue', 'colCouleur', 'colGroupe'].forEach(function (k) { C(t, k, tid); });
         if (Array.isArray(t.colonnes) && tid) {
             t.colonnes = t.colonnes.map(function (x) { return typeof x === 'string' && x ? fC(tid, x) : x; });
         }
@@ -10674,10 +10715,10 @@ function editeurMesure(b, redessiner, maj, o) {
     var a = agregat(m.agg);
     if (a.col >= 1) {
         var c1 = colonnesPour(tid, m.agg, 1).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
-        var champs = [groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : 'Colonne A') : 'Colonne', c1.length ? champListe('eCol', c1, m.col, function (v) { m.col = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eCol', texte: 'Aucune colonne adaptée dans cette liste.' }))];
+        var champs = [groupe(a.col === 2 ? (m.agg === 'avgDuration' ? 'De la date (A)' : (m.agg === 'last' ? 'Valeur' : 'Colonne A')) : 'Colonne', c1.length ? champListe('eCol', c1, m.col, function (v) { m.col = v; maj(); }) : creer('p', { classe: 'w-mention', id: 'eCol', texte: 'Aucune colonne adaptée dans cette liste.' }))];
         if (a.col === 2) {
             var c2 = colonnesPour(tid, m.agg, 2).map(function (c) { return { valeur: c.colId, libelle: c.label }; });
-            champs.push(groupe(m.agg === 'avgDuration' ? 'À la date (B)' : 'Colonne B', champListe('eCol2', c2, m.col2, function (v) { m.col2 = v; maj(); })));
+            champs.push(groupe(m.agg === 'avgDuration' ? 'À la date (B)' : (m.agg === 'last' ? 'Date du relevé' : 'Colonne B'), champListe('eCol2', c2, m.col2, function (v) { m.col2 = v; maj(); })));
         }
         bloc.push(rangee(champs));
     }
@@ -10690,6 +10731,9 @@ function colonnesPour(tid, agg, rang) {
         return cols;
     }
     if (agg === 'avgDuration') {
+        return cols.filter(estDate);
+    }
+    if (agg === 'last' && rang === 2) {
         return cols.filter(estDate);
     }
     return cols.filter(function (c) { return estNum(c) || (agg === 'avg' && genreCol(c) === 'bool'); });
@@ -10793,8 +10837,15 @@ function formulaireGrille(form, b, redessiner, maj) {
     form.appendChild(section('Un indicateur par', [choixGroupe('eGroupe', 'Colonne des catégories', b, 'groupe', redessiner, maj, 'Par exemple Site, Région, Équipe.')]));
     form.appendChild(section('Valeur de chaque indicateur', editeurMesure(b, redessiner, maj)));
     form.appendChild(section('Objectif et couleurs', editeurCible(b, ['fixe', 'colonne', 'table'], redessiner, maj).concat([
-        caseOption('eBas', 'Plus bas, c\'est mieux', !!b.plusBas, function (on) { b.plusBas = on; maj(); })
-    ])));
+        caseOption('eBas', 'Plus bas, c\'est mieux', !!b.plusBas, function (on) { b.plusBas = on; maj(); }),
+        groupe('Sens propre à chaque indicateur (facultatif)', champListe('eSens', [{ valeur: '', libelle: 'Le même pour tous' }].concat(optionsColonnes(b.table, estCategorie)), b.colSens || '', function (v) {
+            b.colSens = v || null;
+            if (b.colSens && !b.valeurPlusBas) {
+                b.valeurPlusBas = (valeursColonne(b.table, b.colSens, 20).filter(function (x) { return /bas/i.test(String(x)); })[0]) || null;
+            }
+            redessiner('eSens');
+        }), 'Une colonne qui dit, ligne par ligne, si une valeur plus basse est meilleure : par exemple un délai.')
+    ].concat(b.colSens && infoColonne(b.table, b.colSens) ? [groupe('Valeur qui signifie « plus bas, c\'est mieux »', champListe('eSensBas', valeursColonne(b.table, b.colSens, 40).map(function (x) { return { valeur: String(x), libelle: String(x) }; }), b.valeurPlusBas || '', function (v) { b.valeurPlusBas = v || null; maj(); }, 'Choisissez une valeur'))] : []))));
     form.appendChild(section('Affichage', [rangee([choixTri(b, maj), choixNombre('eMax', 'Au plus', b, 'max', 60, 1, 200, maj, 'indicateurs')]),
         rangee([groupe('Avant le nombre', champSaisie('ePre', b.prefixe || '', function (v) { b.prefixe = v; maj(); })), groupe('Après le nombre', champSaisie('eSuf', b.suffixe || '', function (v) { b.suffixe = v; maj(); }))])]));
 }
@@ -11613,6 +11664,14 @@ function jourRel(t0, n) { return t0 + n * JOUR; }
 var PRENOMS = ['Camille', 'Karim', 'Julie', 'Thomas', 'Inès', 'Hugo', 'Léa', 'Nicolas', 'Sarah', 'Mehdi', 'Claire', 'Antoine', 'Manon', 'Yanis', 'Élodie', 'Julien', 'Chloé', 'Romain', 'Aïcha', 'Louis'];
 var NOMS = ['Martin', 'Bernard', 'Moreau', 'Laurent', 'Garnier', 'Rousseau', 'Faure', 'Mercier', 'Blanc', 'Guérin', 'Chevalier', 'Lambert', 'Bonnet', 'Fontaine', 'Henry', 'Perrin', 'Roux', 'Morel', 'Girard', 'André'];
 var AGENTS = ['Camille Martin', 'Karim Benali', 'Julie Moreau', 'Thomas Leroy'];
+var INDICATEURS_MODELE = [
+    { nom: 'Délai moyen de traitement (jours)', domaine: 'Qualité de service', definition: 'Nombre moyen de jours entre la réception et la réponse.', unite: 'jours', base: 12, ecart: 6, cible: 10, bas: true },
+    { nom: 'Taux de satisfaction des usagers (%)', domaine: 'Qualité de service', definition: 'Part des usagers satisfaits ou très satisfaits.', unite: '%', base: 82, ecart: 10, cible: 85 },
+    { nom: 'Dossiers complets à la réception (%)', domaine: 'Qualité de service', definition: 'Part des dossiers reçus complets du premier coup.', unite: '%', base: 70, ecart: 12, cible: 75 },
+    { nom: 'Demandes traitées', domaine: 'Activité', definition: 'Nombre de demandes ayant reçu une réponse dans le mois.', unite: 'demandes', base: 240, ecart: 60, cible: 220 },
+    { nom: 'Agents formés', domaine: 'Ressources', definition: 'Nombre d\'agents ayant suivi une formation dans le mois.', unite: 'agents', base: 18, ecart: 10, cible: 15 },
+    { nom: 'Disponibilité du service en ligne (%)', domaine: 'Ressources', definition: 'Part du temps où le service en ligne est accessible.', unite: '%', base: 99.2, ecart: 1.2, cible: 99.5 }
+];
 var MODELES = [
     { id: 'demandes', nom: 'Suivi des demandes', icone: 'mail-open-line', description: 'Demandes en cours, traitées ce trimestre, taux d\'accord, délai moyen de réponse, demandes par statut et par mois.',
         tables: [{ id: 'DEMANDES', titre: '📨 Demandes', colonnes: [
@@ -11878,6 +11937,67 @@ var MODELES = [
                     { type: 'line', titre: 'Dépenses par mois', table: E, taille: 'L', colDate: 'DATE_DEPENSE', pas: 'month', mesure: { agg: 'sum', col: 'MONTANT' }, aire: true, filtres: [] },
                     { type: 'bar', titre: 'Dépenses par service', table: E, taille: 'L', groupe: 'SERVICE', serie: 'NATURE', empile: true, tri: 'valeur', mesure: { agg: 'sum', col: 'MONTANT' }, filtres: [] },
                     { type: 'latest', titre: 'Dernières dépenses', table: E, taille: 'L', colDate: 'DATE_DEPENSE', colonnes: ['LIBELLE', 'NATURE', 'MONTANT', 'VALIDEE'], max: 6, filtres: [] }
+                ] };
+        } },
+    { id: 'indicateurs', nom: 'Suivi des indicateurs', icone: 'line-chart-line', description: 'Le référentiel des indicateurs, leurs mesures période par période, la dernière valeur comparée à la cible, et les mesures à saisir ou à analyser.',
+        tables: [{ id: 'INDICATEURS', titre: '🎯 Indicateurs', colonnes: [
+                    { id: 'INDICATEUR', type: 'Text' },
+                    { id: 'DOMAINE', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Qualité de service', 'Activité', 'Ressources'], [0, 3, 5]) },
+                    { id: 'DEFINITION', type: 'Text' },
+                    { id: 'RESPONSABLE', type: 'Choice', widgetOptions: optionsChoixCouleurs(AGENTS) },
+                    { id: 'FREQUENCE', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Mensuelle', 'Trimestrielle', 'Annuelle'], [0, 2, 4]) },
+                    { id: 'UNITE', type: 'Text' },
+                    { id: 'SENS', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Plus haut est mieux', 'Plus bas est mieux'], [3, 5]) }
+                ],
+                lignes: function (r) {
+                    return INDICATEURS_MODELE.map(function (x) { return { INDICATEUR: x.nom, DOMAINE: x.domaine, DEFINITION: x.definition, RESPONSABLE: pioche(r, AGENTS), FREQUENCE: 'Mensuelle', UNITE: x.unite, SENS: x.bas ? 'Plus bas est mieux' : 'Plus haut est mieux' }; });
+                } }, { id: 'MESURES', titre: '📈 Mesures', colonnes: [
+                    { id: 'INDICATEUR', type: 'Choice', widgetOptions: optionsChoixCouleurs(INDICATEURS_MODELE.map(function (x) { return x.nom; })) },
+                    { id: 'DOMAINE', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Qualité de service', 'Activité', 'Ressources'], [0, 3, 5]) },
+                    { id: 'RESPONSABLE', type: 'Choice', widgetOptions: optionsChoixCouleurs(AGENTS) },
+                    { id: 'SENS', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Plus haut est mieux', 'Plus bas est mieux'], [3, 5]) },
+                    { id: 'PERIODE', type: 'Date' }, { id: 'VALEUR', type: 'Numeric' }, { id: 'CIBLE', type: 'Numeric' }, { id: 'COMMENTAIRE', type: 'Text' }
+                ],
+                lignes: function (r, t0) {
+                    var l = [], d = new Date(t0 * 1000);
+                    INDICATEURS_MODELE.forEach(function (x) {
+                        var resp = pioche(r, AGENTS);
+                        for (var k = 11; k >= 0; k--) {
+                            var mois = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - k, 1) / 1000;
+                            var brut = x.base + (r() - .5) * x.ecart;
+                            var v = x.unite === '%' || x.unite === 'jours' ? Math.round(brut * 10) / 10 : Math.round(brut);
+                            var hors = x.bas ? v > x.cible : v < x.cible;
+                            l.push({ INDICATEUR: x.nom, DOMAINE: x.domaine, RESPONSABLE: resp, SENS: x.bas ? 'Plus bas est mieux' : 'Plus haut est mieux', PERIODE: mois, VALEUR: k === 0 && r() < .4 ? null : v, CIBLE: x.cible,
+                                COMMENTAIRE: hors && r() < .5 ? 'Écart expliqué en comité de suivi.' : null });
+                        }
+                    });
+                    return l;
+                } }],
+        tableau: function (T) {
+            var I = T.INDICATEURS, M = T.MESURES;
+            var horsCible = function (autres) {
+                var arbre = { conj: 'et', items: autres.concat([{ groupe: true, conj: 'ou', items: [
+                                { groupe: true, conj: 'et', items: [{ col: 'SENS', op: 'is', val: ['Plus haut est mieux'] }, { col: 'VALEUR', op: 'ltCol', val: 'CIBLE' }] },
+                                { groupe: true, conj: 'et', items: [{ col: 'SENS', op: 'is', val: ['Plus bas est mieux'] }, { col: 'VALEUR', op: 'gtCol', val: 'CIBLE' }] }] }]) };
+                return [{ arbre: arbre }].concat(feuillesArbre(arbre).map(cloner));
+            };
+            return { nom: 'Suivi des indicateurs', description: 'La dernière valeur de chaque indicateur comparée à sa cible, son évolution, et ce qui reste à saisir ou à analyser.', table: M,
+                periode: { table: M, col: 'PERIODE', defaut: 'all' }, filtres: [{ table: M, col: 'DOMAINE', libelle: 'Domaine' }, { table: M, col: 'RESPONSABLE', libelle: 'Responsable' }],
+                tuiles: [
+                    { type: 'kpi', titre: 'Indicateurs suivis', table: M, taille: 'S', mesure: { agg: 'distinct', col: 'INDICATEUR' }, filtres: [] },
+                    { type: 'kpi', titre: 'Mesures saisies ce mois-ci', table: M, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'PERIODE', op: 'thisMonth' }, { col: 'VALEUR', op: 'notEmpty' }] },
+                    { type: 'kpi', titre: 'Hors de leur cible ce mois-ci', table: M, taille: 'S', mesure: { agg: 'count' }, filtres: horsCible([{ col: 'PERIODE', op: 'thisMonth' }]), plusBas: true, sousTitre: 'Selon le sens de chaque indicateur' },
+                    { type: 'kpigrid', titre: 'Dernière valeur de chaque indicateur', table: M, taille: 'XL', groupe: 'INDICATEUR', mesure: { agg: 'last', col: 'VALEUR', col2: 'PERIODE' },
+                        cible: { mode: 'colonne', col: 'CIBLE' }, colSens: 'SENS', valeurPlusBas: 'Plus bas est mieux', tri: 'naturel', max: 60, filtres: [] },
+                    { type: 'alertes', titre: 'Indicateurs à surveiller', table: M, taille: 'XL', filtres: [], regles: [
+                            { nom: 'Hors de leur cible ce mois-ci', table: M, filtres: horsCible([{ col: 'PERIODE', op: 'thisMonth' }]), orange: 1, rouge: 3,
+                                colonnes: ['INDICATEUR', 'VALEUR', 'CIBLE', 'RESPONSABLE'], triCol: 'INDICATEUR', triSens: 'asc', max: 5 },
+                            { nom: 'Mesures attendues non saisies', table: M, filtres: [{ col: 'VALEUR', op: 'empty' }, { col: 'PERIODE', op: 'past' }], orange: 1, rouge: 5,
+                                colonnes: ['INDICATEUR', 'PERIODE', 'RESPONSABLE'], triCol: 'PERIODE', triSens: 'asc', max: 5 },
+                            { nom: 'Hors cible, sans commentaire d\'analyse', table: M, filtres: horsCible([{ col: 'COMMENTAIRE', op: 'empty' }, { col: 'PERIODE', op: 'last12m' }]), orange: 1, rouge: 5,
+                                colonnes: ['INDICATEUR', 'PERIODE', 'VALEUR', 'CIBLE'], triCol: 'PERIODE', triSens: 'desc', max: 5 }] },
+                    { type: 'line', titre: 'Évolution de chaque indicateur', table: M, taille: 'XL', colDate: 'PERIODE', pas: 'month', derniers: 12, mesure: { agg: 'avg', col: 'VALEUR' }, repeter: 'INDICATEUR', filtres: [] },
+                    { type: 'table', titre: 'Référentiel des indicateurs', table: I, taille: 'XL', tableMode: 'top', colonnes: ['INDICATEUR', 'DOMAINE', 'RESPONSABLE', 'FREQUENCE', 'UNITE'], triCol: 'INDICATEUR', triSens: 'asc', max: 30, filtres: [] }
                 ] };
         } },
     { id: 'attention', nom: 'Points d\'attention', icone: 'alarm-warning-line', description: 'Courriers en retard ou sans responsable, contrats à renouveler : ce qui demande une action, sur plusieurs listes.',
