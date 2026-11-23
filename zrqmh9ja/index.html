@@ -1390,7 +1390,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.2";
+var VERSION_WIDGET = "1.0.3";
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -1573,16 +1573,16 @@ var DEF_JO = {
   base: "JOURNAL_DES_ARCHIVAGES",
   titre: "🗄️ JOURNAL DES ARCHIVAGES ⚡",
   colRequise: "OPERATION",
-  description: "Historique du widget WuitArchive : une ligne par anonymisation, suppression ou mise en attente. Ne contient aucune donnée des dossiers, seulement leurs numéros de ligne.",
+  description: "Historique du widget WuitArchive : une ligne par anonymisation, suppression ou mise en attente. Ne contient aucune donnée des lignes archivées, seulement leurs numéros.",
   colonnes: [
     { id: "OPERATION", type: "Choice", label: "OPÉRATION", get widgetOptions() {
       return optionsOperation();
     }, description: "Nature de l'opération : Anonymisation, Suppression ou Mise en attente. Rempli par le widget." },
     { id: "REGLE", type: "Text", label: "RÈGLE", description: "Identifiant de la règle d'archivage appliquée. Rempli par le widget. Ne le modifiez pas." },
     { id: "NOM_REGLE", type: "Text", label: "NOM DE LA RÈGLE", description: "Nom de la règle au moment de l'opération. Rempli par le widget." },
-    { id: "TABLE", type: "Text", label: "TABLE", description: "Identifiant de la table des dossiers. Rempli par le widget. Ne le modifiez pas." },
-    { id: "LIGNES", type: "Text", label: "LIGNES", widgetOptions: { wrap: true }, description: "Numéros des lignes traitées dans la table des dossiers, séparés par des virgules. Rempli par le widget. Ne le modifiez pas." },
-    { id: "NOMBRE", type: "Int", label: "NOMBRE", widgetOptions: { alignment: "right" }, description: "Nombre de dossiers concernés. Rempli par le widget." },
+    { id: "TABLE", type: "Text", label: "TABLE", description: "Identifiant de la table archivée. Rempli par le widget. Ne le modifiez pas." },
+    { id: "LIGNES", type: "Text", label: "LIGNES", widgetOptions: { wrap: true }, description: "Numéros des lignes traitées dans la table archivée, séparés par des virgules. Rempli par le widget. Ne le modifiez pas." },
+    { id: "NOMBRE", type: "Int", label: "NOMBRE", widgetOptions: { alignment: "right" }, description: "Nombre de lignes concernées. Rempli par le widget." },
     { id: "DETAIL", type: "Text", label: "DÉTAIL", widgetOptions: { wrap: true }, description: "Ce qui a été fait, table par table (champs vidés, lignes supprimées ou détachées). Rempli par le widget." },
     { id: "FICHIER", type: "Text", label: "FICHIER", description: "Nom du fichier d'archive téléchargé avant l'opération. Rempli par le widget." },
     { id: "MOTIF", type: "Text", label: "MOTIF", widgetOptions: { wrap: true }, description: "Motif d'une mise en attente (contentieux, demande en cours...). Saisi dans le widget." },
@@ -3387,7 +3387,7 @@ function panneauRegles(pan) {
     var n = actif && etat.donnees ? compter().traiter : null;
     var b = creer("button", { classe: "w-regle" + (actif ? " w-regle--active" : ""), id: "vRegle" + i, attrs: { type: "button", "aria-current": actif ? "page" : null } }, [
       creer("span", { classe: "w-regle__nom", texte: r.nom }),
-      n ? creer("span", { classe: "fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon", texte: String(n), attrs: { title: pluriel(n, "dossier à traiter", "dossiers à traiter") } }) : null
+      n ? creer("span", { classe: "fr-badge fr-badge--sm fr-badge--warning fr-badge--no-icon", texte: String(n), attrs: { title: pluriel(n, "ligne à traiter", "lignes à traiter") } }) : null
     ]);
     b.addEventListener("click", function() {
       etat.creation = null;
@@ -3465,14 +3465,14 @@ function rendrePrincipal() {
   });
   corpsPan.appendChild(creer("section", { classe: "w-volet__bloc", attrs: { "aria-labelledby": "vTitreRech" } }, [
     titreBloc("Rechercher", "vTitreRech", null),
-    creer("label", { classe: "fr-sr-only", attrs: { "for": "vRecherche" }, texte: "Rechercher un dossier" }),
+    creer("label", { classe: "fr-sr-only", attrs: { "for": "vRecherche" }, texte: "Rechercher une ligne" }),
     champ
   ]));
   corpsPan.appendChild(creer("section", { classe: "w-volet__bloc", id: "vBlocFiltres" }));
   corpsPan.appendChild(creer("section", { classe: "w-volet__bloc", attrs: { "aria-labelledby": "vTitreAff" } }, [
     titreBloc("Afficher", "vTitreAff", null),
     creer("div", { classe: "w-groupe-vues", attrs: { role: "group", "aria-labelledby": "vTitreAff" } }, [
-      bouton("Dossiers", etat.affichage === "dossiers" ? null : "secondaire", "list-unordered", function() {
+      bouton("Lignes", etat.affichage === "dossiers" ? null : "secondaire", "list-unordered", function() {
         changerAffichage("dossiers");
       }, { petit: true, id: "bVueDossiers", attrs: { "aria-pressed": etat.affichage === "dossiers" ? "true" : "false" } }),
       bouton("Historique", etat.affichage === "historique" ? null : "secondaire", "history-line", function() {
@@ -3509,7 +3509,7 @@ function changerAffichage(a) {
   });
   rendreScene();
   majAideEtape();
-  annoncer(a === "dossiers" ? "Affichage des dossiers." : "Affichage de l'historique des opérations.");
+  annoncer(a === "dossiers" ? "Affichage des lignes." : "Affichage de l'historique des opérations.");
 }
 function majFiltres() {
   var bf = document.getElementById("vBlocFiltres");
@@ -3529,7 +3529,7 @@ function majFiltres() {
     etat.filtres.vue = sel.value;
     rendreScene();
   });
-  bf.appendChild(groupeListe("Dossiers", sel));
+  bf.appendChild(groupeListe("Lignes", sel));
   bf.hidden = etat.affichage !== "dossiers";
   if (actif === "vVue") {
     var f = document.getElementById("vVue");
@@ -3546,7 +3546,7 @@ function majCompteurs() {
   vider(cpt);
   var n = compter();
   if (n.traiter) {
-    cpt.appendChild(creer("li", {}, [badge(pluriel(n.traiter, "dossier à traiter", "dossiers à traiter"), "warning")]));
+    cpt.appendChild(creer("li", {}, [badge(pluriel(n.traiter, "ligne à traiter", "lignes à traiter"), "warning")]));
   }
   if (n.bientot) {
     cpt.appendChild(creer("li", {}, [badge(pluriel(n.bientot, "dans les 3 mois", "dans les 3 mois"), "info")]));
@@ -3573,7 +3573,7 @@ function rendreScene() {
   var nb = document.getElementById("vNbAffiches");
   if (nb) {
     var n = sc.querySelectorAll("tbody tr").length;
-    nb.textContent = etat.affichage === "historique" ? pluriel(n, "opération", "opérations") : pluriel(n, "dossier affiché", "dossiers affichés");
+    nb.textContent = etat.affichage === "historique" ? pluriel(n, "opération", "opérations") : pluriel(n, "ligne affichée", "lignes affichées");
   }
 }
 function majActions() {
@@ -3588,7 +3588,7 @@ function majActions() {
   }
   var n = cochesValides().length;
   var vis = dossiersVisibles().length;
-  ac.appendChild(creer("p", { classe: "w-actions-lot__texte", id: "vNbCoches", attrs: { "aria-live": "polite" }, texte: n ? pluriel(n, "dossier coché", "dossiers cochés") + " sur " + vis : vis ? "Cochez les dossiers à archiver." : "" }));
+  ac.appendChild(creer("p", { classe: "w-actions-lot__texte", id: "vNbCoches", attrs: { "aria-live": "polite" }, texte: n ? pluriel(n, "ligne cochée", "lignes cochées") + " sur " + vis : vis ? "Cochez les lignes à archiver." : "" }));
   if (!vis) {
     return;
   }
@@ -3611,11 +3611,11 @@ function rendreListe(sc) {
   majActions();
   if (!vis.length) {
     var textes = {
-      traiter: "Aucun dossier à traiter : aucun ne remplit les filtres de la règle pour l'instant.",
-      bientot: "Aucun dossier ne remplira les filtres dans les 3 prochains mois.",
-      attente: "Aucun dossier en attente."
+      traiter: "Aucune ligne à traiter : aucune ne remplit les filtres de la règle pour l'instant.",
+      bientot: "Aucune ligne ne remplira les filtres dans les 3 prochains mois.",
+      attente: "Aucune ligne en attente."
     };
-    sc.appendChild(creer("p", { classe: "w-texte fr-p-2w", id: "vVide", texte: etat.filtres.texte ? "Aucun dossier pour cette recherche." : textes[etat.filtres.vue] }));
+    sc.appendChild(creer("p", { classe: "w-texte fr-p-2w", id: "vVide", texte: etat.filtres.texte ? "Aucune ligne pour cette recherche." : textes[etat.filtres.vue] }));
     return;
   }
   var duree = aDuree(r);
@@ -3653,7 +3653,7 @@ function rendreListe(sc) {
   vis.forEach(function(x) {
     var tr = creer("tr", { classe: etat.coches[x.id] && cocher ? "w-ligne--cochee" : "" });
     var nom = cols.length ? valeurLisible(r.table, cols[0], etat.donnees.d, x.i) : "";
-    var nomLu = nom || "Dossier n° " + x.id;
+    var nomLu = nom || "Ligne n° " + x.id;
     if (cocher) {
       var cb = creer("input", { attrs: { type: "checkbox", id: "vCoche_" + x.id }, coche: !!etat.coches[x.id] });
       cb.addEventListener("change", function() {
@@ -3692,7 +3692,7 @@ function rendreListe(sc) {
     corps.appendChild(tr);
   });
   sc.appendChild(creer("table", { classe: "w-tableau", id: "vTableau" }, [
-    creer("caption", { classe: "fr-sr-only", texte: "Dossiers : " + VUES.filter(function(v) {
+    creer("caption", { classe: "fr-sr-only", texte: "Lignes : " + VUES.filter(function(v) {
       return v.cle === etat.filtres.vue;
     })[0].nom }),
     creer("thead", {}, [tete]),
@@ -3725,7 +3725,7 @@ function rendreHistorique(sc) {
   });
   sc.appendChild(creer("table", { classe: "w-tableau", id: "vHistorique" }, [
     creer("caption", { classe: "fr-sr-only", texte: "Historique des opérations" }),
-    creer("thead", {}, [creer("tr", {}, ["Date", "Opération", "Dossiers", "Détail", "Archive", "Par"].map(function(t, i) {
+    creer("thead", {}, [creer("tr", {}, ["Date", "Opération", "Lignes", "Détail", "Archive", "Par"].map(function(t, i) {
       return creer("th", { classe: i === 2 ? "w-droite" : "", texte: t, attrs: { scope: "col" } });
     }))]),
     corps
@@ -3734,7 +3734,7 @@ function rendreHistorique(sc) {
 function ouvrirMiseEnAttente(x, nom) {
   var motif = saisie("dMotif", "", { multiligne: true, lignes: 3, indice: "Par exemple : contentieux en cours" });
   var corps = creer("div", {}, [
-    creer("p", { classe: "w-texte", texte: "Le dossier « " + nom + " » sort de la liste à traiter jusqu'à ce que vous le repreniez." }),
+    creer("p", { classe: "w-texte", texte: "La ligne « " + nom + " » sort de la liste à traiter jusqu'à ce que vous la repreniez." }),
     creer("div", { classe: "w-motif" }, [groupeChamp("Motif", motif, null, true)])
   ]);
   var valider = bouton("Mettre en attente", null, "pause-line", async function() {
@@ -3748,7 +3748,7 @@ function ouvrirMiseEnAttente(x, nom) {
       await agir([["AddRecord", etat.tables.jo, null, { OPERATION: "Mise en attente", REGLE: r.id, NOM_REGLE: r.nom, TABLE: r.table, LIGNES: String(x.id), NOMBRE: 1, MOTIF: m, LEVEE: false }]]);
       fermerDialogue();
       await rafraichir(true);
-      afficherToast("Dossier mis en attente.");
+      afficherToast("Ligne mise en attente.");
     } catch (e) {
       erreurEcriture(e, "La mise en attente n'a pas abouti.");
     }
@@ -3763,9 +3763,9 @@ async function reprendreDossier(x) {
   try {
     await agir([["UpdateRecord", etat.tables.jo, x.attente.id, { LEVEE: true }]]);
     await rafraichir(true);
-    afficherToast("Dossier repris : il revient dans la liste à traiter.");
+    afficherToast("Ligne reprise : elle revient dans la liste à traiter.");
   } catch (e) {
-    erreurEcriture(e, "La reprise du dossier n'a pas abouti.");
+    erreurEcriture(e, "La reprise de la ligne n'a pas abouti.");
   }
 }
 function exporterListe() {
@@ -3787,7 +3787,7 @@ function exporterListe() {
     }).concat([x.echeance ? dateJJMMAAAA(Math.floor(x.echeance / 1e3)) : "", vue.nom, x.attente ? x.attente.motif : ""]));
   });
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, forcerTexte(XLSX.utils.aoa_to_sheet(lignes)), "Dossiers");
+  XLSX.utils.book_append_sheet(wb, forcerTexte(XLSX.utils.aoa_to_sheet(lignes)), "Lignes");
   XLSX.writeFile(wb, "liste_" + slug(r.nom) + "_" + jourIso() + ".xlsx");
   afficherToast("Liste exportée.");
 }
@@ -3980,7 +3980,7 @@ function problemeFiltres(r) {
   }
   var l = feuillesFiltres(r.filtres);
   if (!l.length) {
-    return "Ajoutez au moins un filtre : sans filtre, aucun dossier n'est proposé.";
+    return "Ajoutez au moins un filtre : sans filtre, aucune ligne n'est proposée.";
   }
   for (var i = 0; i < l.length; i++) {
     var p = problemeCondition(r.table, l[i]);
@@ -4197,12 +4197,12 @@ function phraseNoeudFiltres(tid, n, niveau) {
 }
 function libelleCritere(r) {
   if (r.filtres.tous) {
-    return "tous les dossiers de la table";
+    return "toutes les lignes de la table";
   }
   if (!feuillesFiltres(r.filtres).length) {
     return "aucun filtre";
   }
-  return "les dossiers dont " + phraseNoeudFiltres(r.table, racineFiltres(r.filtres), 0);
+  return "les lignes dont " + phraseNoeudFiltres(r.table, racineFiltres(r.filtres), 0);
 }
 function colonnesDesFiltres(r) {
   var vus = {};
@@ -4354,7 +4354,7 @@ function effetsDuPlan(plan) {
       if (!x.lignes.length) {
         return;
       }
-      l.push({ table: x.table, lignes: x.lignes.length, effet: x.suppression === "supprimer" ? "supprimées" : "conservées, détachées des dossiers" });
+      l.push({ table: x.table, lignes: x.lignes.length, effet: x.suppression === "supprimer" ? "supprimées" : "conservées, détachées des lignes archivées" });
     });
     l.push({ table: r.table, lignes: n, effet: "supprimées" });
   }
@@ -4377,7 +4377,7 @@ function ouvrirArchivage(plan) {
     ]),
     plan.liens.some(function(x) {
       return !x.connu && x.lignes.length;
-    }) ? creer("p", { classe: "w-mention fr-mt-1w", texte: "Une table liée n'est pas encore dans la règle : ses lignes sont archivées et " + (anon ? "conservées telles quelles." : "détachées des dossiers.") }) : null,
+    }) ? creer("p", { classe: "w-mention fr-mt-1w", texte: "Une table liée n'est pas encore dans la règle : ses lignes sont archivées et " + (anon ? "conservées telles quelles." : "détachées des lignes archivées.") }) : null,
     anon ? null : alerte("warning", "Action irréversible", "Les lignes supprimées ne peuvent pas être restaurées depuis le document. L'archive est la seule copie qui restera.")
   ]));
   var etat2 = creer("section", { classe: "w-etape-archive", id: "dBloc2", attrs: { "aria-labelledby": "dEtape2" } });
@@ -4385,7 +4385,7 @@ function ouvrirArchivage(plan) {
   corps.appendChild(etat2);
   corps.appendChild(etat3);
   var lancer = bouton(
-    anon ? "Anonymiser " + pluriel(n, "dossier", "dossiers") : "Supprimer définitivement " + pluriel(n, "dossier", "dossiers"),
+    anon ? "Anonymiser " + pluriel(n, "ligne", "lignes") : "Supprimer définitivement " + pluriel(n, "ligne", "lignes"),
     null,
     anon ? "user-unfollow-line" : "delete-bin-line",
     function() {
@@ -4406,7 +4406,7 @@ function ouvrirArchivage(plan) {
     vider(etat2);
     etat2.classList.toggle("w-etape-archive--faite", plan.telecharge);
     etat2.appendChild(creer("h3", { id: "dEtape2" }, [creer("span", { classe: "w-num", texte: "2", attrs: { "aria-hidden": "true" } }), "Archive pour le service des archives"]));
-    etat2.appendChild(creer("p", { classe: "w-texte", texte: "Un fichier Excel avec toutes les colonnes des " + pluriel(n, "dossier", "dossiers") + " et de leurs lignes liées, et un onglet « Lisez-moi » qui décrit la règle et l'opération. Les fichiers joints n'y sont pas : leurs noms sont listés." }));
+    etat2.appendChild(creer("p", { classe: "w-texte", texte: "Un fichier Excel avec toutes les colonnes des " + pluriel(n, "ligne", "lignes") + " et de leurs lignes liées, et un onglet « Lisez-moi » qui décrit la règle et l'opération. Les fichiers joints n'y sont pas : leurs noms sont listés." }));
     etat2.appendChild(creer("div", { classe: "fr-mt-1w" }, [bouton(plan.telecharge ? "Télécharger à nouveau" : "Télécharger l'archive (Excel)", plan.telecharge ? "secondaire" : null, "download-line", function() {
       try {
         plan.fichier = produireArchive(plan);
@@ -4441,13 +4441,13 @@ function ouvrirArchivage(plan) {
       s.setAttribute("inputmode", "numeric");
       s.disabled = !plan.telecharge;
       s.addEventListener("input", majPret);
-      etat3.appendChild(creer("div", { classe: "fr-mt-2w" }, [groupeChamp("Pour confirmer la suppression, saisissez le nombre de dossiers : " + n, s, null, true)]));
+      etat3.appendChild(creer("div", { classe: "fr-mt-2w" }, [groupeChamp("Pour confirmer la suppression, saisissez le nombre de lignes : " + n, s, null, true)]));
     }
   };
   rendre2();
   rendre3();
   ouvrirDialogue(
-    anon ? "Anonymiser " + pluriel(n, "dossier", "dossiers") : "Supprimer définitivement " + pluriel(n, "dossier", "dossiers"),
+    anon ? "Anonymiser " + pluriel(n, "ligne", "lignes") : "Supprimer définitivement " + pluriel(n, "ligne", "lignes"),
     corps,
     [bouton("Annuler", "secondaire", null, fermerDialogue, { id: "dAnnuler" }), lancer],
     true
@@ -4511,11 +4511,11 @@ function produireArchive(plan) {
     ["Archive", "WuitArchive"],
     ["Document", etat.nomDoc || ""],
     ["Règle", r.nom],
-    ["Table des dossiers", libelleTable(r.table)],
+    ["Table archivée", libelleTable(r.table)],
     ["Critère", libelleCritere(r)],
     ["Traitement prévu", anon ? "Anonymisation (les lignes restent, les champs personnels sont vidés)" : "Suppression définitive"],
     ["Date de l'export", dateJJMMAAAA(Math.floor(Date.now() / 1e3), true)],
-    ["Nombre de dossiers", plan.ids.length],
+    ["Nombre de lignes", plan.ids.length],
     [],
     ["Table", "Lignes", "Effet"]
   ];
@@ -4674,11 +4674,11 @@ async function executerArchivage(plan) {
     if (!faits.length) {
       erreurEcriture(erreur, (anon ? "L'anonymisation" : "La suppression") + " n'a pas abouti. Rien n'a été modifié.");
     } else {
-      afficherErreur((anon ? "L'anonymisation" : "La suppression") + " s'est arrêtée : " + faits.length + " dossiers traités sur " + plan.ids.length + ". L'archive contient tous les dossiers ; relancez pour les suivants.", erreur);
+      afficherErreur((anon ? "L'anonymisation" : "La suppression") + " s'est arrêtée : " + faits.length + " lignes traitées sur " + plan.ids.length + ". L'archive contient toutes les lignes ; relancez pour les suivantes.", erreur);
     }
     return;
   }
-  afficherToast(pluriel(faits.length, anon ? "dossier anonymisé" : "dossier supprimé", anon ? "dossiers anonymisés" : "dossiers supprimés") + ". Archive : " + plan.fichier, null, 1e4);
+  afficherToast(pluriel(faits.length, anon ? "ligne anonymisée" : "ligne supprimée", anon ? "lignes anonymisées" : "lignes supprimées") + ". Archive : " + plan.fichier, null, 1e4);
 }
 function enBlocs(noeuds, deux) {
   /* Mise en page commune de la serie : des colonnes explicites qui partent
@@ -5271,12 +5271,12 @@ function majApercuFiltres(c, idBase) {
   if (compte) {
     vider(compte);
     if (a.probleme) {
-      compte.appendChild(creer("span", { classe: "w-mention", texte: feuillesFiltres(c.filtres).length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les dossiers concernés" }));
+      compte.appendChild(creer("span", { classe: "w-mention", texte: feuillesFiltres(c.filtres).length ? "Filtres à compléter" : "Ajoutez un filtre pour voir les lignes concernées" }));
     } else {
       if (!a.total) {
-        compte.appendChild(creer("span", { classe: "w-mention", texte: "La table ne contient aucun dossier." }));
+        compte.appendChild(creer("span", { classe: "w-mention", texte: "La table ne contient aucune ligne." }));
       } else {
-        compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "dossier concerné", "dossiers concernés") }));
+        compte.appendChild(creer("strong", { texte: pluriel(a.liste.length, "ligne concernée", "lignes concernées") }));
         compte.appendChild(document.createTextNode(c.filtres.tous ? ", soit toute la table" : " aujourd'hui sur " + a.total));
       }
     }
@@ -5288,7 +5288,7 @@ function majApercuFiltres(c, idBase) {
     return;
   }
   if (aDuree(c)) {
-    z.appendChild(creer("p", { classe: "w-mention", texte: pluriel(a.bientot, "autre dossier", "autres dossiers") + " dans les 3 prochains mois." }));
+    z.appendChild(creer("p", { classe: "w-mention", texte: pluriel(a.bientot, "autre ligne", "autres lignes") + " dans les 3 prochains mois." }));
   }
   if (a.total && a.liste.length === a.total) {
     z.appendChild(alerte("warning", null, "Toutes les lignes de la table sont concernées : vérifiez les conditions."));
@@ -5297,7 +5297,7 @@ function majApercuFiltres(c, idBase) {
     var cols = colonnesAffichees(c).slice(0, 4);
     var d = donneesDe(c);
     z.appendChild(creer("table", { classe: "w-tableau w-apercu-filtres__table" }, [
-      creer("caption", { classe: "fr-sr-only", texte: "Premiers dossiers concernés" }),
+      creer("caption", { classe: "fr-sr-only", texte: "Premières lignes concernées" }),
       creer("thead", {}, [creer("tr", {}, cols.map(function(x) {
         return creer("th", { texte: x.label, attrs: { scope: "col" } });
       }))]),
@@ -5428,7 +5428,7 @@ function resumesRegle(c) {
     c.table ? String(c.nom || "").trim() || "À donner" : "",
     c.table ? (n ? pluriel(n, "filtre", "filtres") : "Aucun filtre") : "",
     c.table ? trait + (c.traitements !== "supprimer" ? " · " + pluriel(c.champs.length, "champ vidé", "champs vidés") : "") : "",
-    c.table ? (nl ? pluriel(nl, "lien vers les dossiers", "liens vers les dossiers") : "Aucune table liée") : ""
+    c.table ? (nl ? pluriel(nl, "lien vers ces lignes", "liens vers ces lignes") : "Aucune table liée") : ""
   ];
 }
 function majResumesRegle() {
@@ -5530,7 +5530,7 @@ var APERCUS_ETAPES = {
     }).concat([creer("p", { classe: "w-apercu-q w-apercu-sous", texte: "Colonnes à vider" })]);
   },
   "Et les tables liées ?": function() {
-    return [creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Vider aussi des colonnes des lignes liées"]), creer("p", { classe: "w-apercu-q", texte: "Si le dossier est supprimé : les garder ou les supprimer" })];
+    return [creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Vider aussi des colonnes des lignes liées"]), creer("p", { classe: "w-apercu-q", texte: "Si la ligne est supprimée : les garder ou les supprimer" })];
   },
   "Nom de la règle": function() {
     return [creer("p", { classe: "w-apercu-q", texte: "Nom (obligatoire)" }), creer("span", { classe: "w-apercu-champ" }), creer("p", { classe: "w-apercu-q", texte: "Description" }), creer("span", { classe: "w-apercu-champ" })];
@@ -5789,7 +5789,7 @@ function rendreEditeur(c, idBase) {
     if (!creation && JSON.stringify(c.liees) !== avant) {
       enregistrerReglages();
     }
-    defile.appendChild(carteParam(titreNum("Et les tables liées ?"), "eCarteLiees", !v[2] ? [] : !det.length ? [creer("p", { classe: "w-texte", texte: "Aucune table ne pointe vers ces dossiers." })] : det.map(function(d, k) {
+    defile.appendChild(carteParam(titreNum("Et les tables liées ?"), "eCarteLiees", !v[2] ? [] : !det.length ? [creer("p", { classe: "w-texte", texte: "Aucune table ne pointe vers ces lignes." })] : det.map(function(d, k) {
         var l = c.liees[k];
         var colRef = infoCol(d.table, d.colonne);
         var champs = colonnesEffacables(d.table).filter(function(x) {
@@ -5807,12 +5807,12 @@ function rendreEditeur(c, idBase) {
           zc
         ]);
         if (!d.liste) {
-          var sl = liste(idBase + "LSup" + k, [{ valeur: "detacher", libelle: "Les garder, sans lien vers le dossier" }, { valeur: "supprimer", libelle: "Les supprimer" }], l.suppression);
+          var sl = liste(idBase + "LSup" + k, [{ valeur: "detacher", libelle: "Les garder, sans lien vers la ligne" }, { valeur: "supprimer", libelle: "Les supprimer" }], l.suppression);
           sl.addEventListener("change", function() {
             l.suppression = sl.value;
             apres();
           });
-          bloc.appendChild(groupeListe("Si le dossier est supprimé", sl));
+          bloc.appendChild(groupeListe("Si la ligne est supprimée", sl));
         }
         return bloc;
       }), v[2] ? null : 3));
@@ -5933,7 +5933,7 @@ function contenuPages() {
   var z = creer("div", { classe: "w-colonne" });
   var pages = pagesUtilisateurs();
   var badges = Object.keys(pages);
-  z.appendChild(creer("p", { classe: "w-texte", texte: "Les agents archivent sur une page sans paramétrage : la liste des dossiers, la recherche, Anonymiser, Supprimer et l'historique. Publiez-la ici, puis cachez cette page admin aux autres personnes (« Les droits »)." }));
+  z.appendChild(creer("p", { classe: "w-texte", texte: "Les agents archivent sur une page sans paramétrage : la liste des lignes, la recherche, Anonymiser, Supprimer et l'historique. Publiez-la ici, puis cachez cette page admin aux autres personnes (« Les droits »)." }));
   if (badges.length) {
     var ul = creer("ul", { classe: "w-pages-util" });
     badges.forEach(function(b, k) {
@@ -5963,14 +5963,14 @@ function contenuPages() {
   var ed = etat.editionPage;
   if (!ed) {
     z.appendChild(creer("div", {}, [bouton("Publier une page des utilisateurs", badges.length ? "secondaire" : null, "add-line", function() {
-      etat.editionPage = { badge: null, nom: badges.length ? "" : "Archiver les dossiers", regles: [] };
+      etat.editionPage = { badge: null, nom: badges.length ? "" : "Archiver les données", regles: [] };
       majZonePages("pfNom");
     }, { id: "pgPublier" })]));
     return z;
   }
   var form = creer("div", { classe: "w-form-page" });
   form.appendChild(titreColonne(ed.badge ? "Modifier la page" : "Nouvelle page des utilisateurs", "pfTitre", null));
-  var nom = saisie("pfNom", ed.nom, { indice: "Par exemple : Archiver les dossiers" });
+  var nom = saisie("pfNom", ed.nom, { indice: "Par exemple : Archiver les données" });
   nom.addEventListener("input", function() {
     ed.nom = nom.value;
   });
@@ -6088,7 +6088,7 @@ async function enregistrerPageUtil() {
       vueCreee = res.viewRef;
       await agir([
         ["UpdateRecord", "_grist_Views", res.viewRef, { name: nom }],
-        ["UpdateRecord", "_grist_Views_section", res.sectionRef, { title: nom, description: "Archivage des dossiers, sans paramétrage. Ses réglages se font depuis la page admin de WuitArchive.", options: JSON.stringify({ customView: JSON.stringify(cv) }) }]
+        ["UpdateRecord", "_grist_Views_section", res.sectionRef, { title: nom, description: "Archivage des données, sans paramétrage. Ses réglages se font depuis la page admin de WuitArchive.", options: JSON.stringify({ customView: JSON.stringify(cv) }) }]
       ]);
       badgeCree = b;
       etat.config.pages[b] = { nom: nom, regles: regs };
@@ -6117,7 +6117,7 @@ async function supprimerPageUtil(b) {
   var p = pagesUtilisateurs()[b];
   var vp = etat.vuesPages ? etat.vuesPages[b] : null;
   var nom = vp && vp.nom ? vp.nom : p.nom;
-  var ok = await confirmer("Supprimer la page « " + nom + " » ?", "La page disparaît du document. Les règles, les dossiers et l'historique ne sont pas touchés.", "Supprimer la page");
+  var ok = await confirmer("Supprimer la page « " + nom + " » ?", "La page disparaît du document. Les règles, les données et l'historique ne sont pas touchés.", "Supprimer la page");
   if (!ok) {
     return;
   }
@@ -6169,7 +6169,7 @@ async function lancerCreation() {
     return;
   }
   if (!c.table) {
-    marquerInvalide("cTable", "Choisissez la table des dossiers.");
+    marquerInvalide("cTable", "Choisissez la table à archiver.");
     return;
   }
   c.tente = true;
@@ -6188,7 +6188,7 @@ async function lancerCreation() {
     demanderNom();
     return;
   }
-  if (c.filtres.tous && !await confirmer("Archiver toute la table ?", "Cette règle concerne tous les dossiers de la table « " + libelleTable(c.table) + " ».", "Créer la règle")) {
+  if (c.filtres.tous && !await confirmer("Archiver toute la table ?", "Cette règle concerne toutes les lignes de la table « " + libelleTable(c.table) + " ».", "Créer la règle")) {
     return;
   }
   afficherLoader("Création de la règle…");
@@ -6758,13 +6758,13 @@ function encartDroits() {
       creer("li", {}, ["Puis, condition ", code('user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '")'), " : refuser la création, la modification et la suppression."]),
       creer("li", { texte: "Si la table a déjà ses propres règles, gardez la règle d'or en deuxième ligne." }),
       creer("li", { texte: "Dans « Règles spéciales », décochez « Autoriser les Éditeurs à modifier la structure (ex. modifier et supprimer des tables et des colonnes, et modifier les formules, les pages, les vues et les paramètres) » : sinon les éditeurs peuvent contourner ces règles." }),
-      creer("li", { texte: "Ces règles masquent les boutons. Pour interdire aussi la suppression des dossiers en dehors du widget, ajoutez une règle sur la table des dossiers." })
+      creer("li", { texte: "Ces règles masquent les boutons. Pour interdire aussi la suppression des lignes en dehors du widget, ajoutez une règle sur la table archivée." })
     ]),
     creer("p", { classe: "w-mention", texte: etat.temoins.aucun ? "Aucune règle de ce type n'est visible pour vous pour l'instant." : "Vous pouvez paramétrer les règles" + (etat.peutModifier ? " et lancer un archivage." : ".") })
   ]);
 }
 async function supprimerRegle(r) {
-  var ok = await confirmer("Supprimer la règle « " + r.nom + " » ?", "Les dossiers et l'historique ne sont pas touchés.", "Supprimer la règle");
+  var ok = await confirmer("Supprimer la règle « " + r.nom + " » ?", "Les données et l'historique ne sont pas touchés.", "Supprimer la règle");
   if (!ok) {
     return;
   }
@@ -6794,13 +6794,13 @@ async function supprimerRegle(r) {
 }
 var ONGLETS_AIDE = ["À quoi ça sert", "Pas à pas", "Questions"];
 var FICHES_AIDE = [
-  { cle: "creation0", titre: "Nouvelle règle", texte: "1. Choisissez la table des dossiers. 2. Ajoutez un filtre par critère : une colonne, un filtre, une valeur ; « et » ou « ou » à partir du deuxième filtre. « Ajouter un groupe de filtres » permet de mêler « et » et « ou » ; la poignée ⠿ déplace un filtre (souris, ou flèches haut et bas). 3. Choisissez le traitement et cochez les colonnes à vider ; l'étiquette « Suggestion » signale celles qui ressemblent à des données personnelles. 4. Si d'autres tables pointent vers les dossiers, dites ce que deviennent leurs lignes. 5. Donnez un nom, puis « Créer la règle »." },
-  { cle: "param0", titre: "Paramétrage de la règle", texte: "Les filtres, le traitement, les tables liées et le nom de la règle. En bas, le nombre de dossiers concernés aujourd'hui et la liste." },
+  { cle: "creation0", titre: "Nouvelle règle", texte: "1. Choisissez la table à archiver. 2. Ajoutez un filtre par critère : une colonne, un filtre, une valeur ; « et » ou « ou » à partir du deuxième filtre. « Ajouter un groupe de filtres » permet de mêler « et » et « ou » ; la poignée ⠿ déplace un filtre (souris, ou flèches haut et bas). 3. Choisissez le traitement et cochez les colonnes à vider ; l'étiquette « Suggestion » signale celles qui ressemblent à des données personnelles. 4. Si d'autres tables pointent vers ces lignes, dites ce que deviennent leurs lignes. 5. Donnez un nom, puis « Créer la règle »." },
+  { cle: "param0", titre: "Paramétrage de la règle", texte: "Les filtres, le traitement, les tables liées et le nom de la règle. En bas, le nombre de lignes concernées aujourd'hui et la liste." },
   { cle: "parampages", titre: "Page des utilisateurs", texte: "Les agents archivent sur une page sans paramétrage. « Publier une page des utilisateurs » l'ajoute au document : son nom, puis toutes les règles ou seulement certaines. Ensuite, cachez cette page admin (« Les droits », « Cacher cette page »)." },
   { cle: "paramdroits", titre: "Les droits", texte: "Inviter les personnes (bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne) et poser les règles d'accès, chacune reproduite comme dans les Permissions avancées. Cliquez sur « Enregistrer » avant de quitter les Permissions avancées, puis vérifiez avec « Voir en tant que »." },
-  { cle: "principal", titre: "Archiver des dossiers", texte: "Choisissez la règle à gauche. Cochez les dossiers dans la liste « À traiter », puis « Anonymiser » (ou « Supprimer définitivement »). Une fenêtre montre ce qui va changer ; téléchargez l'archive Excel, confirmez l'avoir enregistrée, puis lancez le traitement." },
-  { cle: "attente", titre: "Mettre un dossier en attente", texte: "« Mettre en attente » sur la ligne d'un dossier, avec un motif. Il passe dans la liste « En attente » ; « Reprendre » le remet dans la liste à traiter." },
-  { cle: "historique", titre: "Historique", texte: "« Historique », dans la colonne de gauche, liste les opérations de la règle : date, nombre de dossiers, détail, nom de l'archive et personne." }
+  { cle: "principal", titre: "Archiver des données", texte: "Choisissez la règle à gauche. Cochez les lignes dans la liste « À traiter », puis « Anonymiser » (ou « Supprimer définitivement »). Une fenêtre montre ce qui va changer ; téléchargez l'archive Excel, confirmez l'avoir enregistrée, puis lancez le traitement." },
+  { cle: "attente", titre: "Mettre une ligne en attente", texte: "« Mettre en attente » sur une ligne, avec un motif. Elle passe dans la liste « En attente » ; « Reprendre » la remet dans la liste à traiter." },
+  { cle: "historique", titre: "Historique", texte: "« Historique », dans la colonne de gauche, liste les opérations de la règle : date, nombre de lignes, détail, nom de l'archive et personne." }
 ];
 function ouvrirAide(ouvrir) {
   etat.aide.ouverte = ouvrir;
@@ -6885,17 +6885,17 @@ function rendreAide() {
     }));
   };
   if (etat.aide.onglet === 0) {
-    corps.appendChild(creer("p", { texte: "WuitArchive repère les dossiers à archiver, selon les filtres que vous choisissez (durée de conservation, plage de dates, statut...), et les archive : une archive Excel pour le service des archives, puis l'anonymisation ou la suppression des données dans le document." }));
+    corps.appendChild(creer("p", { texte: "WuitArchive repère les lignes à archiver, selon les filtres que vous choisissez (durée de conservation, plage de dates, statut...), et les archive : une archive Excel pour le service des archives, puis l'anonymisation ou la suppression des données dans le document." }));
     corps.appendChild(creer("h3", { texte: "Deux traitements" }));
     corps.appendChild(puces([
       "Anonymisation, proposée en premier : les champs personnels sont vidés, les lignes restent. Les statistiques (nombres, dates, statuts, montants) sont conservées.",
-      "Suppression définitive, en second choix : les dossiers et, selon la règle, leurs lignes liées disparaissent du document."
+      "Suppression définitive, en second choix : les lignes et, selon la règle, les lignes liées disparaissent du document."
     ]));
     corps.appendChild(creer("h3", { texte: "Fonctionnalités" }));
     corps.appendChild(puces([
-      "Une règle par type de dossier : des filtres sur toutes les colonnes (durée après une date, plage de dates, statut, texte, nombre), réunis par ET ou par OU, avec un aperçu en direct.",
-      "Liste des dossiers à traiter, échéancier des 3 prochains mois, dossiers en attente.",
-      "Sélection des dossiers par cases à cocher.",
+      "Une règle par type de données : des filtres sur toutes les colonnes (durée après une date, plage de dates, statut, texte, nombre), réunis par ET ou par OU, avec un aperçu en direct.",
+      "Liste des lignes à traiter, échéancier des 3 prochains mois, lignes en attente.",
+      "Sélection des lignes par cases à cocher.",
       "Archive Excel complète obligatoire avant tout traitement : onglet « Lisez-moi », un onglet par table, toutes les colonnes.",
       "Mise en attente avec motif (contentieux, demande en cours...).",
       "Historique des opérations, sans donnée personnelle.",
@@ -6929,15 +6929,15 @@ function rendreAide() {
       ["Comment archiver selon un statut ?", "Étape « Quelles lignes archiver ? » : ajoutez un filtre sur la colonne du statut, comparaison « est l'une des valeurs cochées », puis cochez les valeurs (par exemple « Candidat n'a pas répondu »). Les valeurs viennent de la colonne : rien à saisir, donc ni faute de frappe ni erreur de majuscule."],
       ["Comment archiver une période ?", "Ajoutez un filtre sur une colonne de date, comparaison « est entre le », puis choisissez les deux dates dans le calendrier (elles sont incluses). « est avant le » et « est après le » ne prennent qu'une date."],
       ["Différence entre « date de plus de » et « est entre le » ?", "« date de plus de 2 ans » se calcule chaque jour à partir de la date du jour : la liste s'allonge toute seule et l'échéancier des 3 prochains mois est proposé. « est entre le » porte sur des dates fixes."],
-      ["« Tous les filtres » ou « au moins un » ?", "Tous : le dossier doit remplir chaque filtre (par exemple clos ET fini depuis plus de 2 ans). Au moins un : un seul suffit. La phrase « À archiver : les dossiers dont... » sous les filtres dit exactement ce qui sera retenu."],
-      ["Pourquoi aucun dossier n'est proposé ?", "Une règle sans filtre, ou avec un filtre incomplet (aucune valeur cochée, date manquante...), ne propose aucun dossier : c'est voulu, pour ne jamais tout archiver par erreur. Le message indique ce qui manque."],
-      ["Que contient l'archive ?", "Un onglet « Lisez-moi » (règle, critère, traitement, date, nombres de lignes), puis un onglet par table : les dossiers et leurs lignes liées, avec toutes les colonnes, en valeurs lisibles."],
+      ["« Tous les filtres » ou « au moins un » ?", "Tous : la ligne doit remplir chaque filtre (par exemple clos ET fini depuis plus de 2 ans). Au moins un : un seul suffit. La phrase « À archiver : les lignes dont... » sous les filtres dit exactement ce qui sera retenu."],
+      ["Pourquoi aucune ligne n'est proposée ?", "Une règle sans filtre, ou avec un filtre incomplet (aucune valeur cochée, date manquante...), ne propose aucune ligne : c'est voulu, pour ne jamais tout archiver par erreur. Le message indique ce qui manque."],
+      ["Que contient l'archive ?", "Un onglet « Lisez-moi » (règle, critère, traitement, date, nombres de lignes), puis un onglet par table : les lignes archivées et les lignes liées, avec toutes les colonnes, en valeurs lisibles."],
       ["Et les fichiers joints ?", "Ils ne sont pas dans le fichier Excel : leurs noms y sont listés. Pour les remettre au service des archives, téléchargez-les depuis le document avant le traitement."],
       ["Puis-je annuler une anonymisation ou une suppression ?", "Non : l'archive Excel est la seule copie qui reste. C'est pourquoi elle doit être téléchargée et son enregistrement confirmé avant le traitement."],
-      ["Un dossier anonymisé revient-il dans la liste ?", "Non : il est inscrit à l'historique et n'est plus proposé."],
-      ["Pourquoi un dossier n'apparaît pas ?", "Il ne remplit pas les filtres de la règle (une date vide ne remplit jamais un filtre de date), il est en attente, ou il a déjà été anonymisé. La phrase « À archiver : » au-dessus de la liste rappelle les filtres."],
-      ["Que se passe-t-il si le traitement s'arrête en cours ?", "Les dossiers sont traités par lots. Le message indique combien l'ont été ; ceux-là sont inscrits à l'historique, les autres restent dans la liste."],
-      ["Où est rangé l'historique ?", "Dans la table « " + DEF_JO.titre + " », visible dans Données source. Elle ne contient que des numéros de ligne, jamais de données des dossiers."]
+      ["Une ligne anonymisée revient-elle dans la liste ?", "Non : elle est inscrite à l'historique et n'est plus proposée."],
+      ["Pourquoi une ligne n'apparaît pas ?", "Elle ne remplit pas les filtres de la règle (une date vide ne remplit jamais un filtre de date), elle est en attente, ou elle a déjà été anonymisée. La phrase « À archiver : » au-dessus de la liste rappelle les filtres."],
+      ["Que se passe-t-il si le traitement s'arrête en cours ?", "Les lignes sont traitées par lots. Le message indique combien l'ont été ; celles-là sont inscrites à l'historique, les autres restent dans la liste."],
+      ["Où est rangé l'historique ?", "Dans la table « " + DEF_JO.titre + " », visible dans Données source. Elle ne contient que des numéros de ligne, jamais de données des lignes archivées."]
     ];
     q.forEach(function(x) {
       corps.appendChild(creer("h3", { texte: x[0] }));
@@ -6954,10 +6954,10 @@ function rendreMessage(vue) {
   vider(zone);
   zone.className = "w-contenu";
   var textes = {
-    acces: ["Accès au document nécessaire", "Ce widget a besoin d'un accès complet au document pour lire les dossiers et enregistrer l'historique. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »)."],
+    acces: ["Accès au document nécessaire", "Ce widget a besoin d'un accès complet au document pour lire les données et enregistrer l'historique. Accordez-le dans le panneau de configuration du widget, à droite (niveau d'accès « Accès complet au document »)."],
     hors: ["Widget à ajouter dans un document", "Ce widget s'utilise dans un document : ajoutez-le à une page en tant que vue personnalisée."],
     recharger: ["La règle est créée", "La table de l'historique vient d'être créée. Relisez le document ; si la règle n'apparaît toujours pas, rechargez la page du document."],
-    aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table des dossiers, les filtres qui désignent ceux à archiver et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
+    aucun: ["Aucune règle d'archivage pour l'instant", etat.peutParametrer ? "Créez une première règle : la table à archiver, les filtres qui désignent les lignes à archiver et ce qu'il faut anonymiser." : "Une personne qui peut paramétrer le document doit d'abord créer une règle d'archivage."],
     echec: ["Chargement impossible", "Les données du document n'ont pas pu être lues. Réessayez dans un instant."]
   };
   var t = textes[vue] || textes.echec;
