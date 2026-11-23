@@ -680,7 +680,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.1';
+var VERSION_WIDGET = '1.9.2';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -10777,7 +10777,7 @@ function majAide() {
     e['Point de départ'] = { titre: 'ce que vous représentez, et d\'où partir.', points: [
             '« Que voulez-vous représenter ? » : des projets en immeubles, des plantes, des véhicules... L\'univers se change ensuite à l\'étape « Affichage et filtres ».',
             '« Partir de mes données » : choisissez la table à dessiner ; chaque ligne devient ' + m.unA + '.',
-            '« Partir de zéro » : choisissez un modèle ; le widget crée les tables, avec quelques lignes d\'exemple si vous le souhaitez.',
+            '« Partir de zéro » : choisissez un modèle ; le widget crée les tables, vides.',
             '« Utiliser cette suggestion » remplit les étapes d\'après une de vos tables : il ne reste qu\'à vérifier.'
         ] };
     e['Les droits'] = { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
@@ -11360,6 +11360,8 @@ function configModele(m, tid) {
     return c;
 }
 async function creerDepuisModele(b, m, avecExemples) {
+    /* Un modèle crée des tables vides : jamais de lignes d'exemple. */
+    avecExemples = false;
     if (!accesComplet()) {
         afficherErreur('Accordez l\'accès complet au widget pour qu\'il puisse créer des tables.');
         return;
@@ -11580,12 +11582,6 @@ async function proposerSuppressionTables(b) {
     b.tablesCreees = null;
 }
 function sectionModeles(b) {
-    var cb = creer('input', { id: 'aExemples', attrs: { type: 'checkbox', 'aria-describedby': 'aExemplesAide' } });
-    cb.checked = b.avecExemples !== false;
-    cb.addEventListener('change', function () { b.avecExemples = cb.checked; });
-    var exemples = creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm fr-mb-2w' }, [cb,
-        creer('label', { classe: 'fr-label', attrs: { 'for': 'aExemples' } }, ['Ajouter quelques lignes d\'exemple',
-            creer('span', { classe: 'fr-hint-text', id: 'aExemplesAide', texte: 'Pour voir la ville tout de suite. Vous les supprimerez quand vous voudrez.' })])]);
     var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
     var duMeme = function (m) { return (m.univers || 'ville') === b.univers; };
     var autres = MODELES_VILLE.filter(function (m) { return !duMeme(m); }).length;
@@ -11620,7 +11616,7 @@ function sectionModeles(b) {
     return creer('section', { attrs: { 'aria-labelledby': 'aModelesTitre' } }, [
         creer('h3', { classe: 'fr-h6 fr-mt-4w', id: 'aModelesTitre', attrs: { tabindex: '-1' }, texte: 'Choisissez un modèle' }),
         creer('p', { classe: 'w-texte w-mention', texte: 'Tout reste modifiable ensuite, dans les tables comme dans WuitCity.' }),
-        exemples, tuiles, voirAutres
+        tuiles, voirAutres
     ]);
 }
 function donneesBrouillon(b) {

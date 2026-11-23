@@ -718,7 +718,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.5';
+var VERSION_WIDGET = '1.9.6';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2980,7 +2980,7 @@ function choisirTablesModele(m, avecEx) {
         var finir = function (v) { if (fini) {
             return;
         } fini = true; resoudre(v); };
-        var corps = [creer('p', { classe: 'w-texte', texte: 'Les lignes d\'exemple ne sont ajoutées qu\'aux tables vides. Vous retrouverez les tables dans « Données brutes ».' })];
+        var corps = [creer('p', { classe: 'w-texte', texte: 'Vous retrouverez les tables dans « Données brutes ».' })];
         var champs = {};
         presentes.forEach(function (t) {
             var ex = tableExistante(t.id);
@@ -4247,7 +4247,7 @@ var AIDE = {
     etapes: {
         'Point de départ': { titre: 'partez de vos données ou d\'un modèle.', points: [
                 '« Utiliser mes données » : vous choisissez ensuite la table et ses colonnes.',
-                '« Partir d\'un modèle » : plan de projet, feuille de route, événement... Le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez.'
+                '« Partir d\'un modèle » : plan de projet, feuille de route, événement... Le widget crée les tables, vides.'
             ] },
         'La table': { titre: 'la table où sont vos éléments.', points: [
                 '« Utiliser cette suggestion » reprend un Gantt deviné d\'après une de vos tables : il ne reste qu\'à vérifier.',
@@ -9196,7 +9196,7 @@ function demarrerCreation() {
     if (!etat.peutParametrer) {
         return;
     }
-    etat.brouillon = { mode: 'creation', etape: 0, etapeMax: 0, ecran: 'depart', cfg: null, avecExemples: true };
+    etat.brouillon = { mode: 'creation', etape: 0, etapeMax: 0, ecran: 'depart', cfg: null, avecExemples: false };
     afficherVue('assistant');
 }
 function ouvrirParametrage(i) {
@@ -9522,7 +9522,7 @@ function etapeDepart() {
     var bloc = creer('div', { classe: 'w-assistant' }, [creer('p', { classe: 'w-texte w-mention', texte: 'Deux façons de commencer. Rien n\'est écrit dans votre document avant la dernière étape.' }),
         creer('div', { classe: 'w-tuiles' }, [
             tuileDepart('dDonnees', 'table-line', 'J\'ai déjà des données', texte, 'Utiliser mes données', function () { return ouvrirDonnees(); }, avecDates.length > 0, !avecDates.length),
-            tuileDepart('dSans', 'add-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des sept modèles prêts à l\'emploi : WuitGantt crée les tables, leurs colonnes et leurs listes de choix, avec des lignes d\'exemple datées à partir d\'aujourd\'hui si vous le souhaitez.', 'Partir d\'un modèle', function () { b.ecran = 'modeles'; afficherVue('assistant'); }, !avecDates.length)
+            tuileDepart('dSans', 'add-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des sept modèles prêts à l\'emploi : WuitGantt crée les tables, vides, avec leurs colonnes et leurs listes de choix.', 'Partir d\'un modèle', function () { b.ecran = 'modeles'; afficherVue('assistant'); }, !avecDates.length)
         ])]);
     return bloc;
 }
@@ -9531,8 +9531,6 @@ function retourDepart() {
 }
 function ecranModeles() {
     var b = etat.brouillon;
-    var cb = creer('input', { attrs: { type: 'checkbox', id: 'aExemples' }, coche: b.avecExemples !== false });
-    cb.addEventListener('change', function () { b.avecExemples = cb.checked; });
     var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
     MODELES.forEach(function (m) {
         var cree = m.tables.map(function (t) { return t.titre ? titreTableWidget(t.titre) : t.id; }).join(', ');
@@ -9548,7 +9546,6 @@ function ecranModeles() {
         ]));
     });
     return creer('div', { classe: 'w-assistant' }, [creer('div', { classe: 'gp-outils' }, [retourDepart()]),
-        creer('div', { classe: 'fr-checkbox-group' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aExemples' } }, ['Ajouter quelques lignes d\'exemple'])]),
         creer('section', { attrs: { 'aria-labelledby': 'mTypes' } }, [creer('h3', { classe: 'fr-h6', id: 'mTypes', texte: 'Modèles prêts à l\'emploi' }), tuiles])]);
 }
 function miniModele(m) {
@@ -9833,7 +9830,8 @@ async function creerDepuisModele(m) {
         return;
     }
     await chargerMeta();
-    var avecEx = b.avecExemples !== false;
+    /* Un modèle crée des tables vides : jamais de lignes d'exemple. */
+    var avecEx = false;
     var choix = await choisirTablesModele(m, avecEx);
     if (!choix) {
         return;
