@@ -1765,7 +1765,6 @@ function majConsoleFaq(admin) {
     if (b) {
         b.textContent = admin ? 'Admin' : '';
         b.hidden = !admin;
-        b.classList.toggle('fr-badge--purple-glycine', admin);
     }
     var nb = records.filter(function (r) { return r.STATUT === 'En attente'; }).length;
     var n = $('adminAttente');
@@ -1825,9 +1824,10 @@ function ouvrirReglages(section) {
 function rendreReglages(zone) {
     var haut = creer('h2', { classe: 'fr-sr-only', id: 'titreVue', texte: 'Administration de la FAQ', attrs: { tabindex: '-1' } });
     var nbPages = Object.keys(_pages).filter(function (x) { return _pages[x].consultation && _nomsPages[x]; }).length;
-    var nbAttente = records.filter(function (r) { return r.STATUT === 'En attente'; }).length;
+    var vraies = records.filter(function (r) { return r.STATUT !== 'PARAM' && PARAM_KEYS.indexOf(r.QUESTION) === -1; });
+    var nbAttente = vraies.filter(function (r) { return r.STATUT === 'En attente'; }).length;
     var sections = [
-        { cle: 'reponses', nom: 'Répondre aux questions', resume: nbAttente ? nbAttente + ' en attente de réponse' : records.length + (records.length > 1 ? ' questions' : ' question'), bloc: 'carteQuestions', titre: 'Les questions', rendre: renderAdminList },
+        { cle: 'reponses', nom: 'Répondre aux questions', resume: nbAttente ? nbAttente + ' en attente de réponse' : vraies.length + (vraies.length > 1 ? ' questions' : ' question'), bloc: 'carteQuestions', titre: 'Les questions', rendre: renderAdminList },
         { cle: 'droits', nom: 'Les droits', resume: _pageProtegee ? 'Page admin cachée' : 'Page admin visible', bloc: 'ongletDroits', titre: 'Les droits', rendre: renderDroitsFaq },
         { cle: 'questions', nom: 'Catégories et utilisateurs', titre: 'Catégories et utilisateurs', resume: knownCategories.length + (knownCategories.length > 1 ? ' catégories' : ' catégorie'), bloc: 'blocQuestions', rendre: function () {
                 renderCatGrid().catch(function (e) { logSecurite('AVERTISSEMENT', 'Affichage des catégories impossible', e); });

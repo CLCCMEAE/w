@@ -992,6 +992,8 @@
     .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
+    .w-choix-table-wf { max-width: 32rem; }
+    .w-choix-table-wf__bas { display: flex; justify-content: flex-end; gap: .75rem; }
 </style>
 </head>
 <body>
@@ -5928,7 +5930,49 @@ function nouveauReglage() {
     affichage: Object.assign({}, AFFICHAGE_DEFAUT, MODELES[0].affichage), champs: Object.assign({}, CHAMPS_DEFAUT), filtres: Object.assign({}, FILTRES_DEFAUT) };
 }
 
+/* Creation directe (cadre Wuit) : jamais l'ancien assistant. Un modele ou
+   le « + » cree le tableau blanc, nomme d'office, puis ouvre son
+   parametrage ; « A partir de mes donnees » demande la table sur l'accueil. */
 function ouvrirCreation(groupe) {
+  if (!etat.peutParametrer) { return; }
+  if (groupe === 'donnees') {
+    etat.choixDonneesWf = true;
+    rendreAccueil('donnees');
+    var f = document.getElementById('aChoixTable'); if (f) { f.focus(); }
+    return;
+  }
+  relayer(creerDirectWf(typeof groupe === 'string' && groupe ? groupe : 'vierge', null, null), 'Création du tableau blanc');
+}
+function nomLibreWf(base) {
+  var pris = tableaux().map(function (t) { return String(t.nom || '').trim().toLowerCase(); });
+  var nom = String(base || 'Tableau blanc').trim(), k = 2;
+  while (pris.indexOf(nom.toLowerCase()) !== -1 && k < 100) { nom = String(base).trim() + ' ' + k; k++; }
+  return nom;
+}
+async function creerDirectWf(rub, cleModele, table) {
+  if (!etat.peutParametrer || etat.creationDirecteWf) { return; }
+  if (etat.edition) { terminerEdition(true); }
+  var c = nouveauReglage();
+  c.groupe = rub || '';
+  if (table) {
+    c.depart = 'donnees'; c.source.table = table; c.source.colonne = colonneParDefaut(table);
+    legendeDepuisSource(c); c.fiche = { table: table, colonne: c.source.colonne }; c.modele = 'donnees';
+    c.affichage = Object.assign({}, AFFICHAGE_DEFAUT); c.traceDefaut = 'Droit';
+    c.nom = nomLibreWf(libelleTable(table));
+  } else {
+    var cle = cleModele && MODELES.some(function (x) { return x.cle === cleModele; }) ? cleModele : 'vierge';
+    c.depart = 'modele'; choisirModele(c, cle); c.fiche = { table: '', colonne: '' };
+    c.nom = nomLibreWf(MODELES.filter(function (x) { return x.cle === cle; })[0].nom);
+  }
+  c.etape = 1;
+  etat.creation = c;
+  etat.choixDonneesWf = false;
+  etat.creationDirecteWf = true;
+  try { await lancerCreation(); }
+  finally { etat.creationDirecteWf = false; }
+  if (etat.creation === c) { etat.creation = null; rendreAccueil(rub === 'vierge' || rub === 'schema' || rub === 'atelier' || rub === 'donnees' ? rub : null); }
+}
+function ouvrirCreationAssistant(groupe) {
   if (!etat.peutParametrer) { return; }
   if (etat.edition) { terminerEdition(true); }
   etat.creation = nouveauReglage();
@@ -6469,7 +6513,6 @@ function majBandeauRole() {
     var role = admin ? 'Admin' : '';
     b.textContent = role;
     b.hidden = !role;
-    b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
 }
 var _iconesVues = {};
 function iconeDispo(candidats) {
@@ -6765,13 +6808,7 @@ function rendreAccueil(rubrique) {
       grille.appendChild(carte);
     });
     MODELES.filter(function (m) { return m.groupe === rub && m.cle !== 'vierge'; }).forEach(function (m) {
-      var utiliser = function () {
-        ouvrirCreation(rub);
-        var c = etat.creation;
-        c.depart = 'modele'; choisirModele(c, m.cle); c.fiche = { table: '', colonne: '' }; c.etape = 1;
-        rendreCreation();
-        var f = document.getElementById('cNom'); if (f) { f.focus(); }
-      };
+      var utiliser = function () { return creerDirectWf(rub, m.cle, null); };
       var bm = bouton('Utiliser ce modèle', 'secondaire', 'arrow-right-line', utiliser, { petit: true, id: 'aModele_' + m.cle, iconeDroite: true });
       var etq = badge('Modèle', 'purple-glycine');
       etq.classList.add('w-acc__suggestion', 'fr-badge--sm');
@@ -6782,10 +6819,38 @@ function rendreAccueil(rubrique) {
       cm.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { utiliser(); } });
       grille.appendChild(cm);
     });
+    if (rub === 'donnees') {
+      var prises = tableaux().map(function (t) { return t.source && t.source.table; });
+      tablesUtilisatrice().filter(function (tid) { return prises.indexOf(tid) === -1; }).forEach(function (tid, k) {
+        var utiliserS = function () { return creerDirectWf('donnees', null, tid); };
+        var bs = bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', utiliserS, { petit: true, id: 'aSuggestion' + k, iconeDroite: true });
+        var es = badge('Suggestion', 'info');
+        es.classList.add('w-acc__suggestion', 'fr-badge--sm');
+        var vs = vignetteModele('atelier'); vs.appendChild(es);
+        var cs = creer('div', { classe: 'w-modele' }, [vs,
+          creer('span', { classe: 'w-modele__texte' }, [creer('span', { classe: 'w-modele__nom', texte: libelleTable(tid) }), creer('span', { classe: 'w-modele__desc', texte: 'Un post-it par ligne de la table' })]),
+          creer('span', { classe: 'w-modele__bas' }, [bs])]);
+        cs.addEventListener('click', function (ev) { if (!ev.target.closest('button')) { utiliserS(); } });
+        grille.appendChild(cs);
+      });
+    }
     var plus = creer('button', { classe: 'w-acc__plus', id: 'aCreer_' + rub, attrs: { type: 'button', 'aria-label': 'Créer : ' + sorte.menu.toLowerCase() } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
     plus.addEventListener('click', function () { ouvrirCreation(rub); });
     grille.appendChild(plus);
     scene.appendChild(grille);
+    if (rub === 'donnees' && etat.choixDonneesWf) {
+      var tablesC = tablesUtilisatrice();
+      if (!tablesC.length) {
+        scene.appendChild(creer('p', { classe: 'w-texte fr-mt-2w', texte: 'Ce document n\'a pas encore de table : partez d\'un schéma ou d\'un atelier.' }));
+      } else {
+        var selC = liste('aChoixTable', tablesC.map(function (tid) { return { valeur: tid, libelle: libelleTable(tid) }; }), tablesC[0]);
+        scene.appendChild(creer('div', { classe: 'w-section w-choix-table-wf fr-mt-2w' }, [
+          groupeListe('Table des données', selC, 'Un post-it par ligne ; la première colonne de texte donne leur texte.'),
+          creer('div', { classe: 'w-choix-table-wf__bas' }, [
+            bouton('Annuler', 'tertiaire', null, function () { etat.choixDonneesWf = false; rendreAccueil('donnees'); }, { id: 'aChoixAnnuler' }),
+            bouton('Créer le tableau blanc', null, 'arrow-right-line', function () { return creerDirectWf('donnees', null, selC.value); }, { id: 'aChoixCreer', iconeDroite: true })])]));
+      }
+    }
   }
   zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
   majAideEtape();
@@ -8300,11 +8365,7 @@ function ouvrirExportMermaid(ancre) {
    courante mise en évidence), Questions. Etat retenu par le navigateur. */
 var ONGLETS_AIDE = ['À quoi ça sert', 'Pas à pas', 'Questions'];
 var FICHES_AIDE = [
-  { cle: 'creation0', titre: 'Création : Point de départ', texte: 'Sélectionnez un modèle de départ : un tableau vierge, un modèle pour schématiser (logigramme, couloirs, arbre de décision...) ou pour animer un atelier (rétrospective, cadrage, matrice...), ou les lignes d\'une table à placer sur la toile.' },
-  { cle: 'creation1', titre: 'Création : Le tableau blanc', texte: 'Donnez un nom au tableau blanc : il nomme son onglet, et il est obligatoire pour continuer. Vous voyez aussi votre point de départ ; vous pouvez en changer.' },
-  { cle: 'creation2', titre: 'Création : Formes et couleurs', texte: 'Donnez un sens à chaque couleur (Décision, Idée, Irritant...). La légende s\'affiche sur la toile avec la case « Légende » du volet, et à l\'impression.' },
-  { cle: 'creation3', titre: 'Création : La fiche', texte: 'Choisissez si une forme peut ouvrir une ligne d\'une table du document, et les champs proposés dans la fiche (responsable, statut, pièces jointes).' },
-  { cle: 'creation4', titre: 'Création : Affichage et filtres', texte: 'Réglages de départ (grille, mini-carte, votes) et filtres proposés dans le volet. « Créer mon tableau blanc », au bout de la ligne des étapes, est disponible à chaque étape.' },
+  { cle: 'accueil', titre: 'Accueil', texte: '« Utiliser ce modèle » crée le tableau blanc et ouvre aussitôt son paramétrage ; son nom se change dans « Général ». Le « + » crée un tableau vierge. Dans « À partir de mes données », une suggestion par table place ses lignes en post-it, et le « + » laisse choisir la table. « Modifier » ouvre un tableau blanc existant.' },
   { cle: 'principal', titre: 'Dessiner', texte: 'Le bouton « + » à gauche de la toile ajoute un post-it, une forme, un texte, une section, un couloir ou une image au centre de la vue ; le clic droit sur un élément ajoute la suite. Double-cliquez sur un élément pour changer son texte. Outil Connecteur : cliquez sur l\'élément de départ puis sur celui d\'arrivée ; le connecteur peut être droit ou coudé.' },
   { cle: 'atelier', titre: 'Animer un atelier', texte: 'Les initiales des personnes présentes s\'affichent au-dessus de la toile. « Minuteur » lance un compte à rebours visible par tous. Chacun vote avec les pastilles de la barre d\'actions, dans la limite fixée ; les commentaires se laissent dans la fiche de l\'élément.' },
   { cle: 'selection', titre: 'Modifier la sélection', texte: 'Un clic sélectionne, Maj+clic ajoute, un glisser sur le fond sélectionne au lasso. La barre d\'actions au-dessus de la sélection change la couleur, la forme, relie à une fiche, duplique ou supprime. « Annuler » reste disponible quelques secondes en bas à droite.' },
@@ -8331,6 +8392,7 @@ function ouvrirAide(ouvrir) {
 }
 
 function etapeAideCourante() {
+  if (etat.vue === 'accueil') { return 'accueil'; }
   if (etat.vue === 'creation' && etat.creation) { return 'creation' + etat.creation.etape; }
   if (etat.vue === 'parametrage' && etat.param) { return 'param' + etat.param.etape; }
   if (etat.fiche) { return 'fiche'; }
@@ -8463,7 +8525,7 @@ async function chargerTout() {
     if (!l.length) {
       masquerLoader();
       etat.enCours = false;
-      if (etat.peutParametrer && (etat.niveauAcces === null || etat.niveauAcces === 'full')) { ouvrirCreation(); }
+      if (etat.peutParametrer && (etat.niveauAcces === null || etat.niveauAcces === 'full')) { rendreAccueil(); }
       else { rendreMessage('aucun'); }
       return;
     }

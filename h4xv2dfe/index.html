@@ -3208,8 +3208,8 @@ function choisirTablesModele(m, message, libelleCase) {
         }
     });
     if (!presentes.length) {
-        return confirmerAvecCase('Créer les listes du modèle ?', message, libelleCase, true, 'Créer les listes')
-            .then(function (avec) { return avec === null ? null : { choix: choix, avec: avec }; });
+        return confirmerAction('Créer les listes du modèle ?', message, 'Créer les listes')
+            .then(function (ok) { return ok ? { choix: choix, avec: false } : null; });
     }
     return new Promise(function (resoudre) {
         var fini = false;
@@ -3243,8 +3243,6 @@ function choisirTablesModele(m, message, libelleCase) {
             fs.appendChild(zoneNom);
             corps.push(fs);
         });
-        var c = creer('input', { id: 'aTabExemples', attrs: { type: 'checkbox' }, coche: true });
-        corps.push(creer('div', { classe: 'fr-checkbox-group fr-mt-2w' }, [c, creer('label', { classe: 'fr-label', texte: libelleCase + ' (dans les listes vides seulement)', attrs: { 'for': 'aTabExemples' } })]));
         var valider = function () {
             var ids = idsTablesModele(m, choix);
             var vus = [];
@@ -3263,7 +3261,7 @@ function choisirTablesModele(m, message, libelleCase) {
                 }
                 vus.push(ids[t.id]);
             }
-            finir({ choix: choix, avec: c.checked });
+            finir({ choix: choix, avec: false });
             fermerModale();
         };
         ouvrirModale({ titre: 'Créer les listes du modèle ?', corps: corps, surFermeture: function () { finir(null); },
@@ -8499,7 +8497,6 @@ function majBandeauRole() {
     var role = admin ? 'Admin' : '';
     b.textContent = role;
     b.hidden = !role;
-    b.classList.toggle('fr-badge--purple-glycine', role === 'Admin');
     var pb = document.getElementById('bandeauParametres');
     if (pb) {
         pb.hidden = true;
@@ -13168,15 +13165,14 @@ var AIDE = {
     ],
     avant: [
         'Une ou plusieurs listes avec des lignes : demandes, dépenses, inscriptions, projets...',
-        'Pas encore de liste ? « Partir d\'un modèle » crée des listes prêtes, avec des lignes d\'exemple si vous le souhaitez.',
+        'Pas encore de liste ? « Utiliser ce modèle », sur l\'accueil, crée ses listes, vides, après votre confirmation.',
         'Créer ou paramétrer un tableau de bord demande le droit de modifier le document.'
     ],
     etapes: {
-        'Point de départ': { titre: 'partez de vos listes ou d\'un modèle.', points: [
-                '« Partir de mes données » : WuitViz propose des tableaux de bord d\'après vos listes ; « Utiliser cette suggestion » remplit les étapes, il ne reste qu\'à vérifier.',
-                '« Partir de l\'une de vos listes » : un tableau de bord construit d\'après les colonnes de la liste choisie.',
-                '« Partir d\'un tableau de bord vierge » : aucune tuile au départ, vous les ajoutez une à une.',
-                '« Partir d\'un modèle » : six modèles prêts ; le widget crée leurs listes après votre confirmation.'
+        'Point de départ': { titre: 'l\'accueil : vos éléments, les suggestions et les modèles.', points: [
+                'À gauche, « Créer » : un graphique, un chiffre, un tableau croisé, un planning ou un tableau de bord. Chaque rubrique montre vos éléments, des suggestions tirées de vos listes et des modèles.',
+                '« Utiliser cette suggestion » ou « Utiliser ce modèle » crée l\'élément et ouvre aussitôt son paramétrage, l\'aperçu au centre et les étapes à droite. Un modèle crée ses listes, vides, après votre confirmation.',
+                '« Modifier » ouvre un élément existant ; « Mes pages publiées » liste les pages des utilisateurs.'
             ] },
         'La liste': { titre: 'la liste principale du tableau de bord.', points: [
                 '« Liste principale » : proposée par défaut pour chaque nouvelle tuile. Chaque tuile peut utiliser une autre liste.',
@@ -13197,7 +13193,7 @@ var AIDE = {
         'Récapitulatif': { titre: 'vérifiez, nommez, créez.', points: [
                 '« Nom du tableau de bord » : affiché sur son onglet.',
                 '« Modifier » ramène à l\'étape concernée.',
-                '« Créer mon tableau de bord » l\'enregistre ; tout reste modifiable ensuite dans « Paramétrages de ce tableau de bord ».'
+                'Chaque réglage est enregistré dès que vous le changez.'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -13206,7 +13202,6 @@ var AIDE = {
             ] },
         'Général': { titre: 'le nom, la liste, les droits, les pages des utilisateurs et la suppression.', points: [
                 '« Nom du tableau de bord » et « Description » : affichés sur l\'onglet et au-dessus des tuiles.',
-                '« Inviter les personnes et régler les droits » : ouvre l\'étape « Les droits ».',
                 '« Cette page » : « Cacher cette page » pose sur la page une vue de la liste « ❌ ADMIN ONLY ⚡ » ; une règle d\'accès sur cette liste la cache aux autres personnes. Le « i » voisin donne la règle.',
                 '« Où les utilisateurs la voient » : « Publier sur une nouvelle page », puis son nom, le titre du bandeau, les tableaux de bord montrés, les conditions fixes et les filtres laissés aux utilisateurs. Chaque page se modifie, se duplique ou se supprime depuis la liste.',
                 '« Supprimer le tableau de bord » : il disparaît des onglets, vos listes et leurs lignes restent dans le document.'
@@ -13221,7 +13216,7 @@ var AIDE = {
         { q: 'Que se passe-t-il quand je clique sur une barre ou une part ?', r: 'Tout le tableau de bord se filtre sur cette valeur : les autres tuiles dont la liste a la même colonne ne montrent plus que ces lignes. Un bandeau au-dessus des tuiles rappelle le filtre, avec « Voir les lignes » et « Retirer ce filtre ». Un second clic sur la même valeur retire aussi le filtre.' },
         { q: 'Comment voir le détail d\'une courbe ?', r: 'Cliquez sur un point : une année montre ses trimestres, un trimestre ses mois, un mois ses jours. Le chemin au-dessus de la courbe permet de remonter. Ce détail se coupe dans les réglages de la courbe, « Détail au clic ».' },
         { q: 'Puis-je reprendre mes graphiques WuitBoard, WuitGraphiques ou WuitPivot ?', r: 'Oui : si le document en contient, « Nouveau tableau de bord » propose la carte « Reprendre mes anciens réglages ». WuitViz en fait une copie dans ses propres réglages ; les originaux ne sont ni modifiés ni supprimés.' },
-        { q: 'Comment publier un seul graphique ?', r: 'Sur la tuile, le bouton « Publier cette tuile seule » prépare une page de consultation qui ne montre qu\'elle. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
+        { q: 'Comment publier un seul graphique ?', r: 'Créez-le depuis l\'accueil, rubrique « Un graphique » : son étape « Publier » prépare une page qui ne montre que lui. Dans toute page de consultation, « Tuiles montrées » permet aussi de choisir les tuiles une à une.' },
         { q: 'Les chiffres sont-ils à jour ?', r: 'Oui : le tableau de bord relit vos listes seul, et l\'heure de la dernière lecture est affichée au-dessus des tuiles.' },
         { q: 'Supprimer un tableau de bord supprime-t-il mes données ?', r: 'Non. Le tableau de bord disparaît des onglets ; vos listes et leurs lignes restent dans le document.' },
         { q: 'Comment montrer un tableau de bord sans les paramétrages ?', r: 'Dans « Paramétrages de ce tableau de bord », étape « Général », « Où les utilisateurs la voient », puis « Publier sur une nouvelle page ». La nouvelle page montre le tableau de bord sans aide ni paramétrages, avec son propre titre de bandeau, ses conditions fixes et les filtres que vous laissez aux utilisateurs.' },
@@ -13236,7 +13231,7 @@ function contexteAide() {
     if (etat.vue === 'assistant' && b) {
         var perso = b.mode === 'parametrage';
         return { etapes: etapesBrouillon(b), courante: b.etape - 1,
-            repere: perso ? '' : 'Le tableau de bord est enregistré par « Créer mon tableau de bord ».' };
+            repere: perso ? '' : 'Ouvrez un élément ou créez-en un depuis l\'accueil.' };
     }
     if (etat.config) {
         return { etapes: ETAPES_PARAMETRAGE, courante: -1,

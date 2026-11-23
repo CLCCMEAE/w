@@ -132,6 +132,7 @@
     .w-acc__vig .w-vig-ligne:first-child { margin-top: 2rem; }
     .w-acc__vig .w-vig-feuille { position: absolute; left: 50%; top: .75rem; transform: translateX(-50%); width: 4.5rem; height: 6rem; background: #fff; border: 1px solid var(--border-default-grey); }
     .w-choix-fu .fr-fieldset { margin: 0; }
+    .w-acc__vig .w-vignette { position: absolute; left: 50%; top: .625rem; transform: translateX(-50%); }
 /* paramétrage en panneau vertical (cadre Wuit) */
     .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-atelier__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
@@ -3017,8 +3018,70 @@ async function creerDirectFu(genre, arg, tid, fichier) {
         }
     }
 }
-function vignetteFu() {
-    return creer('span', { classe: 'w-acc__vig', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'w-vig-feuille' })]);
+function vignetteFu(cfg, tid, i) {
+    var vig = creer('span', { classe: 'w-acc__vig', attrs: { 'aria-hidden': 'true' } });
+    if (!cfg) {
+        vig.appendChild(creer('span', { classe: 'w-vig-feuille' }));
+        return vig;
+    }
+    try {
+        var v = vignette(cfg, { cfg: cfg, tid: tid, i: i, apercu: false, editeur: false }, 74);
+        vig.appendChild(v.el);
+        _vignettesEnAttente.push(v);
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Miniature de l accueil', e);
+        vig.appendChild(creer('span', { classe: 'w-vig-feuille' }));
+    }
+    return vig;
+}
+function vignetteModeleFu(m) {
+    try {
+        var a = configApercuModele(m.layout);
+        return vignetteFu(a.cfg, a.tid, a.i);
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Miniature du modèle', e);
+        return vignetteFu(null);
+    }
+}
+function vignetteDocumentFu(cfg) {
+    if (!cfg || !cfg.table || !etat.meta.tables[cfg.table]) {
+        return vignetteFu(null);
+    }
+    var c = JSON.parse(JSON.stringify(cfg));
+    try {
+        normaliserConfig(c);
+    }
+    catch (e) {
+        return vignetteFu(null);
+    }
+    return vignetteFu(c, c.table, etat.donnees[c.table] ? ordreLignes(c.table)[0] : undefined);
+}
+async function chargerDonneesAccueilFu() {
+    var vues = {};
+    for (var k = 0; k < etat.tableaux.length; k++) {
+        var cfg = etat.tableaux[k].config;
+        var tables = [];
+        try {
+            tables = cfg && cfg.table && etat.meta.tables[cfg.table] ? tablesNecessaires(cfg) : [];
+        }
+        catch (e) {
+            tables = [];
+        }
+        for (var j = 0; j < tables.length; j++) {
+            if (vues[tables[j]] || !etat.meta.tables[tables[j]]) {
+                continue;
+            }
+            vues[tables[j]] = true;
+            try {
+                await chargerTableDonnees(tables[j]);
+            }
+            catch (e2) {
+                logSecurite('INFO', 'Table non lue pour la miniature', e2);
+            }
+        }
+    }
 }
 function carteAccueilFu(vig, etiquette, nom, desc, libelle, action, id) {
     if (etiquette) {
@@ -3114,7 +3177,15 @@ function rendreAccueilFu(zone) {
             if (prises.indexOf(t) !== -1) {
                 return;
             }
-            grilleD.appendChild(carteAccueilFu(vignetteFu(), badgeFu('Suggestion', 'info'), nomAuto('record', t), 'Une fiche par ligne de la table, avec tous ses champs.', 'Utiliser cette suggestion',
+            var cfgS = null;
+            try {
+                var gS = deviner(t);
+                cfgS = { layout: 'record', blocks: genererBlocs('record', t, undefined, {}, gS.numero || gS.nom), page: pageDeMiseEnPage('record', {}), table: t };
+            }
+            catch (e) {
+                cfgS = null;
+            }
+            grilleD.appendChild(carteAccueilFu(vignetteFu(cfgS, t, etat.donnees[t] ? ordreLignes(t)[0] : undefined), badgeFu('Suggestion', 'info'), nomAuto('record', t), 'Une fiche par ligne de la table, avec tous ses champs.', 'Utiliser cette suggestion',
                 function () { return creerDirectFu('type', 'record', t); }, 'pSuggestion' + k));
         });
         grilleD.appendChild(plus('pDonnees', 'Choisir moi-même la table et le document'));
@@ -3126,11 +3197,11 @@ function rendreAccueilFu(zone) {
     else {
         var grille = creer('div', { classe: 'w-acc__cartes' });
         etat.tableaux.forEach(function (t, k) {
-            grille.appendChild(carteAccueilFu(vignetteFu(), null, t.config.name || 'Document sans titre', t.config.table ? 'Table « ' + libelleTable(t.config.table) + ' »' : '', 'Modifier',
+            grille.appendChild(carteAccueilFu(vignetteDocumentFu(t.config), null, t.config.name || 'Document sans titre', t.config.table ? 'Table « ' + libelleTable(t.config.table) + ' »' : '', 'Modifier',
                 function () { ouvrirDocumentAccueil(t.cle); }, 'pOuvrir' + k));
         });
         MODELES.forEach(function (m) {
-            grille.appendChild(carteAccueilFu(vignetteFu(), badgeFu('Modèle', 'purple-glycine'), m.nom, nomMiseEnPage(m.layout) !== m.nom ? nomMiseEnPage(m.layout) : '', 'Utiliser ce modèle',
+            grille.appendChild(carteAccueilFu(vignetteModeleFu(m), badgeFu('Modèle', 'purple-glycine'), m.nom, nomMiseEnPage(m.layout) !== m.nom ? nomMiseEnPage(m.layout) : '', 'Utiliser ce modèle',
                 function () { return creerDirectFu('modele', m.id); }, 'pModele_' + m.id));
         });
         grille.appendChild(plus('pCreer', 'Créer un document vierge sur une de mes tables'));
@@ -3140,6 +3211,7 @@ function rendreAccueilFu(zone) {
         }
     }
     zone.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
+    setTimeout(dessinerVignettesEnAttente, 0);
 }
 function enCreation() { return etat.vue === 'assistant' && !!etat.brouillon && etat.brouillon.mode === 'creation'; }
 function enParametrage() { return etat.vue === 'assistant' && !!etat.brouillon && etat.brouillon.mode === 'edition'; }
@@ -3371,7 +3443,7 @@ function encartDroits(t) {
         creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
     ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
         creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et un lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
+                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
                 : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
         t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
     ]));
@@ -3708,10 +3780,10 @@ var AIDE = {
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
         { q: 'Qui peut paramétrer un modèle de document ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Les droits » des paramétrages.' },
-        { q: 'Un champ s\'imprime vide : pourquoi ?', r: 'La cellule est vide pour cette ligne, ou la colonne a été supprimée. Les points à vérifier, à l\'étape « Rédiger », listent les champs vides et les lignes concernées.' },
+        { q: 'Un champ s\'imprime vide : pourquoi ?', r: 'La cellule est vide pour cette ligne, ou la colonne a été supprimée. Les points à vérifier, à l\'étape « Le texte du document », listent les champs vides et les lignes concernées.' },
         { q: 'Comment imprimer plusieurs documents d\'un coup ?', r: 'Choisissez « Plusieurs lignes » en haut du panneau de gauche, cochez les lignes, puis l\'icône d\'imprimante : un document par ligne cochée.' },
-        { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: 'À l\'étape « Rédiger », rubrique « Logos » : gardez « Bloc-marque de l\'État » coché et choisissez « Poste à l\'étranger », puis le poste, la liaison (en, au, aux, à, auprès de) et le pays ou la ville. WuitFusion propose le découpage en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Les choix « Gouvernement » et « République française » servent aux courriers interministériels et aux opérateurs. L\'intitulé ne se traduit pas.' },
-        { q: 'Comment numéroter mes courriers ?', r: 'Rien n\'est numéroté par défaut. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, rubrique « Numérotation automatique (chrono) » : écrivez votre format, par exemple CD/{N:2}-{AAAA}, le prochain numéro et quand le compteur repart à 1, puis « Créer la numérotation ». Grist attribue alors la référence à la création de chaque ligne, sans doublon, et elle reste modifiable à la main. « Créer la page 📒 Chrono » ajoute une page avec vos courriers triés par référence.' },
+        { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: 'À l\'étape « La mise en page », rubrique « Les logos » : gardez « Bloc-marque de l\'État » coché et choisissez « Poste à l\'étranger », puis le poste, la liaison (en, au, aux, à, auprès de) et le pays ou la ville. WuitFusion propose le découpage en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Les choix « Gouvernement » et « République française » servent aux courriers interministériels et aux opérateurs. L\'intitulé ne se traduit pas.' },
+        { q: 'Comment numéroter mes courriers ?', r: 'Rien n\'est numéroté par défaut. Si votre numéro est déjà dans une colonne, insérez ce champ dans le document. Sinon, à l\'étape « Pour les utilisateurs », rubrique « La numérotation automatique » : écrivez votre format, par exemple CD/{N:2}-{AAAA}, le prochain numéro et quand le compteur repart à 1, puis « Créer la numérotation ». Grist attribue alors la référence à la création de chaque ligne, sans doublon, et elle reste modifiable à la main. « Créer la page 📒 Chrono » ajoute une page avec vos courriers triés par référence.' },
         { q: 'D\'où viennent les formules de la note verbale ?', r: 'Le champ « Émetteur » suit le bloc-marque : « Le ministère de l\'Europe et des Affaires étrangères », ou « L\'Ambassade de France aux États-Unis » pour un poste. Le reste des formules s\'écrit dans la page, comme le corps de la note.' },
         { q: 'Comment ajouter un tableau, une image, un encadré ou des colonnes ?', r: 'Cliquez dans la page à l\'endroit voulu, puis « Insérer » dans le bandeau. L\'élément se place au curseur : au milieu d\'un texte, le texte est coupé en deux autour de lui.' },
         { q: 'Comment déplacer, dupliquer ou supprimer un élément ?', r: 'Cliquez sur l\'élément dans la page : une barre apparaît au-dessus de lui, avec « Tout en haut », « Monter », « Descendre », « Tout en bas », « Dupliquer » et « Supprimer ». Au clavier : Alt et flèches pour le déplacer, Suppr pour le supprimer. Dans « Liste des éléments », chaque élément se glisse aussi par sa poignée.' },
@@ -3723,7 +3795,7 @@ var AIDE = {
         { q: 'Comment choisir la ligne affichée dans l\'aperçu ?', r: 'Au-dessus de l\'aperçu : « Repérer les lignes par » choisit la colonne qui nomme chaque ligne, par exemple un nom ou un numéro de dossier. Avec beaucoup de lignes, « Chercher une ligne » la trouve en quelques lettres.' },
         { q: 'Comment les nombres sont-ils écrits ?', r: 'Comme dans Grist : une colonne au format « Monnaie » s\'écrit avec son symbole, une colonne au format « Décimal » avec ses séparateurs de milliers. Sans format choisi, le nombre s\'écrit tel quel : une année reste 2026.' },
         { q: 'Un utilisateur peut-il modifier son document avant de l\'imprimer ?', r: 'Oui, si la personne qui gère le modèle l\'a permis, à l\'étape « Pour les utilisateurs » de ses paramétrages. Le bouton « Retoucher ce document » ouvre alors le document de la ligne affichée, avec ses valeurs écrites en toutes lettres : on le modifie comme dans un traitement de texte, puis « Enregistrer la retouche ». La retouche est gardée pour cette ligne, dans la table « ✏️ RETOUCHES DES DOCUMENTS ⚡ » ; « Revenir au modèle » l\'efface. Les éditeurs doivent pouvoir écrire dans cette table.' },
-        { q: 'Comment obtenir un PDF ?', r: 'Avec l\'icône « Enregistrer en PDF », en bas du panneau de gauche. Le nom proposé pour les fichiers se règle à l\'étape « Rédiger », rubrique « Nom des fichiers ».' },
+        { q: 'Comment obtenir un PDF ?', r: 'Avec l\'icône « Enregistrer en PDF », en bas du panneau de gauche. Le nom proposé pour les fichiers se règle à l\'étape « Pour les utilisateurs », rubrique « Le nom des fichiers ».' },
         { q: 'Supprimer un modèle supprime-t-il mes données ?', r: 'Non. Le modèle disparaît des onglets et ses réglages sont effacés ; vos tables et leurs lignes restent dans le document.' }
     ]
 };
@@ -18633,6 +18705,7 @@ async function chargerTout() {
     choisirTableau();
     if (pageAdminFu() && (etat.surAccueilFu !== false || !etat.config) && !enCreation() && !enParametrage()) {
         etat.brouillon = null;
+        await chargerDonneesAccueilFu();
         afficherVue('accueil');
         return;
     }
