@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.0-essai - 23/11/2026
+  Version : 1.3.1-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -252,6 +252,10 @@
     .w-atelier .w-rg__val { font-size: .875rem; }
     .w-atelier .w-rg__ok { font-size: .875rem; color: var(--text-default-success); }
     .w-atelier .w-rg__groupe { margin: .75rem 0 0; font-size: .75rem; font-weight: 700; text-transform: none; letter-spacing: .02em; color: var(--text-title-grey); border-bottom: 1px solid var(--border-default-grey); padding-bottom: .125rem; }
+    .w-fu-affichage { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .w-fu-affichage .w-echantillon { display: flex; align-items: center; gap: .25rem; }
+    .w-fu-affichage .fr-select { margin: 0; width: auto; max-width: 14rem; padding-top: .25rem; padding-bottom: .25rem; }
+    .w-atelier .w-fu-suppr { margin: 1.5rem 0 .5rem; }
     .w-atelier .w-rg-fin { margin-top: 1rem; padding-top: .5rem; border-top: 1px solid var(--border-default-grey); }
     .w-atelier .w-fs { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: center; gap: .5rem; margin: 0; padding: 0; border: 0; }
     .w-atelier .w-fs > .fr-fieldset__legend, .w-atelier .w-fs > legend { float: left; width: 7.5rem; padding: 0; margin: 0; font-size: .875rem; font-weight: 400; color: var(--text-mention-grey); }
@@ -1168,7 +1172,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.0-essai';
+var VERSION_WIDGET = '1.3.1-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2960,8 +2964,8 @@ function allegerEtapeW(c, nom) {
     }
 }
 function resumeEtapeFu(b, nom) {
-    if (nom === 'Le document') {
-        return b.name || '';
+    if (nom === 'Nom et description') {
+        return '';
     }
     if (nom === 'Les données') {
         return b.table && etat.meta.tables[b.table] ? libelleSansEmoji(libelleTable(b.table)) + (etat.donnees[b.table] && etat.donnees[b.table].d ? ' · ' + pluriel(etat.donnees[b.table].d.id.length, 'ligne') : '') : 'À choisir';
@@ -3106,18 +3110,10 @@ function replie(id, resume, contenu, ouvert) {
 /* 1. Le document */
 function etapeDocumentFu(b) {
     var nom = champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); });
-    var mode = creer('div', { classe: 'w-segment w-segment--auto', attrs: { role: 'group', 'aria-label': 'Façon de modifier le document' } });
-    [{ v: false, nom: 'Écrire dans la page', id: 'pModePage' }, { v: true, nom: 'Liste des éléments', id: 'pAvance' }].forEach(function (o) {
-        var bt = creer('button', { id: o.id, attrs: { type: 'button', 'aria-pressed': !!b.avance === o.v ? 'true' : 'false' } }, [o.nom]);
-        bt.addEventListener('click', function () { if (!!b.avance === o.v) {
-            return;
-        } b.avance = o.v; b.vueDonnees = false; redessinerEtape(o.id); });
-        mode.appendChild(bt);
-    });
-    return creer('div', { classe: 'w-rgs' }, [nom,
-        ligneReglage('Type', creer('span', { classe: 'w-rg__val' }, [nomMiseEnPage(b.layout), ' ', bouton('Changer', 'tertiaire', null, function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })])),
-        ligneReglage('Modifier par', mode),
-        creer('div', { classe: 'w-rg-fin' }, [bouton('Supprimer le document', 'discret', 'delete-line', supprimerDocument, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger', attrs: { title: 'Ses réglages sont effacés. Vos tables et leurs lignes restent dans le document Grist.' } })])]);
+    var desc = saisie('pDescDoc', b.description || '', { multiligne: true, lignes: 2, indice: 'À quoi sert ce document, pour qui' });
+    desc.setAttribute('maxlength', '300');
+    desc.addEventListener('input', function () { b.description = desc.value; marquerTouche(); });
+    return creer('div', { classe: 'w-rgs' }, [nom, groupeChamp('Description', desc, 'Affichée sous le nom, dans la liste des documents.')]);
 }
 /* 2. Les données */
 function nommerParFu(b) {
@@ -3198,7 +3194,7 @@ function etapeDonneesFu(b) {
     var d = etapeDonnees();
     compacterChoixTable(d);
     compacterCorrespondance(d);
-    var aff = ligneAfficheeFu(b);
+    var aff = null;
     if (aff) {
         Array.prototype.forEach.call(aff.querySelectorAll('#pRepereLignes'), function (r) { var g = r.closest('.fr-select-group, .fr-input-group') || r; g.parentNode.removeChild(g); });
         var h = aff.querySelector('.w-c3__titre');
@@ -3272,7 +3268,7 @@ function etapeVerifierPublierFu(b) {
 }
 function contenuEtapeFu(b, nom) {
     var c = null;
-    if (nom === 'Le document') {
+    if (nom === 'Nom et description') {
         c = etapeDocumentFu(b);
     }
     else if (nom === 'Les données') {
@@ -3343,7 +3339,7 @@ function panneauParamFu(b) {
         creer('span', { classe: 'w-pousse' }),
         bouton('Fermer le paramétrage', 'discret', 'close-line', function () { return allerAccueilFu(); }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
     return creer('aside', { classe: 'w-atelier', id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
-        creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, b.avance ? null : creer('div', { classe: 'w-elem-zone w-fu-elem', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()), ol, b.avance ? creer('div', { id: 'pBlocsAvance', classe: 'w-fu-avance' }, [colonneBlocs()]) : null]),
+        creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, b.avance ? null : creer('div', { classe: 'w-elem-zone w-fu-elem', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()), ol, b.avance ? creer('div', { id: 'pBlocsAvance', classe: 'w-fu-avance' }, [colonneBlocs()]) : null, creer('div', { classe: 'w-rg-fin w-fu-suppr' }, [bouton('Supprimer le document', 'discret', 'delete-line', supprimerDocument, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger', attrs: { title: 'Ses réglages sont effacés. Vos tables et leurs lignes restent dans le document Grist.' } })])]),
         creer('div', { classe: 'w-atelier__bas' }, [creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: b.statut || '' })])]);
 }
 /* Le document au centre se modifie directement, comme dans un traitement
@@ -3374,12 +3370,23 @@ document.addEventListener('keydown', function (e) {
         basculerPleinePageFu();
     }
 });
+function affichageTeteFu(b) {
+    var l = [basculeVueCourrier()];
+    if (b.vueDonnees && b.table && etat.donnees[b.table] && ordreLignes(b.table).length) {
+        var n = navEchantillon();
+        var g = n.classList.contains('w-echantillon') ? n : n.querySelector('.w-echantillon');
+        if (g) {
+            l.push(g);
+        }
+    }
+    return creer('div', { classe: 'w-fu-affichage' }, l);
+}
 function centreApercuFu(b) {
     var ecrire = !b.avance;
     var tete = creer('div', { classe: 'w-fu-centre__tete' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil' }),
         creer('span', { classe: 'w-fu-centre__nom', texte: b.name || 'Document sans titre' }),
-        ecrire ? (b.vueDonnees ? creer('span', { classe: 'w-mention', texte: 'Avec les données, en lecture seule' }) : null) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
+        ecrire ? affichageTeteFu(b) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
         creer('span', { classe: 'w-pousse' }),
         bouton(etat.pleinePageFu ? 'Quitter la pleine page' : 'Pleine page', 'secondaire', etat.pleinePageFu ? 'fullscreen-exit-line' : 'fullscreen-line', basculerPleinePageFu, { petit: true, id: 'pPleinePage', attrs: { 'aria-pressed': etat.pleinePageFu ? 'true' : 'false', title: etat.pleinePageFu ? 'Revenir au paramétrage (Échap)' : 'Cacher le paramétrage pour voir le document en grand' } })]);
     if (b.vueType) {
@@ -7548,7 +7555,7 @@ function rendreEchec(zone) {
         bouton('Réessayer', null, 'refresh-line', initialiser)]));
 }
 var ETAPES = ['Point de départ', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Récapitulatif'];
-var ETAPES_PARAM = ['Le document', 'Les données', 'La page', 'La numérotation', 'L\'impression', 'Vérifier et publier'];
+var ETAPES_PARAM = ['Nom et description', 'Les données', 'La page', 'La numérotation', 'L\'impression', 'Vérifier et publier'];
 var ETAPE_FINALE = 6;
 var SEUIL_RECHERCHE_TABLES = 8;
 function demarrerCreation() {
@@ -7697,6 +7704,9 @@ function cfgBrouillon(b) {
     }
     if (b.retouches) {
         c.retouches = true;
+    }
+    if (b.description && String(b.description).trim()) {
+        c.description = String(b.description).trim().slice(0, 300);
     }
     if (b.modeleWord) {
         c.modeleWord = { id: b.modeleWord.id || null, nom: b.modeleWord.nom, taille: b.modeleWord.taille };
@@ -10239,7 +10249,7 @@ async function ouvrirEdition() {
     var c = JSON.parse(JSON.stringify(etat.config));
     var b = { mode: 'edition', etape: 1, etapeMax: ETAPES_PARAM.length, retouches: !!c.retouches, ligne: etat.biblioLigne, cle: etat.cleConfig, touche: true, creees: [], opts: optionsVariante(c.opts),
         name: c.name, table: c.table, labelCol: c.labelCol, layout: c.layout || 'record', blocks: c.blocks, page: c.page, writeBack: c.writeBack || { enabled: false, col: null },
-        logos: (Array.isArray(c.logos) ? c.logos : (c.logo ? [c.logo] : [])).map(function (id) { return { id: id }; }), sampleId: c.sampleId || etat.idCourant || null, filtre: c.filtre || null, nomFichier: c.nomFichier || '' };
+        logos: (Array.isArray(c.logos) ? c.logos : (c.logo ? [c.logo] : [])).map(function (id) { return { id: id }; }), sampleId: c.sampleId || etat.idCourant || null, filtre: c.filtre || null, nomFichier: c.nomFichier || '', description: c.description || '' };
     if (c.modeleWord && typeof c.modeleWord.id === 'number') {
         b.modeleWord = { id: c.modeleWord.id, nom: String(c.modeleWord.nom || 'Modèle Word').slice(0, 200), taille: c.modeleWord.taille };
     }
