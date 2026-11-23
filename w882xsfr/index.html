@@ -170,6 +170,26 @@
     .w-accueil__titre { margin: 0; }
     .w-accueil__param { margin: 0 0 .5rem; }
     .w-accueil__titre:focus { outline: none; }
+    .w-accueil__groupe { margin: 0; padding: 1rem .75rem .375rem; font-size: .8125rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 .75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { position: relative; display: flex; flex-wrap: wrap; align-items: flex-start; gap: .125rem .5rem; width: 100%; padding: .25rem .375rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; overflow-wrap: break-word; }
+    .w-acc__sous-date { flex: none; font-size: .6875rem; color: var(--text-mention-grey); }
+    .w-acc__sous-item .fr-badge { flex: none; font-size: .625rem; line-height: 1rem; min-height: 1rem; padding: 0 .25rem; }
+    .w-accueil__liste { display: flex; flex-direction: column; gap: .5rem; max-width: 64rem; }
+    .w-accueil__liste .w-carte { flex-direction: row; align-items: center; min-height: 0; }
+    .w-accueil__liste .w-carte__corps { flex: 1 1 auto; width: auto; min-width: 0; padding: .75rem 1rem; }
+    .w-accueil__liste .w-carte__bas { flex: none; flex-wrap: nowrap; align-items: center; padding: .75rem 0 .75rem 1rem; }
+    .w-accueil__liste .w-carte > .w-menu { position: static; flex: none; margin: 0 .75rem 0 .5rem; }
+    .w-accueil__liste .w-carte--brouillon { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; padding: .75rem 1rem; }
+    .w-accueil__droits { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .375rem; }
+    .w-accueil__droits h3 { margin: .75rem 0 0; font-size: 1rem; }
+    .w-accueil__droits h3:first-child { margin-top: 0; }
+    .w-accueil__droits p { margin: 0; }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-accueil__grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 1.25rem; align-items: stretch; }
     .w-accueil__vide { grid-column: 1 / -1; }
     @media (max-width: 48em) { .w-accueil__menu { flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--border-default-grey); } }
@@ -374,11 +394,15 @@
     <div class="w-accueil" id="vueAccueil">
       <nav class="w-accueil__menu" aria-labelledby="accueilParam">
         <p class="w-titre-fluo w-accueil__param" id="accueilParam">Paramétrage</p>
-        <button type="button" class="w-accueil__item" id="rubModeles" aria-current="page"><span class="fr-icon-bookmark-line w-accueil__ico" aria-hidden="true"></span>Mes modèles d'export</button>
-        <button type="button" class="fr-btn fr-btn--sm fr-icon-add-line fr-btn--icon-left w-accueil__creer" id="rubTables">Créer un nouveau modèle d'export</button>
+        <button type="button" class="w-accueil__item" id="rubModeles" aria-current="page"><span class="fr-icon-bookmark-line w-accueil__ico" aria-hidden="true"></span>Les modèles d'export</button>
+        <ul class="w-acc__sous" id="menuModeles" aria-label="Les modèles d'export"></ul>
+        <p class="w-accueil__groupe">Créer un nouveau modèle d'export</p>
+        <button type="button" class="w-accueil__item" id="rubTables"><span class="fr-icon-table-line w-accueil__ico" aria-hidden="true"></span>Choisir les tables à exporter</button>
+        <p class="w-accueil__groupe">Réglages</p>
+        <button type="button" class="w-accueil__item" id="rubDroits"><span class="fr-icon-lock-line w-accueil__ico" aria-hidden="true"></span>Les droits</button>
       </nav>
       <section class="w-accueil__scene" aria-labelledby="accueilTitre">
-        <h2 class="w-accueil__titre w-titre-fluo" id="accueilTitre" tabindex="-1">Mes modèles d'export</h2>
+        <h2 class="w-accueil__titre w-titre-fluo" id="accueilTitre" tabindex="-1">Les modèles d'export</h2>
         <div class="w-accueil__grille" id="accueilGrille" role="list"></div>
         <p class="w-mention" id="info-sauvegarde" hidden><span class="fr-icon-information-line" aria-hidden="true"></span> <span id="texte-info-sauvegarde"></span></p>
       </section>
@@ -511,8 +535,8 @@ var SOCLE = {
                 "nom": "Commencer",
                 "titre": "à l'accueil, choisissez d'où partir.",
                 "points": [
-                    "« Mes modèles d’export » : vos exports enregistrés ; un clic sur une carte l'ouvre, le bouton « … » la duplique ou la supprime.",
-                    "« Créer un nouveau modèle d’export » : une carte par table ; un clic ouvre l'export avec toutes ses colonnes, et l'étape 1 permet d'ajouter d'autres tables au même fichier."
+                    "« Les modèles d’export » : vos exports enregistrés ; un clic sur une carte l'ouvre, le bouton « … » la duplique ou la supprime.",
+                    "« Choisir les tables à exporter » : une carte par table ; un clic ouvre l'export avec toutes ses colonnes, et l'étape 1 permet d'ajouter d'autres tables au même fichier."
                 ]
             },
             {
@@ -840,7 +864,7 @@ function brancherSocle() {
 }
 </script>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function echapperHTML(texte) {
@@ -3750,9 +3774,10 @@ function carteModele(d, k) {
     corps.appendChild(el('span', { class: 'w-carte__sous', text: inf.nbCol + (inf.nbCol > 1 ? ' colonnes' : ' colonne') + ', ' + (inf.nf ? inf.nf + (inf.nf > 1 ? ' filtres' : ' filtre') : 'toutes les lignes') }));
     carte.appendChild(corps);
     var bas = el('div', { class: 'w-carte__bas' });
-    var date = dateCourteModele(d.DATE_MAJ || d.DATE_CREATION);
-    if (date) {
-        bas.appendChild(el('span', { class: 'w-carte__maj', text: 'Mis à jour le ' + date }));
+    var dateC = dateCourteModele(d.DATE_CREATION);
+    var dateM = dateCourteModele(d.DATE_MAJ);
+    if (dateC || dateM) {
+        bas.appendChild(el('span', { class: 'w-carte__maj', text: dateC ? 'Créé le ' + dateC + (dateM && dateM !== dateC ? ', mis à jour le ' + dateM : '') : 'Mis à jour le ' + dateM }));
     }
     var bt = el('button', { type: 'button', class: 'fr-btn fr-btn--sm fr-icon-arrow-right-line fr-btn--icon-right', id: 'carteModele' + k, 'aria-label': 'Utiliser le modèle ' + nom, text: 'Utiliser ce modèle' });
     bt.addEventListener('click', function () { relayer(ouvrirModele(d.id), 'Ouverture du modèle impossible'); });
@@ -3764,15 +3789,66 @@ function carteModele(d, k) {
     ]));
     return carte;
 }
+function contenuDroitsIE() {
+    var z = el('div', { class: 'w-accueil__droits', id: 'blocDroits' });
+    [['Qui est « Admin » ?', 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.'],
+        ['Qui peut exporter ?', 'Toute personne qui voit les listes à exporter. Le fichier ne contient que ce que la personne a le droit de voir dans le document : les règles d\'accès s\'appliquent aussi à l\'export.'],
+        ['Qui crée et gère les modèles ?', 'Les modèles sont rangés dans la bibliothèque du document. Les personnes qui peuvent modifier le document les créent, les dupliquent et les suppriment ; les autres peuvent s\'en servir pour exporter.']].forEach(function (x) {
+        z.appendChild(el('h3', { text: x[0] }));
+        z.appendChild(el('p', { text: x[1] }));
+    });
+    return z;
+}
+function dateCourteMenu(v) {
+    var n = parseInt(v, 10);
+    if (!n) {
+        return '';
+    }
+    var d = new Date(n * 1000);
+    try {
+        return d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+    }
+    catch (e) {
+        return d.toLocaleDateString('fr-FR');
+    }
+}
+function remplirMenuModeles() {
+    var ul = document.getElementById('menuModeles');
+    if (!ul) {
+        return;
+    }
+    viderElement(ul);
+    var ajouter = function (id, nom, extra, action) {
+        var b = el('button', { type: 'button', class: 'w-acc__sous-item', id: id }, el('span', { class: 'w-acc__sous-nom', text: nom }), extra);
+        b.addEventListener('click', action);
+        ul.appendChild(el('li', null, b));
+    };
+    if (_vue.brouillon && etat.tablesAExporter.length) {
+        ajouter('navBrouillon', 'Export en cours : ' + etat.tablesAExporter.map(libelleTable).join(', '), el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon w-badge-brouillon', text: 'Brouillon' }), function () {
+            _vue.etape = 'colonnes';
+            afficherVue('atelier');
+        });
+    }
+    (etat.dispositions || []).forEach(function (d, k) {
+        var date = dateCourteMenu(d.DATE_CREATION);
+        ajouter('navModele' + k, d.NOM || 'Modèle sans nom', date ? el('span', { class: 'w-acc__sous-date', text: date }) : null, function () { relayer(ouvrirModele(d.id), 'Ouverture du modèle impossible'); });
+    });
+}
 function rendreAccueil() {
     var grille = document.getElementById('accueilGrille');
     var titre = document.getElementById('accueilTitre');
     if (!grille) {
         return;
     }
-    ['rubModeles', 'rubTables'].forEach(function (id) {
+    remplirMenuModeles();
+    var rubs = { rubModeles: 'modeles', rubTables: 'tables', rubDroits: 'droits' };
+    grille.className = _vue.rubrique === 'tables' ? 'w-accueil__grille' : 'w-accueil__liste';
+    Object.keys(rubs).forEach(function (id) {
         var b = document.getElementById(id);
-        var actif = (id === 'rubModeles') === (_vue.rubrique === 'modeles');
+        if (!b) {
+            return;
+        }
+        var actif = rubs[id] === (_vue.rubrique || 'modeles');
         if (actif) {
             b.setAttribute('aria-current', 'page');
         }
@@ -3781,6 +3857,11 @@ function rendreAccueil() {
         }
     });
     viderElement(grille);
+    if (_vue.rubrique === 'droits') {
+        titre.textContent = 'Les droits';
+        grille.appendChild(contenuDroitsIE());
+        return;
+    }
     if (_vue.rubrique === 'tables') {
         titre.textContent = 'Quelle table exporter ?';
         if (!etat.basesDisponibles.length) {
@@ -3800,7 +3881,7 @@ function rendreAccueil() {
         });
         return;
     }
-    titre.textContent = 'Mes modèles d\'export';
+    titre.textContent = 'Les modèles d\'export';
     if (_vue.brouillon && etat.tablesAExporter.length) {
         var bb = el('button', { type: 'button', class: 'w-carte w-carte--brouillon', id: 'carteBrouillon', role: 'listitem', 'aria-label': 'Reprendre l\'export en cours' });
         bb.appendChild(el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--yellow-tournesol w-carte__etat', text: 'Brouillon' }));
@@ -4429,9 +4510,10 @@ function brancherEvenements() {
     ecouter('export-nom-fichier', 'input', function () { _vue.nomFichierManuel = true; etat.options.nomFichier = this.value; majResumes(); });
     ecouter('btn-enregistrer-barre', 'click', function () { relayer(enregistrerDisposition(), 'Enregistrement impossible'); });
     ecouter('nomModele', 'input', function () { var e = document.getElementById('nomModeleErreur'); if (e) { e.hidden = true; } });
-    ecouter('aAccueil', 'click', function () { afficherVue('accueil'); });
+    ecouter('aAccueil', 'click', function () { _vue.rubrique = 'modeles'; afficherVue('accueil'); });
     ecouter('rubModeles', 'click', function () { choisirRubrique('modeles'); });
     ecouter('rubTables', 'click', function () { choisirRubrique('tables'); });
+    ecouter('rubDroits', 'click', function () { choisirRubrique('droits'); });
     Array.prototype.forEach.call(document.querySelectorAll('.w-etape__tete'), function (b) {
         b.addEventListener('click', function () { ouvrirEtape(b.parentNode.getAttribute('data-etape')); });
     });

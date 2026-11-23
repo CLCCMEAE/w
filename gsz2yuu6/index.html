@@ -290,6 +290,27 @@
     .w-accueil__titre:focus { outline: none; }
     .w-accueil__grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 1.25rem; align-items: stretch; }
     .w-accueil__vide { grid-column: 1 / -1; }
+    .w-accueil__groupe { margin: 0; padding: 1rem .75rem .375rem; font-size: .8125rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 .75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { position: relative; display: flex; flex-wrap: wrap; align-items: flex-start; gap: .125rem .5rem; width: 100%; padding: .25rem .375rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; overflow-wrap: break-word; }
+    .w-acc__sous-date { flex: none; font-size: .6875rem; color: var(--text-mention-grey); }
+    .w-acc__sous-item .fr-badge { flex: none; font-size: .625rem; line-height: 1rem; min-height: 1rem; padding: 0 .25rem; }
+    .w-accueil__liste { display: flex; flex-direction: column; gap: .5rem; max-width: 64rem; }
+    .w-accueil__liste .w-carte { flex-direction: row; align-items: center; min-height: 0; }
+    .w-accueil__liste .w-carte__corps { flex: 1 1 auto; width: auto; min-width: 0; padding: .75rem 1rem; }
+    .w-accueil__liste .w-carte__bas { flex: none; flex-wrap: nowrap; align-items: center; padding: .75rem 0 .75rem 1rem; }
+    .w-accueil__liste .w-carte > .w-menu { position: static; flex: none; margin: 0 .75rem 0 .5rem; }
+    .w-accueil__liste .w-carte--brouillon { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; padding: .75rem 1rem; }
+    .w-accueil__droits { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .375rem; }
+    .w-accueil__droits h3 { margin: .75rem 0 0; font-size: 1rem; }
+    .w-accueil__droits h3:first-child { margin-top: 0; }
+    .w-accueil__droits p { margin: 0; }
+    .w-accueil--droits #listeModeles, .w-accueil--droits #blocDernierImport { display: none !important; }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-carte { position: relative; display: flex; flex-direction: column; min-height: 7.5rem; box-sizing: border-box; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: var(--text-default-grey); }
     .w-carte:hover { border-color: var(--border-action-high-blue-france); }
     .w-carte__corps, .w-carte--table, .w-carte--brouillon { flex: 1 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; width: 100%; padding: .875rem 3rem .875rem 1rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -494,11 +515,15 @@
     <div class="w-accueil" id="vueAccueil">
       <nav class="w-accueil__menu" aria-labelledby="accueilParam">
         <p class="w-titre-fluo w-accueil__param" id="accueilParam">Paramétrage</p>
-        <button type="button" class="w-accueil__item" id="rubModeles" aria-current="page"><span class="fr-icon-bookmark-line w-accueil__ico" aria-hidden="true"></span>Mes modèles d'import</button>
-        <button type="button" class="fr-btn fr-btn--sm fr-icon-add-line fr-btn--icon-left w-accueil__creer" id="rubNouvel">Créer un nouveau modèle d'import</button>
+        <button type="button" class="w-accueil__item" id="rubModeles" aria-current="page"><span class="fr-icon-bookmark-line w-accueil__ico" aria-hidden="true"></span>Les modèles d'import</button>
+        <ul class="w-acc__sous" id="menuModeles" aria-label="Les modèles d'import"></ul>
+        <p class="w-accueil__groupe">Créer un nouveau modèle d'import</p>
+        <button type="button" class="w-accueil__item" id="rubNouvel"><span class="fr-icon-upload-2-line w-accueil__ico" aria-hidden="true"></span>À partir d'un fichier (Excel, CSV…)</button>
+        <p class="w-accueil__groupe">Réglages</p>
+        <button type="button" class="w-accueil__item" id="rubDroits"><span class="fr-icon-lock-line w-accueil__ico" aria-hidden="true"></span>Les droits</button>
       </nav>
       <section class="w-accueil__scene" aria-labelledby="accueilTitre">
-        <h2 class="w-accueil__titre w-titre-fluo" id="accueilTitre" tabindex="-1">Mes modèles d'import</h2>
+        <h2 class="w-accueil__titre w-titre-fluo" id="accueilTitre" tabindex="-1">Les modèles d'import</h2>
         <div id="blocDernierImport" class="w-dernier-import fr-mt-2w hidden">
         <div class="w-dernier-import__ligne">
           <p class="w-dernier-import__texte" id="texteDernierImport"></p>
@@ -506,7 +531,8 @@
         </div>
         <div id="detailAnnulation" class="w-dernier-import__detail" role="status" aria-live="polite"></div>
       </div>
-        <div class="w-accueil__grille" id="listeModeles" role="list"></div>
+        <div class="w-accueil__liste" id="listeModeles" role="list"></div>
+        <div id="accueilDroits" hidden></div>
       </section>
     </div>
     <div class="w-constr" id="vueAtelier" hidden>
@@ -1020,7 +1046,7 @@ var NOM_WIDGET_ANCIEN = 'import_excel';
 function estLigneDuWidget(valeurWidget) {
     return valeurWidget === NOM_WIDGET || valeurWidget === NOM_WIDGET_ANCIEN;
 }
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function descriptifParametrage(nom, nomFichier) {
@@ -1215,6 +1241,7 @@ async function remplirSelectParametrages() {
         logSecurite('INFO', 'Bibliothèque non accessible', e);
     }
     var params = await chargerParametragesDisponibles();
+    remplirMenuModeles(params);
     viderElement(zone);
     if (etat.feuilles && etat.feuilles.length) {
         var bb = el('button', { type: 'button', class: 'w-carte w-carte--brouillon', id: 'carteBrouillon', role: 'listitem', 'aria-label': 'Reprendre l\u2019import en cours' });
@@ -2762,11 +2789,92 @@ function menuActions(libelle, id, items, icone, bulle) {
     });
     return racine;
 }
+function contenuDroitsIE() {
+    var z = el('div', { class: 'w-accueil__droits', id: 'blocDroits' });
+    [['Qui est « Admin » ?', 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.'],
+        ['Qui peut importer ?', 'Toute personne qui peut ajouter et modifier des lignes dans les listes de destination : en général les rôles Éditeur et Propriétaire, dans les limites des règles d\'accès du document. Une personne au rôle Lecteur ne peut rien importer.'],
+        ['Qui crée et gère les modèles ?', 'Les modèles sont rangés dans la bibliothèque du document. Les personnes qui peuvent modifier le document les créent, les renomment et les suppriment ; les autres peuvent seulement s\'en servir si elles ont le droit d\'importer.']].forEach(function (x) {
+        z.appendChild(el('h3', { text: x[0] }));
+        z.appendChild(el('p', { text: x[1] }));
+    });
+    return z;
+}
+function choisirRubImport(r) {
+    var droits = r === 'droits';
+    var t = document.getElementById('accueilTitre');
+    if (t) {
+        t.textContent = droits ? 'Les droits' : 'Les modèles d\'import';
+    }
+    ['rubModeles', 'rubDroits'].forEach(function (id) {
+        var b = document.getElementById(id);
+        if (!b) {
+            return;
+        }
+        if ((id === 'rubDroits') === droits) {
+            b.setAttribute('aria-current', 'page');
+        }
+        else {
+            b.removeAttribute('aria-current');
+        }
+    });
+    var v = document.getElementById('vueAccueil');
+    if (v) {
+        v.classList.toggle('w-accueil--droits', droits);
+    }
+    var z = document.getElementById('accueilDroits');
+    if (z) {
+        z.hidden = !droits;
+        if (droits && !z.firstChild) {
+            z.appendChild(contenuDroitsIE());
+        }
+    }
+}
+function dateCourteMenu(v) {
+    if (v === null || v === undefined || v === '') {
+        return '';
+    }
+    var d = typeof v === 'number' ? new Date(v * 1000) : new Date(String(v));
+    if (isNaN(d.getTime())) {
+        return '';
+    }
+    try {
+        return d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+    }
+    catch (e) {
+        return d.toLocaleDateString('fr-FR');
+    }
+}
+function remplirMenuModeles(params) {
+    var ul = document.getElementById('menuModeles');
+    if (!ul) {
+        return;
+    }
+    viderElement(ul);
+    var ajouter = function (id, nom, extra, action) {
+        var b = el('button', { type: 'button', class: 'w-acc__sous-item', id: id }, el('span', { class: 'w-acc__sous-nom', text: nom }), extra);
+        b.addEventListener('click', action);
+        ul.appendChild(el('li', null, b));
+    };
+    if (etat.feuilles && etat.feuilles.length) {
+        ajouter('navBrouillon', 'Import en cours' + (etat.nomFichier ? ' : ' + etat.nomFichier : ''), el('span', { class: 'fr-badge fr-badge--sm fr-badge--no-icon w-badge-brouillon', text: 'Brouillon' }), function () {
+            var bb = document.getElementById('carteBrouillon');
+            if (bb) {
+                bb.click();
+            }
+        });
+    }
+    (params || []).forEach(function (p, k) {
+        var m = carteModeleImport(p);
+        var date = dateCourteMenu(p.creeLe);
+        ajouter('navModele' + k, m.nom, date ? el('span', { class: 'w-acc__sous-date', text: date }) : null, function () { relayer(utiliserModele(m.id), 'Chargement du modèle impossible'); });
+    });
+}
 function afficherVue(ecran) {
     _vue.ecran = ecran;
     document.getElementById('vueAccueil').hidden = ecran !== 'accueil';
     document.getElementById('vueAtelier').hidden = ecran !== 'atelier';
     if (ecran === 'accueil') {
+        choisirRubImport('modeles');
         relayer(remplirSelectParametrages(), 'Chargement des modèles impossible');
     }
     else {
@@ -2967,6 +3075,7 @@ function nouvelImport() {
     });
     document.getElementById('aAccueil').addEventListener('click', function () { afficherVue('accueil'); });
     document.getElementById('rubModeles').addEventListener('click', function () { afficherVue('accueil'); });
+    document.getElementById('rubDroits').addEventListener('click', function () { afficherVue('accueil'); choisirRubImport('droits'); });
     document.getElementById('rubNouvel').addEventListener('click', nouvelImport);
     document.getElementById('nomModele').addEventListener('input', function () { erreurNomModele(''); });
     document.querySelectorAll('input[name="modeImport"]').forEach(function (r) { r.addEventListener('change', majResumes); });
