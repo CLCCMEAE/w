@@ -513,6 +513,9 @@
     .gb-table tbody tr:hover td { background: var(--background-alt-grey); color: var(--text-default-grey); }
     .gb-table tfoot td { font-weight: 650; border-top: 1px solid var(--border-default-grey); border-bottom: 0; }
     .gb-table__defile { overflow: auto; max-height: 22rem; }
+    .gb-sorte-actuelle { display: flex; align-items: center; gap: .5rem; margin: .75rem 0 0; padding: .5rem .75rem; font-size: .875rem; color: var(--text-mention-grey); border-top: 1px solid var(--border-default-grey); }
+    .gb-sorte-actuelle .gb-mini__g { width: 2rem; height: 1rem; flex: none; color: var(--text-action-high-blue-france); }
+    .gb-sorte-actuelle__nom { flex: 1; color: var(--text-title-grey); font-weight: 700; }
     .gb-alertes { list-style: none; margin: 0; padding: 0; container-type: inline-size; container-name: alertes; }
     .gb-alerte { margin: 0; padding: 0; border-top: 1px solid var(--border-default-grey); }
     .gb-alerte:first-child { border-top: 0; }
@@ -10335,7 +10338,7 @@ function ouvrirEditeurTuile(ctx, index, tuileNeuve) {
 }
 function resumeLignes(zone, b) {
     vider(zone);
-    if (b.type === 'text' || !b.table || !etat.donnees[b.table]) {
+    if (b.type === 'text' || b.type === 'alertes' || !b.table || !etat.donnees[b.table]) {
         return;
     }
     var tid = b.table;
@@ -10456,7 +10459,8 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
             if (t) {
                 t.textContent = t.textContent.replace(/« .* »$/, '« ' + ty.nom + ' »');
             }
-            relayer(assurerDonnees(b.table).then(function () { redessiner('eSorte-' + ty.code); }), 'Changement de sorte de tuile');
+            _sectionTuile = null;
+            relayer(assurerDonnees(b.table).then(function () { redessiner('eChangerSorte'); annoncer('Sorte de tuile : ' + ty.nom); }), 'Changement de sorte de tuile');
         });
         sorte.appendChild(creer('label', { classe: 'gb-sorte', attrs: { 'for': 'eSorte-' + ty.code } }, [r, glypheType(ty.code), creer('span', { texte: ty.nom })]));
     });
@@ -10532,7 +10536,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         form.appendChild(groupe('Titre', champSaisie('eTitre', b.titre, function (v) { b.titre = v; maj(); })));
     }
     var liste = creer(o.panneau ? 'ol' : 'div', { classe: 'gb-acc' + (o.panneau ? ' gb-etapes' : ''), attrs: o.panneau ? {} : { role: 'list' } });
-    var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' || (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
+    var visibles = GROUPES_TUILE.filter(function (g) { return g.cle === 'sorte' ? (!o.panneau || _sectionTuile === 'sorte') : (b.type === 'text' ? g.cle === 'presentation' : contenus[g.cle].childNodes.length); });
     var sup = {};
     (o.avant || []).concat(o.apres || []).forEach(function (e) { sup[e.cle] = e; contenus[e.cle] = e.contenu(); });
     visibles = (o.avant || []).concat(visibles).concat(o.apres || []);
@@ -10578,6 +10582,10 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         liste.appendChild(creer('div', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : ''), attrs: { role: 'listitem' } }, [bt, c]));
     });
     form.appendChild(liste);
+    if (o.panneau) {
+        var chSorte = bouton('Changer', 'tertiaire', null, function () { _sectionTuile = 'sorte'; redessiner('eSorte-' + b.type); }, { petit: true, id: 'eChangerSorte', aria: 'Changer la sorte de tuile (actuellement : ' + nomTypeTuile(b.type) + ')' });
+        form.appendChild(creer('p', { classe: 'gb-sorte-actuelle' }, [glypheType(b.type), creer('span', { classe: 'gb-sorte-actuelle__nom', texte: nomTypeTuile(b.type) }), _sectionTuile === 'sorte' ? null : chSorte]));
+    }
     (o.sousListe || []).forEach(function (n) { if (n) {
         form.appendChild(n);
     } });
