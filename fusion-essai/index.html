@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.0-essai - 23/11/2026
+  Version : 1.3.1-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -233,6 +233,9 @@
     .w-fu-centre__tete .fr-btn { margin: 0; }
     .w-fu-centre__nom { font-weight: 700; }
     .w-fu-centre .w-feuilles { flex: 1; min-height: 0; }
+    .w-fu-centre--ecrire .w-ec { flex: 1 1 auto; min-height: 0; gap: .5rem; }
+    .w-fu-centre--ecrire .w-ec-cadre { flex: 1 1 auto; min-height: 0; }
+    .w-fu-elem:not(:empty) { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-fu-texte__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
     .w-fu-texte__tete .fr-btn, .w-fu-texte__tete .w-statut { margin: 0; }
 </style>
@@ -1094,7 +1097,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.0-essai';
+var VERSION_WIDGET = '1.3.1-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2972,16 +2975,23 @@ function panneauParamFu(b) {
         creer('span', { classe: 'w-pousse' }),
         bouton('Fermer le paramétrage', 'discret', 'close-line', function () { return allerAccueilFu(); }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
     return creer('aside', { classe: 'w-atelier', id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
-        creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, ol, danger]),
+        creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, b.avance ? null : creer('div', { classe: 'w-elem-zone w-fu-elem', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()), ol, danger]),
         creer('div', { classe: 'w-atelier__bas' }, [creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: b.statut || '' })])]);
 }
+/* Le document au centre se modifie directement, comme dans un traitement
+   de texte : barre d'outils au-dessus, écriture dans la page, paramétrage
+   à droite. Seule la vue « Liste des éléments » reste un aperçu. */
 function centreApercuFu(b) {
+    var ecrire = !b.avance;
     var tete = creer('div', { classe: 'w-fu-centre__tete' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil' }),
         creer('span', { classe: 'w-fu-centre__nom', texte: b.name || 'Document sans titre' }),
-        creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
+        ecrire ? basculeVueCourrier() : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
         creer('span', { classe: 'w-pousse' }),
         etat.donnees[b.table] && ordreLignes(b.table).length ? navEchantillon() : null]);
+    if (ecrire) {
+        return creer('section', { classe: 'w-fu-centre w-fu-centre--ecrire', id: 'pDocCentre', attrs: { 'aria-label': estTypeLettre(b.layout) ? 'Le courrier, modifiable dans la page' : 'La page, modifiable' } }, [tete, editeurCourrier()]);
+    }
     return creer('section', { classe: 'w-fu-centre', attrs: { 'aria-label': 'Aperçu du document' } }, [tete,
         creer('div', { classe: 'w-feuilles w-apercu--redac', attrs: { role: 'region', 'aria-label': 'Les pages du document', tabindex: '0' } }, [creer('div', { classe: 'w-pages', id: 'pApercuB' })])]);
 }
