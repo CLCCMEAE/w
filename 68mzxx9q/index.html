@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitCarte
-  Version : 1.1.4 - 23/11/2026
+  Version : 1.1.5 - 23/11/2026
   Description : carte des lieux d'une table, avec fiches, filtres et pages pour les utilisateurs.
 -->
 <head>
@@ -912,7 +912,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.4';
+var VERSION_WIDGET = '1.1.5';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -2958,7 +2958,7 @@ function filtresValides(f) {
 }
 function filtresVides(f) { return !Object.keys(f.colonnes).length && !f.du && !f.au; }
 function etiquettesFiltresPage(f) {
-    var res = Object.keys(f.colonnes).filter(function (k) { return colLieux(k); }).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].join(', '); });
+    var res = Object.keys(f.colonnes).filter(function (k) { return colLieux(k); }).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].map(function (v) { return libelleValeurPage(k, v); }).join(', '); });
     if (f.du || f.au) {
         res.push('Période : ' + (f.du && f.au ? 'du ' + formaterDate(jourVersSecondes(f.du)) + ' au ' + formaterDate(jourVersSecondes(f.au)) : (f.du ? 'à partir du ' + formaterDate(jourVersSecondes(f.du)) : 'jusqu\'au ' + formaterDate(jourVersSecondes(f.au)))));
     }
@@ -3024,7 +3024,7 @@ function passeFiltrePage(l) {
     return ok && (!(f.du || f.au) || !etat.config.colDate || passePeriodeEntre(l, f.du, f.au));
 }
 function resumeFiltresPage(f) {
-    var parts = Object.keys(f.colonnes).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].join(', '); });
+    var parts = Object.keys(f.colonnes).map(function (k) { return libelleCol(k) + ' : ' + f.colonnes[k].map(function (v) { return libelleValeurPage(k, v); }).join(', '); });
     if (f.du || f.au) {
         parts.push('période ' + (f.du && f.au ? 'du ' + formaterDate(jourVersSecondes(f.du)) + ' au ' + formaterDate(jourVersSecondes(f.au)) : (f.du ? 'à partir du ' + formaterDate(jourVersSecondes(f.du)) : 'jusqu\'au ' + formaterDate(jourVersSecondes(f.au)))));
     }
@@ -3143,7 +3143,8 @@ function formulairePage() {
                 poserRetire(ed, k, !propose.checked);
             });
         }
-        valeursFiltre(k).forEach(function (v, j) {
+        var nbVides = nbVidesColonne(k);
+        valeursFiltre(k).concat(nbVides || (ed.colonnes[k] || []).indexOf(VALEUR_VIDE) !== -1 ? [VALEUR_VIDE] : []).forEach(function (v, j) {
             var cb = creer('input', { attrs: { type: 'checkbox', id: 'aPf' + i + '_' + j }, coche: (ed.colonnes[k] || []).indexOf(v) !== -1 });
             cb.addEventListener('change', function () {
                 var l = ed.colonnes[k] || [];
@@ -3154,7 +3155,7 @@ function formulairePage() {
                     propose.checked = !fixe;
                 }
             });
-            boite.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPf' + i + '_' + j }, texte: v })]));
+            boite.appendChild(creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPf' + i + '_' + j }, texte: v === VALEUR_VIDE ? libelleValeurPage(k, v) + ' (' + nbVides + (nbVides > 1 ? ' lieux' : ' lieu') + ')' : v })]));
         });
         noeuds.push(creer('fieldset', { classe: 'w-page-filtre' }, [creer('legend', { texte: libelleCol(k) }), boite].concat(propose ? [
             creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm w-page-propose' }, [propose, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPfOk' + i }, texte: 'Proposer ce filtre aux utilisateurs' })])] : [])));
@@ -3180,7 +3181,7 @@ function formulairePage() {
                 creer('div', { classe: 'fr-input-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAu' }, texte: 'Au' }), au])]),
             creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm w-page-propose' }, [proposePer, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPfPer' }, texte: 'Proposer la période aux utilisateurs' })])]));
     }
-    noeuds.push(creer('p', { classe: 'w-mention', texte: colonnesFiltrePage().length || c.colDate ? 'Rien de coché dans une liste : toutes ses valeurs. Un filtre coché « Proposer aux utilisateurs » reste dans le panneau de la page, limité aux valeurs retenues ; un filtre décoché disparaît du panneau.' : 'Cette carte n\'a pas de filtre : la page montrera tous ses lieux. Les filtres se choisissent à l\'étape « Affichage et filtres ».' }));
+    noeuds.push(creer('p', { classe: 'w-mention', texte: colonnesFiltrePage().length || c.colDate ? 'Rien de coché dans une liste : tous les lieux, y compris ceux sans valeur. Si vous cochez des valeurs, cochez aussi « Sans catégorie » ou « Sans valeur » pour garder les lieux vides. Un filtre coché « Proposer aux utilisateurs » reste dans le panneau de la page, limité aux valeurs retenues ; un filtre décoché disparaît du panneau.' : 'Cette carte n\'a pas de filtre : la page montrera tous ses lieux. Les filtres se choisissent à l\'étape « Affichage et filtres ».' }));
     noeuds.push(creer('div', { classe: 'w-page-actions' }, [
         bouton('Annuler', 'tertiaire', null, function () { etat.editionPage = null; redessinerEtape('aSecConsult'); }, { petit: true, id: 'aPageAnnuler' }),
         bouton(ed.badge ? 'Enregistrer la page' : 'Publier', null, 'check-line', enregistrerPage, { petit: true, id: 'aPageEnregistrer' })
@@ -4122,8 +4123,23 @@ function valeursFiltre(colId) {
     trouvees.sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); }).forEach(ajouter);
     return res;
 }
+/* Valeur « vide » d'un filtre de page : les lieux sans catégorie (ou sans
+   valeur dans la colonne) ne sont gardés que si cette case est cochée. */
+var VALEUR_VIDE = '__VIDE__';
+function libelleValeurPage(k, v) {
+    return v === VALEUR_VIDE ? (k === etat.config.colCategorie ? 'Sans catégorie' : 'Sans valeur') : v;
+}
+function nbVidesColonne(k) {
+    return etat.lieux.filter(function (l) { return passeFiltre(l, k, VALEUR_VIDE); }).length;
+}
 function passeFiltre(l, colId, choisie) {
     var v = l.valeurs[colId];
+    if (choisie === VALEUR_VIDE) {
+        if (genreDe(colLieux(colId)) === 'oui_non') {
+            return false;
+        }
+        return Array.isArray(v) && v[0] === 'L' ? v.length <= 1 : !texteValeur(colId, v).trim();
+    }
     if (genreDe(colLieux(colId)) === 'oui_non') {
         return (v ? 'Oui' : 'Non') === choisie;
     }
