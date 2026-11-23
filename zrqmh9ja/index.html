@@ -1244,6 +1244,20 @@ nav[hidden],
 .w-apercu-filtres { padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
 .w-regle__table { display: block; font-size: .75rem; color: var(--text-mention-grey); }
 .w-carte-param--verrouillee { background: transparent; border-style: dashed; }
+.w-etapes-regle { display: flex; flex-direction: column; }
+.w-etp { position: relative; padding-bottom: .75rem; }
+.w-etp:not(:last-of-type)::before { content: ""; position: absolute; left: 1rem; top: 2.25rem; bottom: 0; width: 1px; background: var(--border-default-grey); }
+.w-etp__tete { display: flex; align-items: flex-start; gap: .75rem; width: 100%; padding: .25rem 0; border: 0; background: transparent; text-align: left; cursor: pointer; color: var(--text-default-grey); font: inherit; }
+.w-etp__tete:hover:not([disabled]) .w-etp__nom { color: var(--text-action-high-blue-france); }
+.w-etp__tete[disabled] { cursor: default; }
+.w-etp__num { flex: none; width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); background: var(--background-default-grey); font-weight: 700; font-size: .875rem; }
+.w-etp--ouverte .w-etp__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+.w-etp__textes { display: flex; flex-direction: column; min-width: 0; padding-top: .25rem; }
+.w-etp__nom { font-weight: 700; font-size: 1rem; overflow-wrap: break-word; }
+.w-etp--ouverte .w-etp__nom { color: var(--text-action-high-blue-france); }
+.w-etp__resume { font-size: .8125rem; color: var(--text-mention-grey); overflow-wrap: break-word; }
+.w-etp__corps.w-carte-param { margin: .5rem 0 0 2.75rem; padding: 0; border: 0; background: transparent; }
+.w-etp__corps[hidden] { display: none; }
 .w-carte-param--verrouillee .w-carte-param__titre { color: var(--text-disabled-grey); }
 .w-carte-param__verrou { margin: 0; }
 .w-carte-param .w-radios { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; margin: 0; padding: 0; }
@@ -1376,7 +1390,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.0";
+var VERSION_WIDGET = "1.0.1";
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -5522,11 +5536,56 @@ var APERCUS_ETAPES = {
     return [creer("p", { classe: "w-apercu-q", texte: "Nom (obligatoire)" }), creer("span", { classe: "w-apercu-champ" }), creer("p", { classe: "w-apercu-q", texte: "Description" }), creer("span", { classe: "w-apercu-champ" })];
   }
 };
+/* Étapes de la règle, comme dans les autres widgets de la série : ronds
+   numérotés reliés par une ligne, une seule étape ouverte, un résumé sur
+   les étapes fermées, jamais de grisé. */
+var _regleEd = null;
+var TRAITEMENTS_RESUME = { les2: "Vider les données personnelles, ou supprimer", anonymiser: "Vider les données personnelles", supprimer: "Supprimer" };
+function resumeEtapeRegle(id, c) {
+  if (!c) {
+    return "";
+  }
+  if (id === "eCarteTable") {
+    return c.table ? [picto("table"), libelleTable(c.table)] : "À choisir";
+  }
+  if (id === "eCarteFiltres") {
+    var t = libelleCritere(c);
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  if (id === "eCarteTrait") {
+    return (TRAITEMENTS_RESUME[c.traitements] || "À choisir") + (c.traitements !== "supprimer" ? " · " + pluriel(c.champs.length, "colonne à vider", "colonnes à vider") : "");
+  }
+  if (id === "eCarteLiees") {
+    return c.liees && c.liees.length ? pluriel(c.liees.length, "table liée", "tables liées") : "Aucune table liée";
+  }
+  if (id === "eCarteNom") {
+    return c.nom ? c.nom : "À nommer";
+  }
+  return "";
+}
 function carteParam(titre, id, enfants, apresEtape) {
   var verrou = !!apresEtape;
-  var cle = titre.replace(/^\d+\. /, "");
-  var apercu = verrou && APERCUS_ETAPES[cle] ? APERCUS_ETAPES[cle]() : [];
-  return creer("section", { classe: "w-carte-param" + (verrou ? " w-carte-param--verrouillee" : ""), attrs: { "aria-labelledby": id, "aria-disabled": verrou ? "true" : null } }, [creer("h3", { classe: "w-carte-param__titre", id, texte: titre })].concat(verrou ? [creer("div", { classe: "w-apercu-etape", attrs: { "aria-hidden": "true" } }, apercu), creer("p", { classe: "w-mention w-carte-param__verrou", texte: "Après l'étape " + apresEtape + "." })] : enfants));
+  var m = /^(\d+)\. (.*)$/.exec(titre);
+  var num = m ? m[1] : "";
+  var nom = m ? m[2] : titre;
+  var ed = _regleEd;
+  var ouverte = !verrou && ed && ed.ouverte === id;
+  var resume = verrou ? (apresEtape === 1 ? "Choisissez d'abord la table" : "Complétez d'abord l'étape " + apresEtape) : resumeEtapeRegle(id, ed && ed.c);
+  var tete = creer("button", { classe: "w-etp__tete", id: id + "Tete", attrs: { type: "button", "aria-expanded": ouverte ? "true" : "false", "aria-controls": id + "Corps", disabled: verrou ? true : null } }, [
+    creer("span", { classe: "w-etp__num", texte: num, attrs: { "aria-hidden": "true" } }),
+    creer("span", { classe: "w-etp__textes" }, [creer("span", { classe: "w-etp__nom", id: id, texte: nom }), resume && !ouverte ? creer("span", { classe: "w-etp__resume" }, Array.isArray(resume) ? resume : [resume]) : null])
+  ]);
+  if (!verrou && ed) {
+    tete.addEventListener("click", function() {
+      ed.ouverte = ouverte ? "" : id;
+      etat.etapeRegleOuverte = ed.ouverte;
+      ed.redessiner();
+      refocaliser(id + "Tete");
+    });
+  }
+  var corps = creer("div", { classe: "w-etp__corps w-carte-param", id: id + "Corps" }, verrou ? [] : enfants);
+  corps.hidden = !ouverte;
+  return creer("section", { classe: "w-etp" + (ouverte ? " w-etp--ouverte" : ""), attrs: { "aria-labelledby": id } }, [tete, corps]);
 }
 function rendreEditeur(c, idBase) {
   majBandeauRole();
@@ -5545,6 +5604,11 @@ function rendreEditeur(c, idBase) {
   var redessiner = function() {
     rendreEditeur(creation ? etat.creation : regleCourante(), idBase);
   };
+  if (etat.etapeRegleCle !== cleVue) {
+    etat.etapeRegleCle = cleVue;
+    etat.etapeRegleOuverte = c && c.table && etat.meta.tables[c.table] ? "eCarteFiltres" : "eCarteTable";
+  }
+  _regleEd = { c: c, redessiner: redessiner, ouverte: etat.etapeRegleOuverte };
   var aller = function(i) {
     etat.param.etape = i;
     if (i === "pages") {
@@ -5641,8 +5705,9 @@ function rendreEditeur(c, idBase) {
         return;
       }
       await choisirTableDossiers(c, sel.value);
+      etat.etapeRegleOuverte = "eCarteFiltres";
       redessiner();
-      refocaliser("cTable");
+      refocaliser("eCarteFiltresTete");
     });
     corpsTable.push(groupeListe("Table", sel));
     if (!groupes.miennes.length && !groupes.widgets.length) {
