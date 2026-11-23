@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.4.0-essai - 23/11/2026
+  Version : 1.4.1-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -234,10 +234,14 @@
     .w-fu-centre__nom { font-weight: 700; }
     .w-fu-centre .w-feuilles { flex: 1; min-height: 0; }
     .w-fu-centre--ecrire .w-ec { flex: 1 1 auto; min-height: 0; gap: .5rem; }
-    .w-atelier.w-atelier--ferme { display: none; }
-    .w-atelier.w-atelier--ferme.w-atelier--elem { display: flex; flex-basis: min(26rem, 42vw); }
-    .w-atelier--ferme .w-atl-tete, .w-atelier--ferme .w-atl-etapes, .w-atelier--ferme .w-param-fin { display: none; }
-    .w-fu-centre__tete #pReglagesFu[aria-expanded="true"] { background-color: var(--background-action-low-blue-france); }
+    .w-fu-ligne { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
+    .w-fu-ligne .w-echantillon { flex-wrap: wrap; }
+    .w-ec-poignee { cursor: grab; padding: .25rem; color: var(--text-action-high-blue-france); }
+    .w-ec-poignee:active { cursor: grabbing; }
+    .w-fu-centre--ecrire .w-ec-page { background-image: radial-gradient(circle, var(--border-default-grey) 1px, transparent 1.2px); background-size: 1rem 1rem; }
+    .w-glisse-en-cours .w-fu-centre--ecrire .w-ec-page { background-image: linear-gradient(var(--border-default-grey) 1px, transparent 1px), linear-gradient(90deg, var(--border-default-grey) 1px, transparent 1px); }
+    .w-ec-depot--avant { box-shadow: 0 -3px 0 0 var(--border-action-high-blue-france); }
+    .w-ec-depot--apres { box-shadow: 0 3px 0 0 var(--border-action-high-blue-france); }
     .w-fu-centre--ecrire .w-ec-cadre { flex: 1 1 auto; min-height: 0; }
     .w-fu-elem:not(:empty) { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-fu-texte__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
@@ -1101,7 +1105,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.4.0-essai';
+var VERSION_WIDGET = '1.4.1-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2907,12 +2911,25 @@ function resumeEtapeFu(b, nom) {
     }
     return '';
 }
+/* Réglages d'affichage du document, rangés dans l'étape « Vos données » :
+   écrire avec les champs ou voir le document avec une vraie ligne, choisir
+   la ligne affichée et la colonne qui nomme les lignes. */
+function ligneAfficheeFu(b) {
+    if (!b.table) {
+        return null;
+    }
+    var donnees = etat.donnees[b.table] && ordreLignes(b.table).length;
+    return creer('section', { classe: 'w-section w-fu-ligne' }, [
+        creer('h3', { classe: 'w-c3__titre', texte: 'Le document affiché' }),
+        b.avance ? null : basculeVueCourrier(),
+        donnees ? navEchantillon() : creer('p', { classe: 'w-mention', texte: 'La table n\'a pas encore de ligne : le document montre les champs.' })]);
+}
 function contenuEtapeFu(b, nom) {
     if (nom === 'Général') {
         return creer('section', { classe: 'w-section' }, [champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); })]);
     }
     if (nom === 'Vos données') {
-        return etapeDonnees();
+        return creer('div', {}, [ligneAfficheeFu(b), etapeDonnees()]);
     }
     if (nom === 'La mise en page') {
         return etapeMiseEnPage();
@@ -2925,74 +2942,10 @@ function contenuEtapeFu(b, nom) {
     }
     return null;
 }
-/* Écran façon traitement de texte : le document occupe la place, les
-   réglages s'ouvrent seulement à la demande (bouton « Réglages »). Les
-   réglages d'un bloc (condition, image, encadré...) s'affichent seuls
-   dans le panneau quand on les demande ou qu'on choisit un élément
-   qui n'est pas du texte. */
-function basculerReglagesFu() {
-    etat.reglagesFu = !etat.reglagesFu;
-    var a = document.getElementById('pAtelier');
-    if (a) {
-        a.classList.toggle('w-atelier--ferme', !etat.reglagesFu);
-    }
-    var bt = document.getElementById('pReglagesFu');
-    if (bt) {
-        bt.setAttribute('aria-expanded', etat.reglagesFu ? 'true' : 'false');
-    }
-    majApercuBrouillon();
-    if (etat.reglagesFu) {
-        var h = document.getElementById('pTitreParam');
-        if (h) {
-            h.focus({ preventScroll: true });
-        }
-    }
-    else if (bt) {
-        bt.focus({ preventScroll: true });
-    }
-    annoncer(etat.reglagesFu ? 'Réglages ouverts.' : 'Réglages fermés.');
-}
-function elementAMontrerFu() {
-    var b = etat.brouillon;
-    if (!b || !b.choisi || b.avance) {
-        return false;
-    }
-    var em = emplacementBloc(b.choisi);
-    if (!em) {
-        return false;
-    }
-    return etat.elemFuDemande === b.choisi || ['paragraph', 'heading'].indexOf(em.bl.type) === -1;
-}
-function majPanneauElementFu() {
-    var a = document.getElementById('pAtelier');
-    if (a) {
-        a.classList.toggle('w-atelier--elem', elementAMontrerFu());
-    }
-}
-function ouvrirReglagesBloc(id) {
-    if (!id) {
-        return;
-    }
-    etat.elemFuDemande = id;
-    choisirElement(id);
-    majPanneauElement();
-    var c = document.querySelector('#pElementZone select, #pElementZone input');
-    var t = document.getElementById('pElemTitre');
-    if (t) {
-        t.setAttribute('tabindex', '-1');
-        t.focus({ preventScroll: false });
-    }
-    else if (c) {
-        c.focus();
-    }
-}
 function allerEtapeFu(n) {
     var b = etat.brouillon;
     if (!b) {
         return;
-    }
-    if (n !== ETAPE_TEXTE) {
-        etat.reglagesFu = true;
     }
     if (n === ETAPE_TEXTE) {
         b.etapeAvantTexte = b.etape;
@@ -3041,8 +2994,8 @@ function panneauParamFu(b) {
         bouton('Supprimer le document', 'secondaire', 'delete-line', supprimerDocument, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })]);
     var tete = creer('div', { classe: 'w-atl-tete' }, [creer('h2', { classe: 'w-titre-fluo', id: 'pTitreParam', texte: 'Paramétrage du document', attrs: { tabindex: '-1' } }),
         creer('span', { classe: 'w-pousse' }),
-        bouton('Fermer les réglages', 'discret', 'close-line', function () { if (etat.reglagesFu) { basculerReglagesFu(); } }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
-    return creer('aside', { classe: 'w-atelier' + (etat.reglagesFu ? '' : ' w-atelier--ferme') + (elementAMontrerFu() ? ' w-atelier--elem' : ''), id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
+        bouton('Fermer le paramétrage', 'discret', 'close-line', function () { return allerAccueilFu(); }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
+    return creer('aside', { classe: 'w-atelier', id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
         creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, b.avance ? null : creer('div', { classe: 'w-elem-zone w-fu-elem', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()), ol, danger]),
         creer('div', { classe: 'w-atelier__bas' }, [creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: b.statut || '' })])]);
 }
@@ -3054,11 +3007,7 @@ function centreApercuFu(b) {
     var tete = creer('div', { classe: 'w-fu-centre__tete' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil' }),
         creer('span', { classe: 'w-fu-centre__nom', texte: b.name || 'Document sans titre' }),
-        b.table ? bouton('Données : ' + libelleSansEmoji(libelleTable(b.table)), 'tertiaire', 'table-line', function () { return allerEtapeFu(2); }, { petit: true, id: 'pCentreDonnees', attrs: { title: 'Changer la table ou la correspondance des champs' } }) : null,
-        ecrire ? basculeVueCourrier() : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
-        creer('span', { classe: 'w-pousse' }),
-        etat.donnees[b.table] && ordreLignes(b.table).length ? navEchantillon() : null,
-        bouton('Réglages', 'secondaire', 'settings-5-line', basculerReglagesFu, { petit: true, id: 'pReglagesFu', attrs: { 'aria-expanded': etat.reglagesFu ? 'true' : 'false', 'aria-controls': 'pAtelier' } })]);
+        ecrire ? (b.vueDonnees ? creer('span', { classe: 'w-mention', texte: 'Avec les données de la ligne affichée, en lecture seule (réglage à l\'étape « Vos données »)' }) : null) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' })]);
     if (ecrire) {
         return creer('section', { classe: 'w-fu-centre w-fu-centre--ecrire', id: 'pDocCentre', attrs: { 'aria-label': estTypeLettre(b.layout) ? 'Le courrier, modifiable dans la page' : 'La page, modifiable' } }, [tete, editeurCourrier()]);
     }
@@ -13000,6 +12949,23 @@ function majOutilsCourrier() {
 /* Barre d'outils unique, comme dans un traitement de texte : tous les
    boutons sont visibles d'un coup au-dessus du document. Première ligne :
    la mise en forme ; deuxième ligne : ce qu'on insère dans la page. */
+/* Ouvre les réglages du bloc (dont sa condition) en haut du panneau. */
+function ouvrirReglagesBloc(id) {
+    if (!id) {
+        return;
+    }
+    choisirElement(id);
+    majPanneauElement();
+    var t = document.getElementById('pElemTitre');
+    var d = document.getElementById('pAtelierDefile');
+    if (d) {
+        d.scrollTop = 0;
+    }
+    if (t) {
+        t.setAttribute('tabindex', '-1');
+        t.focus({ preventScroll: true });
+    }
+}
 function barreOutilsCourrier(info) {
     var b = [];
     var outil = function (id, libelle, icone, action, o) {
@@ -13180,6 +13146,7 @@ function rendreCourrier() {
     if (!cont || !b) {
         return;
     }
+    brancherGlisserBlocs(cont);
     fermerSuggestions();
     fermerGroupe();
     var ancien = null;
@@ -13591,6 +13558,89 @@ function dernierRang(liste) {
     }
     return n;
 }
+/* Glisser-déposer des blocs : on prend le bloc par sa poignée et on le
+   lâche au-dessus ou au-dessous d'un autre bloc du même niveau. Les
+   boutons Monter et Descendre restent pour le clavier. */
+var MIME_BLOC = 'application/x-wuit-bloc';
+var _glisse = null;
+function poigneeGlisser(bl) {
+    var p = creer('span', { classe: 'w-ec-poignee fr-icon-' + iconeDispo(['drag-move-2-line', 'drag-move-line', 'arrow-up-down-line']) + ' fr-icon--sm', attrs: { draggable: 'true', title: 'Glisser pour déplacer le bloc', 'aria-hidden': 'true' } });
+    p.addEventListener('dragstart', function (e) {
+        e.stopPropagation();
+        _glisse = bl.id;
+        try {
+            e.dataTransfer.setData(MIME_BLOC, bl.id);
+            e.dataTransfer.setData('text/plain', '');
+            e.dataTransfer.effectAllowed = 'move';
+            var w = p.closest('.w-ec-el');
+            if (w && e.dataTransfer.setDragImage) {
+                e.dataTransfer.setDragImage(w, 12, 12);
+            }
+        }
+        catch (er) {
+            logSecurite('INFO', 'Glisser-deposer partiel', er);
+        }
+        document.body.classList.add('w-glisse-en-cours');
+    });
+    p.addEventListener('dragend', function () { finGlisser(); });
+    return p;
+}
+function finGlisser() {
+    _glisse = null;
+    document.body.classList.remove('w-glisse-en-cours');
+    Array.prototype.slice.call(document.querySelectorAll('.w-ec-depot--avant, .w-ec-depot--apres')).forEach(function (x) { x.classList.remove('w-ec-depot--avant', 'w-ec-depot--apres'); });
+}
+function cibleDepot(e) {
+    if (!_glisse) {
+        return null;
+    }
+    var src = emplacementBloc(_glisse);
+    var el = e.target && e.target.closest ? e.target.closest('[data-el]') : null;
+    while (el) {
+        var id = el.getAttribute('data-el');
+        var em = id && id !== _glisse ? emplacementBloc(id) : null;
+        if (em && src && em.liste === src.liste && em.bl.type !== 'footer') {
+            var r = el.getBoundingClientRect();
+            return { el: el, k: em.k, apres: e.clientY > r.top + r.height / 2, src: src };
+        }
+        el = el.parentElement ? el.parentElement.closest('[data-el]') : null;
+    }
+    return null;
+}
+function brancherGlisserBlocs(cont) {
+    if (cont._glisser) {
+        return;
+    }
+    cont._glisser = true;
+    cont.addEventListener('dragover', function (e) {
+        var c = cibleDepot(e);
+        Array.prototype.slice.call(cont.querySelectorAll('.w-ec-depot--avant, .w-ec-depot--apres')).forEach(function (x) { if (!c || x !== c.el) {
+            x.classList.remove('w-ec-depot--avant', 'w-ec-depot--apres');
+        } });
+        if (!c) {
+            return;
+        }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        c.el.classList.toggle('w-ec-depot--apres', c.apres);
+        c.el.classList.toggle('w-ec-depot--avant', !c.apres);
+    });
+    cont.addEventListener('drop', function (e) {
+        var c = cibleDepot(e);
+        var id = _glisse;
+        finGlisser();
+        if (!c || !id) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        var j = c.k + (c.apres ? 1 : 0);
+        if (c.src.k < j) {
+            j--;
+        }
+        deplacerElement(id, j);
+    }, true);
+}
 function barreElement(id) {
     var em = emplacementBloc(id);
     var barre = creer('div', { classe: 'w-ec-el__barre', attrs: { role: 'toolbar', 'data-pour': id, 'aria-label': 'Actions sur l\'élément' } });
@@ -13607,6 +13657,7 @@ function barreElement(id) {
         return x;
     };
     if (bl.type !== 'footer') {
+        barre.appendChild(poigneeGlisser(bl));
         barre.appendChild(bt('Tout en haut', iconeExtreme(true), function () { deplacerElement(id, 0); }, k === 0, 'pElHaut2'));
         barre.appendChild(bt('Monter', 'arrow-up-line', function () { deplacerElement(id, k - 1); }, k === 0, 'pElHaut'));
         barre.appendChild(bt('Descendre', 'arrow-down-line', function () { deplacerElement(id, k + 1); }, k >= fin, 'pElBas'));
@@ -13656,7 +13707,6 @@ function deselectionnerElement() {
     }
     var id = b.choisi;
     b.choisi = null;
-    etat.elemFuDemande = null;
     marquerChoisiDom();
     majPanneauElement();
     majOutilsCourrier();
@@ -13981,7 +14031,6 @@ function majSelectsOutils() {
     }
 }
 function majPanneauElement() {
-    majPanneauElementFu();
     var zone = document.getElementById('pElementZone');
     if (!zone) {
         return;
