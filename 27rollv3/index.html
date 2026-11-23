@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitSlides
-  Version : 1.0.0 - 23/11/2026
+  Version : 1.1.0 - 23/11/2026
   Description : présentations au gabarit du ministère, avec projection et télécommande.
 -->
 <head>
@@ -929,6 +929,27 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__item--second { font-size: .8125rem; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 1.75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .w-acc__sous-item { position: relative; align-items: flex-start; }
+    .w-acc__sous-item[data-nom]::after { content: attr(data-nom); position: absolute; z-index: 40; left: 0; bottom: calc(100% + .25rem); max-width: 16rem; width: max-content; padding: .25rem .5rem; font-size: .75rem; line-height: 1.4; font-weight: 400; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); pointer-events: none; opacity: 0; visibility: hidden; }
+    .w-acc__sous-item[data-nom]:hover::after, .w-acc__sous-item[data-nom]:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-acc__sous-item .fr-badge { flex: none; }
+    .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
+    .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
+    .w-acc__vig--vide { display: flex; align-items: center; justify-content: center; padding: .75rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig--vide span::before { --icon-size: 2.5rem; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .w-acc__ligne-ico { flex: none; color: var(--text-action-high-blue-france); }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__encart { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; color: inherit; }
+    .w-acc__encart p { margin: 0; }
     .w-disposition--param { display: flex; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-atelier .w-section { padding: 0; border: 0; }
@@ -983,7 +1004,7 @@ body.sd-en-presentation .w-bandeau, body.sd-en-presentation .w-corps, body.sd-en
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploslides';
@@ -3965,6 +3986,8 @@ function contenuDroits() {
         inviter,
         creer('h4', { classe: 's-droits__sous-titre', texte: 'Les rôles' }),
         roles,
+        creer('h4', { classe: 's-droits__sous-titre', texte: 'Qui est « Admin » ?' }),
+        creer('p', { classe: 'w-texte', id: 'aQuiAdmin', texte: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' }),
         creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Un rôle seul ne suffit pas : sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.' })
     ]);
     var etat2 = creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'La page Admin porte sa vue de protection : il reste à poser la règle de l\'étape 3.' : 'La page Admin n\'est pas encore protégée.',
@@ -4082,7 +4105,7 @@ function afficherVue(v) {
 }
 function pageAdminSl() { return !!etat.peutParametrer && !etat.pageSpeciale && !etat.presentation; }
 etat.pubSl = {};
-etat.rubSl = 'presentation';
+etat.rubSl = null;
 function notePubSl(id, publie) {
     if (!id) {
         return;
@@ -4152,6 +4175,7 @@ function allerAccueilSl() {
         etat.pres = null;
         etat.diapos = [];
         etat.courante = null;
+        etat.rubSlChoisie = false;
         afficherVue('accueil');
         focusTitreVue();
     })(), 'Retour à l\'accueil');
@@ -4310,7 +4334,62 @@ function carteAccueilSl(vig, etiquette, nom, desc, libelle, action, id) {
     return c;
 }
 function badgeSl(texte, variante) { return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (variante ? 'fr-badge--' + variante : 'w-badge-brouillon'), texte: texte }); }
+function badgeStatutSl(cle, long) {
+    var n = pagesDeSl(cle).length;
+    return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (n ? 'fr-badge--success' : 'w-badge-brouillon'), texte: n ? (long ? 'Publié · ' + n + (n > 1 ? ' pages' : ' page') : 'Publié') : 'Brouillon' });
+}
+function carteVideSl(id, titre, texte, action) {
+    var b = bouton('Commencer', null, 'arrow-right-line', action, { petit: true, id: id, iconeDroite: true });
+    var c = creer('div', { classe: 'w-acc__carte w-acc__carte--vide' }, [
+        creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line' })]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: titre }), creer('span', { classe: 'w-mention', texte: texte })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+    c.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+        b.click();
+    } });
+    return c;
+}
+function sousMenuSl(objets, ouvrir) {
+    var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Mes présentations' } });
+    objets.forEach(function (t, k) {
+        var b = creer('button', { classe: 'w-acc__sous-item', id: 'sMenu' + k, attrs: { type: 'button', 'data-nom': t.config.nom || '' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.nom || 'Présentation sans nom' }), badgeStatutSl(t.cle, false)]);
+        b.addEventListener('click', function () { return ouvrir(t.cle); });
+        sous.appendChild(creer('li', {}, [b]));
+    });
+    return sous;
+}
+function listeMesSl(objets, ouvrir) {
+    if (!objets.length) {
+        return creer('p', { classe: 'w-mention', id: 'sAucun', texte: 'Aucune présentation créée' });
+    }
+    var ul = creer('ul', { classe: 'w-acc__liste' });
+    objets.forEach(function (t, k) {
+        var pages = pagesDeSl(t.cle).map(function (x) { return x.nom; }).filter(Boolean);
+        var b = bouton(pages.length ? 'Modifier' : 'Modifier mon brouillon', 'secondaire', 'arrow-right-line', function () { return ouvrir(t.cle); }, { petit: true, id: 'sOuvrir' + k, iconeDroite: true });
+        var li = creer('li', { classe: 'w-acc__ligne w-acc__ligne--clic' }, [
+            creer('span', { classe: 'w-acc__ligne-ico fr-icon-slideshow-line', attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.nom || 'Présentation sans nom' }),
+                pages.length ? creer('span', { classe: 'w-mention', texte: (pages.length > 1 ? 'Pages : ' : 'Page : ') + pages.join(', ') }) : (t.config.description ? creer('span', { classe: 'w-mention', texte: t.config.description }) : null)]),
+            creer('span', { classe: 'w-pousse' }), badgeStatutSl(t.cle, true), b]);
+        li.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+            b.click();
+        } });
+        ul.appendChild(li);
+    });
+    return ul;
+}
+function pagesDeSl(id) {
+    return (etat.pagesSl || {})[id] || [];
+}
+function objetsSl() {
+    return etat.presentations.slice().sort(function (a, b) { return a.ligne - b.ligne; }).map(function (p) {
+        return { cle: p.id, config: { nom: nomPres(p), description: accordSl(diaposDe(p.id).length, 'diapositive', 'diapositives') } };
+    });
+}
 function rendreAccueilSl(zone) {
+    if (!etat.rubSlChoisie || ['mes', 'modeles', 'droits'].indexOf(etat.rubSl) === -1) {
+        etat.rubSl = etat.presentations.length || !peutCreer() ? 'mes' : 'modeles';
+    }
     var rub = etat.rubSl;
     if (!etat.pagesSl && !etat.lecturePagesSl) {
         etat.lecturePagesSl = true;
@@ -4325,7 +4404,8 @@ function rendreAccueilSl(zone) {
             creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: texte })]);
         b.addEventListener('click', function () {
             etat.rubSl = cle;
-            if (cle === 'pages') {
+            etat.rubSlChoisie = true;
+            if (cle === 'mes') {
                 etat.pagesSl = null;
             }
             afficherVue('accueil');
@@ -4336,50 +4416,31 @@ function rendreAccueilSl(zone) {
         });
         menu.appendChild(b);
     };
-    item('pages', 'Mes pages publiées', 'layout-grid-line');
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('presentation', 'Une présentation', 'slideshow-line');
+    item('mes', 'Mes présentations', 'slideshow-line');
+    if (etat.presentations.length) {
+        menu.appendChild(sousMenuSl(objetsSl(), function (id) { ouvrirPresentation(id); }));
+    }
+    if (peutCreer()) {
+        menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer une nouvelle présentation' }));
+        item('modeles', 'Choisir un modèle', 'add-circle-line');
+    }
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
-    var titres = { pages: 'Mes pages publiées', presentation: 'Mes présentations', droits: 'Les droits' };
+    var titres = { mes: 'Mes présentations', modeles: 'Choisir un modèle', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
-    var triees = etat.presentations.slice().sort(function (a, b) { return a.ligne - b.ligne; });
-    if (rub === 'pages') {
-        var avec = triees.filter(function (p) { return pages[p.id] && pages[p.id].length; });
-        if (!etat.pagesSl) {
-            scene.appendChild(creer('p', { classe: 'w-mention', texte: 'Lecture des pages…' }));
-        }
-        else if (!avec.length) {
-            scene.appendChild(creer('p', { classe: 'w-mention', id: 'sAucunePage', texte: 'Aucune page publiée' }));
-        }
-        else {
-            var ul = creer('ul', { classe: 'w-acc__liste' });
-            avec.forEach(function (p, k) {
-                ul.appendChild(creer('li', { classe: 'w-acc__ligne' }, [
-                    creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: nomPres(p) }), creer('span', { classe: 'w-mention', texte: pages[p.id].map(function (x) { return x.nom; }).join(', ') })]),
-                    creer('span', { classe: 'w-pousse' }),
-                    bouton('Modifier', 'secondaire', 'arrow-right-line', function () { ouvrirPresentation(p.id); ouvrirParametrage(4); }, { petit: true, id: 'sPageModif' + k, iconeDroite: true })]));
-            });
-            scene.appendChild(ul);
-        }
+    if (rub === 'mes') {
+        scene.appendChild(listeMesSl(objetsSl(), function (id) { ouvrirPresentation(id); }));
     }
     else if (rub === 'droits') {
         scene.appendChild(contenuDroitsLu());
     }
     else {
         var grille = creer('div', { classe: 'w-acc__cartes' });
-        triees.forEach(function (p, k) {
-            var publie = !!(pages[p.id] && pages[p.id].length);
-            grille.appendChild(carteAccueilSl(vignettePresSl(p), badgeSl(publie ? 'Publié' : 'Brouillon', publie ? 'success' : ''), nomPres(p), accordSl(diaposDe(p.id).length, 'diapositive', 'diapositives'),
-                publie ? 'Modifier' : 'Modifier mon brouillon', function () { ouvrirPresentation(p.id); }, 'sOuvrir' + k));
-        });
         if (peutCreer()) {
             MODELES.forEach(function (m) {
                 grille.appendChild(carteAccueilSl(vignetteModeleSl(m), badgeSl('Modèle', 'purple-glycine'), m.nom, m.description, 'Utiliser ce modèle', function () { creerDepuisAccueilSl('modele', m.cle); }, 'sModele_' + m.cle));
             });
-            var plus = creer('button', { classe: 'w-acc__plus', id: 'sCreer', attrs: { type: 'button', 'aria-label': 'Créer une présentation vierge' } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-            plus.addEventListener('click', function () { creerDepuisAccueilSl('zero'); });
-            grille.appendChild(plus);
+            grille.appendChild(carteVideSl('sCreer', 'Une présentation vierge', 'Une présentation sans modèle, à compléter.', function () { creerDepuisAccueilSl('zero'); }));
         }
         scene.appendChild(grille);
     }
@@ -6613,7 +6674,7 @@ function imprimerPresentation() {
 var AIDE = {
     resume: 'WuitSlides fait des présentations directement dans le document : chaque diapositive est une ligne d\'une table, que plusieurs personnes peuvent modifier en même temps.',
     fonctions: [
-        'Créer une présentation depuis l\'accueil, à partir d\'un modèle (comité de pilotage, point d\'étape, présentation d\'un produit, formation) ou vierge avec le « + » : elle s\'ouvre aussitôt, avec son paramétrage à droite.',
+        'Créer une présentation depuis l\'accueil, à partir d\'un modèle (comité de pilotage, point d\'étape, présentation d\'un produit, formation) ou vierge avec « Une présentation vierge » : elle s\'ouvre aussitôt, avec son paramétrage à droite.',
         'Choisir le gabarit officiel (pages blanches, bloc-marque, pied de page, police Arial) ou une présentation libre : couleurs, habillage, logo et pied de page au choix.',
         'Écrire directement dans les zones de la diapositive : gras, italique, souligné, listes sur cinq niveaux, liens.',
         'Ajouter des cadres de texte, des images, des rectangles, des cercles, des traits et des flèches, à placer où vous voulez.',
@@ -6640,6 +6701,7 @@ var AIDE = {
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
         { q: 'Comment ajouter du texte ?', r: 'Cliquez dans une zone en pointillés de la diapositive (« Titre », « Texte »…) et tapez. Pour un texte ailleurs, « Ajouter », puis « Cadre de texte » : il se place où vous voulez.' },
         { q: 'Comment me servir de mon téléphone comme télécommande ?', r: '1. Une fois pour toutes : « Paramétrage », étape « Publier », bouton « Publier les pages ». Deux pages apparaissent dans le document : « Projection » et « Télécommande ». 2. Le jour J, sur l\'ordinateur relié au grand écran, ouvrez la page « Projection » et cliquez sur « Projeter en plein écran ». C\'est cette page, et elle seule, que le public doit voir : en salle, l\'ordinateur est relié au vidéoprojecteur ; en visioconférence (Teams, Webex, Tixeo…), partagez l\'écran de l\'ordinateur, ou la fenêtre du navigateur qui montre la page « Projection ». 3. Sur votre téléphone, ouvrez le navigateur (Safari, Chrome…), allez à l\'adresse de votre Grist, connectez-vous avec votre compte, ouvrez le document puis la page « Télécommande » dans la liste des pages. Plus rapide : « Copier le lien de la Télécommande », dans « Pages à partager », puis envoyez-vous ce lien par courriel ou messagerie ; sur le téléphone, touchez le lien. Pour la retrouver d\'un geste, ajoutez-la à l\'écran d\'accueil : sur iPhone, Safari, bouton Partager, « Sur l\'écran d\'accueil » ; sur Android, Chrome, menu ⋮, « Ajouter à l\'écran d\'accueil ». 4. Le point vert « Grand écran relié » confirme la liaison. Avancez avec « Suivante » et « Précédente », ou en faisant glisser le doigt : le grand écran suit en une seconde environ, et vos notes restent sur le téléphone. L\'écran du téléphone reste allumé tant que la page est ouverte. La page « Télécommande » est réservée aux administrateurs du document : c\'est avec ce compte qu\'il faut se connecter sur le téléphone. Sans les pages, le bouton « Télécommande » de l\'éditeur fait la même chose avec « Présenter ».' },
         { q: 'Comment mettre le bloc-marque de mon ambassade ou de mon consulat ?', r: '« Paramétrage », étape « Apparence », rubrique « Bloc-marque et logo partenaire » : choisissez « Poste à l\'étranger », puis le poste (ambassade, consulat général, consulat), la liaison (en, au, aux, à, auprès de) et le pays ou la ville. Le widget propose le découpage en lignes, en capitales, sur 6 lignes au plus ; vous pouvez déplacer un retour à la ligne. Le bloc garde la Marianne et la devise, comme le veut la charte de l\'État. L\'intitulé ne se traduit pas : écrivez-le exactement comme l\'intitulé officiel du poste.' },
