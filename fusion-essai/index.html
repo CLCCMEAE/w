@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.9-essai - 23/11/2026
+  Version : 1.3.10-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1253,7 +1253,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.9-essai';
+var VERSION_WIDGET = '1.3.10-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2287,13 +2287,27 @@ async function creerTables(defs) {
     }));
     var rv = ret && ret.retValues ? ret.retValues : [];
     var tids = defs.map(function (d, i) { return rv[i] && rv[i].table_id ? rv[i].table_id : d.id; });
+    /* Grist crée une page pour chaque nouvelle table : on la retire (sauf
+       garderPage). Les identifiants des pages viennent de la réponse
+       d'AddTable, sinon de _grist_Tables.primaryViewId relu par l'identifiant
+       réel de la table (il peut différer de celui demandé). */
     var vues = [];
     var aRetirer = defs.filter(function (d) { return !d.garderPage; }).length > 0;
     if (aRetirer) {
         await chargerMeta();
-        tids.forEach(function (t, i) { var m = etat.meta.tables[t]; if (!defs[i].garderPage && m && m.primaryViewId) {
-            vues.push(m.primaryViewId);
-        } });
+        tids.forEach(function (t, i) {
+            if (defs[i].garderPage) {
+                return;
+            }
+            var dites = rv[i] && Array.isArray(rv[i].views) ? rv[i].views.map(function (v) { return v && typeof v === 'object' ? v.id : v; }).filter(function (v) { return typeof v === 'number' && v > 0; }) : [];
+            var m = etat.meta.tables[t];
+            if (!dites.length && m && m.primaryViewId) {
+                dites = [m.primaryViewId];
+            }
+            dites.forEach(function (v) { if (vues.indexOf(v) === -1) {
+                vues.push(v);
+            } });
+        });
     }
     if (vues.length) {
         try {
@@ -17481,7 +17495,7 @@ async function creerTablesModele(m, avecExemples, choix) {
             return { id: c.id, label: c.id, type: typeResolu(c.type, tids), formula: c.formula, isFormula: !!c.formula, widgetOptions: optionsAEcrire(c.options) };
         });
         COLONNES_META.forEach(function (x) { cols.push({ id: x.id, label: x.label, type: x.type, formula: x.formula, recalcWhen: x.recalcWhen, isFormula: false }); });
-        defs.push({ cle: t.cle, id: tids[t.cle], titre: ch && ch.mode === 'nouvelle' ? ch.nom.trim() : t.titre, garderPage: true, colonnes: cols });
+        defs.push({ cle: t.cle, id: tids[t.cle], titre: ch && ch.mode === 'nouvelle' ? ch.nom.trim() : t.titre, colonnes: cols });
     });
     var crees = defs.length ? await creerTables(defs) : [];
     defs.forEach(function (d, k) { tids[d.cle] = crees[k]; });
