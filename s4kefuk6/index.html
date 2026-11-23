@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitViz
-  Version : 1.1.6 - 23/11/2026
+  Version : 1.1.7 - 23/11/2026
   Description : graphiques, chiffres clés, tableaux croisés, plannings et tableaux de bord.
 -->
 <head>
@@ -1090,7 +1090,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.6';
+var VERSION_WIDGET = '1.1.7';
 var ESSAI_WIDGET = 0;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -11128,7 +11128,18 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
         p.textContent = t ? 'Se lit : ' + t + '.' : '';
         p.hidden = !t;
     };
-    var majValeur = function () { ecrire(); maj(); majPhraseAf(); };
+    var majResumeAf = function () {
+        var r = cle === 'filtres' ? document.querySelector('#eSec-lignes .gb-acc__resume') : null;
+        if (!r) {
+            return;
+        }
+        var n = resumeLignesTuile(b);
+        while (r.firstChild) {
+            r.removeChild(r.firstChild);
+        }
+        r.appendChild(typeof n === 'string' ? document.createTextNode(n) : n);
+    };
+    var majValeur = function () { ecrire(); maj(); majPhraseAf(); majResumeAf(); };
     var nouveau = function () {
         var cat = meilleureCategorie(tid, 2, 30) || (colonnesUtiles(tid)[0] || {}).colId;
         return conditionParDefaut(tid, cat);
