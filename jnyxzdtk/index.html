@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.10 - 24/11/2026
+  Version : 1.1.11 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -357,6 +357,15 @@
     .w-remplir__tete { display: flex; flex-direction: column; gap: .5rem; }
     .w-remplir__etat { margin: 0; font-size: .875rem; color: var(--text-mention-grey); }
     .w-remplir__titre { margin: 0; }
+    .w-remplir__visuel { margin: -2rem -2.5rem 0; overflow: hidden; background: var(--background-alt-grey); }
+    .w-remplir__visuel--basse { height: 8rem; }
+    .w-remplir__visuel--moyenne { height: 12rem; }
+    .w-remplir__visuel--haute { height: 18rem; }
+    .w-remplir__visuel-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .w-remplir__logo { display: flex; }
+    .w-remplir__logo--centre { justify-content: center; }
+    .w-remplir__logo--droite { justify-content: flex-end; }
+    .w-remplir__logo-img { display: block; max-height: 3.5rem; max-width: 12rem; object-fit: contain; }
     .w-remplir__segments { display: flex; gap: .375rem; }
     .w-remplir__seg { flex: 1; height: .375rem; background: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-remplir__seg--fait { background: var(--background-active-blue-france); color: var(--text-inverted-blue-france); }
@@ -589,6 +598,7 @@
       .w-volet-mobile { display: inline-flex; flex-shrink: 0; }
       .w-disposition { gap: 0; }
       .w-remplir__carte { padding: 1.25rem 1rem; }
+      .w-remplir__visuel { margin: -1.25rem -1rem 0; }
       .w-rq--moitie { flex-basis: 100%; }
       .w-remplir__nav { flex-wrap: wrap; }
       .w-remplir__nav .fr-btn { flex: 1 1 auto; justify-content: center; }
@@ -619,6 +629,7 @@
       .w-imprime-seul, .w-impression-seule { display: block !important; }
       /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-remplir__carte, .w-feuille { border: 0 !important; padding: 0 !important; }
+      .w-remplir__visuel { margin: 0; }
       .w-table th, .w-table td { padding: .25rem .375rem; }
       .w-statut-dossier, .w-etiquette, .w-pastille-rouge, .w-barres__barre { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .w-recap-impression { margin-top: 1rem; text-align: left; }
@@ -1147,7 +1158,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.10';
+var VERSION_WIDGET = '1.1.11';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -1219,7 +1230,7 @@ DF.schema = (function () {
         emailDoubleSaisie: false,
         adressesAcceptees: [],
         adressesRefusees: [],
-        messageAdresseRefusee: 'Ce formulaire n\'est pas ouvert à cette adresse e-mail.',
+        messageAdresseRefusee: 'Vous n\'êtes pas autorisé à remplir ce formulaire : il ne vous est pas destiné.',
         gestionnaires: 'proprietaires',
         modifierApresEnvoi: true,
         reponsesEnCours: true,
@@ -1425,6 +1436,9 @@ DF.schema = (function () {
         Object.keys(REGLAGES_DEFAUT).forEach(function (k) { if (r[k] === undefined) {
             r[k] = O.copie(REGLAGES_DEFAUT[k]);
         } });
+        if (r.messageAdresseRefusee === 'Ce formulaire n\'est pas ouvert à cette adresse e-mail.') {
+            r.messageAdresseRefusee = REGLAGES_DEFAUT.messageAdresseRefusee;
+        }
         d.reglages = r;
         d.pages.forEach(function (p) { p.questions = Array.isArray(p.questions) ? p.questions : []; p.regles = Array.isArray(p.regles) ? p.regles : []; });
         return d;
@@ -2502,7 +2516,7 @@ DF.email = (function () {
             res.autorisee = aut.autorisee;
             res.raisonRefus = aut.raison;
             if (!aut.autorisee) {
-                res.messageRefus = String(rg.messageAdresseRefusee || '').trim() || 'Ce formulaire n\'est pas ouvert à cette adresse e-mail.';
+                res.messageRefus = String(rg.messageAdresseRefusee || '').trim() || 'Vous n\'êtes pas autorisé à remplir ce formulaire : il ne vous est pas destiné.';
                 if (res.suggestion && !autorisation(res.suggestion, rg).autorisee) {
                     res.suggestion = null;
                     res.avertissement = '';
@@ -3850,7 +3864,7 @@ DF.acces = (function () {
             if (instr) {
                 R.push(r('newRec.DECISION_CONFORME != True', '-U', 'la motivation est obligatoire pour refuser ou classer sans suite.'));
             }
-            R.push(r('newRec.ADRESSE_AUTORISEE != True', '-CU', String(rg.messageAdresseRefusee || 'ce formulaire n\'est pas ouvert à cette adresse e-mail.')));
+            R.push(r('newRec.ADRESSE_AUTORISEE != True', '-CU', String(rg.messageAdresseRefusee || 'vous n\'êtes pas autorisé à remplir ce formulaire : il ne vous est pas destiné.')));
             if (instr) {
                 R.push(r(GEST, '+RUD', 'gestionnaires.'));
                 R.push(r(INSTR, '+RU-D', 'seuls les gestionnaires suppriment un dossier.'));
@@ -6231,6 +6245,10 @@ function piecesDe(def) {
         ids.push(x);
     } };
     noticesDe(def).forEach(function (n) { ajouter(n.piece); });
+    ajouter(def.reglages.logo);
+    def.pages.forEach(function (p) { if (p.type === 'accueil') {
+        ajouter(p.visuel);
+    } });
     DF.schema.toutesQuestions(def).forEach(function (x) {
         var q = x.q;
         if (q.type === 'image') {
@@ -7832,6 +7850,9 @@ function enTeteFormulaire(def) {
         if (def.reglages.statut === 'brouillon') {
             cmd.unshift(bouton('Publier', null, 'send-plane-line', function () { return publierFormulaire(); }, { petit: true, id: 'wPublier' }));
         }
+        else if (!etat.page && !pagesDuFormulaire(def.id).length) {
+            cmd.unshift(bouton('Créer la page des utilisateurs', null, 'layout-grid-line', creerPageUtilisateurs, { petit: true, id: 'wCreerPage' }));
+        }
     }
     var retourAccueil = pageAdminFo() ? bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFo(); }, { petit: true, id: 'wAccueil', classe: 'w-entete-form__accueil' }) : null;
     return creer('div', { classe: 'w-entete-form' }, [retourAccueil, creer('div', { classe: 'w-entete-form__textes' }, [titre, badges]), creer('div', { classe: 'w-entete-form__cmd' }, cmd)]);
@@ -8312,6 +8333,17 @@ async function publierFormulaire() {
         masquerLoader();
     }
     afficherVue();
+    var dp = defCourante();
+    if (dp && dp.reglages.statut === 'publie' && !etat.page && !pagesDuFormulaire(dp.id).length) {
+        var oui = await confirmerAction('Créer la page des utilisateurs ?', 'Le formulaire est publié, mais aucune page ne le montre encore. Les personnes répondent depuis une page sans les écrans de conception.', 'Créer la page');
+        if (oui) {
+            creerPageUtilisateurs();
+        }
+    }
+}
+function creerPageUtilisateurs() {
+    ouvrirReglages('general');
+    editerPage(null, false);
 }
 async function changerStatut(statut) {
     var def = defCourante();
@@ -9069,7 +9101,11 @@ function paramAffichage(def) {
     majQuiz();
     return creer('div', { classe: 'w-grille w-grille--1-1' }, [
         creer('div', { classe: 'w-grille__col' }, [section('Présentation', null, 'aSecPres', [caseLiee('aBarre', 'Barre d\'étapes et progression', rg, 'barreProgression'),
-                caseLiee('aNumeros', 'Numéroter les questions', rg, 'numeroterQuestions')]), section('Accueil', 'Une page de présentation avant la première page de questions.', 'aSecAcc', [caseAcc, zoneAcc])]),
+                caseLiee('aNumeros', 'Numéroter les questions', rg, 'numeroterQuestions')]),
+            section('Logo', 'Affiché en haut de toutes les pages du formulaire.', 'aSecLogo', [editeurImage(rg, 'logo', 'aLogo', function () { planifierSauvegarde(true); }),
+                radios('aLogoPos', 'Position du logo', [{ valeur: 'gauche', libelle: 'À gauche' }, { valeur: 'centre', libelle: 'Au centre' }, { valeur: 'droite', libelle: 'À droite' }], rg.logoPosition || 'gauche', function (v) { rg.logoPosition = v; planifierSauvegarde(true); }, { enLigne: true }),
+                champLie('aLogoAlt', 'Texte de remplacement du logo', rg, 'logoAlt', { aide: 'Par exemple : le nom du service.' })]),
+            section('Accueil', 'Une page de présentation avant la première page de questions.', 'aSecAcc', [caseAcc, zoneAcc])]),
         creer('div', { classe: 'w-grille__col' }, [section('Quiz', 'Les questions notées portent leur bonne réponse (onglet Question de l\'éditeur).', 'aSecQuiz', [caseLiee('aQuiz', 'Mode quiz : score et correction', q, 'actif', { sync: true, apres: majQuiz }), zoneQuiz])])
     ]);
 }
@@ -9536,6 +9572,9 @@ function editeurPage(def, p) {
         return carte;
     }
     if (p.type === 'accueil') {
+        carte.appendChild(creer('div', { classe: 'w-pile' }, [creer('p', { classe: 'fr-label', texte: 'Visuel' }), editeurImage(p, 'visuel', 'cAccVisuel', function () { planifierSauvegarde(true); }),
+            radios('cAccHauteur', 'Hauteur du visuel', [{ valeur: 'basse', libelle: 'Basse' }, { valeur: 'moyenne', libelle: 'Moyenne' }, { valeur: 'haute', libelle: 'Haute' }], p.visuelHauteur || 'moyenne', function (v) { p.visuelHauteur = v; planifierSauvegarde(true); }, { enLigne: true }),
+            champLie('cAccAlt', 'Texte de remplacement du visuel', p, 'visuelAlt', { aide: 'Vide si l\'image est décorative.' })]));
         carte.appendChild(creer('div', { classe: 'w-pile' }, [champLie('cAccDuree', 'Durée estimée', p, 'dureeEstimee', { indice: '5 minutes' }), champLie('cAccBouton', 'Texte du bouton', p, 'boutonCommencer')]));
         return carte;
     }
@@ -10107,10 +10146,12 @@ function editeurImage(obj, cle, id, maj) {
         if (!input.files || !input.files[0]) {
             return;
         }
-        relayer(envoyerFichiers([input.files[0]]).then(function (ids) { obj[cle] = ids[0]; maj(); etat_.textContent = 'Image jointe (pièce ' + ids[0] + ').'; }), 'Envoi de l\'image');
+        relayer(envoyerFichiers([input.files[0]]).then(function (ids) { obj[cle] = ids[0]; maj(); etat_.textContent = 'Image jointe (pièce ' + ids[0] + ').'; retirer.hidden = false; }), 'Envoi de l\'image');
     });
     var etat_ = creer('span', { classe: 'w-mention', texte: obj[cle] ? 'Image jointe (pièce ' + obj[cle] + ').' : 'Aucune image.' });
-    z.appendChild(creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-image-line fr-btn--icon-left', attrs: { 'for': id }, texte: 'Choisir une image' }));
+    var retirer = lienAction('Retirer l\'image', function () { delete obj[cle]; maj(); etat_.textContent = 'Aucune image.'; retirer.hidden = true; }, { id: id + 'Retirer' });
+    retirer.hidden = !obj[cle];
+    z.appendChild(creer('div', { classe: 'w-boutons' }, [creer('label', { classe: 'fr-btn fr-btn--secondary fr-btn--sm fr-icon-image-line fr-btn--icon-left', attrs: { 'for': id }, texte: 'Choisir une image' }), retirer]));
     z.appendChild(input);
     z.appendChild(etat_);
     return z;
@@ -10751,6 +10792,11 @@ function rendreRemplir(zone, def, o) {
             zone.appendChild(messageCentre('Formulaire indisponible', ouv.message));
             return;
         }
+        var anMoi = etat.moi.connu && etat.moi.email && !s.dossierId && !s.pourTiers ? DF.email.analyser(etat.moi.email, def.reglages) : null;
+        if (anMoi && anMoi.valide && !anMoi.autorisee) {
+            zone.appendChild(messageCentre('Accès au formulaire', anMoi.messageRefus));
+            return;
+        }
         if (def.reglages.uneReponseParPersonne && etat.moi.connu && !s.dossierId && !s.pourTiers &&
             (etat.dossiersTous || etat.dossiers).some(function (d) { return d.EMAIL_COMPTE === etat.moi.email && d.STATUT_DOSSIER && d.STATUT_DOSSIER !== 'Brouillon'; })) {
             zone.appendChild(messageCentre('Vous avez déjà répondu', 'Ce formulaire n\'accepte qu\'une réponse par personne. Retrouvez la vôtre dans « Mes dossiers ».', etat.moi.connu ? bouton('Mes dossiers', 'secondaire', 'folder-2-line', function () { afficherVue('mesdossiers'); }, { id: 'rVersMesDossiers' }) : null));
@@ -10868,13 +10914,14 @@ function dessinerEtape(s, focus) {
     }
     var carte = creer('div', { classe: 'w-remplir__carte' });
     cadre.appendChild(carte);
+    logoFormulaire(def, carte);
     if (s.recu) {
         etapeRecu(s, carte);
     }
     else if (!s.codeOk && s.mode !== 'apercu') {
         etapeCode(s, carte);
     }
-    else if (besoinEmail(s)) {
+    else if (besoinEmail(s) && !surAccueil(s)) {
         etapeEmail(s, carte);
     }
     else {
@@ -10940,11 +10987,34 @@ function etapeCode(s, carte) {
     } });
     carte.appendChild(creer('div', { classe: 'w-remplir__nav' }, [creer('span'), bouton('Continuer', null, 'arrow-right-line', valider, { id: 'rCodeValider', iconeDroite: true })]));
 }
+function surAccueil(s) {
+    var p = s.parcours ? DF.schema.page(s.def, s.parcours.page) : null;
+    return !!p && p.type === 'accueil';
+}
+function logoFormulaire(def, carte) {
+    var rg = def.reglages;
+    if (!rg.logo) {
+        return;
+    }
+    var img = creer('img', { classe: 'w-remplir__logo-img', attrs: { alt: rg.logoAlt || '' } });
+    relayer(urlPieceJointe(rg.logo).then(function (u) { img.src = u; }), 'Logo');
+    var pos = ['gauche', 'centre', 'droite'].indexOf(rg.logoPosition) !== -1 ? rg.logoPosition : 'gauche';
+    carte.appendChild(creer('div', { classe: 'w-remplir__logo w-remplir__logo--' + pos }, [img]));
+}
+function visuelAccueil(p) {
+    var img = creer('img', { classe: 'w-remplir__visuel-img', attrs: { alt: p.visuelAlt || '' } });
+    relayer(urlPieceJointe(p.visuel).then(function (u) { img.src = u; }), 'Visuel');
+    var h = ['basse', 'moyenne', 'haute'].indexOf(p.visuelHauteur) !== -1 ? p.visuelHauteur : 'moyenne';
+    return creer('div', { classe: 'w-remplir__visuel w-remplir__visuel--' + h }, [img]);
+}
 function etapeEmail(s, carte) {
-    var rg = s.def.reglages;
     carte.appendChild(enteteEtape(s, null, s.def.nom));
     document.getElementById('titreVue').textContent = 'Votre adresse e-mail';
     carte.appendChild(creer('p', { classe: 'w-texte', texte: 'Elle permet de vous identifier comme auteur de la réponse. Elle est vérifiée avant de commencer.' }));
+    blocEmail(s, carte, 'Continuer', 'rEmailContinuer', function () { dessinerEtape(s, true); });
+}
+function blocEmail(s, carte, libelleBouton, idBouton, suite) {
+    var rg = s.def.reglages;
     var champ = saisie('rEmail', s.email, { type: 'email', clavier: 'email', indice: 'prenom.nom@domaine.fr' });
     champ.setAttribute('autocomplete', 'off');
     var g = groupeChamp('Adresse e-mail', champ, 'Format attendu : nom@domaine.fr', true);
@@ -10997,13 +11067,13 @@ function etapeEmail(s, carte) {
             s.ctx.reponses[x.q.id] = DF.calc.prerempli(x.q, s.ctx);
         } });
         sauverBrouillonLocal(s);
-        dessinerEtape(s, true);
+        suite();
     };
     champ.addEventListener('keydown', function (e) { if (e.key === 'Enter') {
         e.preventDefault();
         valider(false);
     } });
-    carte.appendChild(creer('div', { classe: 'w-remplir__nav' }, [creer('span'), bouton('Continuer', null, 'arrow-right-line', function () { valider(false); }, { id: 'rEmailContinuer', iconeDroite: true })]));
+    carte.appendChild(creer('div', { classe: 'w-remplir__nav' }, [creer('span'), bouton(libelleBouton, null, 'arrow-right-line', function () { valider(false); }, { id: idBouton, iconeDroite: true })]));
 }
 function suggestionEmail(sugg, champ) {
     return creer('p', { classe: 'w-texte' }, ['Vouliez-vous dire ', lienAction(sugg, function () { champ.value = sugg; champ.dispatchEvent(new Event('input')); champ.focus(); }, { id: 'rEmailSugg' }), ' ?']);
@@ -11023,13 +11093,21 @@ function etapePage(s, carte) {
         carte.appendChild(texteRiche(DF.calc.interpoler(p.description, s.ctx), 'rDescPage', p.description));
     }
     if (p.type === 'accueil') {
+        if (p.visuel) {
+            carte.insertBefore(visuelAccueil(p), carte.firstChild);
+        }
         if (p.dureeEstimee) {
             carte.appendChild(creer('p', { classe: 'w-mention', texte: 'Durée estimée : ' + p.dureeEstimee + '.' }));
         }
         if (def.description) {
             carte.appendChild(creer('p', { classe: 'w-texte', texte: def.description }));
         }
-        carte.appendChild(creer('div', { classe: 'w-remplir__nav' }, [creer('span'), bouton(p.boutonCommencer || 'Commencer', null, 'arrow-right-line', function () { avancerPage(s); }, { id: 'rCommencer', iconeDroite: true })]));
+        if (besoinEmail(s)) {
+            blocEmail(s, carte, p.boutonCommencer || 'Commencer', 'rCommencer', function () { avancerPage(s); });
+        }
+        else {
+            carte.appendChild(creer('div', { classe: 'w-remplir__nav' }, [creer('span'), bouton(p.boutonCommencer || 'Commencer', null, 'arrow-right-line', function () { avancerPage(s); }, { id: 'rCommencer', iconeDroite: true })]));
+        }
         return;
     }
     if (p.type === 'verification') {
