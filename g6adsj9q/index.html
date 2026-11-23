@@ -929,7 +929,7 @@ function confirmerAction(titre, msg, libelleOui, opts) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.0.2';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -4486,7 +4486,7 @@ function valeursCond(cond) {
 }
 function libelleCondition(cond, col) {
     var groupeTag = col ? obtenirGroupeType(col.type) : 'texte';
-    var nom = col ? col.label : cond.colId;
+    var nom = '« ' + (col ? col.label : cond.colId) + ' »';
     var opTag = (OPERATEURS_PAR_GROUPE[groupeTag] || []).find(function (o) { return o.code === cond.operateur; });
     if (groupeTag === 'date' && cond.operateur === 'entre') {
         return nom + ' ' + libellePlageDates(cond.valeur, cond.valeur2);
@@ -4496,11 +4496,11 @@ function libelleCondition(cond, col) {
     }
     if (cond.operateur === 'parmi' || cond.operateur === 'pas_parmi' || cond.operateur === 'contient_un_de') {
         var v = valeursCond(cond);
-        return nom + ' ' + (opTag ? opTag.libelle : cond.operateur) + ' ' + (v.length ? v.join(', ') : '(aucune valeur cochée)');
+        return nom + ' ' + (opTag ? opTag.libelle : cond.operateur) + ' ' + (v.length ? v.map(function (z) { return '« ' + z + ' »'; }).join(cond.operateur === 'pas_parmi' ? ' ni ' : ' ou ') : '…');
     }
     var libelle = nom + ' ' + (opTag ? opTag.libelle : cond.operateur);
     if (cond.valeur) {
-        libelle += ' ' + (groupeTag === 'date' ? dateIsoLisible(cond.valeur) : cond.valeur);
+        libelle += ' ' + (groupeTag === 'date' ? dateIsoLisible(cond.valeur) : (groupeTag === 'nombre' ? cond.valeur : '« ' + cond.valeur + ' »'));
     }
     return libelle;
 }
@@ -4550,8 +4550,8 @@ const OPERATEURS_PAR_GROUPE = {
         { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
     ],
     booleen: [
-        { code: 'vrai', libelle: 'est coché (vrai)', necessiteValeur: false },
-        { code: 'faux', libelle: 'est décoché (faux)', necessiteValeur: false }
+        { code: 'vrai', libelle: 'est coché', necessiteValeur: false },
+        { code: 'faux', libelle: 'n\'est pas coché', necessiteValeur: false }
     ],
     choix: [
         { code: 'parmi', libelle: "est l'une de", necessiteValeur: true },
