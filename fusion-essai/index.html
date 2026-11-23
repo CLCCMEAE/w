@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.11-essai - 23/11/2026
+  Version : 1.3.12-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1258,7 +1258,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.11-essai';
+var VERSION_WIDGET = '1.3.12-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -10278,10 +10278,7 @@ function confirmerTablesModele(m) {
         if (creees.length) {
             corps.push(creer('p', { classe: 'w-texte w-mention', texte: 'Chaque table créée reçoit aussi les colonnes de suivi CREE_LE, CREE_PAR, MODIFIE_LE et MODIFIE_PAR.' }));
         }
-        var avecLignes = creees.length > 0 || reprises.length > 0;
-        if (avecLignes && !pageAdminFu()) {
-            corps.push(caseACocher('pExemples', 'Ajouter des lignes d\'exemple', true, null, { aide: 'Dans les tables créées ou vides seulement' + (princ && !reprises.some(function (x) { return x.def === princ; }) ? ' (' + pluriel(princ.lignes.length, 'exemple') + ' pour ' + princ.titre + ')' : '') + ', pour voir le document tout de suite. Vous pourrez les supprimer ensuite.' }));
-        }
+        /* Un modèle crée des tables vides : jamais de lignes d'exemple. */
         corps.push(creer('p', { classe: 'w-texte w-mention', texte: 'Si vous abandonnez la création, le widget propose de supprimer les tables créées ; les tables reprises et leurs colonnes ajoutées restent.' }));
         ouvrirModale({
             titre: (creees.length ? 'Créer les tables du modèle « ' : 'Utiliser les tables du modèle « ') + m.nom + ' » ?', etroite: true,
@@ -10289,7 +10286,7 @@ function confirmerTablesModele(m) {
             pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, function () { fermerModale(); }, { id: 'pModAnnuler' }),
                 bouton(creees.length || Object.keys(choix).some(function (k) { return choix[k].mode === 'nouvelle'; }) ? 'Créer les tables' : 'Utiliser ces tables', null, 'check-line', function () { if (!choixValides()) {
                     return;
-                } var c = document.getElementById('pExemples'); finir({ exemples: c ? c.checked : !pageAdminFu(), choix: choix }); fermerModale(); }, { id: 'pModCreer' })],
+                } finir({ exemples: false, choix: choix }); fermerModale(); }, { id: 'pModCreer' })],
             surFermeture: function () { finir(null); }, focus: 'pModCreer'
         });
     });
