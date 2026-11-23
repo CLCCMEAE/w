@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitKanban
-  Version : 1.1.1 - 23/11/2026
+  Version : 1.2.0 - 23/11/2026
   Description : tableaux Kanban de suivi, cartes et fiches tirées d'une table.
 -->
 <head>
@@ -851,7 +851,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.1';
+var VERSION_WIDGET = '1.2.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -6149,7 +6149,7 @@ async function sauvegarderBrouillon() {
                 }
                 var tt = document.getElementById('tTableau');
                 if (tt) {
-                    tt.className = 'w-tableau' + (etat.config.compact ? ' w-compact' : '');
+                    tt.className = 'w-tableau' + (compactVue() ? ' w-compact' : '');
                 }
                 redessinerColonnes();
             }
@@ -7545,6 +7545,7 @@ var AIDE = {
         'Ajouter une carte avec « Ajouter une carte » en haut du panneau de gauche, ou le « + » d\'une colonne.',
         'Ouvrir une carte pour lire et modifier sa fiche, pièces jointes comprises.',
         'Chercher, filtrer, trier, regrouper ou répartir les cartes en couloirs depuis le panneau de gauche.',
+        'Passer en « Affichage compact », dans le panneau de gauche, rubrique « Affichage » : les cartes ne montrent que l\'essentiel. Réglage pour vous seul.',
         'Imprimer ou enregistrer en PDF la vue affichée, en bas du panneau de gauche.',
         'Repérer les cartes ajoutées ou modifiées depuis votre dernier passage : bouton « nouveautés » en haut du Kanban, étiquettes « Nouvelle » et « Modifiée » sur les cartes.',
         'Préparer un courriel depuis la fiche d\'une carte, si le Kanban le propose : votre messagerie s\'ouvre avec le message déjà rempli.',
@@ -8166,7 +8167,7 @@ function rendreTableau(zone) {
             ? 'Les colonnes apparaîtront dès qu\'une ligne de votre table aura une étape renseignée.'
             : 'Ajoutez une première colonne depuis « Paramétrages ».'));
     }
-    principal.appendChild(creer('div', { classe: 'w-tableau' + (c.compact ? ' w-compact' : ''), id: 'tTableau' }));
+    principal.appendChild(creer('div', { classe: 'w-tableau' + (compactVue() ? ' w-compact' : ''), id: 'tTableau' }));
     if (adminKb) {
         zone.appendChild(enteteAdminKb());
     }
@@ -8193,6 +8194,9 @@ function blocAffichage() {
     var c = etat.config;
     var bloc = creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'tVoletAff' } }, [titreVolet('eye-line', 'Affichage', 'tVoletAff')]);
     bloc.appendChild(caseNouveautes());
+    if (!pageAdminKb()) {
+        bloc.appendChild(caseCompact());
+    }
     var champ = function (id, libelle, explication, controle, sansChamp) {
         var a = aide(id, libelle, explication);
         return creer('div', { classe: 'w-outils__champ w-champ-aide' }, [
@@ -8673,6 +8677,47 @@ function marquerVu(id) {
     }
     majBoutonNouveautes();
 }
+function cleCompactVue() { return 'kanbans.compact.' + (etat.cleConfig || ''); }
+function compactVue() {
+    var c = etat.config || {};
+    if (!pageAdminKb()) {
+        if (etat.compactsVue && etat.compactsVue[etat.cleConfig] !== undefined) {
+            return etat.compactsVue[etat.cleConfig];
+        }
+        try {
+            var v = window.localStorage.getItem(cleCompactVue());
+            if (v === '1' || v === '0') {
+                return v === '1';
+            }
+        }
+        catch (e) {
+            logSecurite('INFO', 'Affichage compact non lu dans le navigateur', e);
+        }
+    }
+    return !!c.compact;
+}
+function caseCompact() {
+    var cb = creer('input', { attrs: { type: 'checkbox', id: 'tCompactOpt' }, coche: compactVue() });
+    cb.addEventListener('change', function () {
+        etat.compactsVue = etat.compactsVue || {};
+        etat.compactsVue[etat.cleConfig] = cb.checked;
+        try {
+            window.localStorage.setItem(cleCompactVue(), cb.checked ? '1' : '0');
+        }
+        catch (e) {
+            logSecurite('INFO', 'Affichage compact non mémorisé par le navigateur', e);
+        }
+        afficherVue('tableau', true);
+        var f = document.getElementById('tCompactOpt');
+        if (f) {
+            f.focus();
+        }
+        annoncer(cb.checked ? 'Affichage compact : les cartes ne montrent que leur titre, leur échéance et leur responsable.' : 'Affichage complet des cartes.');
+    });
+    var a = aide('tCompactOpt', 'Affichage compact', 'Les cartes ne montrent que leur titre, leur échéance et leur responsable, sans image de couverture : plus de cartes tiennent à l\'écran. Réglage pour vous seul, gardé dans ce navigateur : les autres personnes ne voient pas la différence.');
+    return creer('div', { classe: 'w-champ-aide w-volet__case' }, [creer('div', { classe: 'fr-checkbox-group fr-checkbox-group--sm' }, [cb,
+            creer('label', { classe: 'fr-label', attrs: { 'for': 'tCompactOpt' }, texte: 'Affichage compact' })]), a.bouton, a.panneau]);
+}
 function caseNouveautes() {
     var cb = creer('input', { attrs: { type: 'checkbox', id: 'tNouvOpt' }, coche: nouveautesActives() });
     cb.addEventListener('change', function () {
@@ -8900,10 +8945,11 @@ function rendreCarte(x) {
         return [creer('span', { classe: 'w-carte__libelle', texte: lib }), creer('span', { classe: 'fr-sr-only', texte: ' : ' }), creer('span', { classe: 'w-carte__valeur', texte: valeur })];
     };
     var champs = c.champs.filter(function (ch) { return ch.surCarte; });
-    if (c.compact) {
+    var compact = compactVue();
+    if (compact) {
         champs = champs.filter(function (ch) { return ch.col === c.colEcheance || ch.col === c.colResponsable; });
     }
-    if (c.couverture && !c.compact) {
+    if (c.couverture && !compact) {
         var image = premiereImage(x.valeurs[c.couverture]);
         if (image) {
             var img = creer('img', { classe: 'w-carte__couverture', attrs: { alt: '', loading: 'lazy' } });
