@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.3-essai - 23/11/2026
+  Version : 1.3.4-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -196,6 +196,7 @@
     .w-atl-etape__textes { display: flex; flex-direction: column; }
     .w-atl-etape__nom { font-weight: 700; }
     .w-atl-etape__resume { font-size: .75rem; color: var(--text-mention-grey); }
+    .w-atl-etape--ouverte .w-atl-etape__resume { display: none; }
     .w-atl-etape--verrouillee > .w-atl-etape__tete { opacity: .45; cursor: not-allowed; }
     .w-atl-etape__corps { padding: .75rem 0 .5rem 2.25rem; }
     .w-atl-etapes { gap: 0; }
@@ -270,7 +271,7 @@
     .w-atelier .w-option__sous { display: none; }
     .w-atelier .w-replie { border-top: 1px solid var(--border-default-grey); border-bottom: 1px solid var(--border-default-grey); padding: .375rem 0; }
     .w-atelier .w-replie > summary { cursor: pointer; display: flex; gap: .5rem; align-items: center; font-size: .875rem; color: var(--text-action-high-blue-france); }
-    .w-atelier .w-replie > summary .w-rg__lib { width: 7rem; flex: 0 0 7rem; }
+    .w-atelier .w-replie > summary .w-rg__lib { width: 7.5rem; flex: 0 0 7.5rem; overflow-wrap: normal; word-break: normal; }
     .w-atelier .w-replie[open] > summary { margin-bottom: .5rem; }
     .w-atelier .w-a-aide { text-decoration: underline dotted var(--border-default-grey); text-underline-offset: 3px; }
     .w-atelier .w-fu-ligne { margin-bottom: 0; padding-bottom: .5rem; gap: .5rem; }
@@ -1175,7 +1176,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.3-essai';
+var VERSION_WIDGET = '1.3.4-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -3026,12 +3027,12 @@ function colonnesAInsererFu(b) {
         return null;
     }
     var l = [creer('h3', { classe: 'w-c3__titre', id: 'pColInsTitre', texte: 'Ajouter un champ' }),
-        creer('p', { classe: 'w-mention fr-mb-0', texte: 'Glissez un champ dans le texte, ou cliquez dans le texte puis sur le champ.' })];
+        creer('p', { classe: 'w-mention fr-mb-0', texte: 'Glissez-les dans la page.' })];
     optionsChamps(b.table, true).forEach(function (g, kg) {
         l.push(creer('p', { classe: 'w-champs__groupe', texte: kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Automatiques' : g.nom) }));
         l.push(creer('ul', { classe: 'w-champs w-champs--glisser', attrs: { 'aria-label': kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Champs automatiques' : g.nom) } }, g.options.map(function (o, k) {
             var bt = creer('span', { classe: 'w-champ-puce', id: 'pChampDispo' + kg + '_' + k, attrs: { role: 'button', tabindex: '0', draggable: 'true', title: 'Glisser dans le texte, ou cliquer pour l\'ajouter au curseur', 'aria-label': 'Ajouter le champ ' + o.libelle } }, [
-                creer('span', { classe: 'fr-icon-draggable fr-icon--xs', attrs: { 'aria-hidden': 'true' } }), o.libelle]);
+                o.libelle]);
             bt.addEventListener('click', function () { insererChampDepuisPanneau(o.valeur); });
             bt.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -3127,9 +3128,9 @@ function nommerParFu(b) {
     }
     var cols = colonnesUtiles(b.table).filter(function (c) { return c.type !== 'Attachments'; });
     var rep = liste('pRepereLignes', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), b.labelCol || '', { vide: 'Numéro de ligne' });
-    rep.setAttribute('title', 'Nomme chaque ligne dans les listes et dans le nom des fichiers.');
+    rep.setAttribute('title', 'La colonne qui donne son nom à chaque document : dans la liste des documents et dans le nom du fichier (par exemple « Courrier - M. Julien Moreau.pdf »).');
     rep.addEventListener('change', function () { b.labelCol = rep.value || null; marquerTouche(); redessinerEtape('pRepereLignes'); });
-    return ligneReglage('Nommer par', rep, 'pRepereLignes');
+    return ligneReglage('Nom de chaque document', rep, 'pRepereLignes');
 }
 function compacterChoixTable(racine) {
     var fs = racine.querySelector('#pDonnees');
@@ -3163,8 +3164,9 @@ function compacterChoixTable(racine) {
     sel.addEventListener('change', function () { var r = document.getElementById(sel.value); if (r && !r.checked) {
         r.click();
     } });
-    Array.prototype.forEach.call(fs.querySelectorAll('.w-choix-tables__inter, legend, .w-indice'), function (n) { n.hidden = true; });
-    fs.insertBefore(ligneReglage('Table', sel, 'pTableChoix'), fs.firstChild);
+    var rangee = ligneReglage('Table', sel, 'pTableChoix');
+    Array.prototype.slice.call(fs.children).forEach(function (n) { n.hidden = true; });
+    fs.insertBefore(rangee, fs.firstChild);
     return sel;
 }
 function compacterCorrespondance(racine) {
@@ -3192,7 +3194,9 @@ function compacterCorrespondance(racine) {
     var relies = sels.filter(function (s) { return !!s.value; }).length;
     var section = tab.closest('.w-section') || tab.parentNode;
     var parent = section.parentNode;
-    var d = replie('pCorrReplie', [creer('span', { classe: 'w-rg__lib', texte: 'Correspondance' }), creer('span', { classe: relies === sels.length ? 'w-rg__ok' : 'w-rg__val', texte: relies + ' sur ' + sels.length + ' information' + (sels.length > 1 ? 's' : '') + ' reliée' + (relies > 1 ? 's' : '') })], [section], relies < sels.length);
+    var d = replie('pCorrReplie', [creer('span', { classe: 'w-rg__lib', texte: 'Infos du modèle' }), creer('span', { classe: relies === sels.length ? 'w-rg__ok' : 'w-rg__val', texte: (relies === sels.length ? 'Toutes trouvées dans la table' : relies + ' sur ' + sels.length + ' trouvées dans la table') + ' · voir' })], [
+        creer('p', { classe: 'w-mention', texte: 'Le modèle a besoin de ces informations. Pour chacune, la colonne de la table qui la donne.' }), section], relies < sels.length);
+    d.setAttribute('title', 'Les informations que le modèle remplit (nom, adresse…) et la colonne de la table qui donne chacune.');
     parent.appendChild(d);
 }
 function etapeDonneesFu(b) {
@@ -3210,7 +3214,22 @@ function etapeDonneesFu(b) {
     }
     var champs = colonnesAInsererFu(b);
     var lc = blocLignesConcernees();
-    return creer('div', { classe: 'w-rgs' }, [d, nommerParFu(b), aff, champs ? sousTitreFu('Champs à glisser dans le texte') : null, champs, creer('div', { classe: 'w-rg-bloc' }, [sousTitreFu('Lignes qui donnent un document')].concat(Array.isArray(lc) ? lc : [lc]))]);
+    var sf = lc && lc.querySelector ? lc.querySelector('#pFiltreDoc') : null;
+    if (sf) {
+        var gs = sf.closest('.fr-select-group, .fr-input-group');
+        var lg = lc.querySelector('legend');
+        if (lg) {
+            lg.parentNode.removeChild(lg);
+        }
+        if (gs) {
+            gs.parentNode.replaceChild(ligneReglage('Documents pour', sf, 'pFiltreDoc'), gs);
+        }
+        lc.classList.remove('w-fs');
+        Array.prototype.forEach.call(lc.querySelectorAll('option'), function (o) { if (o.textContent === 'Choisir une colonne…') {
+            o.textContent = 'Choisir un champ…';
+        } });
+    }
+    return creer('div', { classe: 'w-rgs' }, [d, nommerParFu(b), lc, aff, champs ? sousTitreFu('Champs à glisser dans la page') : null, champs]);
 }
 /* 3. La page */
 function etapePageFu(b) {
