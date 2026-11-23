@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.0.1 - 23/11/2026
+  Version : 1.1.0 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -138,6 +138,28 @@
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__item--second { font-size: .8125rem; color: var(--text-mention-grey); }
+    .w-acc__sous { list-style: none; margin: 0 0 .25rem; padding: 0 0 0 1.75rem; display: flex; flex-direction: column; }
+    .w-acc__sous li { margin: 0; padding: 0; }
+    .w-acc__sous li::marker { content: none; }
+    .w-acc__sous-item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .25rem .5rem; border: 0; border-left: 1px solid var(--border-default-grey); background: transparent; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__sous-item:hover { background: var(--background-alt-grey); }
+    .w-acc__sous-nom { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .w-acc__sous-item { position: relative; align-items: flex-start; }
+    .w-acc__sous-item[data-nom]::after { content: attr(data-nom); position: absolute; z-index: 40; left: 0; bottom: calc(100% + .25rem); max-width: 16rem; width: max-content; padding: .25rem .5rem; font-size: .75rem; line-height: 1.4; font-weight: 400; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); pointer-events: none; opacity: 0; visibility: hidden; }
+    .w-acc__sous-item[data-nom]:hover::after, .w-acc__sous-item[data-nom]:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-acc__sous-item .fr-badge { flex: none; }
+    .w-acc__carte--vide { border: 2px dashed var(--border-action-high-blue-france); }
+    .w-acc__carte--vide:hover { background: var(--background-default-grey-hover); }
+    .w-acc__vig--vide { display: flex; align-items: center; justify-content: center; padding: .75rem; background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig--vide span::before { --icon-size: 2.5rem; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .w-acc__ligne-ico { flex: none; color: var(--text-action-high-blue-france); }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__encart { max-width: 48rem; padding: 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .75rem; color: inherit; }
+    .w-acc__encart p { margin: 0; }
+    .w-acc__ligne .w-pages-liste__texte { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; display: flex; flex-direction: column; }
     .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-choix-table-fu { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-fu__bas { display: flex; justify-content: flex-end; gap: .5rem; }
@@ -1061,7 +1083,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.1.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2809,7 +2831,7 @@ async function ecrireConfig(cfg, ligne, cle) {
     return { ligne: ret && ret.retValues ? ret.retValues[0] : null, cle: cle };
 }
 function pageAdminFu() { return !!etat.peutParametrer; }
-etat.rubFu = 'document';
+etat.rubFu = null;
 async function allerAccueilFu() {
     if (enParametrage() && !(await sortirParametrages(false))) {
         return;
@@ -2817,7 +2839,7 @@ async function allerAccueilFu() {
     etat.brouillon = null;
     etat.surAccueilFu = true;
     etat.ouvrirParamFu = false;
-    etat.rubFu = 'document';
+    etat.rubFuChoisie = false;
     etat.choixFu = false;
     await chargerTout();
 }
@@ -3156,14 +3178,73 @@ function encadreChoixFu() {
         creer('div', { classe: 'fr-select-group' }, [creer('label', { classe: 'fr-label', attrs: { 'for': 'pAccTable' }, texte: 'Table des données' }), sel]),
         creer('div', { classe: 'w-choix-table-fu__bas' }, [bouton('Annuler', 'tertiaire', null, function () { etat.choixFu = false; afficherVue('accueil', true); }, { id: 'pAccAnnuler' }), ok])]);
 }
+function badgeStatutFu() {
+    return null;
+}
+function carteVideFu(id, titre, texte, action) {
+    var b = bouton('Commencer', null, 'arrow-right-line', action, { petit: true, id: id, iconeDroite: true });
+    var c = creer('div', { classe: 'w-acc__carte w-acc__carte--vide' }, [
+        creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-add-line' })]),
+        creer('div', { classe: 'w-acc__carte-texte' }, [creer('span', { classe: 'w-acc__carte-nom', texte: titre }), creer('span', { classe: 'w-mention', texte: texte })]),
+        creer('div', { classe: 'w-acc__carte-bas' }, [b])]);
+    c.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+        b.click();
+    } });
+    return c;
+}
+function sousMenuFu(objets, ouvrir) {
+    var sous = creer('ul', { classe: 'w-acc__sous', attrs: { 'aria-label': 'Les documents' } });
+    objets.forEach(function (t, k) {
+        var b = creer('button', { classe: 'w-acc__sous-item', id: 'pMenu' + k, attrs: { type: 'button', 'data-nom': t.config.name || '' } }, [creer('span', { classe: 'w-acc__sous-nom', texte: t.config.name || 'Document sans titre' }), badgeStatutFu(t.cle, false)]);
+        b.addEventListener('click', function () { return ouvrir(t.cle); });
+        sous.appendChild(creer('li', {}, [b]));
+    });
+    return sous;
+}
+function listeMesFu(objets, ouvrir) {
+    if (!objets.length) {
+        return creer('p', { classe: 'w-mention', id: 'pAucun', texte: 'Aucun document créé' });
+    }
+    var ul = creer('ul', { classe: 'w-acc__liste' });
+    objets.forEach(function (t, k) {
+        var pages = pagesDocFu(t.cle).map(function (x) { return etat.nomsPages[x]; }).filter(Boolean);
+        var b = bouton('Modifier', 'secondaire', 'arrow-right-line', function () { return ouvrir(t.cle); }, { petit: true, id: 'pOuvrir' + k, iconeDroite: true });
+        var li = creer('li', { classe: 'w-acc__ligne w-acc__ligne--clic' }, [
+            creer('span', { classe: 'w-acc__ligne-ico fr-icon-file-text-line', attrs: { 'aria-hidden': 'true' } }),
+            creer('div', { classe: 'w-pages-liste__texte' }, [creer('strong', { texte: t.config.name || 'Document sans titre' }),
+                pages.length ? creer('span', { classe: 'w-mention', texte: (pages.length > 1 ? 'Pages : ' : 'Page : ') + pages.join(', ') }) : (t.config.description ? creer('span', { classe: 'w-mention', texte: t.config.description }) : null)]),
+            creer('span', { classe: 'w-pousse' }), badgeStatutFu(t.cle, true), b]);
+        li.addEventListener('click', function (ev) { if (!ev.target.closest('button')) {
+            b.click();
+        } });
+        ul.appendChild(li);
+    });
+    return ul;
+}
+function encartFichierFu() {
+    return creer('div', { classe: 'w-acc__encart' }, [
+        creer('p', { texte: 'Ce widget ne lit pas les fichiers (Excel, CSV…). Importez d\'abord votre fichier dans ce document avec l\'import de Grist : il crée une table avec vos données.' }),
+        creer('p', {}, [creer('a', { classe: 'fr-link', id: 'pLienImport', texte: 'Comment importer un fichier dans Grist', attrs: { href: 'https://support.getgrist.com/fr/imports/', target: '_blank', rel: 'noopener', title: 'Comment importer un fichier dans Grist - nouvelle fenêtre' } })]),
+        creer('p', { texte: 'Revenez ensuite ici et choisissez « Mes données sont dans ce document » : votre nouvelle table y apparaît.' })]);
+}
+function pagesDocFu() {
+    return [];
+}
+function objetsFu() {
+    return etat.tableaux.map(function (t) { return { cle: t.cle, config: { name: t.config.name, description: t.config.table ? 'Table « ' + libelleTable(t.config.table) + ' »' : '' } }; });
+}
 function rendreAccueilFu(zone) {
+    if (!etat.rubFuChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubFu) === -1) {
+        etat.rubFu = etat.tableaux.length ? 'mes' : (tablesAccueilFu().length ? 'donnees' : 'modeles');
+    }
     var rub = etat.rubFu;
     var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
-    var item = function (cle, texte, icone) {
-        var bt = creer('button', { classe: 'w-acc__item', id: 'pRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
+    var item = function (cle, texte, icone, second) {
+        var bt = creer('button', { classe: 'w-acc__item' + (second ? ' w-acc__item--second' : ''), id: 'pRub_' + cle, attrs: { type: 'button', 'aria-current': rub === cle ? 'page' : null } }, [
             creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: texte })]);
         bt.addEventListener('click', function () {
             etat.rubFu = cle;
+            etat.rubFuChoisie = true;
             etat.choixFu = false;
             afficherVue('accueil', true);
             var f = document.getElementById('pRub_' + cle);
@@ -3173,16 +3254,20 @@ function rendreAccueilFu(zone) {
         });
         menu.appendChild(bt);
     };
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer' }));
-    item('document', 'Un document', 'file-text-line');
-    item('donnees', 'À partir de mes données', 'table-line');
+    item('mes', 'Les documents', 'file-text-line');
+    if (etat.tableaux.length) {
+        menu.appendChild(sousMenuFu(objetsFu(), function (cle) { ouvrirDocumentAccueil(cle); }));
+    }
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Créer un nouveau document' }));
+    item('donnees', 'Mes données sont dans ce document', 'table-line');
+    item('modeles', 'Je n\'ai pas encore de données', 'add-circle-line');
+    item('fichier', 'Mes données sont dans un fichier', 'upload-2-line', true);
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
     item('droits', 'Les droits', 'lock-line');
-    var titres = { document: 'Mes documents', donnees: 'À partir de mes données', droits: 'Les droits' };
+    var titres = { mes: 'Les documents', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
-    var plus = function (id, aria) {
-        var pl = creer('button', { classe: 'w-acc__plus', id: id, attrs: { type: 'button', 'aria-label': aria } }, [creer('span', { classe: 'fr-icon-add-line', attrs: { 'aria-hidden': 'true' } })]);
-        pl.addEventListener('click', function () {
+    var plus = function (id, titre, texte) {
+        return carteVideFu(id, titre, texte, function () {
             etat.choixFu = true;
             afficherVue('accueil', true);
             var f = document.getElementById('pAccGenre_libre');
@@ -3190,9 +3275,14 @@ function rendreAccueilFu(zone) {
                 f.focus();
             }
         });
-        return pl;
     };
-    if (rub === 'droits') {
+    if (rub === 'mes') {
+        scene.appendChild(listeMesFu(objetsFu(), function (cle) { ouvrirDocumentAccueil(cle); }));
+    }
+    else if (rub === 'fichier') {
+        scene.appendChild(encartFichierFu());
+    }
+    else if (rub === 'droits') {
         scene.appendChild(contenuDroits());
     }
     else if (rub === 'donnees') {
@@ -3213,7 +3303,7 @@ function rendreAccueilFu(zone) {
             grilleD.appendChild(carteAccueilFu(vignetteFu(cfgS, t, etat.donnees[t] ? ordreLignes(t)[0] : undefined), badgeFu('Suggestion', 'info'), nomAuto('record', t), 'Une fiche par ligne de la table, avec tous ses champs.', 'Utiliser cette suggestion',
                 function () { return creerDirectFu('type', 'record', t); }, 'pSuggestion' + k));
         });
-        grilleD.appendChild(plus('pDonnees', 'Choisir moi-même la table et le document'));
+        grilleD.appendChild(plus('pDonnees', 'Choisir une table moi-même', 'Une page blanche, une fiche ou un document Word, sur la table que vous choisissez.'));
         scene.appendChild(grilleD);
         if (etat.choixFu) {
             scene.appendChild(encadreChoixFu());
@@ -3221,15 +3311,11 @@ function rendreAccueilFu(zone) {
     }
     else {
         var grille = creer('div', { classe: 'w-acc__cartes' });
-        etat.tableaux.forEach(function (t, k) {
-            grille.appendChild(carteAccueilFu(vignetteDocumentFu(t.config), null, t.config.name || 'Document sans titre', t.config.table ? 'Table « ' + libelleTable(t.config.table) + ' »' : '', 'Modifier',
-                function () { ouvrirDocumentAccueil(t.cle); }, 'pOuvrir' + k));
-        });
         MODELES.forEach(function (m) {
             grille.appendChild(carteAccueilFu(vignetteModeleFu(m), badgeFu('Modèle', 'purple-glycine'), m.nom, nomMiseEnPage(m.layout) !== m.nom ? nomMiseEnPage(m.layout) : '', 'Utiliser ce modèle',
                 function () { return creerDirectFu('modele', m.id); }, 'pModele_' + m.id));
         });
-        grille.appendChild(plus('pCreer', 'Créer un document vierge sur une de mes tables'));
+        grille.appendChild(plus('pCreer', 'Un document vierge', 'Une page blanche, une fiche ou un document Word, sur une de vos tables.'));
         scene.appendChild(grille);
         if (etat.choixFu) {
             scene.appendChild(encadreChoixFu());
@@ -3666,7 +3752,7 @@ var AIDE = {
         'Créer ou paramétrer un modèle demande le droit de modifier le document.'
     ],
     etapes: {
-        'Accueil': { titre: 'tous vos documents', points: ['« Un document » : vos documents. « ← Accueil », au-dessus de l\'aperçu, ramène ici.', '« Modifier » ouvre le paramétrage : l\'aperçu au centre, les étapes à droite. « Utiliser ce modèle » crée sa table, vide, et le document.', 'Le « + » : une page blanche, une fiche, ou un document Word, sur une table du document.', '« À partir de mes données » : une fiche par table ; « Les droits » : inviter les personnes et poser les règles d\'accès.'] },
+        'Accueil': { titre: 'tous vos documents', points: ['« Les documents » : tous vos documents. « ← Accueil », au-dessus de l\'aperçu, ramène ici.', '« Modifier » ouvre le paramétrage : l\'aperçu au centre, les étapes à droite.', '« Je n\'ai pas encore de données » : « Utiliser ce modèle » crée sa table, vide, et le document ; « Un document vierge » : une page blanche, une fiche ou un document Word, sur une de vos tables.', '« Mes données sont dans ce document » : une fiche par table, ou « Choisir une table moi-même » ; « Les droits » : inviter les personnes et poser les règles d\'accès.'] },
         'Vos données': { titre: 'la liste dont chaque ligne donne un document.', points: [
                 'Les listes qui conviennent au type de document viennent en premier ; celles des autres widgets sont rangées à part.',
                 '« Quelle colonne pour chaque information » : vérifiez la colonne de chaque information, elle se change ici.',
@@ -3703,6 +3789,7 @@ var AIDE = {
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Quels droits donner ?', r: 'Propriétaire pour les administrateurs, Éditeur pour les personnes qui saisissent, Lecteur pour celles qui consultent. Un rôle seul ne suffit pas : posez ensuite les règles d\'accès décrites dans l\'étape « Les droits » des paramétrages, cliquez sur « Enregistrer », puis vérifiez avec « Voir en tant que ».' },
+        { q: 'Qui est « Admin » ?', r: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Sur la page où le widget est installé, l\'étiquette « Admin » s\'affiche en haut et donne accès au paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' },
         { q: 'Qui peut paramétrer un modèle de document ?', r: 'Toute personne qui peut modifier le document, tant que les règles d\'accès ne le réservent pas aux propriétaires. La marche à suivre est dans l\'étape « Les droits » des paramétrages.' },
         { q: 'Un champ s\'imprime vide : pourquoi ?', r: 'La cellule est vide pour cette ligne, ou la colonne a été supprimée. Les points à vérifier, à l\'étape « Le texte du document », listent les champs vides et les lignes concernées.' },
         { q: 'Comment imprimer plusieurs documents d\'un coup ?', r: 'Choisissez « Plusieurs lignes » en haut du panneau de gauche, cochez les lignes, puis l\'icône d\'imprimante : un document par ligne cochée.' },
@@ -5559,6 +5646,8 @@ function contenuDroits() {
         inviter,
         creer('h4', { classe: 's-droits__sous-titre', texte: 'Les rôles' }),
         roles,
+        creer('h4', { classe: 's-droits__sous-titre', texte: 'Qui est « Admin » ?' }),
+        creer('p', { classe: 'w-texte', id: 'aQuiAdmin', texte: 'Toute personne qui a le droit de créer des pages, des tables, des colonnes et des lignes : les propriétaires du document, mais aussi les éditeurs qui ont ces droits. Elle voit l\'étiquette « Admin » et le paramétrage. Seule différence : inviter une nouvelle personne dans la fenêtre « Partager » de Grist reste réservé aux propriétaires.' }),
         creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Un rôle seul ne suffit pas : sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.' })
     ]);
     var etat2 = creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'La page Admin porte sa vue de protection : il reste à poser la règle de l\'étape 3.' : 'La page Admin n\'est pas encore protégée.',
