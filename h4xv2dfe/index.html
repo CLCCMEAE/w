@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitViz
-  Version : 1.1.3 - 23/11/2026
+  Version : 1.1.4 - 23/11/2026
   Description : graphiques, chiffres clés, tableaux croisés, plannings et tableaux de bord.
 -->
 <head>
@@ -1090,7 +1090,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.3';
+var VERSION_WIDGET = '1.1.4';
 var ESSAI_WIDGET = 0;
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1363,7 +1363,7 @@ function predicatArbre(tid, n, versItem) {
 }
 function phraseArbre(tid, n) {
     return (n.items || []).map(function (x) {
-        return x.groupe ? '(' + phraseArbre(tid, x) + ')' : libelleCondition(tid, x);
+        return x.groupe ? '(' + phraseArbre(tid, x) + ')' : libelleCondition(tid, x, true);
     }).join(n.conj === 'ou' ? ' ou ' : ' et ');
 }
 function modeConditions(conds) {
@@ -4296,7 +4296,7 @@ function fenetrePeriode(code, debut, fin) {
     return w;
 }
 var OPS = {
-    categorie: [['is', 'est'], ['not', 'n\'est pas'], ['contains', 'contient'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
+    categorie: [['is', 'est l\'une de'], ['not', 'n\'est aucune de'], ['contains', 'contient'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
     num: [['gt', 'est supérieur à'], ['gte', 'est au moins'], ['lt', 'est inférieur à'], ['lte', 'est au plus'], ['eq', 'est égal à'], ['ne', 'est différent de'],
         ['ltCol', 'est inférieur à la colonne'], ['lteCol', 'est au plus la colonne'], ['gtCol', 'est supérieur à la colonne'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
     date: [['past', 'est avant aujourd\'hui'], ['future', 'est après aujourd\'hui'], ['today', 'est aujourd\'hui'], ['thisWeek', 'est cette semaine'], ['thisMonth', 'est ce mois-ci'],
@@ -4439,11 +4439,13 @@ function predicat(tid, c) {
     }
     return function (i) { return lk(i).some(function (k) { return ens[k]; }); };
 }
-function libelleCondition(tid, c) {
+function libelleCondition(tid, c, guill) {
     var col = infoColonne(tid, c.col);
     if (!col) {
         return '';
     }
+    var g = function (s) { return guill ? '« ' + s + ' »' : s; };
+    var lc = function (k) { return g(libCol(tid, k)); };
     var ops = OPS[famille(col)];
     var lib = c.op;
     ops.forEach(function (o) { if (o[0] === c.op) {
@@ -4451,19 +4453,23 @@ function libelleCondition(tid, c) {
     } });
     var v = '';
     if (/Col$/.test(c.op)) {
-        v = ' ' + libCol(tid, c.val);
+        v = ' ' + lc(c.val);
     }
     else if (['empty', 'notEmpty', 'true', 'false', 'past', 'future', 'today', 'thisWeek', 'thisMonth', 'thisQuarter', 'thisYear', 'last30', 'last12m'].indexOf(c.op) === -1) {
         var vals = Array.isArray(c.val) ? c.val : [c.val];
-        v = ' ' + vals.filter(function (x) { return x !== null && x !== undefined; }).map(function (x) { return x === '' ? NOM_VIDE : String(x); }).join(c.op === 'not' ? ' ni ' : ' ou ');
+        var vl = vals.filter(function (x) { return x !== null && x !== undefined; });
+        v = ' ' + vl.map(function (x) { return x === '' ? NOM_VIDE : (famille(col) === 'num' ? String(x) : g(String(x))); }).join(c.op === 'not' ? ' ni ' : ' ou ');
+        if ((c.op === 'is' || c.op === 'not') && vl.length < 2) {
+            lib = c.op === 'is' ? 'est' : 'n\'est pas';
+        }
     }
     if (c.op === 'olderDays') {
-        return libCol(tid, c.col) + ' est passée depuis plus de ' + nombreSur(parseInt(c.val, 10) || 0, 'jour');
+        return lc(c.col) + ' est passée depuis plus de ' + nombreSur(parseInt(c.val, 10) || 0, 'jour');
     }
     if (c.op === 'nextDays') {
-        return libCol(tid, c.col) + ' est dans les ' + (parseInt(c.val, 10) || 0) + ' prochains jours';
+        return lc(c.col) + ' est dans les ' + (parseInt(c.val, 10) || 0) + ' prochains jours';
     }
-    return libCol(tid, c.col) + ' ' + lib + v;
+    return lc(c.col) + ' ' + lib + v;
 }
 function filtrePeriodeActif(cfg) {
     return !!(cfg && cfg.periode && cfg.periode.col && etat.filtres && etat.filtres.periode && etat.filtres.periode !== 'all' && infoColonne(cfg.periode.table, cfg.periode.col));
@@ -10577,7 +10583,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
             formulaireAlertes(contenus.lignes, b, redessiner, maj);
         }
         else {
-        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), tid, function (v) {
+        contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: nomAvecIcone(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
             neuve.taille = b.taille;
@@ -10651,7 +10657,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         var ouvert = _sectionTuile === g.cle || (g.cle === 'sorte' && _sectionTuile === 'sorteToutes');
         var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: o.panneau ? { type: 'button', 'aria-current': ouvert ? 'step' : null } : { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
             creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
-            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: nomG }), resume ? creer('span', { classe: 'gb-acc__resume', texte: resume }) : null])]);
+            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: nomG }), resume ? creer('span', { classe: 'gb-acc__resume' }, [resume]) : null])]);
         bt.addEventListener('click', function () {
             _sectionTuile = o.panneau ? g.cle : (_sectionTuile === g.cle ? null : g.cle);
             redessiner('eSec-' + g.cle);
@@ -10703,7 +10709,7 @@ function resumeLignesTuile(b) {
     if ((b.filtres || []).some(estMarqueArbre)) {
         return libelleIcone(b.table) + ' : ' + phraseArbre(b.table, arbreConditions(b.filtres));
     }
-    return libelleIcone(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(lien) : 'toutes les lignes');
+    return creer('span', { classe: 'w-table' }, [pictoTable(), creer('span', { texte: nomAvecIcone(b.table) + ' : ' + (conds.length ? conds.map(function (c) { return libelleCondition(b.table, c); }).join(lien) : 'toutes les lignes') })]);
 }
 function voletLignes(vl, b, redessiner, maj) {
     var tid = b.table;
@@ -11113,7 +11119,16 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
     var arbre = JSON.parse(JSON.stringify(arbreConditions(conds)));
     var ecrire = function () { ecrireArbre(conds, arbre); };
     var changer = function (focus) { ecrire(); redessiner(focus); };
-    var majValeur = function () { ecrire(); maj(); };
+    var majPhraseAf = function () {
+        var p = document.getElementById(prefixe + 'Phrase');
+        if (!p) {
+            return;
+        }
+        var t = feuillesArbre(arbre).length ? phraseArbre(tid, arbre) : '';
+        p.textContent = t ? 'Se lit : ' + t + '.' : '';
+        p.hidden = !t;
+    };
+    var majValeur = function () { ecrire(); maj(); majPhraseAf(); };
     var nouveau = function () {
         var cat = meilleureCategorie(tid, 2, 30) || (colonnesUtiles(tid)[0] || {}).colId;
         return conditionParDefaut(tid, cat);
@@ -11266,9 +11281,10 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
         bouton('Ajouter un filtre', 'discret', 'add-line', function () { arbre.items.push(nouveau()); changer(prefixe + 'F' + (arbre.items.length - 1) + 'Col'); }, { petit: true, id: prefixe + 'Ajout' }),
         bouton('Ajouter un groupe de filtres', 'discret', 'add-line', function () { arbre.items.push({ groupe: true, conj: 'et', items: [nouveau()] }); changer(prefixe + 'F' + (arbre.items.length - 1) + '_0Col'); }, { petit: true, id: prefixe + 'AjoutGroupe' })
     ]));
-    if (feuillesArbre(arbre).length > 1 || arbre.items.some(function (x) { return x.groupe; })) {
-        box.appendChild(creer('p', { classe: 'w-af__phrase', texte: 'Se lit : ' + phraseArbre(tid, arbre) + '.' }));
-    }
+    var phraseLue = feuillesArbre(arbre).length ? phraseArbre(tid, arbre) : '';
+    var pPhrase = creer('p', { classe: 'w-af__phrase', id: prefixe + 'Phrase', texte: phraseLue ? 'Se lit : ' + phraseLue + '.' : '', attrs: { 'aria-live': 'polite' } });
+    pPhrase.hidden = !phraseLue;
+    box.appendChild(pPhrase);
     return box;
 }
 function conditionParDefaut(tid, colId) {
