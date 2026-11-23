@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.2 - 23/11/2026
+  Version : 1.3.3 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -324,6 +324,16 @@
     .w-resume-erreur { color: var(--text-default-error); }
     .w-verif--erreur { color: var(--text-default-error); }
     .w-condition--af .w-af__seg { max-width: 100%; }
+    .w-pages-fu { display: flex; flex-direction: column; gap: 1rem; max-width: 48rem; }
+    .w-pages-fu__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-pages-fu__page { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: .75rem 1rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-pages-fu__textes { display: flex; flex-direction: column; min-width: 0; overflow-wrap: break-word; }
+    .w-pages-fu__actions { display: flex; gap: .5rem; }
+    .w-pages-fu__form { display: flex; flex-direction: column; gap: .75rem; padding: 1rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-pages-fu__docs { display: flex; flex-direction: column; gap: .25rem; padding-left: 1.5rem; }
+    .w-pages-fu__bas { display: flex; justify-content: flex-end; gap: .5rem; }
+    .w-pages-fu__bas .fr-btn, .w-pages-fu__actions .fr-btn { margin: 0; }
+    .w-fu-filtres-util .w-af__seg { max-width: 100%; }
     .w-picto { display: inline-flex; flex: none; vertical-align: -.2em; margin-right: .25rem; }
     .w-picto svg { width: 1em; height: 1em; }
     .w-champ-puce .w-picto { margin-right: .125rem; }
@@ -1259,7 +1269,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.2';
+var VERSION_WIDGET = '1.3.3';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2897,11 +2907,23 @@ async function lireTableaux() {
     var d = await lireTable(etat.biblio);
     var l = [];
     var temE = false, temP = false;
+    var pagesLues = {}, ligneLue = null;
     for (var i = 0; i < d.id.length; i++) {
         if (!estLigneDuWidget(d, i)) {
             continue;
         }
         var cle = colonneDe(d, 'CLE', i);
+        if (cle === CLE_PAGES_FU) {
+            try {
+                var pg = JSON.parse(colonneDe(d, 'VALEUR', i) || '{}');
+                pagesLues = pg && typeof pg === 'object' && !Array.isArray(pg) ? pg : {};
+            }
+            catch (eP) {
+                logSecurite('AVERTISSEMENT', 'Pages des utilisateurs illisibles', eP);
+            }
+            ligneLue = d.id[i];
+            continue;
+        }
         if (cle === CLE_ACCES_EDITION) {
             temE = true;
             continue;
@@ -2933,6 +2955,8 @@ async function lireTableaux() {
     }
     l.sort(function (a, b) { return a.ligne - b.ligne; });
     etat.tableaux = l;
+    etat.pagesFu = pagesLues;
+    etat.pagesFuLigne = ligneLue;
     etat.temoinEdition = temE;
     etat.temoinParam = temP;
     return l;
@@ -3021,7 +3045,311 @@ async function ecrireConfig(cfg, ligne, cle) {
     var ret = await agir([['AddRecord', etat.biblio, null, rec]]);
     return { ligne: ret && ret.retValues ? ret.retValues[0] : null, cle: cle };
 }
-function pageAdminFu() { return !!etat.peutParametrer; }
+/* Page des utilisateurs : une page publiée dans le document, sans
+   paramétrage, qui propose une partie des documents (comme WuitArchive). */
+var CLE_PAGES_FU = 'PAGES_UTILISATEURS';
+function pageUtilFu() { return !!(etat.badgeFu && etat.pagesFu && etat.pagesFu[etat.badgeFu]); }
+function docsPageFu() {
+    var p = pageUtilFu() ? etat.pagesFu[etat.badgeFu] : null;
+    return (etat.tableaux || []).filter(function (t) { return !p || !Array.isArray(p.docs) || !p.docs.length || p.docs.indexOf(t.cle) !== -1; });
+}
+function nouveauBadgeFu() {
+    var a = new Uint32Array(2);
+    window.crypto.getRandomValues(a);
+    return 'fu' + Array.prototype.map.call(a, function (x) { return ('000000' + x.toString(36)).slice(-7); }).join('');
+}
+async function ecrirePagesFu() {
+    var valeur = JSON.stringify(etat.pagesFu || {});
+    if (etat.pagesFuLigne) {
+        await agir([['UpdateRecord', etat.biblio, etat.pagesFuLigne, { VALEUR: valeur, VERSION_MODIF: VERSION_WIDGET }]]);
+        return;
+    }
+    var rec = { CLE: CLE_PAGES_FU, VALEUR: valeur, VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET };
+    if (etat.biblioCentrale) {
+        rec.WIDGET = NOM_WIDGET;
+    }
+    var ret = await agir([['AddRecord', etat.biblio, null, rec]]);
+    etat.pagesFuLigne = ret && ret.retValues ? ret.retValues[0] : null;
+}
+function vueDuBadgeFu(d, badge) {
+    for (var i = 0; i < d.id.length; i++) {
+        if (String((d.options || [])[i] || '').indexOf(badge) !== -1 && (d.parentId || [])[i]) {
+            return d.parentId[i];
+        }
+    }
+    return null;
+}
+async function referenceWidgetFu() {
+    var ici = location.origin + location.pathname;
+    var badges = Object.keys(etat.pagesFu || {});
+    try {
+        var d = await lireTable('_grist_Views_section');
+        for (var i = 0; i < d.id.length; i++) {
+            var cv = null;
+            try {
+                cv = JSON.parse(JSON.parse((d.options || [])[i] || '{}').customView || '{}');
+            }
+            catch (e1) {
+                continue;
+            }
+            var memeAdresse = typeof cv.url === 'string' && cv.url.split(/[?#]/)[0] === ici;
+            var copie = cv.widgetOptions && badges.indexOf(cv.widgetOptions.copie) !== -1;
+            if (memeAdresse || copie) {
+                var r = { mode: cv.mode || 'url', url: cv.url || ici, widgetDef: cv.widgetDef || null, pluginId: cv.pluginId || '', sectionId: '', renderAfterReady: !!cv.renderAfterReady };
+                if (cv.widgetId) {
+                    r.widgetId = cv.widgetId;
+                }
+                return r;
+            }
+        }
+    }
+    catch (e) {
+        logSecurite('INFO', 'Référence du widget non retrouvée dans les vues : adresse du fichier utilisée', e);
+    }
+    return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
+}
+function libelleDocsPageFu(p) {
+    if (!Array.isArray(p.docs) || !p.docs.length) {
+        return 'Tous les documents';
+    }
+    var noms = (etat.tableaux || []).filter(function (t) { return p.docs.indexOf(t.cle) !== -1; }).map(function (t) { return t.config.name || 'Document sans nom'; });
+    return noms.length ? pluriel(noms.length, 'document') + ' · ' + noms.join(', ') : 'Aucun document (ceux choisis ont été supprimés)';
+}
+function majPagesFu(focusId) {
+    afficherVue('accueil', true);
+    var f = focusId ? document.getElementById(focusId) : null;
+    if (f) {
+        f.focus();
+    }
+}
+function contenuPagesFu() {
+    var z = creer('div', { classe: 'w-pages-fu' });
+    var pages = etat.pagesFu || {};
+    var badges = Object.keys(pages);
+    z.appendChild(creer('p', { classe: 'w-mention', texte: 'Les utilisateurs impriment leurs documents sur une page sans paramétrage. Chaque document y garde ses réglages, dont « Lecture seule » ou « Modification autorisée » dans « Les droits ».' }));
+    if (badges.length) {
+        var ul = creer('ul', { classe: 'w-pages-fu__liste' });
+        badges.forEach(function (b, k) {
+            var p = pages[b];
+            ul.appendChild(creer('li', { classe: 'w-pages-fu__page' }, [
+                creer('div', { classe: 'w-pages-fu__textes' }, [creer('strong', { texte: p.nom || 'Page sans nom' }), creer('span', { classe: 'w-mention', texte: libelleDocsPageFu(p) })]),
+                creer('div', { classe: 'w-pages-fu__actions' }, [
+                    bouton('Modifier', 'tertiaire', 'edit-line', function () {
+                        etat.editionPageFu = { badge: b, nom: p.nom, docs: Array.isArray(p.docs) ? p.docs.slice() : [] };
+                        majPagesFu('pfNom');
+                    }, { petit: true, id: 'pgModifier' + k }),
+                    bouton('Supprimer', 'tertiaire', 'delete-line', function () { return supprimerPageFu(b); }, { petit: true, id: 'pgSupprimer' + k })
+                ])
+            ]));
+        });
+        z.appendChild(ul);
+    }
+    else {
+        z.appendChild(alerte('warning', 'À faire', 'Aucune page des utilisateurs n\'est publiée : seules les personnes qui ont accès à cette page admin peuvent imprimer les documents.'));
+    }
+    var ed = etat.editionPageFu;
+    if (!ed) {
+        z.appendChild(creer('div', {}, [bouton('Publier une page des utilisateurs', badges.length ? 'secondaire' : null, 'add-line', function () {
+                etat.editionPageFu = { badge: null, nom: badges.length ? '' : 'Imprimer les documents', docs: [] };
+                majPagesFu('pfNom');
+            }, { id: 'pgPublier' })]));
+        return z;
+    }
+    var form = creer('div', { classe: 'w-pages-fu__form' });
+    form.appendChild(creer('p', { classe: 'w-rg__groupe', texte: ed.badge ? 'Modifier la page' : 'Nouvelle page des utilisateurs' }));
+    var nom = saisie('pfNom', ed.nom, { indice: 'Par exemple : Courriers et convocations' });
+    nom.addEventListener('input', function () { ed.nom = nom.value; });
+    form.appendChild(groupeChamp('Nom de la page', nom, null, true));
+    form.appendChild(creer('p', { classe: 'w-rg__groupe', texte: 'Documents proposés' }));
+    var tous = !ed.docs.length;
+    form.appendChild(caseACocher('pfTous', 'Tous les documents', tous, function (e) {
+        ed.docs = e.target.checked ? [] : (etat.tableaux || []).map(function (t) { return t.cle; });
+        majPagesFu('pfTous');
+    }, { aide: 'Les documents créés plus tard apparaîtront aussi sur la page.' }));
+    if (!tous) {
+        var cases = creer('div', { classe: 'w-pages-fu__docs' });
+        (etat.tableaux || []).forEach(function (t, k) {
+            cases.appendChild(caseACocher('pfDoc' + k, t.config.name || 'Document sans nom', ed.docs.indexOf(t.cle) !== -1, function (e) {
+                ed.docs = ed.docs.filter(function (x) { return x !== t.cle; });
+                if (e.target.checked) {
+                    ed.docs.push(t.cle);
+                }
+            }, { petit: true }));
+        });
+        form.appendChild(cases);
+    }
+    form.appendChild(creer('div', { classe: 'w-pages-fu__bas' }, [
+        bouton('Annuler', 'tertiaire', null, function () { etat.editionPageFu = null; majPagesFu('pgPublier'); }, { petit: true, id: 'pfAnnuler' }),
+        bouton(ed.badge ? 'Enregistrer la page' : 'Publier la page', null, 'check-line', enregistrerPageFu, { petit: true, id: 'pfPublier' })]));
+    z.appendChild(form);
+    return z;
+}
+async function enregistrerPageFu() {
+    var ed = etat.editionPageFu;
+    if (!ed) {
+        return;
+    }
+    var nom = String(ed.nom || '').trim();
+    if (!nom) {
+        signalerSaisie('Donnez un nom à la page.');
+        var c = document.getElementById('pfNom');
+        if (c) {
+            c.focus();
+        }
+        return;
+    }
+    if (!ed.docs.length && document.getElementById('pfTous') && !document.getElementById('pfTous').checked) {
+        signalerSaisie('Cochez au moins un document.');
+        return;
+    }
+    etat.pagesFu = etat.pagesFu || {};
+    afficherLoader(ed.badge ? 'Enregistrement de la page…' : 'Création de la page…');
+    var vueCreee = null, badgeCree = null;
+    try {
+        if (ed.badge) {
+            etat.pagesFu[ed.badge] = { nom: nom, docs: ed.docs.slice() };
+            await ecrirePagesFu();
+            var d0 = await lireTable('_grist_Views_section');
+            var v0 = vueDuBadgeFu(d0, ed.badge);
+            if (v0) {
+                await agir([['UpdateRecord', '_grist_Views', v0, { name: nom }]]);
+            }
+        }
+        else {
+            var bib = etat.meta.tables[etat.biblio];
+            if (!bib) {
+                throw new Error('Bibliothèque introuvable');
+            }
+            var cv = await referenceWidgetFu();
+            var b = nouveauBadgeFu();
+            cv.access = 'full';
+            cv.widgetOptions = { copie: b };
+            var r = await agir([['CreateViewSection', bib.ref, 0, 'custom', null, null]]);
+            var res = r && r.retValues ? r.retValues[0] || {} : {};
+            if (!res.viewRef || !res.sectionRef) {
+                throw new Error('Page non créée');
+            }
+            vueCreee = res.viewRef;
+            await agir([
+                ['UpdateRecord', '_grist_Views', res.viewRef, { name: nom }],
+                ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: nom, description: 'Impression des documents, sans paramétrage. Ses réglages se font depuis la page admin de WuitFusion.', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]
+            ]);
+            badgeCree = b;
+            etat.pagesFu[b] = { nom: nom, docs: ed.docs.slice() };
+            await ecrirePagesFu();
+        }
+        etat.editionPageFu = null;
+        masquerLoader();
+        majPagesFu('pgPublier');
+        afficherSucces(badgeCree ? 'La page « ' + nom + ' » est créée : elle apparaît dans la liste des pages du document.' : 'La page « ' + nom + ' » est enregistrée.');
+    }
+    catch (e) {
+        masquerLoader();
+        if (badgeCree) {
+            delete etat.pagesFu[badgeCree];
+        }
+        if (vueCreee) {
+            await agir([['RemoveRecord', '_grist_Views', vueCreee]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Création de page non annulée', eA); });
+        }
+        afficherErreur(ed.badge ? 'La page n\'a pas été enregistrée. Réessayez.' : 'La page n\'a pas été créée. Réessayez.', e);
+    }
+}
+async function supprimerPageFu(b) {
+    var p = (etat.pagesFu || {})[b];
+    if (!p) {
+        return;
+    }
+    var ok = await confirmerAction('Supprimer la page « ' + (p.nom || '') + ' » ?', 'La page disparaît du document. Les documents et leurs réglages ne sont pas touchés.', 'Supprimer la page', { danger: true });
+    if (!ok) {
+        return;
+    }
+    afficherLoader('Suppression de la page…');
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var vue = vueDuBadgeFu(d, b);
+        if (vue) {
+            await agir([['RemoveRecord', '_grist_Views', vue]]);
+        }
+        delete etat.pagesFu[b];
+        await ecrirePagesFu();
+        masquerLoader();
+        majPagesFu('pgPublier');
+        afficherSucces('La page « ' + (p.nom || '') + ' » est supprimée.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur('La page n\'a pas été supprimée. Réessayez.', e);
+    }
+}
+function ouvrirDocUtilFu(cle) {
+    etat.docUtilFu = cle;
+    memoriserTableau(cle);
+    reinitialiserVue();
+    return chargerTout();
+}
+function rendrePagesUtilFu(zone) {
+    var p = etat.pagesFu[etat.badgeFu] || {};
+    var docs = docsPageFu();
+    var sc = creer('section', { classe: 'w-acc__scene w-pu-fu', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: p.nom || 'Les documents', attrs: { tabindex: '-1' } })]);
+    if (!docs.length) {
+        sc.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun document n\'est proposé sur cette page pour le moment.' }));
+    }
+    else {
+        sc.appendChild(creer('p', { classe: 'w-mention', texte: 'Choisissez un document.' }));
+        var grille = creer('div', { classe: 'w-acc__cartes' });
+        docs.forEach(function (t, k) {
+            var m = miseEnPage(t.config.layout) || {};
+            var vig = creer('span', { classe: 'w-acc__vig w-acc__vig--vide', attrs: { 'aria-hidden': 'true' } }, [creer('span', { classe: 'fr-icon-' + (m.icone || 'file-text-line') })]);
+            grille.appendChild(carteAccueilFu(vig, null, t.config.name || 'Document sans nom', t.config.description || '', 'Ouvrir', function () { return ouvrirDocUtilFu(t.cle); }, 'pDocUtil' + k));
+        });
+        sc.appendChild(grille);
+    }
+    zone.appendChild(creer('div', { classe: 'w-acc w-acc--seul' }, [sc]));
+}
+/* Filtres façon Airtable pour les utilisateurs, dans le volet du document :
+   ils s'ajoutent à ceux du paramétrage, le temps de la session. */
+function filtresUtilFu() {
+    if (!etat.filtresUtil || etat.filtresUtilCle !== etat.cleConfig) {
+        etat.filtresUtil = { racine: { conj: 'et', items: [] } };
+        etat.filtresUtilCle = etat.cleConfig;
+    }
+    return etat.filtresUtil;
+}
+function filtresUtilActifsFu() { return !!(etat.filtresUtil && etat.filtresUtilCle === etat.cleConfig && feuillesFiltre(etat.filtresUtil.racine).length); }
+function majPhraseUtilFu() {
+    var cfg = etat.config, f = filtresUtilFu();
+    feuillesFiltre(f.racine).forEach(function (k) {
+        var e = document.getElementById((_idsFiltres.get(k) || '') + 'Err');
+        if (e) {
+            var pb = problemeFiltre(cfg.table, k);
+            e.textContent = pb ? pb.charAt(0).toUpperCase() + pb.slice(1) + '.' : '';
+        }
+    });
+    var ph = document.getElementById('pFuPhrase');
+    if (ph) {
+        var ok = feuillesFiltre(f.racine).length && !problemeFiltresFu(cfg.table, f);
+        ph.textContent = ok ? 'Se lit : les lignes dont ' + phraseNoeudFiltre(cfg.table, f.racine) + '.' : '';
+        ph.hidden = !ok;
+    }
+}
+function blocFiltresUtilFu() {
+    var cfg = etat.config, f = filtresUtilFu();
+    var changer = function (focusId, apres) {
+        remplirVolet(document.getElementById('pVolet'));
+        rendreApercuPrincipal();
+        refocaliserFiltre(focusId);
+        if (apres) {
+            apres();
+        }
+    };
+    var maj = function () { majListe(); rendreApercuPrincipal(); majPhraseUtilFu(); };
+    setTimeout(majPhraseUtilFu, 0);
+    return creer('div', { classe: 'w-volet__bloc w-fu-filtres-util' }, [
+        creer('h3', { classe: 'w-volet__h' }, [creer('span', { classe: 'w-volet__puce fr-icon-filter-line', attrs: { 'aria-hidden': 'true' } }), 'Filtrer']),
+        editeurFiltresAirtable(cfg.table, f, 'pFu', changer, maj),
+        creer('p', { classe: 'w-af__phrase', id: 'pFuPhrase', attrs: { 'aria-live': 'polite' } })]);
+}
+function pageAdminFu() { return !!etat.peutParametrer && !pageUtilFu(); }
 etat.rubFu = null;
 async function allerAccueilFu() {
     if (enParametrage() && !(await sortirParametrages(false))) {
@@ -4777,7 +5105,7 @@ function rendreAccueilFu(zone) {
         atelierViergeFu(zone);
         return;
     }
-    if (!etat.rubFuChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'droits'].indexOf(etat.rubFu) === -1) {
+    if (!etat.rubFuChoisie || ['mes', 'donnees', 'modeles', 'fichier', 'pages', 'droits'].indexOf(etat.rubFu) === -1) {
         etat.rubFu = etat.tableaux.length ? 'mes' : (tablesAccueilFu().length ? 'donnees' : 'modeles');
     }
     var rub = etat.rubFu;
@@ -4806,8 +5134,9 @@ function rendreAccueilFu(zone) {
     item('modeles', 'Je n\'ai pas encore de données', 'add-circle-line');
     item('fichier', 'Mes données sont dans un fichier', 'upload-2-line', true);
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
+    item('pages', 'Page des utilisateurs', 'user-line');
     item('droits', 'Les droits', 'lock-line');
-    var titres = { mes: 'Les documents', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', droits: 'Les droits' };
+    var titres = { mes: 'Les documents', donnees: 'Mes données sont dans ce document', modeles: 'Je n\'ai pas encore de données', fichier: 'Mes données sont dans un fichier', pages: 'Page des utilisateurs', droits: 'Les droits' };
     var scene = creer('section', { classe: 'w-acc__scene', attrs: { 'aria-labelledby': 'titreVue' } }, [creer('h2', { classe: 'w-titre-fluo', id: 'titreVue', texte: titres[rub], attrs: { tabindex: '-1' } })]);
     var plus = function (id, titre, texte) {
         return carteVideFu(id, titre, texte, function () {
@@ -4824,6 +5153,9 @@ function rendreAccueilFu(zone) {
     }
     else if (rub === 'fichier') {
         scene.appendChild(encartFichierFu());
+    }
+    else if (rub === 'pages') {
+        scene.appendChild(contenuPagesFu());
     }
     else if (rub === 'droits') {
         scene.appendChild(contenuDroits());
@@ -7488,10 +7820,13 @@ function afficherVue(vue, garderFocus) {
     else if (vue === 'aucun') {
         rendreAucun(zone);
     }
+    else if (vue === 'pagesUtil') {
+        rendrePagesUtilFu(zone);
+    }
     else if (vue === 'retouche') {
         rendreRetouche(zone);
     }
-    if (!pageAdminFu() && (vue === 'document' || vue === 'invalide' || vue === 'echec' || (vue === 'assistant' && !(etat.brouillon && etat.brouillon.etape === ETAPE_TEXTE)))) {
+    if (!pageAdminFu() && !pageUtilFu() && (vue === 'document' || vue === 'invalide' || vue === 'echec' || (vue === 'assistant' && !(etat.brouillon && etat.brouillon.etape === ETAPE_TEXTE)))) {
         envelopperOnglets(zone);
     }
     zone.classList.toggle('w-contenu--doc', vue === 'document');
@@ -7876,6 +8211,9 @@ function lignesFiltrees() {
         if (etat.nonImprimes && estImprimee(cfg, i)) {
             return false;
         }
+        if (filtresUtilActifsFu() && evaluerNoeudFiltre(cfg.table, etat.filtresUtil.racine, i) === false) {
+            return false;
+        }
         return true;
     });
 }
@@ -7922,6 +8260,10 @@ function rendreVueDocument(zone) {
     var principal = creer('section', { classe: 'w-principal', attrs: { 'aria-labelledby': 'titreVue' } });
     var barre = barreVue(cfg.name || 'Document sans titre', [], [barreZoom(), boutonPleinEcran()]);
     barre.querySelector('.w-barre-vue__texte').appendChild(etiquetteVueDocument(cfg));
+    if (pageUtilFu() && docsPageFu().length > 1) {
+        var txtU = barre.querySelector('.w-barre-vue__texte');
+        txtU.insertBefore(bouton('Les documents', 'secondaire', 'arrow-left-line', function () { etat.docUtilFu = null; afficherVue('pagesUtil'); }, { petit: true, id: 'pDocsUtil', classe: 'fr-mr-2w' }), txtU.firstChild);
+    }
     if (pageAdminFu()) {
         var txt = barre.querySelector('.w-barre-vue__texte');
         txt.insertBefore(bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil', classe: 'fr-mr-2w' }), txt.firstChild);
@@ -7936,7 +8278,7 @@ function rendreVueDocument(zone) {
             attrs: { 'aria-controls': 'pVolet', 'aria-expanded': 'false' } })
     ]));
     vue.appendChild(volet);
-    vue.appendChild(poigneeVolet(volet, function () { return (etat.recherche ? 1 : 0) + (etat.filtreCol ? 1 : 0) + (etat.nonImprimes ? 1 : 0); }));
+    vue.appendChild(poigneeVolet(volet, function () { return (etat.recherche ? 1 : 0) + (filtresUtilActifsFu() ? 1 : 0) + (etat.nonImprimes ? 1 : 0); }));
     vue.appendChild(principal);
     zone.appendChild(vue);
     if (typeof ResizeObserver !== 'undefined') {
@@ -8159,6 +8501,9 @@ function remplirVolet(volet) {
             creer('h3', { classe: 'w-volet__h' }, [creer('span', { classe: 'w-volet__puce fr-icon-search-line', attrs: { 'aria-hidden': 'true' } }), 'Rechercher']), champRecherche()
         ]));
     }
+    if (!(etat.mode === 'plusieurs' && lieeIci && etat.sourceLot === 'vue')) {
+        volet.appendChild(blocFiltresUtilFu());
+    }
     var segment = creer('div', { classe: 'w-segment', attrs: { role: 'group', 'aria-label': 'Que faut-il imprimer ?' } }, [
         creer('button', { id: 'pModeUn', texte: 'Une ligne', attrs: { 'aria-pressed': etat.mode === 'un' ? 'true' : 'false' }, clic: function () { changerMode('un'); } }),
         creer('button', { id: 'pModePlusieurs', texte: 'Plusieurs lignes', attrs: { 'aria-pressed': etat.mode === 'plusieurs' ? 'true' : 'false' }, clic: function () { changerMode('plusieurs'); } })
@@ -8196,7 +8541,6 @@ function remplirVolet(volet) {
             ]));
         }
         if (!(lieeIci && etat.sourceLot === 'vue')) {
-            b2.appendChild(filtreColonne());
             if (colonneImprime(cfg)) {
                 b2.appendChild(caseACocher('pNonImprimes', 'Pas encore imprimées', etat.nonImprimes, function (e) { etat.nonImprimes = e.target.checked; majListe(); }, { petit: true, classe: 'fr-mb-0' }));
             }
@@ -8224,7 +8568,7 @@ function remplirVolet(volet) {
         b2.appendChild(creer('div', { id: 'pAlerteLot' }));
         volet.appendChild(b2);
     }
-    if (etat.peutParametrer) {
+    if (etat.peutParametrer && !pageUtilFu()) {
         volet.appendChild(creer('div', { classe: 'w-volet__bloc' }, [
             bouton('Paramétrages de ce document', 'secondaire', 'settings-5-line', ouvrirEdition, { petit: true, id: 'pEditer' })
         ]));
@@ -8254,13 +8598,15 @@ function piedListe() {
         bouton('Effacer les filtres', 'discret', null, effacerFiltres, { petit: true, id: 'pEffacerFiltres', attrs: { hidden: '' } })
     ]);
 }
-function filtresActifs() { return !!(etat.recherche || etat.filtreCol || etat.nonImprimes); }
+function filtresActifs() { return !!(etat.recherche || etat.filtreCol || etat.nonImprimes || filtresUtilActifsFu()); }
 function effacerFiltres() {
     etat.recherche = '';
     etat.filtreCol = '';
     etat.filtreVal = '';
     etat.nonImprimes = false;
+    etat.filtresUtil = null;
     remplirVolet(document.getElementById('pVolet'));
+    rendreApercuPrincipal();
     var r = document.getElementById('pRecherche');
     if (r) {
         r.focus();
@@ -16408,7 +16754,7 @@ function majEtiquetteDonnees() {
     parts[1].textContent = tx.lu + (el.tagName === 'BUTTON' ? '. Changer la table ou la correspondance des champs' : '');
 }
 function etiquetteVueDocument(cfg) {
-    return etiquetteDonnees(cfg, etat.peutParametrer ? ouvrirEditionDonnees : null);
+    return etiquetteDonnees(cfg, etat.peutParametrer && !pageUtilFu() ? ouvrirEditionDonnees : null);
 }
 async function ouvrirEditionDonnees() {
     if (!etat.peutParametrer) {
@@ -20726,6 +21072,20 @@ async function chargerTout() {
     await lireTableaux();
     await determinerDroits();
     choisirTableau();
+    if (pageUtilFu()) {
+        var docsU = docsPageFu();
+        if (docsU.length === 1) {
+            etat.docUtilFu = docsU[0].cle;
+        }
+        var tU = docsU.filter(function (t) { return t.cle === etat.docUtilFu; })[0];
+        if (!tU) {
+            afficherVue('pagesUtil');
+            return;
+        }
+        etat.config = tU.config;
+        etat.biblioLigne = tU.ligne;
+        etat.cleConfig = tU.cle;
+    }
     if (pageAdminFu() && (etat.surAccueilFu !== false || !etat.config) && !enCreation() && !enParametrage()) {
         etat.brouillon = null;
         await chargerDonneesAccueilFu();
@@ -20941,6 +21301,14 @@ var _accesRecu = null;
 var _promesseAcces = new Promise(function (ok) { _accesRecu = ok; });
 grist.onOptions(function (options, interaction) {
     NIVEAU_ACCES = interaction && interaction.accessLevel ? interaction.accessLevel : null;
+    var bFu = options && typeof options.copie === 'string' && /^[a-z0-9]{6,60}$/.test(options.copie) ? options.copie : null;
+    if (bFu !== etat.badgeFu) {
+        etat.badgeFu = bFu;
+        etat.docUtilFu = null;
+        if (etat.vue) {
+            relayer(chargerTout(), 'Page des utilisateurs');
+        }
+    }
     if (_accesRecu) {
         _accesRecu();
     }
