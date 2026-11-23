@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitKanban
+  Version : 1.0.0 - 23/11/2026
+  Description : tableaux Kanban de suivi, cartes et fiches tirées d'une table.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -11,6 +16,7 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -207,10 +213,12 @@
     .w-ico--sortir { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3v6H3M15 3v6h6M21 15h-6v6M3 15h6v6'/%3E%3C/svg%3E"); }
     @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-infobulle--dessous::after { bottom: auto; top: calc(100% + .375rem); }
@@ -495,7 +503,7 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
       .w-tuile { padding: 1rem; }
     }
     .w-barre-vue { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; margin-bottom: .75rem; }
@@ -538,6 +546,7 @@
     }
     @media print {
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-barre-vue__commandes,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink, .w-ecran-seul { display: none !important; }
     }
     .w-carte__neuf { margin: 0; line-height: 1; }
@@ -550,7 +559,10 @@
     .w-courriel-apercu__texte { white-space: pre-wrap; margin: 0; padding-top: .5rem; border-top: 1px solid var(--border-default-grey); overflow-wrap: anywhere; }
     .w-courriel-champs { display: flex; gap: .5rem; align-items: flex-end; flex-wrap: wrap; }
     .w-courriel-champs .fr-select { width: auto; flex: 1 1 12rem; }
-    @media print { .w-nouv, .w-carte__neuf { display: none !important; } }
+    @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      .w-nouv, .w-carte__neuf { display: none !important; }
+    }
   
   .w-wuit { color: var(--blue-france-main-525); }
     .w-bandeau__role { margin-left: .5rem; white-space: nowrap; align-self: center; }
@@ -559,8 +571,8 @@
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -570,30 +582,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -602,18 +621,18 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
@@ -621,6 +640,7 @@
     .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
     @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
@@ -644,10 +664,11 @@
     .w-modele__texte { display: flex; flex-direction: column; gap: .25rem; padding: .75rem; }
     .w-modele__nom { font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
     .w-modele__desc { font-size: .75rem; color: var(--text-mention-grey); }
-    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: inherit; }
     .w-atelier__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
     .w-atelier__bas { flex: none; display: flex; align-items: center; gap: .5rem; padding: .75rem 1.25rem; border-top: 1px solid var(--border-default-grey); }
     .w-atelier__bas .fr-btn { margin: 0; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-grille, .w-atelier .w-grille-param { display: flex !important; flex-direction: column; gap: 1rem; }
     .w-atl-bloc { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-atl-tableaux { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
@@ -672,7 +693,7 @@
     .w-atl-etape__resume { font-size: .75rem; color: var(--text-mention-grey); }
     .w-atl-etape--verrouillee > .w-atl-etape__tete { opacity: .45; cursor: not-allowed; }
     .w-atl-etape__corps { padding: .75rem 0 .5rem 2.25rem; }
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-acc { display: flex; min-height: 100%; }
     .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
     .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
@@ -684,10 +705,10 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
-    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; color: inherit; }
+    .w-acc__carte:hover { background: var(--background-default-grey-hover); }
     .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
     .w-acc__carte-nom { font-weight: 700; }
     .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
@@ -709,12 +730,12 @@
     .w-atl-etape--num { position: relative; }
     .w-atl-etape--num::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2.25rem; bottom: -.5rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .w-atl-etape--num:has(+ .w-atl-etape--separee)::before, .w-atl-etape--num:last-child::before { display: none; }
-    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
-    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
+    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); color: inherit; }
+    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
     .w-entete-admin { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 0 0 .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-entete-admin .fr-btn { margin: 0; }
-    .w-entete-admin__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .w-entete-admin__nom { margin: 0; font-size: 1rem; line-height: 1.75rem; }
     .w-bouton-danger.fr-btn--tertiary { color: var(--text-default-error); }
     .w-entete-admin > .w-pousse { flex: 1 1 auto; }
     .w-acc__suggestion { position: absolute; top: .375rem; right: .375rem; }
@@ -729,27 +750,27 @@
     .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: flex; gap: .375rem; height: 7.5rem; overflow: hidden; padding: 1.875rem .75rem .75rem; background: var(--background-alt-grey); }
-    .w-acc__vig-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .25rem; padding: .25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
-    .w-acc__vig-col span { font-size: .625rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .w-acc__vig-col i { display: block; height: .875rem; background: var(--background-contrast-grey); }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig { position: relative; display: flex; gap: .375rem; height: 7.5rem; overflow: hidden; padding: 1.875rem .75rem .75rem; background: var(--background-alt-grey); color: inherit; }
+    .w-acc__vig-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .25rem; padding: .25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
+    .w-acc__vig-col span { font-size: .75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .w-acc__vig-col i { display: block; height: .875rem; background: var(--background-contrast-grey); color: inherit; }
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
-    .w-acc__donnees { max-width: 40rem; display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__donnees { max-width: 40rem; display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding: 1rem 1.25rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
     .w-disposition--admin > .w-volet[hidden] { display: none; }
-    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; }
+    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; color: inherit; }
     .w-disposition--admin > .w-principal > .w-titre-fluo { margin: 0 0 1rem; }
-    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); }
+    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); color: inherit; }
     .w-disposition--admin > .w-atelier .w-atelier__defile { padding-top: 1rem; }
-    .w-disposition--admin .w-colonne { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
-    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .w-disposition--admin .w-colonne { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-choix-table-kb { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-kb__bas { display: flex; justify-content: flex-end; gap: .5rem; }
-    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; }
+    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; color: inherit; }
     .w-atelier .w-section--seule > .w-champ-aide:first-child { border-bottom: 0; padding-bottom: 0; }
 </style>
 </head>
@@ -806,6 +827,9 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var VERSION_WIDGET = '1.0.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
@@ -2066,13 +2090,6 @@ function relayer(promesse, quoi) {
     }
     return promesse;
 }
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
@@ -2267,7 +2284,7 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info') + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
@@ -4988,23 +5005,33 @@ function rafraichirApresDroits(focusId) {
     }
 }
 function afficherVue(vue, garderFocus) {
-    if (vue === 'assistant' && etat.brouillon && etat.brouillon.mode === 'personnalisation' && pageAdminKb() && etat.config) {
-        vue = 'tableau';
-        var dfl = document.getElementById('kAtelierDefile');
-        etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+    if (vue === 'assistant' || vue === 'branchement') {
+        /* L'ancien assistant et l'ancien branchement n'existent plus : le
+           paramétrage s'ouvre dans le panneau de la page Admin, la création
+           se fait depuis l'accueil. */
+        var bA = etat.brouillon;
+        if (vue === 'assistant' && bA && bA.mode === 'personnalisation' && pageAdminKb() && etat.config) {
+            vue = 'tableau';
+            var dfl = document.getElementById('kAtelierDefile');
+            etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+        }
+        else {
+            var enCreationA = vue === 'branchement' || (bA && bA.mode === 'creation');
+            etat.brouillon = null;
+            etat.assistant = null;
+            vue = pageAdminKb() ? 'accueil' : (etat.config ? 'tableau' : 'aucun');
+            if (enCreationA && pageAdminKb()) {
+                etat.surAccueil = true;
+                setTimeout(function () { afficherErreur('Le Kanban n\'a pas été créé : vérifiez la table et ses colonnes, puis réessayez.'); }, 0);
+            }
+        }
     }
     majBandeauRole();
     detruireSortables();
     etat.vue = vue;
     var zone = contenu();
     vider(zone);
-    if (vue === 'assistant') {
-        rendreAssistantKanban(zone);
-    }
-    else if (vue === 'branchement') {
-        rendreBranchement(zone);
-    }
-    else if (vue === 'tableau') {
+    if (vue === 'tableau') {
         rendreTableau(zone);
     }
     else if (vue === 'invalide') {
@@ -5053,24 +5080,6 @@ function majTitreBandeau() {
         panneauAide();
     }
 }
-async function annulerAssistant() {
-    if (etat.assistant && etat.assistant.etape > 0) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits pour le nouveau Kanban ne sont pas conservés.', 'Abandonner', { destructif: true });
-        if (!ok) {
-            return;
-        }
-    }
-    etat.assistant = null;
-    if (pageAdminKb()) {
-        etat.surAccueil = true;
-    }
-    if (etat.tableaux.length) {
-        relayer(chargerTout(), 'Retour au Kanban');
-    }
-    else {
-        ouvrirNouveauKanban();
-    }
-}
 function stepper(n, noms, aller) {
     var d = creer('div', { classe: 'fr-stepper w-stepper' });
     var connu = noms.length > 1;
@@ -5107,73 +5116,6 @@ function stepper(n, noms, aller) {
     return d;
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function enteteParametrage(nom, retourLibelle, retourFn, statut) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [
-            creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
-        ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
-    ]);
-}
-function enteteCreation(titre, annulerFn) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
-        annulerFn ? bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' }) : null
-    ]);
-}
-function piedEtape(precedente, suivante, actionFinale) {
-    var boutons = [];
-    if (precedente) {
-        boutons.push(bouton('Étape précédente : ' + precedente.libelle, 'secondaire', 'arrow-left-line', precedente.action, { id: 'aPrecedent' }));
-    }
-    if (suivante) {
-        boutons.push(bouton('Continuer : ' + suivante.libelle, null, 'arrow-right-line', suivante.action, { id: 'aSuivant', iconeDroite: true }));
-    }
-    else if (actionFinale) {
-        boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
-    }
-    return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
 function blocSupprimer(libelle, mention, fn) {
     return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
@@ -5207,20 +5149,6 @@ function majApercu() {
             note.textContent = a.note || 'Avec vos données, rien n\'est enregistré ici.';
         }
     }
-}
-function blocRecapitulatif(groupes) {
-    return creer('div', { classe: 'w-recap' }, groupes.map(function (g) {
-        var dl = creer('dl', { classe: 'w-recap__liste' });
-        g.lignes.forEach(function (l) {
-            dl.appendChild(creer('dt', { texte: l[0] }));
-            dl.appendChild(creer('dd', { texte: l[1] === '' || l[1] === null || l[1] === undefined ? 'Aucun' : String(l[1]) }));
-        });
-        return creer('section', { classe: 'w-recap__groupe', attrs: { 'aria-label': g.etape } }, [
-            creer('div', { classe: 'w-recap__tete' }, [creer('p', { classe: 'w-recap__titre', texte: g.etape }),
-                bouton('Modifier', 'discret', 'edit-line', function () { allerEtape(g.rang); }, { petit: true, id: 'aRecapModifier' + g.rang, aria: 'Modifier : ' + g.etape })]),
-            dl
-        ]);
-    }));
 }
 var CLE_AIDE = NOM_WIDGET.toLowerCase() + ':aide';
 var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
@@ -6021,11 +5949,13 @@ function colonnesActives() {
     return a ? l.filter(function (x) { return x !== a; }).concat([a]) : l;
 }
 function demarrerCreation() {
-    if (!etat.peutParametrer) {
+    if (!pageAdminKb()) {
         return;
     }
-    etat.brouillon = { mode: 'creation', etape: 0 };
-    afficherVue('assistant');
+    etat.brouillon = null;
+    etat.assistant = null;
+    etat.surAccueil = true;
+    afficherVue('accueil');
 }
 async function ouvrirPersonnalisation() {
     if (!etat.peutParametrer) {
@@ -6035,79 +5965,6 @@ async function ouvrirPersonnalisation() {
     await majPages();
     etat.brouillon = brouillonDepuisConfig();
     afficherVue('assistant');
-}
-async function quitterAssistant() {
-    var b = etat.brouillon;
-    if (b && b.etape > 0) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner', { destructif: true });
-        if (!ok) {
-            return;
-        }
-    }
-    etat.brouillon = null;
-    if (pageAdminKb()) {
-        etat.surAccueil = true;
-    }
-    if (etat.tableaux.length) {
-        await chargerTout();
-    }
-    else {
-        ouvrirNouveauKanban();
-    }
-}
-function rendreAssistantKanban(zone) {
-    var b = etat.brouillon;
-    if (b.mode === 'creation' && b.etape === 0) {
-        rendreDepart(zone);
-        return;
-    }
-    var n = b.etape;
-    var perso = b.mode === 'personnalisation';
-    var noms = perso ? ETAPES_PARAMETRAGE : PARCOURS.modele;
-    var decalage = noms.length - (perso ? ETAPES_PARAMETRAGE.length : ETAPES_ASSISTANT.length);
-    b.etapeMax = Math.max(b.etapeMax || 0, n);
-    var entete = perso
-        ? enteteParametrage(etat.config.nom, 'Retour au Kanban', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation('Nouveau Kanban', quitterAssistant);
-    var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(decalage + n, noms, function (r) {
-            if (!perso && r <= decalage) {
-                return function () { b.etape = 0; if (r === 1) {
-                    b.choixDepart = null;
-                } afficherVue('assistant'); };
-            }
-            var cible = r - decalage;
-            if (!perso && cible > b.etapeMax + 1) {
-                return null;
-            }
-            return function () { if (cible > n && !validerEtape(n)) {
-                return;
-            } allerEtape(cible); };
-        })]);
-    if (b.origine && n === 1) {
-        bloc.appendChild(alerte('info', null, 'Prérempli à partir ' + b.origine + '. Tout reste modifiable.'
-            + (b.ignores.length ? ' Non repris, faute d\'équivalent dans un nouveau Kanban : ' + b.ignores.join(', ') + '.' : '')));
-    }
-    var etape = perso && n === 7 ? contenuDroits : [null, etapeGeneral, etapeColonnes, etapeInformations, etapeCarte, etapeFiche, etapeFiltres, etapeRecapitulatif][n];
-    if (etape) {
-        bloc.appendChild(etape());
-    }
-    bloc.appendChild(piedAssistant(b, noms, decalage));
-    zone.appendChild(bloc);
-}
-function piedAssistant(b, noms, decalage) {
-    var n = b.etape;
-    var rang = decalage + n;
-    var derniere = b.mode === 'creation' ? ETAPES_ASSISTANT.length : ETAPES_PARAMETRAGE.length;
-    var precedente = null;
-    if (n > 1) {
-        precedente = { libelle: noms[rang - 2], action: function () { allerEtape(n - 1); } };
-    }
-    else if (b.mode === 'creation') {
-        precedente = { libelle: noms[rang - 2], action: function () { b.etape = 0; afficherVue('assistant'); } };
-    }
-    return piedEtape(precedente, n < derniere ? { libelle: noms[rang], action: function () { if (validerEtape(n)) {
-            allerEtape(n + 1);
-        } } } : null, b.mode === 'creation' ? { libelle: 'Créer mon Kanban', action: validerAssistant, id: 'aCreer' } : null);
 }
 function nomsEtapes(b) {
     return ['Point de départ'].concat(b.mode === 'creation' ? ETAPES_ASSISTANT : ETAPES_PARAMETRAGE);
@@ -7272,49 +7129,6 @@ function reprisePersonnes(info, i) {
                 annoncer(ajout ? ajout + (ajout > 1 ? ' personnes ajoutées.' : ' personne ajoutée.') : 'Aucune nouvelle personne : elles sont déjà dans la liste.');
             }, { petit: true, id: 'kPersOk' + i })])]);
 }
-function alerteListesVides(infos) {
-    var corps = creer('div', {}, [creer('p', { texte: (infos.length > 1 ? 'Ces listes n\'ont encore aucune valeur : ' : 'Cette liste n\'a encore aucune valeur : ') + infos.map(function (i) { return '« ' + i.libelle + ' »'; }).join(', ') +
-                '. ' + (infos.length > 1 ? 'Elles resteront vides' : 'Elle restera vide') + ' dans les cartes tant que vous n\'en ajoutez pas ; vous pourrez le faire plus tard dans les paramétrages.' })]);
-    var outils = creer('div', { classe: 'w-outils fr-mb-0' });
-    infos.forEach(function (info, k) {
-        outils.appendChild(bouton(info.genre === 'personne' ? 'Ajouter des personnes à « ' + info.libelle + ' »' : 'Ajouter des valeurs à « ' + info.libelle + ' »', 'secondaire', 'add-line', function () {
-            info.ouverte = true;
-            allerEtape(3);
-            var j = etat.brouillon.infos.indexOf(info), champ = document.getElementById('kVal' + j);
-            if (champ) {
-                champ.focus();
-            }
-        }, { petit: true, id: 'aRecapVide' + k }));
-    });
-    corps.appendChild(outils);
-    return alerte('info', 'Vous pouvez créer le Kanban ainsi', corps);
-}
-function etapeRecapitulatif() {
-    var b = etat.brouillon;
-    var lib = function (u) { var i = infoParUid(u); return i && infoActive(i) ? i.libelle : ''; };
-    var visibles = function (cle, prop) { return b[cle].map(infoParUid).filter(function (i) { return infoActive(i) && i[prop]; }).map(function (i) { return i.libelle; }).join(', '); };
-    var infos = b.infos.filter(infoActive);
-    var videsInfos = infos.filter(function (i) { return GENRES_A_VALEURS.indexOf(i.genre) !== -1 && !i.valeurs.length; });
-    var vides = videsInfos.map(function (i) { return i.libelle; });
-    var filtres = b.filtres.map(lib).filter(Boolean);
-    var groupes = [
-        { etape: 'Général', rang: 1, lignes: [['Nom', b.nom.trim()], ['Explication', b.description.trim()]] },
-        { etape: 'Les colonnes', rang: 2, lignes: [['Colonnes', colonnesActives().map(function (x) { return x.nom.trim(); }).join(', ')]] },
-        { etape: 'Les informations', rang: 3, lignes: infos.length ? infos.map(function (i) {
-                return [i.libelle, libelleGenre(i.genre) + (i.valeurs.length ? ' (' + i.valeurs.join(', ') + ')' : '') + (i.echeance ? ', échéance' : '') + (i.responsable ? ', responsable' : '')];
-            }) : [['Informations', 'Le titre seulement']] },
-        { etape: 'La carte', rang: 4, lignes: [['Sur la carte', visibles('ordreCarte', 'surCarte') || 'Le titre seulement'], ['Affichage compact', b.compact ? 'Oui' : 'Non'],
-                ['Noms des informations', b.nomsInfos ? 'Affichés' : 'Masqués'], ['Image de couverture', lib(b.couverture) || 'Aucune'], ['Couleur des cartes selon', lib(b.couleur) || 'Aucune']] },
-        { etape: 'La fiche', rang: 5, lignes: [['Dans la fiche', visibles('ordreFiche', 'dansFiche') || 'Le titre et la colonne seulement'],
-                ['Courriel préparé', b.courriel && b.courriel.actif ? 'Proposé' + (colDestinataire(b.courriel.destUid) ? ', destinataire lu dans « ' + infoParUid(b.courriel.destUid).libelle + ' »' : '') : 'Non proposé']] },
-        { etape: 'Affichage et filtres', rang: 6, lignes: [['Recherche', b.recherche ? 'Proposée' : 'Non proposée'], ['Filtres', filtres.join(', ')],
-                ['En retard seulement', b.filtreRetard ? 'Proposé' : 'Non proposé']] }
-    ];
-    return grilleParam([], '1-1', [titreColonne('Vos choix', null),
-        creer('p', { classe: 'w-mention', texte: 'Rien n\'a encore été créé. Relisez votre Kanban, puis créez-le.' }),
-        vides.length ? alerteListesVides(videsInfos) : null,
-        blocRecapitulatif(groupes)], apercuEtape('Récapitulatif'));
-}
 function validerEtape(n) {
     var b = etat.brouillon;
     masquerErreur();
@@ -7370,16 +7184,6 @@ function validerEtape(n) {
         }
     }
     return true;
-}
-async function validerAssistant() {
-    for (var n = 1; n <= 3; n++) {
-        if (!validerEtapeSansRendu(n)) {
-            allerEtape(n);
-            validerEtape(n);
-            return;
-        }
-    }
-    return creerDepuisBrouillon();
 }
 function validerEtapeSansRendu(n) {
     var b = etat.brouillon;
@@ -7692,186 +7496,6 @@ async function appliquerBrouillon() {
         return cleParUid;
     }
 }
-function rendreDepart(zone) {
-    var b = etat.brouillon;
-    if (b.choixDepart === 'modele') {
-        rendreChoixModele(zone);
-        return;
-    }
-    var bloc = creer('div', { classe: 'w-assistant' });
-    bloc.appendChild(enteteCreation('Nouveau Kanban', etat.tableaux.length ? quitterAssistant : null));
-    bloc.appendChild(stepper(1, ['Point de départ'], null));
-    var option = function (id, icone, titre, texte, libelle, action, principal) {
-        return creer('section', { classe: 'w-tuile w-tuile--depart', attrs: { 'aria-labelledby': id } }, [
-            creer('span', { classe: 'fr-icon-' + icone + ' fr-icon--lg w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-            creer('h3', { classe: 'fr-h5 fr-m-0', id: id, texte: titre }),
-            creer('p', { classe: 'w-texte w-mention', texte: texte }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton(libelle, principal ? null : 'secondaire', 'arrow-right-line', action, { id: id + 'Bouton', iconeDroite: true })])
-        ]);
-    };
-    var aDesDonnees = tablesBranchables().length > 0;
-    var nbSug = aDesDonnees ? suggestionsDeDonnees().length : 0;
-    var texteDonnees = !aDesDonnees ? 'Ce document ne contient encore aucune table de données : cette possibilité sera proposée dès qu\'il en aura une.'
-        : (nbSug ? 'Le widget a analysé vos tables et vous suggère ' + (nbSug > 1 ? nbSug + ' Kanbans prêts' : 'un Kanban prêt') + ' à l\'emploi. Vous pouvez aussi le paramétrer vous-même à partir de la table de votre choix.'
-            : 'Le widget n\'a pas trouvé de Kanban à vous suggérer d\'après vos tables : vous le paramétrez vous-même à partir de la table de votre choix.');
-    var tuileDonnees = option('dDonnees', 'table-line', 'J\'ai déjà des données', texteDonnees, 'Partir de mes données', function () { return demarrerBranchement(); }, aDesDonnees);
-    if (!aDesDonnees) {
-        tuileDonnees.querySelector('button').disabled = true;
-    }
-    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, [tuileDonnees,
-        option('dSans', 'add-line', 'Je n\'ai pas encore de données', etat.tableaux.length ? 'Le widget crée tout pour vous : partez d\'un modèle prêt à l\'emploi, d\'un de vos Kanbans ou d\'un Kanban vierge.'
-            : 'Le widget crée tout pour vous : partez d\'un modèle prêt à l\'emploi ou d\'un Kanban vierge.', 'Partir d\'un modèle', function () { b.choixDepart = 'modele'; afficherVue('assistant'); }, !aDesDonnees)
-    ]));
-    bloc.appendChild(creer('p', { classe: 'w-mention', texte: 'Seuls les utilisateurs autorisés peuvent créer et paramétrer un Kanban.' }));
-    zone.appendChild(bloc);
-}
-function rendreChoixModele(zone) {
-    var b = etat.brouillon;
-    var bloc = creer('div', { classe: 'w-assistant' });
-    var depart = function () { b.choixDepart = null; afficherVue('assistant'); };
-    bloc.appendChild(enteteCreation('Nouveau Kanban', quitterAssistant));
-    bloc.appendChild(stepper(2, PARCOURS.modele, function (r) { return r === 1 ? depart : null; }));
-    bloc.appendChild(creer('p', { classe: 'w-texte w-mention', texte: 'Partez d\'un Kanban vierge ou d\'un modèle : il prépare les colonnes et les informations des cartes, que vous modifiez ensuite à votre guise.' }));
-    var vierge = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    vierge.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-label': 'Kanban vierge' } }, [
-        creer('h4', { classe: 'fr-h6 fr-m-0' }, [creer('span', { classe: 'fr-icon-add-line fr-mr-1w', attrs: { 'aria-hidden': 'true' } }), 'Kanban vierge']),
-        creer('p', { classe: 'w-texte w-mention', texte: 'Vous composez vos colonnes et vos informations, étape par étape.' }),
-        creer('p', { classe: 'w-mention', texte: 'Colonnes : ' + MODELES_ETAPES[0].join(', ') + ', à modifier' }),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de zéro', 'secondaire', 'arrow-right-line', function () {
-                etat.brouillon = brouillonVierge();
-                etat.brouillon.choixDepart = 'modele';
-                afficherVue('assistant');
-            }, { petit: true })])
-    ]));
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'mVierge' } }, [creer('h3', { classe: 'fr-h6', id: 'mVierge', texte: 'Partir de zéro' }), vierge]));
-    var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    MODELES.forEach(function (m) {
-        tuiles.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-label': m.nom } }, [
-            creer('h4', { classe: 'fr-h6 fr-m-0' }, [creer('span', { classe: 'fr-icon-' + m.icone + ' fr-mr-1w', attrs: { 'aria-hidden': 'true' } }), m.nom]),
-            creer('p', { classe: 'w-texte w-mention', texte: m.description }),
-            creer('p', { classe: 'w-mention', texte: 'Colonnes : ' + m.etapes.join(', ') }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser ce modèle', 'secondaire', 'arrow-right-line', function () { appliquerModele(m); }, { petit: true, aria: 'Utiliser ce modèle : ' + m.nom })])
-        ]));
-    });
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'mTypes' } }, [creer('h3', { classe: 'fr-h6', id: 'mTypes', texte: 'Modèles prêts à l\'emploi' }), tuiles]));
-    if (etat.tableaux.length) {
-        var existants = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-        etat.tableaux.forEach(function (t) {
-            var cfg = t.config;
-            var infos = (cfg.champs || []).map(function (ch) { var col = infoColonne(cfg.tableCartes, ch.col); return ch.libelle || (col ? col.label : ch.col); });
-            var desc = cfg.description ? (cfg.description.length > 140 ? cfg.description.slice(0, 137) + '…' : cfg.description) : null;
-            existants.appendChild(creer('section', { classe: 'w-tuile w-tuile--existant', attrs: { 'aria-label': cfg.nom || 'Sans nom' } }, [
-                creer('p', { classe: 'fr-m-0' }, [badge('Kanban de ce document', 'info')]),
-                creer('h4', { classe: 'fr-h6 fr-m-0' }, [creer('span', { classe: 'fr-icon-folder-2-line fr-mr-1w', attrs: { 'aria-hidden': 'true' } }), cfg.nom || 'Sans nom']),
-                desc ? creer('p', { classe: 'w-texte w-mention', texte: desc }) : null,
-                creer('p', { classe: 'w-mention', texte: infos.length ? 'Sur les cartes : ' + infos.join(', ') : 'Le titre seulement sur les cartes' }),
-                creer('p', { classe: 'w-mention', texte: 'Reprend ses colonnes, ses informations et ses réglages, sans les cartes.' }),
-                creer('div', { classe: 'w-tuile__bas' }, [bouton('Repartir de ce Kanban', 'secondaire', 'arrow-right-line', function () { return repartirDeTableau(t); }, { petit: true, aria: 'Repartir de ce Kanban : ' + (cfg.nom || '') })])
-            ]));
-        });
-        bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'mVos' } }, [creer('h3', { classe: 'fr-h6', id: 'mVos', texte: 'Repartir d\'un Kanban de ce document' }), existants]));
-    }
-    zone.appendChild(bloc);
-}
-function appliquerModele(m) {
-    etat.brouillon = brouillonDepuisDefinition({ nom: m.nom, description: m.description, etapes: m.etapes, champs: m.champs, options: m.options, origine: 'du modèle « ' + m.nom + ' »' });
-    etat.brouillon.choixDepart = 'modele';
-    afficherVue('assistant');
-}
-async function repartirDeTableau(t) {
-    afficherLoader('Lecture du Kanban…');
-    try {
-        await chargerMeta();
-        var cfg = t.config;
-        var tc = cfg.tableCartes;
-        if (!etat.meta.tables[tc]) {
-            throw new Error('Table des cartes absente : ' + tc);
-        }
-        var colE = infoColonne(tc, cfg.colEtape);
-        var etapes = [];
-        var parCle = {};
-        var cible = colE ? tableCibleRef(colE.type) : null;
-        if (cfg.sourceEtapes && cfg.sourceEtapes.type === 'liste') {
-            (cfg.sourceEtapes.valeurs || []).forEach(function (v) { etapes.push(v); parCle[v] = v; });
-        }
-        else if (colE && cible && colE.type.indexOf('Ref:') === 0) {
-            var aff = colAffichageRef(colE) || (cfg.sourceEtapes && cfg.sourceEtapes.colAffichage);
-            var ord = cfg.sourceEtapes && cfg.sourceEtapes.colOrdre;
-            var e = await lireTable(cible);
-            var lignes = [];
-            for (var i = 0; i < e.id.length; i++) {
-                lignes.push({ id: e.id[i], lib: aff ? colonneDe(e, aff, i) : null, o: ord ? colonneDe(e, ord, i) : colonneDe(e, 'manualSort', i) });
-            }
-            lignes.sort(function (x, y) { return (typeof x.o === 'number' ? x.o : 1e15) - (typeof y.o === 'number' ? y.o : 1e15) || x.id - y.id; });
-            lignes.forEach(function (l) { if (l.lib) {
-                etapes.push(String(l.lib));
-                parCle[String(l.id)] = String(l.lib);
-            } });
-        }
-        else if (colE && colE.type === 'Choice') {
-            choixDe(colE).forEach(function (v) { etapes.push(v); parCle[v] = v; });
-        }
-        else if (colE) {
-            var d = await lireTable(tc);
-            var vus = {};
-            (d[cfg.colEtape] || []).forEach(function (v) { if (v && typeof v === 'string' && !vus[v]) {
-                vus[v] = true;
-                etapes.push(v);
-                parCle[v] = v;
-            } });
-            etapes.sort(function (x, y) { return x.localeCompare(y, 'fr'); });
-        }
-        if (!etapes.length) {
-            etapes = MODELES_ETAPES[0].slice();
-        }
-        var champs = [];
-        var ignores = [];
-        var libParCol = {};
-        for (var k = 0; k < (cfg.champs || []).length; k++) {
-            var ch = cfg.champs[k];
-            var col = infoColonne(tc, ch.col);
-            if (!col) {
-                continue;
-            }
-            var lib = ch.libelle || col.label;
-            var g = genreAffiche(col, ch.genre || genreDe(col, null));
-            var valeurs = [];
-            if (g === 'reference') {
-                try {
-                    var r = await chargerRef(tableCibleRef(col.type), colAffichageRef(col));
-                    valeurs = r.ids.map(function (id) { return r.libelles[id]; });
-                    g = 'choix';
-                }
-                catch (e2) {
-                    ignores.push(lib);
-                    continue;
-                }
-            }
-            else if (['references', 'autre'].indexOf(g) !== -1) {
-                ignores.push(lib);
-                continue;
-            }
-            else if (GENRES_A_VALEURS.indexOf(g) !== -1) {
-                valeurs = Array.isArray(ch.valeurs) ? ch.valeurs.slice() : choixDe(col);
-            }
-            libParCol[ch.col] = lib;
-            champs.push({ libelle: lib, genre: g, valeurs: valeurs, echeance: ch.col === cfg.colEcheance, responsable: ch.col === cfg.colResponsable,
-                surCarte: ch.surCarte, dansFiche: ch.dansFiche });
-        }
-        var parCol = function (l) { return (l || []).map(function (x) { return libParCol[x]; }).filter(Boolean); };
-        etat.brouillon = brouillonDepuisDefinition({ nom: (cfg.nom || 'Tableau') + ' (copie)', description: cfg.description || '', etapes: etapes, champs: champs,
-            options: { filtres: parCol(cfg.filtres), filtreRetard: !!cfg.filtreRetard, ordreFiche: parCol(cfg.ordreFiche),
-                compact: !!cfg.compact, recherche: cfg.recherche !== false },
-            origine: 'du Kanban « ' + (cfg.nom || 'Sans nom') + ' »', ignores: ignores });
-        etat.brouillon.choixDepart = 'modele';
-        masquerLoader();
-        afficherVue('assistant');
-    }
-    catch (e) {
-        masquerLoader();
-        afficherErreur('La lecture de ce Kanban n\'a pas abouti.', e);
-    }
-}
 var TEXTES_DROITS = {
     usages: 'Par défaut, les éditeurs et les propriétaires créent et paramètrent les Kanbans, et modifient les cartes ; les personnes au rôle Lecteur consultent. Pour réserver le paramétrage aux propriétaires, posez les règles ci-dessous.',
     pluriel: 'les Kanbans',
@@ -7896,29 +7520,6 @@ var AIDE = {
         'Seuls les utilisateurs autorisés peuvent ajouter et modifier des cartes, créer et paramétrer des Kanbans.'
     ],
     etapes: {
-        'Point de départ': { titre: 'partez de vos données ou d\'un modèle.', points: [
-                '« Partir de mes données » : le Kanban affiche une de vos tables ; ses données restent les vôtres.',
-                '« Partir d\'un modèle » : le widget crée une table prête à remplir.',
-                'Rien n\'est écrit dans le document avant « Créer mon Kanban ».'
-            ] },
-        'Le modèle': { titre: 'un point de départ prêt à l\'emploi.', points: [
-                '« Kanban vierge » : quelques colonnes de base, à renommer.',
-                '« Utiliser ce modèle » : colonnes et informations préparées pour un usage courant.',
-                '« Repartir de ce Kanban » : reprend les colonnes et les réglages d\'un Kanban du document, sans ses cartes.'
-            ] },
-        'Les suggestions': { titre: 'un Kanban proposé d\'après vos tables.', points: [
-                '« Utiliser cette suggestion » remplit les étapes suivantes : il ne reste qu\'à vérifier.',
-                '« Partir de zéro » : vous choisissez vous-même la table et ses colonnes.'
-            ] },
-        'La table': { titre: 'la table où sont vos cartes.', points: [
-                'Chaque ligne de la table devient une carte.',
-                'Une table déjà utilisée par un autre Kanban n\'est pas proposée.'
-            ] },
-        'Les colonnes de la table': { titre: 'l\'étape et le titre de chaque carte.', points: [
-                '« Colonne qui indique l\'étape de chaque carte » : chaque valeur devient une colonne du Kanban. Une liste de choix est idéale.',
-                '« Colonne qui sert de titre à la carte » : le texte en gras en haut de chaque carte.',
-                'L\'aperçu montre les colonnes du Kanban d\'après la colonne choisie.'
-            ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
@@ -7962,10 +7563,6 @@ var AIDE = {
                 '« En retard seulement » : disponible quand une information a le rôle Échéance.',
                 '« Recherche » : dans le titre et le contenu des cartes.'
             ] },
-        'Récapitulatif': { titre: 'vérifiez, puis créez.', points: [
-                '« Modifier » ramène à l\'étape concernée.',
-                '« Créer mon Kanban » enregistre le Kanban ; tout reste modifiable ensuite depuis l\'accueil, en ouvrant le Kanban.'
-            ] }
     },
     questions: [
         { q: 'Comment inviter les utilisateurs ?', r: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs » : un courriel et un rôle par personne, puis « Confirmer ». L\'accès public doit rester désactivé. Le détail est dans l\'étape « Les droits » des paramétrages.' },
@@ -7983,7 +7580,6 @@ var AIDE = {
     ]
 };
 function contexteAide() {
-    var creation = 'Rien n\'est enregistré avant « Créer mon Kanban ».';
     if (pageAdminKb()) {
         var bp = etat.brouillon;
         if (bp && bp.mode === 'personnalisation') {
@@ -7991,22 +7587,11 @@ function contexteAide() {
         }
         return { etapes: ETAPES_PANNEAU_KB, courante: -1, repere: 'Pour changer ces réglages : ouvrez un Kanban depuis l\'accueil, son paramétrage s\'affiche à droite.' };
     }
-    if (etat.vue === 'branchement' && etat.assistant) {
-        return { etapes: PARCOURS.donnees, courante: etat.assistant.etape + 1, repere: creation };
-    }
-    var b = etat.brouillon;
-    if (etat.vue === 'assistant' && b) {
-        if (b.mode === 'personnalisation') {
-            return { etapes: ETAPES_PARAMETRAGE, courante: b.etape - 1, repere: '' };
-        }
-        var decalage = PARCOURS.modele.length - ETAPES_ASSISTANT.length;
-        return { etapes: PARCOURS.modele, courante: b.etape === 0 ? (b.choixDepart === 'modele' ? 1 : 0) : decalage + b.etape - 1, repere: creation };
-    }
     if (etat.config) {
         return { etapes: ETAPES_PARAMETRAGE, courante: -1,
-            repere: etat.peutParametrer ? 'Pour changer ces réglages : « Paramétrages de ce Kanban », en bas du panneau de gauche.' : 'Seuls les utilisateurs autorisés peuvent paramétrer ce Kanban.' };
+            repere: etat.peutParametrer ? 'Pour changer ces réglages : ouvrez le Kanban depuis l\'accueil de la page d\'administration.' : 'Seuls les utilisateurs autorisés peuvent paramétrer ce Kanban.' };
     }
-    return { etapes: PARCOURS.modele, courante: -1, repere: null };
+    return { etapes: ETAPES_PARAMETRAGE, courante: -1, repere: null };
 }
 function apercuContenu(nom) {
     var boite = function (n) { return creer('div', { classe: 'w-apercu-boite' }, [n]); };
@@ -8065,28 +7650,6 @@ function apercuCarteBranchement(a) {
     }
     return art;
 }
-function majApercuBranchement() {
-    var z = document.getElementById('aApercuCorps');
-    var a = z && etat.vue === 'branchement' ? apercuContenu(PARCOURS.donnees[etat.assistant.etape + 1]) : null;
-    if (a) {
-        vider(z);
-        z.appendChild(a.contenu);
-    }
-}
-async function demarrerBranchement() {
-    afficherLoader('Lecture de vos tables…');
-    try {
-        await chargerMeta();
-        etat.assistant = nouvelAssistantBranchement(etat.tableLiee && tablesBranchables().indexOf(etat.tableLiee) !== -1 && !tableauDeTable(etat.tableLiee) ? etat.tableLiee : null);
-        etat.assistant.etape = 0;
-        masquerLoader();
-        afficherVue('branchement');
-    }
-    catch (e) {
-        masquerLoader();
-        afficherErreur('La lecture des tables du document n\'a pas abouti.', e);
-    }
-}
 function nouvelAssistantBranchement(table) {
     return { mode: 'branchement', etape: 1, table: table, colEtape: null, colTitre: null, champs: {}, ordre: 'manuel', triCol: '', triSens: 'asc',
         colEcheance: '', colResponsable: '', apercuEtapes: null };
@@ -8108,67 +7671,6 @@ function suggestionsDeDonnees() {
         res.push({ a: a, score: score, colE: colE, nom: libelleTable(tid) + ' par ' + colE.label });
     });
     return res.sort(function (x, y) { return y.score - x.score; }).slice(0, 6);
-}
-function rendreSuggestions(zone) {
-    var bloc = creer('div', { classe: 'w-assistant' });
-    bloc.appendChild(enteteCreation('Nouveau Kanban', annulerAssistant));
-    bloc.appendChild(stepper(2, PARCOURS.donnees, function (r) {
-        if (r === 1) {
-            return function () { etat.assistant = null; demarrerCreation(); };
-        }
-        return r > 2 && (etat.assistant.etapeMax || 0) >= r - 2 ? function () { return allerEtapeBranchement(r - 2); } : null;
-    }));
-    bloc.appendChild(creer('p', { classe: 'w-texte w-mention', texte: 'Partez d\'un Kanban vierge à partir de l\'une de vos tables, ou d\'un Kanban suggéré d\'après vos données. Vous vérifierez et ajusterez tout avant de valider.' }));
-    var nbTables = tablesBranchables().length;
-    var vierge = creer('div', { classe: 'w-tuiles w-tuiles--grille' }, [creer('section', { classe: 'w-tuile', attrs: { 'aria-label': 'Kanban vierge' } }, [
-            creer('h4', { classe: 'fr-h6 fr-m-0' }, [creer('span', { classe: 'fr-icon-add-line fr-mr-1w', attrs: { 'aria-hidden': 'true' } }), 'Kanban vierge']),
-            creer('p', { classe: 'w-texte w-mention', texte: 'Vous choisissez la table, la colonne qui donne les étapes du Kanban et les informations à afficher.' }),
-            creer('p', { classe: 'w-mention', texte: 'À partir de ' + (nbTables > 1 ? 'l\'une de vos ' + nbTables + ' tables' : 'votre table') }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Partir de zéro', 'secondaire', 'arrow-right-line', function () { etat.assistant.etape = 1; afficherVue('branchement'); }, { petit: true, id: 'sMoiMeme' })])
-        ])]);
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sVierge' } }, [creer('h3', { classe: 'fr-h6', id: 'sVierge', texte: 'Partir de zéro' }), vierge]));
-    var sug = suggestionsDeDonnees();
-    var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    sug.forEach(function (sg, i) {
-        var a = sg.a;
-        var colT = infoColonne(a.table, a.colTitre);
-        var zoneCol = creer('p', { classe: 'w-mention', id: 'sCol' + i });
-        if (sg.colE.type === 'Choice') {
-            zoneCol.textContent = 'Colonnes : ' + choixDe(sg.colE).join(', ');
-        }
-        else if (sg.colE.type.indexOf('Ref:') === 0) {
-            zoneCol.textContent = 'Colonnes : une par ligne de la table ' + libelleTable(tableCibleRef(sg.colE.type));
-            relayer(chargerRef(tableCibleRef(sg.colE.type), colAffichageRef(sg.colE)).then(function (r) {
-                zoneCol.textContent = 'Colonnes : ' + r.ids.map(function (id) { return r.libelles[id]; }).join(', ');
-            }), 'Aperçu des colonnes suggérées');
-        }
-        else {
-            zoneCol.textContent = 'Colonnes : une par valeur saisie dans « ' + sg.colE.label + ' »';
-        }
-        var reperes = [];
-        if (a.colEcheance) {
-            reperes.push('Échéance : ' + infoColonne(a.table, a.colEcheance).label);
-        }
-        if (a.colResponsable) {
-            reperes.push('Responsable : ' + infoColonne(a.table, a.colResponsable).label);
-        }
-        var surCartes = Object.keys(a.champs).map(function (c) { return infoColonne(a.table, c).label; });
-        tuiles.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sTitre' + i } }, [
-            creer('h3', { classe: 'fr-h6 fr-m-0', id: 'sTitre' + i }, [creer('span', { classe: 'fr-icon-table-line fr-mr-1w', attrs: { 'aria-hidden': 'true' } }), sg.nom]),
-            zoneCol,
-            creer('p', { classe: 'w-mention', texte: 'Titre des cartes : ' + colT.label + (reperes.length ? ' · ' + reperes.join(' · ') : '') }),
-            surCartes.length ? creer('p', { classe: 'w-mention', texte: 'Sur les cartes : ' + surCartes.join(', ') }) : null,
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () {
-                    a.etape = 4;
-                    a.suggestion = sg.nom;
-                    etat.assistant = a;
-                    afficherVue('branchement');
-                }, { petit: true, aria: 'Utiliser cette suggestion : ' + sg.nom })])
-        ]));
-    });
-    bloc.appendChild(creer('section', { attrs: { 'aria-labelledby': 'sSugg' } }, [creer('h3', { classe: 'fr-h6', id: 'sSugg', texte: 'Kanbans suggérés d\'après vos tables' }),
-        sug.length ? tuiles : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : aucune colonne de vos tables ne ressemble à des étapes de travail (statut, état, phase…). Partez d\'un Kanban vierge.' })]));
-    zone.appendChild(bloc);
 }
 function tableauDeTable(tid) {
     for (var i = 0; i < etat.tableaux.length; i++) {
@@ -8203,158 +7705,8 @@ function raisonRefusEtape(c) {
 function colonnesEtapePossibles(tid) {
     return colonnesDe(tid).filter(function (c) { return raisonRefusEtape(c) === ''; });
 }
-function colonnesEtapeEcartees(tid) {
-    return colonnesDe(tid).filter(function (c) {
-        var r = raisonRefusEtape(c);
-        return r !== null && r !== '' && IDS_META.indexOf(c.colId) === -1 && IDS_TECHNIQUES.indexOf(c.colId) === -1;
-    });
-}
 function colonnesTitrePossibles(tid) {
     return colonnesDe(tid).filter(function (c) { return c.type === 'Text' || c.type === 'Any'; });
-}
-function rendreBranchement(zone) {
-    var a = etat.assistant;
-    if (a.etape === 0) {
-        rendreSuggestions(zone);
-        return;
-    }
-    var bloc = creer('div', { classe: 'w-assistant' });
-    var noms = PARCOURS.donnees;
-    var rang = a.etape + 2;
-    a.etapeMax = Math.max(a.etapeMax || 0, a.etape);
-    bloc.appendChild(enteteCreation('Nouveau Kanban', annulerAssistant));
-    bloc.appendChild(stepper(rang, noms, function (r) {
-        if (r === 1) {
-            return function () { etat.assistant = null; demarrerCreation(); };
-        }
-        if (r === 2) {
-            return function () { a.suggestion = null; a.etape = 0; afficherVue('branchement'); };
-        }
-        return r - 2 <= a.etapeMax + 1 ? function () { return allerEtapeBranchement(r - 2); } : null;
-    }));
-    if (a.suggestion && a.etape === 4) {
-        bloc.appendChild(alerte('info', null, 'Suggestion « ' + a.suggestion + ' » : vérifiez les choix ci-dessous. Les boutons « Modifier » et la barre d\'étapes permettent de tout ajuster.'));
-    }
-    if (a.etape === 1) {
-        bloc.appendChild(branchementEtape1());
-    }
-    if (a.etape === 2) {
-        bloc.appendChild(branchementEtape2());
-    }
-    if (a.etape === 3) {
-        bloc.appendChild(branchementEtape3());
-    }
-    if (a.etape === 4) {
-        bloc.appendChild(branchementEtape4());
-    }
-    bloc.appendChild(piedEtape({ libelle: noms[rang - 2], action: function () { return changerEtapeBranchement(-1); } }, a.etape < 4 ? { libelle: noms[rang], action: function () { return changerEtapeBranchement(1); } } : null, { libelle: 'Créer mon Kanban', action: executerBranchement, id: 'aCreer' }));
-    zone.appendChild(bloc);
-}
-function branchementEtape1() {
-    var a = etat.assistant;
-    var tables = tablesBranchables();
-    var fs = creer('fieldset', { classe: 'fr-fieldset' }, [creer('legend', { classe: 'fr-fieldset__legend fr-sr-only', texte: 'La table des cartes' })]);
-    var l = creer('div', { classe: 'w-liste' });
-    if (!tables.length) {
-        l.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune table n\'est disponible dans ce document.' }));
-    }
-    tables.forEach(function (tid, i) {
-        var r = creer('input', { attrs: { type: 'radio', name: 'bTable', id: 'bTable' + i }, coche: a.table === tid });
-        r.addEventListener('change', function () {
-            if (a.table !== tid) {
-                a.table = tid;
-                a.colEtape = null;
-                a.colTitre = null;
-                a.champs = {};
-                a.colEcheance = '';
-                a.colResponsable = '';
-            }
-            Array.prototype.forEach.call(l.querySelectorAll('.w-option'), function (o) { o.classList.remove('w-option--choisie'); });
-            r.parentNode.classList.add('w-option--choisie');
-        });
-        var nb = colonnesDe(tid).length;
-        var occupe = tableauDeTable(tid);
-        if (occupe) {
-            r.disabled = true;
-            r.checked = false;
-        }
-        l.appendChild(creer('label', { classe: 'w-option' + (a.table === tid && !occupe ? ' w-option--choisie' : ''), attrs: { 'for': 'bTable' + i } }, [r,
-            creer('span', {}, [creer('strong', { texte: libelleTable(tid) }), creer('span', { classe: 'w-option__exemple', texte: occupe
-                        ? 'Déjà utilisée par le Kanban « ' + occupe.config.nom + ' »'
-                        : nb + ' colonne' + (nb > 1 ? 's' : '') + (tid === etat.tableLiee ? ', table liée à cette vue' : '') })])]));
-    });
-    fs.appendChild(l);
-    return grilleParam([], '1-1', [titreColonne('La table des cartes', 'Chaque ligne de la table choisie devient une carte. Ajouter une carte dans le Kanban ajoute une ligne dans la table, et inversement.', 'bAideTable'), fs]);
-}
-async function majApercuEtapes() {
-    var a = etat.assistant;
-    var zone = document.getElementById('bApercuEtape');
-    if (!zone) {
-        return;
-    }
-    vider(zone);
-    var col = a.colEtape ? infoColonne(a.table, a.colEtape) : null;
-    if (!col) {
-        return;
-    }
-    var valeurs = [];
-    var type;
-    if (col.type === 'Choice') {
-        type = 'choice';
-        valeurs = choixDe(col);
-    }
-    else if (col.type.indexOf('Ref:') === 0) {
-        type = 'ref';
-        try {
-            var r = await chargerRef(tableCibleRef(col.type), colAffichageRef(col));
-            valeurs = r.ids.map(function (id) { return r.libelles[id]; });
-        }
-        catch (e) {
-            logSecurite('AVERTISSEMENT', 'Lecture de la table référencée impossible', e);
-        }
-    }
-    else {
-        type = 'text';
-    }
-    var badges = creer('span', { classe: 'w-carte__badges fr-mt-1w' }, valeurs.map(function (v) { return badge(v); }));
-    if (type === 'choice') {
-        zone.appendChild(alerte('success', 'Cette colonne convient parfaitement', creer('div', {}, [creer('p', { texte: valeurs.length + ' valeur' + (valeurs.length > 1 ? 's' : '') + ' de cette colonne deviendront les colonnes du Kanban :' }), badges])));
-    }
-    else if (type === 'ref') {
-        zone.appendChild(alerte('success', 'Cette colonne convient parfaitement', creer('div', {}, [creer('p', { texte: 'Chaque ligne de la table ' + libelleTable(tableCibleRef(col.type)) + ' deviendra une colonne du Kanban :' }), badges])));
-    }
-    else {
-        zone.appendChild(alerte('warning', 'Cette colonne est un texte libre', 'Le Kanban affichera une colonne par valeur trouvée, mais vous ne pourrez pas ajouter, renommer ni réordonner les colonnes depuis le Kanban. Pour cela, transformez-la en liste de choix dans votre table : le widget ne le fera jamais à votre place.'));
-    }
-}
-function branchementEtape2() {
-    var a = etat.assistant;
-    var etapes = colonnesEtapePossibles(a.table);
-    var titres = colonnesTitrePossibles(a.table);
-    var selE = liste('bColEtape', etapes.map(function (c) { return { valeur: c.colId, libelle: c.label + '  (' + libelleType(c).toLowerCase() + ')' }; }), a.colEtape, { vide: 'Choisissez une colonne' });
-    selE.addEventListener('change', function () { a.colEtape = selE.value || null; relayer(majApercuEtapes(), 'Aperçu des colonnes'); });
-    var selT = liste('bColTitre', titres.map(function (c) { return { valeur: c.colId, libelle: c.label + (c.formule ? '  (calculée, non modifiable)' : '') }; }), a.colTitre, { vide: 'Choisissez une colonne' });
-    selT.addEventListener('change', function () { a.colTitre = selT.value || null; });
-    setTimeout(function () { relayer(majApercuEtapes(), 'Aperçu des colonnes'); }, 0);
-    return grilleParam([], '1-1', [
-        titreColonne('Les colonnes de la table ' + libelleTable(a.table), 'Pour l\'étape, une liste de choix est idéale : chaque choix devient une colonne du Kanban. Une référence vers une autre table convient aussi : chaque ligne de l\'autre table devient une colonne. Un texte libre est possible, mais les colonnes ne pourront pas être gérées depuis le Kanban.', 'bAideColonnes'),
-        annonceePropositions(a),
-        groupeChamp('Colonne qui indique l\'étape de chaque carte', selE, 'Elle détermine dans quelle colonne du Kanban chaque carte apparaît.', true),
-        blocColonnesEcartees(a.table),
-        groupeChamp('Colonne qui sert de titre à la carte', selT, 'C\'est le texte affiché en gras en haut de chaque carte.', true)
-    ], apercuEtape('Les colonnes de la table'));
-}
-function blocColonnesEcartees(tid) {
-    var ecartees = colonnesEtapeEcartees(tid);
-    if (!ecartees.length) {
-        return null;
-    }
-    return creer('div', { classe: 'w-panneau' }, [
-        creer('p', { classe: 'w-texte fr-text--bold', texte: ecartees.length > 1 ? 'Colonnes non proposées pour l\'étape' : 'Colonne non proposée pour l\'étape' }),
-        creer('ul', { classe: 'w-texte' }, ecartees.map(function (c) {
-            return creer('li', {}, [creer('strong', { texte: c.label }), ' : ' + raisonRefusEtape(c) + '.']);
-        }))
-    ]);
 }
 function colonneOrdreExistante(tid) {
     var candidats = ['ORDRE', 'ORDRE_KANBAN'];
@@ -8384,72 +7736,6 @@ function autresColonnes(a) {
     return colonnesDe(a.table).filter(function (c) {
         return c.colId !== a.colEtape && c.colId !== a.colTitre && IDS_META.indexOf(c.colId) === -1 && IDS_TECHNIQUES.indexOf(c.colId) === -1 && c.colId !== colonneOrdreExistante(a.table);
     });
-}
-function branchementEtape3() {
-    var a = etat.assistant;
-    var cols = autresColonnes(a);
-    var corps = creer('tbody');
-    cols.forEach(function (c, i) {
-        var g = genreDe(c, null);
-        var affichable = true;
-        var etatCol = !affichable ? ['Non affichable', 'warning'] : (estModifiable(c, g) ? ['Modifiable', 'success'] : ['Non modifiable', null]);
-        var cb = creer('input', { attrs: { type: 'checkbox', id: 'bChamp' + i, disabled: !affichable, 'aria-label': 'Afficher ' + c.label + ' sur les cartes' }, coche: !!a.champs[c.colId] });
-        cb.addEventListener('change', function () { if (cb.checked) {
-            a.champs[c.colId] = true;
-        }
-        else {
-            delete a.champs[c.colId];
-        } majApercuBranchement(); });
-        corps.appendChild(creer('tr', {}, [creer('td', {}, [cb]), creer('td', { texte: c.label }), creer('td', { classe: 'w-mention', texte: libelleType(c) }),
-            creer('td', {}, [badge(etatCol[0], etatCol[1])])]));
-    });
-    var tab = creer('table', { classe: 'w-tableau-cols' }, [
-        creer('caption', { classe: 'fr-sr-only', texte: 'Colonnes de la table ' + libelleTable(a.table) }),
-        creer('thead', {}, [creer('tr', {}, ['Afficher', 'Colonne', 'Type', 'Sur la carte'].map(function (t) { return creer('th', { texte: t, attrs: { scope: 'col' } }); }))]),
-        corps
-    ]);
-    var ordreExistant = colonneOrdreExistante(a.table);
-    var rManuel = creer('input', { attrs: { type: 'radio', name: 'bOrdre', id: 'bOrdreManuel' }, coche: a.ordre === 'manuel' });
-    var rAuto = creer('input', { attrs: { type: 'radio', name: 'bOrdre', id: 'bOrdreAuto' }, coche: a.ordre === 'auto' });
-    var triOpts = [{ valeur: a.colTitre, libelle: 'Titre' }].concat(cols.filter(function (c) { return ['date', 'nombre', 'texte', 'choix'].indexOf(genreDe(c)) !== -1; })
-        .map(function (c) { return { valeur: c.colId, libelle: c.label }; }));
-    var selTri = liste('bTriCol', triOpts, a.triCol || a.colTitre);
-    var selSens = liste('bTriSens', [{ valeur: 'asc', libelle: 'Croissant' }, { valeur: 'desc', libelle: 'Décroissant' }], a.triSens);
-    var zoneTri = creer('div', { classe: 'w-colonnes2 fr-ml-4w', id: 'bZoneTri' }, [
-        creer('div', { classe: 'w-colonnes2__principal' }, [groupeChamp('Trier par', selTri)]),
-        creer('div', { classe: 'w-colonnes2__cote' }, [groupeChamp('Sens', selSens)])
-    ]);
-    zoneTri.hidden = a.ordre !== 'auto';
-    rManuel.addEventListener('change', function () { a.ordre = 'manuel'; zoneTri.hidden = true; });
-    rAuto.addEventListener('change', function () { a.ordre = 'auto'; zoneTri.hidden = false; a.triCol = selTri.value; });
-    selTri.addEventListener('change', function () { a.triCol = selTri.value; });
-    selSens.addEventListener('change', function () { a.triSens = selSens.value; });
-    var fsOrdre = creer('fieldset', { classe: 'fr-fieldset' }, [
-        creer('legend', { classe: 'fr-fieldset__legend', texte: 'Comment ranger les cartes dans chaque colonne ?' }),
-        creer('div', { classe: 'fr-fieldset__element' }, [creer('div', { classe: 'fr-radio-group' }, [rManuel,
-                creer('label', { classe: 'fr-label', attrs: { 'for': 'bOrdreManuel' } }, ['Je veux les ranger à la main',
-                    creer('span', { classe: 'fr-hint-text', texte: ordreExistant ? 'La colonne ' + ordreExistant + ' de votre table sera utilisée pour mémoriser l\'ordre.'
-                            : 'Une colonne ' + nomColonneOrdreLibre(a.table) + ' sera ajoutée à votre table pour mémoriser l\'ordre. Rien d\'autre n\'est modifié.' })])])]),
-        creer('div', { classe: 'fr-fieldset__element' }, [creer('div', { classe: 'fr-radio-group' }, [rAuto,
-                creer('label', { classe: 'fr-label', attrs: { 'for': 'bOrdreAuto' } }, ['Les trier automatiquement',
-                    creer('span', { classe: 'fr-hint-text', texte: 'Votre table n\'est pas modifiée, mais vous ne pourrez que changer une carte de colonne.' })])])]),
-        zoneTri
-    ]);
-    var dates = colonnesDe(a.table).filter(function (c) { return c.type === 'Date'; });
-    var personnes = colonnesDe(a.table).filter(function (c) { return c.colId !== a.colEtape && (c.type === 'Choice' || c.type === 'Text' || c.type.indexOf('Ref:') === 0); });
-    var selEch = liste('bEcheance', dates.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), a.colEcheance, { vide: 'Aucune' });
-    selEch.addEventListener('change', function () { a.colEcheance = selEch.value; majApercuBranchement(); });
-    var selResp = liste('bResp', personnes.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), a.colResponsable, { vide: 'Aucune' });
-    selResp.addEventListener('change', function () { a.colResponsable = selResp.value; });
-    return grilleParam([], '1-1', [
-        titreColonne('Sur les cartes', 'Cochez les colonnes à afficher sur les cartes. L\'étape et le titre sont déjà associés.', 'bAideCartes'),
-        annonceePropositions(a),
-        creer('div', { classe: 'w-defile-x' }, [tab]),
-        titreColonne('Rangement et repères', null),
-        fsOrdre,
-        groupeChamp('Colonne d\'échéance', selEch, 'Les cartes dont l\'échéance est dépassée seront signalées.'),
-        groupeChamp('Colonne des responsables', selResp, 'Elle permet de filtrer le Kanban par personne.')
-    ], apercuEtape('La carte'));
 }
 function evoqueRole(col, role) {
     var n = ' ' + normaliser(col.label + ' ' + col.colId).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
@@ -8503,12 +7789,6 @@ function proposerAssociations(a) {
         coches.slice(0, 5).forEach(function (id) { a.champs[id] = true; });
     }
     a.proposeesPour = t;
-}
-function annonceePropositions(a) {
-    if (a.proposeesPour !== a.table) {
-        return null;
-    }
-    return alerte('info', null, 'Le widget a fait des propositions d\'après le nom et le type de vos colonnes. Vérifiez-les : vous pouvez tout changer.');
 }
 async function allerEtapeBranchement(cible) {
     var a = etat.assistant;
@@ -8590,39 +7870,6 @@ function validerBranchement(n) {
         }
     }
     return true;
-}
-function branchementEtape4() {
-    var a = etat.assistant;
-    var colE = infoColonne(a.table, a.colEtape);
-    var colT = infoColonne(a.table, a.colTitre);
-    var choisis = autresColonnes(a).filter(function (c) { return a.champs[c.colId]; });
-    var modifs = choisis.filter(function (c) { return estModifiable(c, genreDe(c)); }).map(function (c) { return c.label; });
-    var lecture = choisis.filter(function (c) { return !estModifiable(c, genreDe(c)); }).map(function (c) { return c.label; });
-    var ordreExistant = colonneOrdreExistante(a.table);
-    var ajout = a.ordre === 'manuel' && !ordreExistant ? nomColonneOrdreLibre(a.table) : null;
-    var lignesCarte = [];
-    if (modifs.length) {
-        lignesCarte.push(modifs.join(', ') + ' (modifiables)');
-    }
-    if (lecture.length) {
-        lignesCarte.push(lecture.join(', ') + ' (non modifiables)');
-    }
-    if (!lignesCarte.length) {
-        lignesCarte.push('Le titre seulement');
-    }
-    var tri = a.ordre === 'manuel' ? 'Rangement à la main' : 'Tri automatique par ' + (a.triCol === a.colTitre ? 'titre' : (infoColonne(a.table, a.triCol) || {}).label);
-    var lib = function (colId) { var c = colId ? infoColonne(a.table, colId) : null; return c ? c.label : 'Aucune'; };
-    var groupes = [
-        { etape: 'La table', rang: 1, lignes: [['Table', libelleTable(a.table)]] },
-        { etape: 'Les colonnes de la table', rang: 2, lignes: [['Étape', colE.label + ' (' + libelleType(colE).toLowerCase() + ')'], ['Titre', colT.label]] },
-        { etape: 'La carte', rang: 3, lignes: [['Sur les cartes', lignesCarte.join(' ; ')], ['Rangement', tri], ['Échéance', lib(a.colEcheance)], ['Responsables', lib(a.colResponsable)]] }
-    ];
-    return grilleParam([], '1-1', [titreColonne('Vos choix', null),
-        ajout ? alerte('warning', 'Votre table ' + libelleTable(a.table) + ' va être modifiée', '1 colonne ajoutée : ' + ajout + ' (nombre), pour mémoriser le rangement des cartes. Aucune donnée existante ne sera modifiée ni supprimée.')
-            : alerte('info', 'Votre table ne sera pas modifiée', 'Aucune colonne ne sera ajoutée ni modifiée dans la table ' + libelleTable(a.table) + '.'),
-        blocRecapitulatif(groupes),
-        creer('p', { classe: 'w-mention', texte: 'Le Kanban s\'affiche aussitôt après sa création. Toute carte déplacée met à jour la colonne ' + colE.label + ' de la ligne correspondante.' })
-    ], apercuEtape('Récapitulatif'));
 }
 async function executerBranchement() {
     var a = etat.assistant;
@@ -8840,10 +8087,6 @@ function rendreTableau(zone) {
     contenu.appendChild(blocAffichage());
     var adminKb = pageAdminKb();
     var paramKb = adminKb && etat.brouillon && etat.brouillon.mode === 'personnalisation';
-    if (etat.peutParametrer && !adminKb)
-        contenu.appendChild(creer('section', { classe: 'w-volet__bloc w-volet__pied', attrs: { 'aria-label': 'Paramétrages' } }, [
-            bouton('Paramétrages de ce Kanban', 'secondaire', 'settings-5-line', ouvrirPersonnalisation, { petit: true, id: 'tPerso', classe: 'w-param' })
-        ]));
     contenu.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimerVue, id: 'tImprimer' },
         { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'tPdf' }

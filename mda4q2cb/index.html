@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitCalendrier
+  Version : 1.0.0 - 23/11/2026
+  Description : calendriers et plannings tirés d'une table, avec pages pour les utilisateurs.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -10,6 +15,7 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -338,10 +344,12 @@
     .w-ico--sortir { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3v6H3M15 3v6h6M21 15h-6v6M3 15h6v6'/%3E%3C/svg%3E"); }
     @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-infobulle--dessous::after { bottom: auto; top: calc(100% + .375rem); }
@@ -528,6 +536,7 @@
     .c-carte__pied { display: flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-top: 1px solid var(--border-default-grey); background: var(--background-alt-grey); }
     .c-carte__supprimer.fr-btn { color: var(--text-default-error); }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .c-loupe, .c-aplan, .c-carte { display: none !important; }
       .c-heures { max-height: none; overflow: visible; }
       .c-cal { overflow: visible; }
@@ -582,13 +591,14 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
       .w-tuile { padding: 1rem; }
     }
     .gp-impression-titre { display: none; }
     @media print {
-      html, body { height: auto; overflow: visible; display: block; background: var(--background-default-grey); }
+      html, body { height: auto; overflow: visible; display: block; background: var(--background-default-grey); color: inherit; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #skipLink, .w-bandeau, .w-panneau-aide, .w-onglets, .w-volet, .w-volet-mobile, .w-mobile-actions, .w-barre-vue__commandes, .gp-outils, .w-toast, .w-loader, .w-overlay { display: none !important; }
       .w-contenu, .w-contenu--plan { overflow: visible; padding: 0; display: block; }
       .w-disposition, .w-principal, #pPanneau { display: block; }
@@ -596,6 +606,7 @@
     }
     @media print {
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-volet-mobile, .w-barre-vue__commandes, .w-barre-vue__compteurs, .w-panneau-aide,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-toast, #skipLink { display: none !important; }
     }
   
@@ -606,8 +617,8 @@
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -617,30 +628,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -649,18 +667,18 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
@@ -668,6 +686,7 @@
     .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
     @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
@@ -691,10 +710,11 @@
     .w-modele__texte { display: flex; flex-direction: column; gap: .25rem; padding: .75rem; }
     .w-modele__nom { font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
     .w-modele__desc { font-size: .75rem; color: var(--text-mention-grey); }
-    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: inherit; }
     .w-atelier__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
     .w-atelier__bas { flex: none; display: flex; align-items: center; gap: .5rem; padding: .75rem 1.25rem; border-top: 1px solid var(--border-default-grey); }
     .w-atelier__bas .fr-btn { margin: 0; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-grille, .w-atelier .w-grille-param { display: flex !important; flex-direction: column; gap: 1rem; }
     .w-atl-bloc { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-atl-tableaux { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
@@ -719,7 +739,7 @@
     .w-atl-etape__resume { font-size: .75rem; color: var(--text-mention-grey); }
     .w-atl-etape--verrouillee > .w-atl-etape__tete { opacity: .45; cursor: not-allowed; }
     .w-atl-etape__corps { padding: .75rem 0 .5rem 2.25rem; }
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-disposition--admin > .w-volet[hidden] { display: none; }
     .w-ouvrir-param { margin: 0 .75rem 0 0; flex: none; }
     .w-contenu--accueil { padding: 0; }
@@ -734,10 +754,10 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
-    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; color: inherit; }
+    .w-acc__carte:hover { background: var(--background-default-grey-hover); }
     .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
     .w-acc__carte-nom { font-weight: 700; }
     .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
@@ -759,12 +779,12 @@
     .w-atl-etape--num { position: relative; }
     .w-atl-etape--num::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2.25rem; bottom: -.5rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .w-atl-etape--num:has(+ .w-atl-etape--separee)::before, .w-atl-etape--num:last-child::before { display: none; }
-    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
-    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
+    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); color: inherit; }
+    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
     .w-entete-admin { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 0 0 .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-entete-admin .fr-btn { margin: 0; }
-    .w-entete-admin__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .w-entete-admin__nom { margin: 0; font-size: 1rem; line-height: 1.75rem; }
     .w-bouton-danger.fr-btn--tertiary { color: var(--text-default-error); }
     .w-entete-admin > .w-pousse { flex: 1 1 auto; }
     .w-acc__suggestion { position: absolute; top: .375rem; right: .375rem; }
@@ -779,26 +799,26 @@
     .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume, #e8edff); }
-    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px #fff; }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume); color: inherit; }
+    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px var(--background-default-grey); color: var(--text-inverted-blue-france); }
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-disposition--admin > .w-volet { display: none; }
-    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; }
+    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; color: inherit; }
     .w-disposition--admin > .w-principal > .w-titre-fluo { margin: 0 0 1rem; }
-    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); }
+    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); color: inherit; }
     .w-disposition--admin > .w-atelier .w-atelier__defile { padding-top: 1rem; }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
-    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-general--court { display: flex; flex-direction: column; gap: .25rem; }
     .w-general--court .fr-input-group { margin-bottom: .75rem; }
-    .w-publier-court .w-section { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; }
+    .w-publier-court .w-section { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; color: inherit; }
     .w-publier-court .w-c3__titre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .w-publier-court .w-champ-aide { border: 0; padding: 0; margin: 0; }
-    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; }
+    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; color: inherit; }
     .w-atelier .w-grille__col, .w-atelier .w-grille__pied { width: 100%; align-items: stretch; }
     .w-atelier .w-atl-etape__corps .w-section { width: 100%; box-sizing: border-box; }
     .w-atelier .fr-fieldset { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin: 0; padding: 0; border: 0; }
@@ -865,6 +885,9 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var VERSION_WIDGET = '1.0.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
@@ -2395,13 +2418,6 @@ function relayer(promesse, quoi) {
     }
     return promesse;
 }
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
@@ -3765,10 +3781,6 @@ function stepper(n, noms, aller) {
     return d;
 }
 function uid() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 'u' + etat.uidSeq; }
-function titreColonne(texte, explication, id) {
-    var a = explication ? aide(id, texte, explication) : null;
-    return creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', texte: texte }), a ? a.bouton : null, a ? a.panneau : null]);
-}
 function grilleParam(colonnes, gabarit, pied, apercu) {
     var remplir = function (div, noeuds) {
         var cur = null;
@@ -3939,7 +3951,7 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info') + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
@@ -4153,73 +4165,6 @@ async function telechargerPJ(id) {
     }
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function enteteParametrage(nom, retourLibelle, retourFn, statut) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [
-            creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
-        ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
-    ]);
-}
-function enteteCreation(titre, annulerFn) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
-        annulerFn ? bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' }) : null
-    ]);
-}
-function piedEtape(precedente, suivante, actionFinale) {
-    var boutons = [];
-    if (precedente) {
-        boutons.push(bouton('Étape précédente : ' + precedente.libelle, 'secondaire', 'arrow-left-line', precedente.action, { id: 'aPrecedent' }));
-    }
-    if (suivante) {
-        boutons.push(bouton('Continuer : ' + suivante.libelle, null, 'arrow-right-line', suivante.action, { id: 'aSuivant', iconeDroite: true }));
-    }
-    else if (actionFinale) {
-        boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
-    }
-    return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
 function blocSupprimer(libelle, mention, fn) {
     return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
         creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
@@ -4256,20 +4201,6 @@ function majApercu() {
             note.textContent = a.note || 'Avec vos données, rien n\'est enregistré ici.';
         }
     }
-}
-function blocRecapitulatif(groupes) {
-    return creer('div', { classe: 'w-recap' }, groupes.map(function (g) {
-        var dl = creer('dl', { classe: 'w-recap__liste' });
-        g.lignes.forEach(function (l) {
-            dl.appendChild(creer('dt', { texte: l[0] }));
-            dl.appendChild(creer('dd', { texte: l[1] === '' || l[1] === null || l[1] === undefined ? 'Aucun' : String(l[1]) }));
-        });
-        return creer('section', { classe: 'w-recap__groupe', attrs: { 'aria-label': g.etape } }, [
-            creer('div', { classe: 'w-recap__tete' }, [creer('p', { classe: 'w-recap__titre', texte: g.etape }),
-                bouton('Modifier', 'discret', 'edit-line', function () { allerEtape(g.rang); }, { petit: true, id: 'aRecapModifier' + g.rang, aria: 'Modifier : ' + g.etape })]),
-            dl
-        ]);
-    }));
 }
 var CLE_AIDE = NOM_WIDGET.toLowerCase() + ':aide';
 var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
@@ -4468,16 +4399,6 @@ var AIDE = {
         'Créer ou paramétrer un calendrier demande le droit de modifier le document.'
     ],
     etapes: {
-        'Point de départ': { titre: 'partez de vos données, d\'un modèle ou de zéro.', points: [
-                '« Utiliser mes données » : vous choisissez ensuite la table et ses colonnes.',
-                '« Partir d\'un modèle » : réunions, congés, réservations... Le widget crée les tables, avec des lignes d\'exemple si vous le souhaitez.',
-                '« Partir de zéro » : donnez un nom, dites si les événements ont des heures, listez vos catégories ; la table est créée vide.'
-            ] },
-        'La table': { titre: 'la table où sont vos événements.', points: [
-                '« Utiliser cette suggestion » reprend un calendrier deviné d\'après une de vos tables : il ne reste qu\'à vérifier.',
-                'Sinon, choisissez une table qui a une colonne de date, puis « Continuer ».',
-                'Chaque ligne de la table deviendra un événement. Votre table n\'est jamais restructurée.'
-            ] },
         'Les dates': { titre: 'où sont les dates de chaque événement.', points: [
                 '« Comment les dates sont-elles enregistrées ? » : un début et une fin, un début et une durée en jours, ou une seule date.',
                 '« Date de début » et « Date de fin » : la date de fin est incluse.',
@@ -4505,11 +4426,6 @@ var AIDE = {
                 '« Affichage par défaut, à l\'ouverture du calendrier » : Mois, Semaine, Jour ou Liste ; chacun peut ensuite changer.',
                 '« Sans samedi ni dimanche par défaut » : la semaine de travail.',
                 '« Dans le volet des filtres » : la recherche et les filtres proposés à gauche du calendrier.'
-            ] },
-        'Récapitulatif': { titre: 'vérifiez, nommez, créez.', points: [
-                '« Nom du calendrier » : affiché sur son onglet.',
-                '« Modifier » ramène à l\'étape concernée.',
-                '« Créer mon calendrier » enregistre le calendrier ; tout reste modifiable ensuite depuis l\'accueil, en ouvrant le calendrier.'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -4549,16 +4465,11 @@ function contexteAide() {
         }
         return { etapes: lp, courante: -1, repere: 'Pour changer ces réglages : ouvrez un calendrier depuis l\'accueil, son paramétrage s\'affiche à droite.' };
     }
-    if (etat.vue === 'assistant' && b) {
-        var perso = b.mode === 'parametrage';
-        return { etapes: nomsEtapes(b), courante: b.etape,
-            repere: perso ? '' : 'Rien n\'est enregistré avant « Créer mon calendrier », sauf les tables d\'un modèle, créées après confirmation.' };
-    }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
-            repere: etat.peutParametrer ? 'Pour changer ces réglages : « Paramétrages de ce calendrier », en bas du panneau de gauche.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
+            repere: etat.peutParametrer ? 'Pour changer ces réglages : ouvrez le calendrier depuis l\'accueil de la page d\'administration.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
     }
-    return { etapes: ETAPES.creation, courante: -1, repere: null };
+    return { etapes: ETAPES.param, courante: -1, repere: null };
 }
 var ETAPES_APERCU = ['Les dates', 'Les événements', 'Les options', 'La fiche', 'Affichage et filtres', 'Récapitulatif'];
 function apercuContenu(nom) {
@@ -7684,10 +7595,23 @@ function rafraichirApresDroits(focusId) {
     }
 }
 function afficherVue(vue, garderFocus) {
-    if (vue === 'assistant' && etat.brouillon && etat.brouillon.mode === 'parametrage' && pageAdminCl() && etat.config) {
-        vue = 'plan';
-        var dfl = document.getElementById('cAtelierDefile');
-        etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+    if (vue === 'assistant') {
+        /* L'ancien assistant n'existe plus : le paramétrage s'ouvre dans le
+           panneau de la page Admin, la création se fait depuis l'accueil. */
+        var bA = etat.brouillon;
+        if (bA && bA.mode === 'parametrage' && pageAdminCl() && etat.config) {
+            vue = 'plan';
+            var dfl = document.getElementById('cAtelierDefile');
+            etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+        }
+        else {
+            etat.brouillon = null;
+            vue = pageAdminCl() ? 'accueil' : (etat.config ? 'plan' : 'aucun');
+            if (bA && bA.mode === 'creation') {
+                etat.surAccueil = true;
+                setTimeout(function () { afficherErreur('Le calendrier n\'a pas été créé : vérifiez la table et ses colonnes, puis réessayez.'); }, 0);
+            }
+        }
     }
     majBandeauRole();
     etat.vue = vue;
@@ -7695,10 +7619,7 @@ function afficherVue(vue, garderFocus) {
     var zone = contenu();
     vider(zone);
     etat.tl = null;
-    if (vue === 'assistant') {
-        rendreAssistant(zone);
-    }
-    else if (vue === 'plan') {
+    if (vue === 'plan') {
         rendrePlan(zone);
     }
     else if (vue === 'invalide') {
@@ -8404,9 +8325,6 @@ function rendrePlan(zone) {
     }
     var adminCl = pageAdminCl();
     var paramCl = adminCl && etat.brouillon && etat.brouillon.mode === 'parametrage';
-    if (etat.peutParametrer && !adminCl) {
-        cont.appendChild(creer('div', { classe: 'w-volet__bloc c-parametrer' }, [bouton('Paramétrages de ce calendrier', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(0); }, { petit: true, id: 'pParametres' })]));
-    }
     cont.appendChild(sortiesVolet([
         { libelle: 'Imprimer', icone: 'printer-line', action: imprimerPlan, id: 'pImprimer' },
         { libelle: 'Enregistrer en PDF', icone: 'file-pdf-line', action: imprimerPdf, id: 'pPdf' },
@@ -9902,13 +9820,6 @@ async function annulerDernier() {
         afficherErreur('Le déplacement n\'a pas pu être annulé.', e);
     }
 }
-function libelleDansPhrase(l) {
-    var s = String(l || '');
-    if (s === s.toUpperCase()) {
-        return s.toLowerCase().replace(/_/g, ' ');
-    }
-    return /^[A-ZÀ-Ý][a-zà-ÿ]/.test(s) && !/[A-Z]/.test(s.slice(1)) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
-}
 function cfgParDefaut(g) {
     return { name: nomLisibleTable(g.table), description: '', table: g.table, colTitle: g.colTitle,
         dateMode: g.dateMode, colStart: g.colStart, colEnd: g.colEnd, colDuration: g.colDuration,
@@ -9918,11 +9829,12 @@ function cfgParDefaut(g) {
         filters: { search: true, lane: true, color: true, period: true }, defaultZoom: 'mois', workingDays: false };
 }
 function demarrerCreation() {
-    if (!etat.peutParametrer) {
+    if (!pageAdminCl()) {
         return;
     }
-    etat.brouillon = { mode: 'creation', etape: 0, etapeMax: 0, ecran: 'depart', cfg: null, avecExemples: true };
-    afficherVue('assistant');
+    etat.brouillon = null;
+    etat.surAccueil = true;
+    afficherVue('accueil');
 }
 function ouvrirParametrage(i) {
     if (!etat.peutParametrer || !etat.config) {
@@ -9975,29 +9887,6 @@ async function quitterParametrage() {
     etat.editionPage = null;
     await chargerTout();
     return true;
-}
-async function annulerCreation() {
-    var b = etat.brouillon;
-    if (b && (b.cfg || b.tablesCreees)) {
-        var ok = await confirmerAction('Abandonner la création ?', b.tablesCreees ? 'Le calendrier n\'est pas créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.'
-            : 'Rien n\'a été créé. Les choix faits pour le nouveau calendrier ne sont pas gardés.', 'Abandonner', { destructif: true });
-        if (!ok) {
-            return;
-        }
-        await proposerSuppressionTables(b);
-    }
-    etat.brouillon = null;
-    if (pageAdminCl()) {
-        etat.surAccueil = true;
-        await chargerTout();
-        return;
-    }
-    if (etat.plans.length) {
-        await chargerTout();
-    }
-    else {
-        demarrerCreation();
-    }
 }
 async function proposerSuppressionTables(b) {
     await chargerMeta();
@@ -10075,53 +9964,12 @@ async function donneesTable(tid) {
 }
 function nomsEtapes(b) { return b && b.mode === 'parametrage' ? ETAPES.param : ETAPES.creation; }
 function rangEtape(nom) { return nomsEtapes(etat.brouillon).indexOf(nom); }
-function rendreAssistant(zone) {
-    var b = etat.brouillon;
-    var noms = nomsEtapes(b);
-    var n = b.etape + 1;
-    var nom = noms[b.etape];
-    var perso = b.mode === 'parametrage';
-    b.etapeMax = Math.max(b.etapeMax || 0, b.etape);
-    var entete = perso
-        ? enteteParametrage(etat.config.name, 'Retour au calendrier', function () { return quitterParametrage(); }, b.statut)
-        : enteteCreation('Nouveau calendrier', b.etape === 0 && b.ecran === 'depart' && !etat.plans.length ? null : annulerCreation);
-    var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(n, noms, function (r) {
-            if (!perso && r - 1 > b.etapeMax + 1) {
-                return null;
-            }
-            if (!perso && r > 1 && !b.cfg) {
-                return null;
-            }
-            return function () { if (r - 1 > b.etape && !validerEtape(nom)) {
-                return;
-            } allerEtape(r - 1); };
-        })]);
-    bloc.addEventListener('input', majAttente);
-    bloc.addEventListener('change', majAttente);
-    if (b.origine && nom === 'Les dates' && !perso) {
-        bloc.appendChild(alerte('info', null, 'Prérempli d\'après ' + b.origine + '. Vérifiez chaque étape (tout peut être changé), ou passez directement au récapitulatif par la barre des étapes.'));
-    }
-    bloc.appendChild(contenuEtape(nom));
-    if (!(nom === 'Point de départ' && !b.cfg)) {
-        bloc.appendChild(piedAssistant(b, noms));
-    }
-    zone.appendChild(bloc);
-}
 function contenuEtape(nom) {
-    if (nom === 'Point de départ') {
-        return etapeDepart();
-    }
-    if (nom === 'La table') {
-        return ecranDonnees();
-    }
     if (nom === 'Général') {
         return etapeGeneral();
     }
     if (nom === 'Les droits') {
         return contenuDroits();
-    }
-    if (nom === 'Récapitulatif') {
-        return etapeRecapitulatif();
     }
     var corps = { 'Les dates': etapeDates, 'Les événements': etapeBarres, 'Les options': etapeCouloirs, 'La fiche': etapeLiens, 'Affichage et filtres': etapeFiltres }[nom]();
     if (etat.panneauCl && nom === 'Les dates' && etat.brouillon.voirTables) {
@@ -10129,29 +9977,10 @@ function contenuEtape(nom) {
     }
     return grilleParam([], '1-1', [corps], apercuEtape(nom));
 }
-function piedAssistant(b, noms) {
-    var i = b.etape;
-    var premiere = b.mode === 'creation' ? 1 : 0;
-    return piedEtape(i > premiere ? { libelle: noms[i - 1], action: function () { allerEtape(i - 1); } } : null, i < noms.length - 1 ? { libelle: noms[i + 1], action: function () {
-            if (noms[i] === 'La table') {
-                return continuerAvecTable();
-            }
-            if (validerEtape(noms[i])) {
-                allerEtape(i + 1);
-            }
-        } } : null, b.mode === 'creation' ? { libelle: 'Créer mon calendrier', action: creerPlan, id: 'aCreer' } : null);
-}
 function allerEtape(i) {
     var b = etat.brouillon;
     b.etape = i;
     b.tableChoisie = null;
-    if (i === 0 && b.mode === 'creation') {
-        b.ecran = b.tablesCreees ? 'modeles' : 'depart';
-    }
-    if (b.mode === 'creation' && nomsEtapes(b)[i] === 'La table') {
-        relayer(ouvrirDonnees(), 'Tables');
-        return;
-    }
     afficherVue('assistant');
     var c = document.getElementById('contenu');
     if (c) {
@@ -10246,132 +10075,6 @@ async function dessinerApercu(hote, nomEtape) {
         }
     });
 }
-function tuileDepart(id, icone, titre, texte, libelle, action, principal, desactive) {
-    return creer('section', { classe: 'w-tuile w-tuile--depart', attrs: { 'aria-labelledby': id } }, [
-        creer('span', { classe: 'fr-icon-' + icone + ' fr-icon--lg w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-        creer('h3', { classe: 'fr-h5 fr-m-0', id: id, texte: titre }),
-        creer('p', { classe: 'w-texte w-mention', texte: texte }),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton(libelle, principal ? null : 'secondaire', 'arrow-right-line', action, { desactive: desactive, id: id + 'B' })])
-    ]);
-}
-function etapeDepart() {
-    var b = etat.brouillon;
-    if (b.ecran === 'modeles') {
-        return ecranModeles();
-    }
-    if (b.ecran === 'vierge') {
-        return ecranVierge();
-    }
-    var tables = tablesBranchables();
-    var avecDates = tables.filter(function (t) { return colonnesDates(t).length > 0; });
-    var texte = !tables.length ? 'Ce document n\'a pas encore de table de données : ce choix sera proposé dès qu\'il en aura une.'
-        : (!avecDates.length ? 'Aucune de vos tables n\'a encore de colonne de date. Ajoutez-en une dans la table, ou partez d\'un modèle.'
-            : 'WuitCalendrier examine vos tables et propose des calendriers tout prêts. Vous pouvez aussi le brancher sur n\'importe quelle table : votre table n\'est jamais restructurée.');
-    var bloc = creer('div', { classe: 'w-assistant' }, [creer('p', { classe: 'w-texte w-mention', texte: 'Trois façons de commencer. Rien n\'est écrit dans votre document avant la dernière étape, sauf les tables d\'un modèle ou d\'un calendrier vierge, après confirmation.' }),
-        creer('div', { classe: 'w-tuiles' }, [
-            tuileDepart('dDonnees', 'table-line', 'J\'ai déjà des données', texte, 'Utiliser mes données', function () { return ouvrirDonnees(); }, avecDates.length > 0, !avecDates.length),
-            tuileDepart('dSans', 'add-line', 'Je n\'ai pas encore de données', 'Partez de l\'un des ' + MODELES.length + ' modèles prêts à l\'emploi : WuitCalendrier crée les tables, leurs colonnes et leurs listes de choix, avec des lignes d\'exemple datées à partir d\'aujourd\'hui si vous le souhaitez.', 'Partir d\'un modèle', function () { b.ecran = 'modeles'; afficherVue('assistant'); }, !avecDates.length),
-            tuileDepart('dVierge', 'edit-line', 'Je pars de zéro', 'Un calendrier vierge, à votre façon : donnez-lui un nom, dites s\'il a des heures, listez vos catégories si vous en avez. WuitCalendrier crée la table vide.', 'Partir de zéro', function () { b.ecran = 'vierge'; afficherVue('assistant'); }, false)
-        ])]);
-    return bloc;
-}
-function ecranVierge() {
-    var b = etat.brouillon;
-    var v = b.vierge = b.vierge || { nom: '', heures: true, categories: '', ressource: false, chevauchements: false };
-    var nom = saisie('vNom', v.nom, { indice: 'Par exemple : Planning de l\'équipe' });
-    nom.addEventListener('input', function () { v.nom = nom.value; });
-    var cats = saisie('vCats', v.categories, { multiligne: true, lignes: 4, indice: 'Une par ligne, par exemple :\nRéunion\nDéplacement\nFormation' });
-    cats.addEventListener('input', function () { v.categories = cats.value; });
-    var zoneChev = creer('div', {});
-    var dessinerChev = function () {
-        vider(zoneChev);
-        if (v.ressource) {
-            zoneChev.appendChild(caseCochee('vChev', 'Signaler quand une même ressource est prise deux fois en même temps', v.chevauchements, function (x) { v.chevauchements = x; }));
-        }
-    };
-    dessinerChev();
-    var creerVierge = function () {
-        var n = String(v.nom || '').trim();
-        if (!n) {
-            marquerInvalide('vNom', 'Donnez un nom à votre calendrier.');
-            return;
-        }
-        var choix = [];
-        String(v.categories || '').split('\n').forEach(function (x) { x = x.trim(); if (x && choix.indexOf(x) === -1 && choix.length < 20) {
-            choix.push(x);
-        } });
-        var typeDate = v.heures ? 'DateTime' : 'Date';
-        var cols = [{ id: 'TITRE', type: 'Text' }, { id: 'DEBUT', type: typeDate }, { id: 'FIN', type: typeDate }];
-        if (choix.length) {
-            cols.push({ id: 'CATEGORIE', type: 'Choice', choix: choix, couleurs: choix.map(function (x, i) { return PALETTE[i % PALETTE.length].id; }) });
-        }
-        if (v.ressource) {
-            cols.push({ id: 'RESSOURCE', type: 'Text' });
-        }
-        cols.push({ id: 'NOTES', type: 'Text', options: { wrap: true } });
-        var labels = [];
-        if (choix.length) {
-            labels.push('CATEGORIE');
-        }
-        if (v.ressource) {
-            labels.push('RESSOURCE');
-        }
-        var m = { id: 'vierge', vierge: true, nom: n, icone: 'add-line', description: '',
-            tables: [{ cle: 'main', id: versIdentifiant(n).slice(0, 40) || 'EVENEMENTS', titre: '📆 ' + n, cols: cols, colonnes: cols.map(function (c) { return c.id; }), exemples: [] }],
-            config: { colTitle: 'TITRE', dateMode: 'range', colStart: 'DEBUT', colEnd: 'FIN', colLane: v.ressource ? 'RESSOURCE' : null, layout: 'packed',
-                overlapCheck: !!(v.ressource && v.chevauchements), colorMode: choix.length ? 'choice' : 'single', colColor: choix.length ? 'CATEGORIE' : null, color: 'bleu',
-                labels: labels, defaultZoom: v.heures ? 'semaine' : 'mois' } };
-        return creerDepuisModele(m);
-    };
-    return creer('div', { classe: 'w-assistant' }, [creer('div', { classe: 'gp-outils' }, [retourDepart()]),
-        creer('div', { classe: 'w-c3__col c-vierge' }, [
-            groupeChamp('Nom du calendrier', nom, 'C\'est aussi le nom de la table créée dans votre document.', true),
-            radios('vHeures', 'Les événements ont-ils des heures ?', [
-                { v: 'oui', l: 'Oui, avec les heures', a: 'Réunions, rendez-vous, permanences : début et fin à l\'heure près, vue Semaine à l\'ouverture.' },
-                { v: 'non', l: 'Non, des journées entières', a: 'Congés, déplacements, échéances : du jour au jour, vue Mois à l\'ouverture.' }
-            ], v.heures ? 'oui' : 'non', function (x) { v.heures = x === 'oui'; }),
-            groupeChamp('Catégories', cats, 'Une couleur par catégorie. Vous pourrez en ajouter ensuite dans la table.'),
-            caseCochee('vRes', 'Ajouter une colonne Ressource (personne, salle, matériel)', v.ressource, function (x) { v.ressource = x; if (!x) {
-                v.chevauchements = false;
-            } dessinerChev(); }, 'Pour filtrer par ressource dans le volet.'),
-            zoneChev,
-            creer('p', { classe: 'w-mention', texte: 'La table aura les colonnes TITRE, DEBUT, FIN' + ', puis vos choix ci-dessus et NOTES. Vous pourrez y ajouter d\'autres colonnes quand vous voulez.' }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Créer la table', null, 'arrow-right-line', creerVierge, { id: 'vCreer' })])
-        ])]);
-}
-function retourDepart() {
-    return bouton('Retour aux trois façons de commencer', 'discret', 'arrow-left-line', function () { etat.brouillon.ecran = 'depart'; afficherVue('assistant'); }, { petit: true, id: 'aRetourDepart' });
-}
-function ecranModeles() {
-    var b = etat.brouillon;
-    var cb = creer('input', { attrs: { type: 'checkbox', id: 'aExemples' }, coche: b.avecExemples !== false });
-    cb.addEventListener('change', function () { b.avecExemples = cb.checked; });
-    var tuileModele = function (m, tuiles) {
-        var cree = m.tables.map(function (t) { return t.titre || t.id; }).join(', ');
-        var principal = m.tables.filter(function (t) { return t.cle === 'main'; })[0];
-        tuiles.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'm_' + m.id } }, [
-            creer('div', { classe: 'gp-tuile-tete' }, [creer('span', { classe: 'fr-icon-' + m.icone + ' w-tuile__icone', attrs: { 'aria-hidden': 'true' } }), creer('h4', { classe: 'fr-h6 fr-m-0', id: 'm_' + m.id, texte: m.nom })]),
-            creer('p', { classe: 'w-texte w-mention', texte: m.description }),
-            miniModele(m),
-            creer('ul', { classe: 'gp-faits' }, [creer('li', {}, [creer('b', { texte: 'Crée : ' }), cree]),
-                creer('li', {}, [creer('b', { texte: 'Ressource : ' }), m.config.colLane ? libelleDansPhrase(principal.cols.filter(function (c) { return c.id === m.config.colLane; })[0].label || m.config.colLane) : 'aucune']),
-                creer('li', {}, [creer('b', { texte: 'Dates : ' }), m.config.dateMode === 'milestone' ? 'une date par événement' + ((m.config.extraDates || []).length ? ', plus ' + m.config.extraDates.map(function (x) { return x.libelle.toLowerCase(); }).join(' et ') : '') : (principal.cols.filter(function (c) { return c.id === m.config.colStart; })[0].type === 'DateTime' ? 'début et fin, avec les heures' : 'début et fin')])]),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser ce modèle', 'secondaire', 'arrow-right-line', function () { return creerDepuisModele(m); }, { petit: true, id: 'mU_' + m.id, aria: 'Utiliser ce modèle : ' + m.nom })])
-        ]));
-    };
-    var familles = GROUPES_MODELES.map(function (g) {
-        var liste = MODELES.filter(function (m) { return (m.groupe || 'suivi') === g.id; }).sort(function (x, y) { return x.nom.localeCompare(y.nom, 'fr'); });
-        if (!liste.length) {
-            return null;
-        }
-        var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-        liste.forEach(function (m) { tuileModele(m, tuiles); });
-        return creer('section', { classe: 'c-famille', attrs: { 'aria-labelledby': 'mg_' + g.id } }, [creer('h4', { classe: 'c-famille__titre', id: 'mg_' + g.id, texte: g.nom }), tuiles]);
-    });
-    return creer('div', { classe: 'w-assistant' }, [creer('div', { classe: 'gp-outils' }, [retourDepart()]),
-        creer('div', { classe: 'fr-checkbox-group' }, [cb, creer('label', { classe: 'fr-label', attrs: { 'for': 'aExemples' } }, ['Ajouter quelques lignes d\'exemple'])]),
-        creer('section', { attrs: { 'aria-labelledby': 'mTypes' } }, [creer('h3', { classe: 'fr-h6', id: 'mTypes', texte: 'Modèles prêts à l\'emploi' })].concat(familles))]);
-}
 function miniModele(m) {
     var t = m.tables.filter(function (x) { return x.cle === 'main'; })[0];
     var iS = t.colonnes.indexOf(m.config.colStart), iE = m.config.colEnd ? t.colonnes.indexOf(m.config.colEnd) : -1;
@@ -10405,30 +10108,6 @@ function miniModele(m) {
         } });
     });
     return miniCalendrier(evs);
-}
-async function ouvrirDonnees() {
-    var b = etat.brouillon;
-    afficherLoader('Lecture de vos tables…');
-    try {
-        await chargerMeta();
-        var tables = tablesBranchables().filter(function (t) { return colonnesDates(t).length > 0; }).slice(0, 24);
-        for (var i = 0; i < tables.length; i++) {
-            try {
-                await donneesTable(tables[i]);
-            }
-            catch (e) {
-                logSecurite('AVERTISSEMENT', 'Table non lue : ' + tables[i], e);
-            }
-        }
-        b.etape = rangEtape('La table');
-        b.ecran = 'depart';
-        masquerLoader();
-        afficherVue('assistant');
-    }
-    catch (e) {
-        masquerLoader();
-        afficherErreur('La lecture des tables du document n\'a pas abouti.', e);
-    }
 }
 function suggestionsDeDonnees() {
     var res = [];
@@ -10517,32 +10196,6 @@ function miniDepuisCfg(cfg, d) {
         });
     });
     return miniCalendrier(evs);
-}
-function ecranDonnees() {
-    var b = etat.brouillon;
-    var sug = suggestionsDeDonnees();
-    var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    sug.forEach(function (sg, i) {
-        var d = etat.cacheTables[sg.g.table];
-        tuiles.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sTitre' + i } }, [
-            creer('div', { classe: 'gp-tuile-tete' }, [creer('span', { classe: 'fr-icon-calendar-2-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-                creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sTitre' + i, texte: sg.cfg.name }), badge(pluriel(sg.n, 'ligne'), 'info')]),
-            miniDepuisCfg(sg.cfg, d),
-            creer('ul', { classe: 'gp-faits' }, faitsCfg(sg.cfg, d).map(function (f) { return creer('li', {}, [creer('b', { texte: f[0] + ' : ' }), f[1]]); })),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () {
-                    b.cfg = JSON.parse(JSON.stringify(sg.cfg));
-                    b.origine = 'la suggestion « ' + sg.cfg.name + ' »';
-                    b.etape = rangEtape('Les dates');
-                    b.etapeMax = ETAPES.creation.length - 1;
-                    afficherVue('assistant');
-                }, { petit: true, id: 'sU' + i, aria: 'Utiliser cette suggestion : ' + sg.cfg.name })])
-        ]));
-    });
-    return creer('div', { classe: 'w-assistant' }, [creer('div', { classe: 'gp-outils' }, [retourDepart()]),
-        creer('section', { attrs: { 'aria-labelledby': 'sSugg' } }, [creer('h3', { classe: 'fr-h6', id: 'sSugg', texte: 'Calendriers suggérés d\'après vos tables' }),
-            creer('p', { classe: 'w-texte w-mention fr-mb-1w', texte: 'WuitCalendrier a reconnu les dates, les titres, les ressources et les catégories de vos tables (noms de colonnes en français ou en anglais). Vous vérifierez tout avant de confirmer.' }),
-            sug.length ? tuiles : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : choisissez une table ci-dessous.' })]),
-        ecranTables(false)]);
 }
 function ecranTables(parametrage) {
     var b = etat.brouillon;
@@ -11024,7 +10677,7 @@ function ligneTable(cfg) {
                 }
                 return;
             }
-            allerEtape(rangEtape(etat.brouillon.mode === 'creation' ? 'La table' : 'Général'));
+            allerEtape(rangEtape('Général'));
         }, { petit: true, aria: 'Changer de table', id: 'aChangerTable' })]);
 }
 function compteVides(cfg, colId) {
@@ -11332,45 +10985,6 @@ function etapeGeneral() {
     var danger = blocSupprimer('Supprimer le calendrier', 'Le calendrier disparaît des onglets. Sa table et ses lignes restent dans le document.', supprimerPlan);
     var pages = sectionsPages();
     return creer('div', { classe: 'w-general' }, [grilleParam([[section, ecranTables(true)], [pages[0], pages[1]], [danger]], '1-1-1')]);
-}
-function etapeRecapitulatif() {
-    var b = etat.brouillon;
-    var c = b.cfg;
-    var t = c.table;
-    var noms = nomsEtapes(b);
-    var lib = function (x) { var col = x ? infoColonne(t, x) : null; return col ? col.label : ''; };
-    var nom = saisie('aNom', c.name, { indice: 'Par exemple : Congés de l\'équipe' });
-    nom.addEventListener('input', function () { c.name = nom.value; });
-    var desc = saisie('aDesc', c.description, { multiligne: true, lignes: 2 });
-    desc.addEventListener('input', function () { c.description = desc.value; });
-    var groupes = [];
-    var ajouter = function (etape, lignes) { var r = noms.indexOf(etape); if (r > 0) {
-        groupes.push({ etape: etape, rang: r, lignes: lignes });
-    } };
-    ajouter('La table', [['Table', libelleTable(t)]]);
-    ajouter('Les dates', [[c.dateMode === 'milestone' ? 'Une date' : 'Dates', c.dateMode === 'range' ? lib(c.colStart) + ' → ' + lib(c.colEnd)
-                : (c.dateMode === 'duration' ? lib(c.colStart) + ' + ' + lib(c.colDuration) + ' jours' : lib(c.colStart))]]);
-    ajouter('Les événements', [['Titre', lib(c.colTitle)], ['Couleurs', c.colorMode === 'choice' ? 'Selon ' + lib(c.colColor) : (c.colorMode === 'lane' ? 'Une par ressource' : paletteParId(c.color).nom)],
-        ['Statut', lib(c.colStatus)], ['Dans la loupe', (c.labels || []).map(lib).filter(Boolean).join(', ')]]);
-    ajouter('Les options', [['Autres dates', (c.extraDates || []).map(function (x) { return x.libelle || lib(x.col); }).join(', ')], ['Ressource', lib(c.colLane)],
-        ['Chevauchements', c.colLane ? (c.overlapCheck ? 'Signalés' : 'Non signalés') : ''],
-        ['Superposés', (c.overlay || []).map(function (k) { var p = (etat.plans || []).filter(function (x) { return x.cle === k; })[0]; return p ? p.config.name : ''; }).filter(Boolean).join(', ')],
-        ['Répétitions', c.colSerie || c.creerSerie ? 'Reliées (colonne SERIE)' : '']]);
-    ajouter('La fiche', [['Autres champs', (c.details || []).length ? pluriel(c.details.length, 'autre champ', 'autres champs') : ''], ['Pièces jointes', lib(c.colAttach)]]);
-    ajouter('Affichage et filtres', [['À l\'ouverture', (VUES_CALENDRIER.filter(function (z) { return z.id === c.defaultZoom; })[0] || { libelle: 'Mois' }).libelle + (c.workingDays ? ', sans samedi ni dimanche' : '')],
-        ['Filtres du volet', [['search', 'Recherche'], ['lane', 'ressource'], ['color', 'couleur'], ['period', 'période']].filter(function (x) { return (c.filters || {})[x[0]] !== false; }).map(function (x) { return x[1]; }).join(', ')]]);
-    var ecrit = [];
-    if (b.tablesCreees && b.tablesCreees.length) {
-        ecrit.push('Déjà créées pour le modèle : ' + b.tablesCreees.map(libelleTable).join(', ') + '.');
-    }
-    if (b.tablesReutilisees && b.tablesReutilisees.length) {
-        ecrit.push('Reprises telles quelles : ' + b.tablesReutilisees.map(function (x) { return libelleTable(x) + ' (existante)'; }).join(', ') + '.');
-    }
-    ecrit.push(etat.biblio ? 'Une ligne de réglages dans ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages par calendrier.');
-    ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est ajoutée, retypée ou supprimée' + (c.creerSerie ? ', sauf la colonne SERIE demandée à l\'étape « Les options ».' : '.'));
-    return grilleParam([], '1-1', [titreColonne('Le calendrier', null, 'aSecNom'), groupeChamp('Nom du calendrier', nom, 'Affiché sur son onglet.', true), groupeChamp('Description', desc, null),
-        titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
-        titreColonne('Ce qui sera écrit dans votre document', null, 'aSecEcrit'), creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, ecrit.map(function (x) { return creer('li', { texte: x }); }))], apercuEtape('Récapitulatif'));
 }
 function validerEtape(nom) {
     var b = etat.brouillon;

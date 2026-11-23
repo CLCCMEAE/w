@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitFusion
+  Version : 1.0.0 - 23/11/2026
+  Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -11,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style id="pPageStyle">@page { size: A4; margin: 0; }
   .w-wuit { color: var(--blue-france-main-525); }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
@@ -21,8 +27,8 @@
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -32,30 +38,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -64,25 +77,25 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
     .w-depart__bas { display: flex; justify-content: flex-end; }
 /* accueil du cadre Wuit */
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-acc { display: flex; min-height: 100%; }
     .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
     .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
@@ -94,10 +107,10 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
-    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; color: inherit; }
+    .w-acc__carte:hover { background: var(--background-default-grey-hover); }
     .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
     .w-acc__carte-nom { font-weight: 700; }
     .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
@@ -119,25 +132,26 @@
     .w-acc__carte-texte { padding: .75rem .75rem 0; }
     .w-acc__carte-nom { font-size: .875rem; color: var(--text-title-grey); }
     .w-acc__carte-bas { padding: .75rem; }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume, #e8edff); }
-    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px #fff; }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume); color: inherit; }
+    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px var(--background-default-grey); color: var(--text-inverted-blue-france); }
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
-    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-choix-table-fu { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-fu__bas { display: flex; justify-content: flex-end; gap: .5rem; }
-    .w-acc__vig .w-vig-ligne { display: block; height: .5rem; margin: .5rem 0 0 1rem; background: var(--border-plain-grey, #929292); opacity: .45; }
+    .w-acc__vig .w-vig-ligne { display: block; height: .5rem; margin: .5rem 0 0 1rem; background: var(--border-plain-grey); opacity: .45; color: inherit; }
     .w-acc__vig .w-vig-ligne:first-child { margin-top: 2rem; }
-    .w-acc__vig .w-vig-feuille { position: absolute; left: 50%; top: .75rem; transform: translateX(-50%); width: 4.5rem; height: 6rem; background: #fff; border: 1px solid var(--border-default-grey); }
+    .w-acc__vig .w-vig-feuille { position: absolute; left: 50%; top: .75rem; transform: translateX(-50%); width: 4.5rem; height: 6rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-choix-fu .fr-fieldset { margin: 0; }
     .w-acc__vig .w-vignette { position: absolute; left: 50%; top: .625rem; transform: translateX(-50%); }
 /* paramétrage en panneau vertical (cadre Wuit) */
-    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: inherit; }
     .w-atelier__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
     .w-atelier__bas { flex: none; display: flex; align-items: center; gap: .5rem; padding: .75rem 1.25rem; border-top: 1px solid var(--border-default-grey); }
     .w-atelier__bas .fr-btn { margin: 0; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-grille, .w-atelier .w-grille-param { display: flex !important; flex-direction: column; gap: 1rem; }
     .w-atl-bloc { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-atl-tableaux { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
@@ -166,15 +180,15 @@
     .w-atl-etape--num { position: relative; }
     .w-atl-etape--num::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2.25rem; bottom: -.5rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .w-atl-etape--num:has(+ .w-atl-etape--separee)::before, .w-atl-etape--num:last-child::before { display: none; }
-    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
-    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
+    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); color: inherit; }
+    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
     .w-param-fin { margin: 1.5rem .75rem 0; padding-top: 1rem; border-top: 1px solid var(--border-default-grey); display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
     .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
-    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; }
+    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; color: inherit; }
     .w-atelier .w-grille__col, .w-atelier .w-grille__pied { width: 100%; align-items: stretch; }
     .w-atelier .w-atl-etape__corps .w-section { width: 100%; box-sizing: border-box; }
     .w-atelier .fr-fieldset { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin: 0; padding: 0; border: 0; }
@@ -183,14 +197,16 @@
     .w-atelier .fr-hint-text, .w-atelier .w-mention { font-size: .875rem; }
     .w-atelier { flex: 0 0 min(34rem, 50vw); }
     .w-atelier .w-atelier__defile { container-type: inline-size; container-name: assistant; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-compo, .w-atelier [class*="w-grille--"], .w-atelier .w-param-apercu { grid-template-columns: minmax(0, 1fr) !important; }
     .w-atelier .w-apercu { position: static; width: auto; max-width: none; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-donnees-2c, .w-atelier .w-deux { grid-template-columns: minmax(0, 1fr) !important; gap: 1.5rem; }
-    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; }
+    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; color: inherit; }
     .w-atelier .w-section--seule > .w-champ-aide:first-child { border-bottom: 0; padding-bottom: 0; }
     .w-contenu--atelier { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
     .w-fu-atelier { flex: 1; min-height: 0; display: flex; }
-    .w-fu-centre { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--background-alt-grey); padding: 1rem 1.5rem 0; }
+    .w-fu-centre { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--background-alt-grey); padding: 1rem 1.5rem 0; color: inherit; }
     .w-fu-centre__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; margin-bottom: .75rem; }
     .w-fu-centre__tete .fr-btn { margin: 0; }
     .w-fu-centre__nom { font-weight: 700; }
@@ -199,6 +215,7 @@
     .w-fu-texte__tete .fr-btn, .w-fu-texte__tete .w-statut { margin: 0; }
 </style>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -281,7 +298,7 @@
     @media (max-width: 62em) { .w-grille--1-1, .w-grille--1-1-1, .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
     .w-retouche { display: flex; flex-direction: column; gap: 1rem; }
     .w-retouche__tete { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }
-    .w-retouche__titre { margin: 0; font-size: 1.125rem; line-height: 1.5; }
+    .w-retouche__titre { margin: 0; font-size: 1rem; line-height: 1.5; }
     .w-retouche__actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
     .w-texte-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem .5rem; }
     .w-champs-dispo { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; }
@@ -430,6 +447,7 @@
     .w-vue > .w-volet__poignee { margin-left: -1.25rem; }
     .w-vue > .w-volet-replie + .w-volet__poignee { margin-left: 0; flex-basis: 1rem; border-left: 0; }
     @media (min-width: 48.0625em) {
+      /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
       .w-vue > .w-volet.w-volet-replie { display: none !important; }
     }
     @media (max-width: 48em) { .w-volet__poignee { display: none; } }
@@ -613,10 +631,12 @@
     .w-apercu-titre h3 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
     .fr-btn.w-btn--danger { color: var(--text-default-error); }
     .fr-btn.w-btn--danger:hover { background-color: var(--background-contrast-error); }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     #pPdfProgres { width: 100%; height: .5rem; accent-color: var(--background-action-high-blue-france); color: var(--text-default-grey); }
@@ -630,14 +650,14 @@
     .w-choix-tables__inter { margin: .75rem 0 .25rem; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
     .w-opt-table { display: flex; align-items: flex-start; gap: .625rem; position: relative; float: none; width: auto; max-width: none; margin: 0 0 .125rem; padding: .375rem .5rem .375rem .75rem; border-left: 4px solid transparent; cursor: pointer; }
     .w-opt-table[hidden] { display: none; }
-    .w-opt-table > input[type="radio"] { position: static; flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin: .125rem 0 0; opacity: 1; appearance: auto; -webkit-appearance: radio; accent-color: var(--background-action-high-blue-france); cursor: pointer; }
+    .w-opt-table > input[type="radio"] { position: static; flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin: .125rem 0 0; opacity: 1; appearance: auto; -webkit-appearance: radio; accent-color: var(--background-action-high-blue-france); cursor: pointer; color: inherit; }
     .w-opt-table > input[type="radio"]:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .w-opt-table__label { display: block; flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; font-size: .875rem; line-height: 1.375rem; color: var(--text-default-grey); cursor: pointer; overflow-wrap: anywhere; }
     .w-opt-table__label::before, .w-opt-table__label::after { content: none; display: none; }
     .w-opt-table__nom { display: block; }
     .w-opt-table__sous { display: block; margin-top: .125rem; font-size: .75rem; line-height: 1.125rem; color: var(--text-mention-grey); }
     .w-opt-table:hover { background: var(--background-default-grey-hover); }
-    .w-opt-table:has(input:checked) { background: var(--background-action-low-blue-france); border-left-color: var(--border-active-blue-france); }
+    .w-opt-table:has(input:checked) { background: var(--background-action-low-blue-france); border-left-color: var(--border-active-blue-france); color: inherit; }
     .w-opt-table:has(input:checked) .w-opt-table__label { color: var(--text-action-high-blue-france); }
     .w-opt-table:has(input:checked) .w-opt-table__nom { font-weight: 700; }
     .w-choix-tables.fr-fieldset--error { padding-left: .75rem; border-left: 2px solid var(--border-plain-error); }
@@ -685,14 +705,14 @@
     .w-ec-saut { margin: 0 0 9pt; padding: 2pt 0; border-top: 1px dashed var(--border-plain-grey); font-size: 7.5pt; color: var(--text-mention-grey); text-align: center; }
     .w-hors-ecran { position: absolute; left: -200000px; top: 0; }
     .w-ec-el { position: relative; }
-    .w-ec-el--objet { cursor: pointer; border-radius: 1px; }
+    .w-ec-el--objet { cursor: pointer; border-radius: 0; }
     .w-ec-el--objet:hover, .w-ec-el--conteneur:hover { outline: 1px dashed var(--border-default-blue-france); outline-offset: 3px; }
     .w-ec-el--objet:focus-visible { outline: 2px solid var(--border-active-blue-france); outline-offset: 3px; }
     .w-ec-el.w-ec-el--choisi { outline: 2px solid var(--border-active-blue-france); outline-offset: 4px; }
     .w-ec-el--texte.w-ec-el--choisi { outline-width: 1px; }
     .w-ec-el--cache > :not(.w-ec-el__barre):not(.w-ec-note) { opacity: .45; }
     .w-ec-el__barre { position: absolute; z-index: 30; right: -4px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: .125rem; padding: .125rem .25rem;
-      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: 0 2px 6px rgba(0, 0, 0, .16);
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); outline: 1px solid var(--border-default-grey);
       font-family: Marianne, arial, sans-serif; font-size: .875rem; line-height: 1.5; white-space: nowrap; }
     .w-ec-el__barre .fr-btn { margin: 0; }
     .w-ec-el__nom { padding: 0 .375rem; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
@@ -707,15 +727,15 @@
     .w-ec-zone--vide[data-court] { min-height: 1.5em; }
     .p-col > .w-ec-el:last-child > .p-u:last-child, .p-box > .w-ec-el:last-child > .p-u:last-child, .w-ec-corps > .w-ec-el:last-child > .p-u:last-child { margin-bottom: 0; }
     .w-ec-el--pied:hover { outline-offset: 0; }
-    .w-ec-select { width: auto; max-width: 11rem; height: 2rem; margin: 0; padding: .125rem 2rem .125rem .5rem; font-size: .8125rem; background-position: calc(100% - .375rem) 50%; }
+    .w-ec-select { width: auto; max-width: 11rem; height: 2rem; margin: 0; padding: .125rem 2rem .125rem .5rem; font-size: .8125rem; background-position: calc(100% - .375rem) 50%; color: inherit; }
     .w-elem-zone:empty { display: none; }
-    .w-ico-butee-haut, .w-ico-butee-bas { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-size: .75rem 2px; }
-    .w-ico-butee-haut { background-position: 50% calc(50% - .6rem); }
-    .w-ico-butee-bas { background-position: 50% calc(50% + .6rem); }
+    .w-ico-butee-haut, .w-ico-butee-bas { background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-size: .75rem 2px; color: inherit; }
+    .w-ico-butee-haut { background-position: 50% calc(50% - .6rem); color: inherit; }
+    .w-ico-butee-bas { background-position: 50% calc(50% + .6rem); color: inherit; }
     .w-pastille { cursor: pointer; }
     .w-regle-bloc { display: flex; flex-direction: column; gap: .25rem; padding-left: .75rem; border-left: 2px solid var(--border-default-grey); }
     .w-elem { display: flex; flex-direction: column; gap: .75rem; padding: .75rem; border-bottom: 1px solid var(--border-default-grey);
-      border-left: .25rem solid var(--border-active-blue-france); background: var(--background-alt-blue-france); }
+      border-left: .25rem solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: inherit; }
     .w-elem__tete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
     .w-elem__titre { display: flex; align-items: center; gap: .375rem; margin: 0; font-size: 1rem; line-height: 1.5; }
     .w-elem .fr-input-group, .w-elem .fr-select-group { margin-bottom: 0; }
@@ -769,7 +789,7 @@
     .w-depart { display: flex; flex-direction: column; gap: .75rem; padding: 1.5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); cursor: pointer; }
     .w-depart:hover { background: var(--background-default-grey-hover); }
     .w-depart--accent { border: 2px solid var(--border-action-high-blue-france); }
-    .w-depart__titre { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: 1.25rem; line-height: 1.75rem; color: var(--text-title-grey); }
+    .w-depart__titre { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: 1rem; line-height: 1.5rem; color: var(--text-title-grey); }
     .w-depart__titre [class*="fr-icon-"]::before { --icon-size: 1.5rem; }
     .w-depart__liste { margin: 0; padding-left: 1.25rem; font-size: .875rem; color: var(--text-mention-grey); }
     .w-depart__bas { margin-top: auto; }
@@ -827,10 +847,13 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
       .w-bloc__corps { padding: .75rem; }
     }
-    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+    @media (prefers-reduced-motion: reduce) {
+      /* !important : préférence de mouvement réduit : neutralise toutes les animations, y compris celles du DSFR */
+      * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
     .p-page { --p-brand: var(--text-action-high-blue-france); --p-brand-l: var(--background-alt-blue-france); --p-ink: var(--text-title-grey); --p-muted: var(--text-mention-grey); --p-line: var(--border-default-grey);
       --p-font: Marianne, arial, sans-serif;
       position: relative; overflow: hidden; background: var(--background-default-grey); color: var(--p-ink); font-family: var(--p-font); font-size: 10.5pt; line-height: 1.45;
@@ -900,10 +923,13 @@
 .w-rp-box { position: absolute; border: 3px dashed var(--border-action-high-blue-france); pointer-events: none; z-index: 5; box-sizing: border-box; }
 .w-rp-box__etiq { position: absolute; top: 0; right: 0; transform: translateY(-100%); font-size: .75rem; font-weight: 700; line-height: 1.5; padding: 0 .375rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); white-space: nowrap; }
 @media (prefers-reduced-motion: no-preference) { .w-rp-box--flash { animation: wRpFlash .8s ease-out; } }
-@keyframes wRpFlash { from { box-shadow: 0 0 0 8px var(--background-action-low-blue-france); } to { box-shadow: 0 0 0 0 transparent; } }
+@keyframes wRpFlash { from { box-shadow: 0 0 0 8px var(--background-action-low-blue-france); color: inherit; } to { box-shadow: 0 0 0 0 transparent; } }
 .w-rp-src { box-shadow: inset 4px 0 0 var(--border-action-high-blue-france); }
 .w-rp-case { margin: 0 0 .75rem; }
-@media print { .w-rp-box { display: none !important; } }
+@media print {
+  /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+  .w-rp-box { display: none !important; }
+}
 .p-logos > .p-bm { display: block; position: relative; flex: 0 0 auto; height: auto; }
 .p-bm > img, .p-bm > .p-bm__intitule { position: absolute; display: block; }
 .p-bm__intitule { font-family: Marianne, Arial, sans-serif; font-weight: 700; color: #000; white-space: nowrap; }
@@ -972,14 +998,18 @@
     @media print { .p-manque, .p-ph { visibility: hidden; } }
     #pPrint { position: absolute; left: -200000px; top: 0; width: auto; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       html, body { height: auto !important; overflow: visible !important; display: block !important; background: var(--background-default-grey) !important; color: var(--text-default-grey) !important; margin: 0 !important; padding: 0 !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body > *:not(#pPrint) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #pPrint { position: static !important; left: auto !important; display: block !important; }
       #pPrint .p-page { box-shadow: none; margin: 0; break-after: page; page-break-after: always; }
       #pPrint .p-page:last-child { break-after: auto; page-break-after: auto; }
     }
     @media print {
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-volet-mobile,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-barre-vue__commandes, .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink { display: none !important; }
     }
   </style>
@@ -1028,6 +1058,9 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var VERSION_WIDGET = '1.0.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
@@ -1307,7 +1340,7 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info') + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
@@ -1365,13 +1398,6 @@ function relayer(promesse, quoi) {
         promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
     }
     return promesse;
-}
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
@@ -2152,7 +2178,6 @@ function trouverCentrale() {
     return Object.keys(etat.meta.tables).filter(function (t) { return t.toUpperCase().indexOf(ID_CENTRALE) !== -1; })[0] || null;
 }
 function trouverAncienne() { return trouverTable(ID_BIBLIO.replace(/_$/, '')) || trouverTable(ANCIEN_ID_BIBLIO.replace(/_$/, '')); }
-function trouverBiblio() { return trouverAncienne(); }
 function estBibliotheque(tid) { var u = String(tid || '').toUpperCase(); return u.indexOf(ID_BIBLIO.replace(/_$/, '')) !== -1 || u.indexOf(ANCIEN_ID_BIBLIO.replace(/_$/, '')) !== -1; }
 function estLigneDuWidget(d, i) {
     return !etat.biblioCentrale || colonneDe(d, 'WIDGET', i) === NOM_WIDGET;
@@ -3227,24 +3252,6 @@ function ongletsDocuments() {
         activer.push(function () { return allerAuDocument(t.cle); });
         onglets.push(b);
     });
-    if (etat.peutParametrer) {
-        onglets.push(creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-add-line w-onglet', id: 'pOngletNouveau', texte: 'Nouveau document',
-            attrs: { role: 'tab', 'aria-selected': creation ? 'true' : 'false', 'aria-controls': 'pPanneau', tabindex: creation ? '0' : '-1' } }));
-        activer.push(async function () {
-            if (enCreation()) {
-                return;
-            }
-            if (enParametrage() && !(await sortirParametrages(false))) {
-                return;
-            }
-            demarrerCreation();
-            var f = document.getElementById('pOngletNouveau');
-            if (f) {
-                f.focus();
-            }
-            annoncer('Nouveau document : choisissez le point de départ.');
-        });
-    }
     onglets.forEach(function (b, i) {
         b.addEventListener('click', function () { relayer(activer[i](), 'Changement d\'onglet'); });
         b.addEventListener('keydown', function (e) {
@@ -3398,80 +3405,6 @@ async function determinerDroits() {
     etat.peutParametrer = etat.peutModifier && !!etat.temoinParam;
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function enteteParametrage(nom, retourLibelle, retourFn, statut) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [
-            creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
-        ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
-    ]);
-}
-function enteteCreation(titre, annulerFn) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
-        annulerFn ? bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' }) : null
-    ]);
-}
-function piedEtape(precedente, suivante, actionFinale) {
-    var boutons = [];
-    if (precedente) {
-        boutons.push(bouton('Étape précédente : ' + precedente.libelle, 'secondaire', 'arrow-left-line', precedente.action, { id: 'aPrecedent' }));
-    }
-    if (suivante) {
-        boutons.push(bouton('Continuer : ' + suivante.libelle, null, 'arrow-right-line', suivante.action, { id: 'aSuivant', iconeDroite: true }));
-    }
-    else if (actionFinale) {
-        boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
-    }
-    return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
-function blocSupprimer(libelle, mention, fn) {
-    return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
-        creer('p', { classe: 'w-mention', texte: mention }),
-        creer('div', {}, [bouton(libelle, 'secondaire', 'delete-line', fn, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })])
-    ]);
-}
 function apercuEtape(nomEtape) {
     if (etat.panneauFu) {
         return null;
@@ -3734,12 +3667,6 @@ var AIDE = {
     ],
     etapes: {
         'Accueil': { titre: 'tous vos documents', points: ['« Un document » : vos documents. « ← Accueil », au-dessus de l\'aperçu, ramène ici.', '« Modifier » ouvre le paramétrage : l\'aperçu au centre, les étapes à droite. « Utiliser ce modèle » crée sa table, vide, et le document.', 'Le « + » : une page blanche, une fiche, ou un document Word, sur une table du document.', '« À partir de mes données » : une fiche par table ; « Les droits » : inviter les personnes et poser les règles d\'accès.'] },
-        'Point de départ': { titre: 'choisissez le document à faire.', points: [
-                'Deux cartes d\'abord : « Partir d\'un modèle » montre les dix modèles prêts à l\'emploi, « Partir de zéro » les départs sur vos propres tables. « Changer de point de départ » revient aux deux cartes.',
-                'Chaque modèle montre le document avec vos données ; « Agrandir l\'aperçu » le montre à taille lisible.',
-                '« Partir de zéro » : une page blanche à écrire vous-même, une fiche qui reprend tous les champs, votre document Word repris comme page, ou votre modèle Word gardé tel quel.',
-                'Rien n\'est enregistré avant « Créer mon document ».'
-            ] },
         'Vos données': { titre: 'la liste dont chaque ligne donne un document.', points: [
                 'Les listes qui conviennent au type de document viennent en premier ; celles des autres widgets sont rangées à part.',
                 '« Quelle colonne pour chaque information » : vérifiez la colonne de chaque information, elle se change ici.',
@@ -3760,9 +3687,6 @@ var AIDE = {
             ] },
         'Pour les utilisateurs': { titre: 'ce que les utilisateurs peuvent faire de leurs documents.', points: [
                 'Les lignes qui donnent un document, le nom des fichiers, la numérotation automatique et le marquage « imprimé ».'
-            ] },
-        'Récapitulatif': { titre: 'le nom du document et le résumé de vos choix.', points: [
-                'Chaque réglage est enregistré dès que vous le changez.'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -3805,14 +3729,13 @@ function contexteAide() {
     }
     var b = etat.brouillon;
     if (etat.vue === 'assistant' && b) {
-        return { etapes: nomsEtapes(b), courante: b.etape - 1,
-            repere: b.mode === 'edition' ? '' : 'Rien n\'est enregistré avant « Créer mon document ».' };
+        return { etapes: ETAPES_PARAM, courante: b.etape - 1, repere: '' };
     }
     if (etat.config) {
         return { etapes: ETAPES_PARAM, courante: -1,
-            repere: etat.peutParametrer ? 'Pour changer ces réglages : « Paramétrages de ce document », en bas du panneau de gauche.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
+            repere: etat.peutParametrer ? 'Pour changer ces réglages : ouvrez le document depuis l\'accueil.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
     }
-    return { etapes: ETAPES, courante: -1, repere: null };
+    return { etapes: ETAPES_PARAM, courante: -1, repere: null };
 }
 var LARGEUR_APERCU_PAGE = 300;
 function apercuContenu(nom) {
@@ -5362,9 +5285,6 @@ async function lirePlans() {
 function vueDuBadge() {
     return null;
 }
-function estPageGestion() {
-    return false;
-}
 async function creerTableOwner() {
     var tids = await creerTables([{ id: ID_OWNER, garderPage: true, colonnes: [{ id: 'INFO', type: 'Text', label: 'INFO' }] }]);
     await chargerMeta();
@@ -5702,6 +5622,12 @@ function afficherVue(vue, garderFocus) {
     if (etat.creationDirecteFu && vue === 'assistant' && etat.brouillon && etat.brouillon.mode === 'creation') {
         etat.vue = vue;
         return;
+    }
+    if (vue === 'assistant' && !(etat.brouillon && etat.brouillon.mode === 'edition' && pageAdminFu())) {
+        /* L'ancien assistant n'existe plus : le paramétrage s'ouvre dans le
+           panneau de la page Admin, la création se fait depuis l'accueil. */
+        etat.brouillon = null;
+        vue = pageAdminFu() ? 'accueil' : (etat.config ? 'document' : 'aucun');
     }
     majBandeauRole();
     etat.vue = vue;
@@ -7048,14 +6974,13 @@ var ETAPES_PARAM = ['Général', 'Vos données', 'La mise en page', 'Le texte du
 var ETAPE_FINALE = 6;
 var SEUIL_RECHERCHE_TABLES = 8;
 function demarrerCreation() {
-    if (!etat.peutParametrer) {
+    if (!pageAdminFu()) {
         afficherVue('aucun');
         return;
     }
-    etat.brouillon = { mode: 'creation', etape: 1, etapeMax: 1, layout: null, table: null, blocks: [], page: pageDeMiseEnPage('letter', {}), opts: {}, creees: [], touche: false,
-        writeBack: { enabled: false, col: null }, logos: [], name: '' };
-    afficherVue('assistant');
-    relayer(proposerReprise(etat.brouillon), 'Reprise d\'un document commencé');
+    etat.brouillon = null;
+    etat.surAccueilFu = true;
+    afficherVue('accueil');
 }
 var BROUILLON_JOURS = 30;
 var _minutBrouillon = null;
@@ -7312,33 +7237,6 @@ function etapeUtilisateurs() {
     var col3 = [titreColonne('4. La numérotation automatique'), panneauReference(), titreColonne('5. Le marquage « imprimé »'), blocMarquage()];
     return grilleParam([col1, col2, col3], '1-1-1');
 }
-function phrasesEnClair(b) {
-    var cfg = cfgBrouillon(b);
-    var l = [];
-    var n = etat.donnees[b.table] ? etat.donnees[b.table].d.id.length : null;
-    l.push(nomMiseEnPage(b.layout) + ', un document par ligne de la liste « ' + libelleSansEmoji(libelleTable(b.table)) + ' »' + (n !== null ? ' (' + pluriel(n, 'ligne') + ')' : '') + '.');
-    var p = b.page || {};
-    l.push('Papier ' + ((PAPIERS[p.size] || PAPIERS.a4).nom) + ', ' + (p.orientation === 'landscape' ? 'paysage' : 'portrait') + ', police ' + ((POLICES.filter(function (x) { return x.valeur === (p.font || 'sans'); })[0] || POLICES[0]).libelle.replace(/ \(.*\)$/, '')) + '.');
-    var nb = 0;
-    parcourirBlocs(b.blocks || [], function () { nb++; });
-    l.push(pluriel(nb, 'élément') + ' dans le document.');
-    if (b.filtre && b.filtre.op && b.filtre.path) {
-        l.push('Seulement les lignes choisies dans « Pour les utilisateurs ».');
-    }
-    if (cfg.nomFichier) {
-        l.push('Fichiers nommés « ' + cfg.nomFichier + ' ».');
-    }
-    if (b.retouches) {
-        l.push('Les utilisateurs peuvent retoucher leur document.');
-    }
-    return l;
-}
-function etapeRecapitulatif() {
-    var b = etat.brouillon;
-    var col1 = [titreColonne('1. Le nom du document'), blocNomDocument(), titreColonne('2. En clair'),
-        creer('ul', { classe: 'w-en-clair' }, phrasesEnClair(b).map(function (t) { return creer('li', { texte: t }); }))];
-    return grilleParam([col1], '1', null, apercuEtape('Récapitulatif'));
-}
 /* Retouches des utilisateurs : un document retouché est gardé pour sa ligne */
 var TABLE_RETOUCHES = 'RETOUCHES_DES_DOCUMENTS_';
 function idTableRetouches() {
@@ -7585,48 +7483,11 @@ function colonneRetouches() {
 }
 function rendreAssistant(zone) {
     var b = etat.brouillon;
-    var finEtapes = b.mode === 'edition' ? ETAPES_PARAM.length : ETAPE_FINALE;
-    if (b.etape > finEtapes) {
-        b.etape = finEtapes;
+    if (b.etape > ETAPES_PARAM.length) {
+        b.etape = ETAPES_PARAM.length;
     }
-    if (b.mode === 'edition' && pageAdminFu()) {
-        zone.appendChild(b.etape === ETAPE_TEXTE ? redactionPleineFu(b) : creer('div', { classe: 'w-fu-atelier' }, [centreApercuFu(b), panneauParamFu(b)]));
-        finRenduAssistant(b, true);
-        return;
-    }
-    var noms = nomsEtapes(b);
-    var edition = b.mode === 'edition';
-    var entete = edition
-        ? enteteParametrage(b.name || (etat.config ? etat.config.name : ''), 'Retour au document', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation('Nouveau document', b.etape > 1 || etat.tableaux.length ? quitterAssistant : null);
-    var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(b.etape, noms, function (r) {
-            if (!edition && (r > b.etapeMax + 1 || (r > 1 && !b.layout))) {
-                return null;
-            }
-            return function () { return allerEtape(r); };
-        }), etiquetteAssistant(b)]);
-    if (b.etape === 1) {
-        bloc.appendChild(edition ? etapeGeneral() : etapeType());
-    }
-    if (b.etape === 2) {
-        var ap = apercuEtape(noms[1]);
-        bloc.appendChild(ap ? creer('div', { classe: 'w-param-apercu' }, [etapeDonnees(), ap]) : etapeDonnees());
-    }
-    if (b.etape === ETAPE_MEP) {
-        bloc.appendChild(etapeMiseEnPage());
-    }
-    if (b.etape === ETAPE_TEXTE) {
-        bloc.appendChild(etapeRediger());
-    }
-    if (b.etape === ETAPE_UTILISATEURS) {
-        bloc.appendChild(etapeUtilisateurs());
-    }
-    if (b.etape === 6) {
-        bloc.appendChild(edition ? contenuDroitsLu() : etapeRecapitulatif());
-    }
-    bloc.appendChild(piedAssistant(b, noms));
-    zone.appendChild(bloc);
-    finRenduAssistant(b, edition);
+    zone.appendChild(b.etape === ETAPE_TEXTE ? redactionPleineFu(b) : creer('div', { classe: 'w-fu-atelier' }, [centreApercuFu(b), panneauParamFu(b)]));
+    finRenduAssistant(b, true);
 }
 function finRenduAssistant(b, edition) {
     if (edition && !b.enCours && !b.minuterie && modifie(b)) {
@@ -7650,12 +7511,6 @@ function finRenduAssistant(b, edition) {
             majApercu();
         }
     }, 0);
-}
-function piedAssistant(b, noms) {
-    var i = b.etape - 1;
-    var creation = b.mode === 'creation';
-    var suivante = i < noms.length - 1 && (!creation || b.etape > 1 || b.layout);
-    return piedEtape(i > 0 ? { libelle: noms[i - 1], action: function () { return allerEtape(b.etape - 1); } } : null, suivante ? { libelle: noms[i + 1], action: function () { return allerEtape(b.etape + 1); } } : null, creation && i === noms.length - 1 ? { libelle: 'Créer mon document', action: enregistrerBrouillon, id: 'pCreer' } : null);
 }
 async function allerEtape(n) {
     var b = etat.brouillon;
@@ -7787,131 +7642,6 @@ function configDepart(layout) {
     var g = deviner(d.tid);
     var cfg = { layout: layout, blocks: genererBlocs(layout, d.tid, undefined, {}, g.numero || g.nom), page: pageDeMiseEnPage(layout, {}), table: d.tid };
     return { cfg: cfg, tid: d.tid, i: d.i, attendre: d.attendre };
-}
-function carteType(m, v, apercu) {
-    var b = etat.brouillon;
-    var accent = m.id === 'letter';
-    var choisi = b.layout === m.id && !b.importWord;
-    var btn = bouton(choisi ? 'Continuer' : 'Choisir', accent ? null : 'secondaire', 'arrow-right-line', function () { return choisirType(m.id); }, { petit: true, iconeDroite: true, aria: (choisi ? 'Continuer avec : ' : 'Choisir : ') + m.nom, id: 'pType' + m.id });
-    var carte = carteGalerie({ id: 'pTypeT' + m.id, icone: m.icone, titre: m.nom, texte: m.desc, vignette: v, bouton: btn, choisi: choisi,
-        agrandir: v && apercu ? { id: 'pApercuT' + m.id, nom: m.nom, action: function () { ouvrirApercuModele(m.id); } } : null });
-    carte.classList.add('w-modele--cliquable');
-    if (accent) {
-        carte.classList.add('w-modele--accent');
-    }
-    carte.addEventListener('click', function (e) { if (!e.target.closest('button')) {
-        btn.click();
-    } });
-    return carte;
-}
-function departDeduit(b) {
-    if (!b) {
-        return null;
-    }
-    if (b.importWord || b.modeleWord || b.modeleWordPerdu) {
-        return 'zero';
-    }
-    if (!b.layout) {
-        return null;
-    }
-    return MODELES.some(function (x) { return x.layout === b.layout; }) ? 'modele' : 'zero';
-}
-function choisirDepart(d) {
-    var b = etat.brouillon;
-    b.depart = d;
-    redessinerEtape(d ? 'pDepartChanger' : (b.departPrec === 'zero' ? 'pDepartBtnzero' : 'pDepartBtnmodele'));
-    annoncer(d === 'modele' ? 'Les dix modèles sont affichés.' : d === 'zero' ? 'Les départs de zéro sont affichés.' : 'Choisissez votre point de départ.');
-}
-function carteDepart(id, icone, titre, texte, points, accent) {
-    var btn = bouton('Choisir', accent ? null : 'secondaire', 'arrow-right-line', function () { choisirDepart(id); }, { iconeDroite: true, aria: 'Choisir : ' + titre, id: 'pDepartBtn' + id });
-    var c = creer('section', { classe: 'w-depart' + (accent ? ' w-depart--accent' : ''), id: 'pDepart' + id, attrs: { 'aria-labelledby': 'pDepartTitre' + id } }, [
-        creer('h3', { classe: 'w-depart__titre', id: 'pDepartTitre' + id }, [creer('span', { classe: 'fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }), titre]),
-        creer('p', { classe: 'w-texte fr-m-0', texte: texte }),
-        creer('ul', { classe: 'w-depart__liste' }, points.map(function (p) { return creer('li', { texte: p }); })),
-        creer('div', { classe: 'w-depart__bas' }, [btn])
-    ]);
-    c.addEventListener('click', function (e) { if (!e.target.closest('button')) {
-        btn.click();
-    } });
-    return c;
-}
-function etapeType() {
-    var b = etat.brouillon;
-    var depart = b.depart === undefined ? departDeduit(b) : b.depart;
-    var intro = creer('p', { classe: 'w-texte', texte: 'WuitFusion transforme chaque ligne d\'une table en un document à imprimer. Choisissez le document ; ses données viennent à l\'étape suivante. Rien n\'est enregistré avant la dernière étape.' });
-    if (!depart) {
-        return creer('div', { classe: 'w-section' }, [intro,
-            creer('div', { classe: 'w-departs', id: 'pDeparts' }, [
-                carteDepart('modele', 'layout-grid-line', 'Partir d\'un modèle', 'Un document prêt à l\'emploi, avec ses tables d\'exemple si besoin.', MODELES.slice(0, 4).map(function (m) { return m.nom; }).concat(MODELES.length > 4 ? ['et ' + (MODELES.length - 4) + ' autres modèles'] : []), true),
-                carteDepart('zero', 'draft-line', 'Partir de zéro', 'Sur vos propres tables, ou d\'après votre document Word.', ['Page blanche', 'Fiche', 'Importer un document Word', 'Partir d\'un modèle Word (mise en page gardée)'], false)
-            ])]);
-    }
-    b.departPrec = depart;
-    var changer = bouton('Changer de point de départ', 'tertiaire', 'arrow-left-line', function () { choisirDepart(null); }, { petit: true, id: 'pDepartChanger' });
-    var g = creer('div', { classe: 'w-types', id: 'pTypesModeles' });
-    var zero = creer('div', { classe: 'w-types', id: 'pTypesZero' });
-    var attendre = null;
-    MISES_EN_PAGE.forEach(function (m) {
-        var mod = MODELES.filter(function (x) { return x.layout === m.id; })[0];
-        var v = null;
-        var cfg;
-        if (mod) {
-            try {
-                var virt = enregistrerModeleVirtuel(mod);
-                var gv = deviner(virt.principale);
-                cfg = { layout: m.id, blocks: genererBlocs(m.id, virt.principale, undefined, mod.opts, gv.numero || gv.nom), page: pageDeMiseEnPage(m.id, {}), table: virt.principale };
-                v = vignette(cfg, { cfg: cfg, tid: virt.principale, i: ordreLignes(virt.principale)[0], apercu: false, editeur: false }, 150);
-            }
-            catch (e) {
-                logSecurite('AVERTISSEMENT', 'Vignette du type de document', e);
-            }
-            g.appendChild(carteType(m, v, true));
-            return;
-        }
-        try {
-            var d = configDepart(m.id);
-            attendre = attendre || d.attendre;
-            v = vignette(d.cfg, { cfg: d.cfg, tid: d.tid, i: d.i, apercu: false, editeur: false }, 150);
-            if (m.id === 'libre') {
-                var dessinV = v.dessiner;
-                v.dessiner = function () { dessinV(); lignesFictives(v.el); };
-            }
-        }
-        catch (e2) {
-            logSecurite('AVERTISSEMENT', 'Vignette du type de document', e2);
-        }
-        zero.appendChild(carteType(m, v, true));
-    });
-    zero.appendChild(carteImportWord());
-    zero.appendChild(carteModeleWord());
-    if (depart === 'modele') {
-        zero = null;
-    }
-    else {
-        g = null;
-    }
-    if (attendre) {
-        relayer(chargerTableDonnees(attendre).then(function () {
-            if (etat.vue === 'assistant' && etat.brouillon && etat.brouillon.etape === 1 && !etat.modaleOuverte) {
-                var f = document.activeElement;
-                redessinerEtape(f && f.id ? f.id : undefined);
-            }
-        }), 'Vignettes des tables');
-    }
-    if (g) {
-        return creer('div', { classe: 'w-section' }, [intro,
-            creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'pModelesTitre' } }, [
-                creer('div', { classe: 'w-depart-entete' }, [creer('h3', { classe: 'fr-h5 w-zero__titre', id: 'pModelesTitre', texte: 'Partir d\'un modèle' }), changer]),
-                creer('p', { classe: 'w-texte', texte: 'Chaque modèle est montré avec vos données ; ses tables d\'exemple sont créées à l\'étape suivante si besoin.' }),
-                g
-            ])]);
-    }
-    return creer('div', { classe: 'w-section' }, [intro,
-        creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'pZeroTitre' } }, [
-            creer('div', { classe: 'w-depart-entete' }, [creer('h3', { classe: 'fr-h5 w-zero__titre', id: 'pZeroTitre', texte: 'Partir de zéro' }), changer]),
-            creer('p', { classe: 'w-texte', texte: 'Pour toute table : une page libre à écrire vous-même, une fiche qui reprend tous les champs, votre document Word repris comme page, ou votre modèle Word gardé tel quel.' }),
-            zero
-        ])]);
 }
 async function choisirType(id) {
     var b = etat.brouillon;
@@ -8280,26 +8010,6 @@ function sectionOptions() {
         corps = creer('div', { classe: 'w-deplier', id: 'pOptions' }, champs);
     }
     return creer('section', { classe: 'w-section', attrs: { 'aria-label': 'Options' } }, [creer('div', { classe: 'w-ligne2' }, [creer('p', { classe: 'w-texte w-mention fr-m-0', texte: resume }), creer('div', { classe: 'w-ligne2__fixe' }, [btn])]), corps]);
-}
-function sectionRepliable(cle, titre, enfants, ouvertDefaut) {
-    var b = etat.brouillon;
-    b.sections = b.sections || {};
-    var ouvert = b.sections[cle] !== undefined ? !!b.sections[cle] : !!ouvertDefaut;
-    var id = 'pSec' + cle;
-    var corps = creer('div', { classe: 'w-repli__corps', id: id, attrs: { hidden: ouvert ? null : true } }, enfants);
-    var btn = creer('button', { classe: 'fr-accordion__btn w-repli__btn', id: id + 'Btn', attrs: { 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': id } }, [titre]);
-    btn.addEventListener('click', function () {
-        var o = btn.getAttribute('aria-expanded') !== 'true';
-        b.sections[cle] = o;
-        btn.setAttribute('aria-expanded', o ? 'true' : 'false');
-        if (o) {
-            corps.removeAttribute('hidden');
-        }
-        else {
-            corps.setAttribute('hidden', '');
-        }
-    });
-    return creer('section', { classe: 'fr-accordion w-repli', attrs: { 'data-section': cle } }, [creer('h3', { classe: 'fr-accordion__title' }, [btn]), corps]);
 }
 function listeChampsDisponibles() {
     var b = etat.brouillon;
@@ -8733,48 +8443,6 @@ function groupeRadios(nom, legende, options, valeur, surChange, classe) {
     });
     fs.appendChild(g);
     return fs;
-}
-function contenuMiseEnPage() {
-    var b = etat.brouillon;
-    var p = b.page;
-    var change = function (cle) { return function (v) { p[cle] = v; marquerTouche(); majApercuBrouillon(); }; };
-    var g = creer('div', { classe: 'w-editeur__col' });
-    g.appendChild(groupeRadios('pPapier', 'Format du papier', Object.keys(PAPIERS).map(function (k) { return { valeur: k, libelle: PAPIERS[k].nom, sous: PAPIERS[k].taille }; }), p.size, change('size')));
-    g.appendChild(creer('div', { classe: 'w-ligne2' }, [
-        groupeRadios('pOrient', 'Orientation', [{ valeur: 'portrait', libelle: 'Portrait' }, { valeur: 'landscape', libelle: 'Paysage' }], p.orientation, change('orientation')),
-        groupeRadios('pMarges', 'Marges', Object.keys(MARGES).map(function (k) { return { valeur: k, libelle: MARGES[k].nom, sous: MARGES[k].taille }; }), p.margins, change('margins'))
-    ]));
-    var fs = creer('fieldset', { classe: 'fr-fieldset w-fs' }, [creer('legend', { classe: 'fr-fieldset__legend w-fs__legende', texte: 'Couleur du document' }),
-        creer('p', { classe: 'w-indice fr-mb-1w', texte: 'Pour les titres, les en-têtes de tableau, les traits et les cadres.' })]);
-    var t = creer('div', { classe: 'w-teintes' });
-    var perso = creer('input', { id: 'pCouleurPerso', attrs: { type: 'color', 'aria-label': 'Couleur sur mesure' }, valeur: p.color });
-    TEINTES.forEach(function (x, k) {
-        var id = 'pTeinte' + k;
-        var hex = couleurTeinte(x);
-        var r = creer('input', { id: id, attrs: { type: 'radio', name: 'pTeinte', value: hex, 'aria-label': x.nom }, coche: p.color === hex, change: function () { p.color = hex; perso.value = hex; marquerTouche(); majApercuBrouillon(); annoncer('Couleur du document : ' + x.nom + '.'); } });
-        var pastille = creer('span', { attrs: { 'aria-hidden': 'true' } });
-        pastille.style.background = 'var(' + x.jeton + ', ' + x.repli + ')';
-        t.appendChild(creer('label', { classe: 'w-teinte w-infobulle', attrs: { 'for': id, 'data-infobulle': x.nom } }, [r, pastille]));
-    });
-    perso.addEventListener('input', function () {
-        p.color = couleurValide(perso.value);
-        Array.prototype.forEach.call(document.querySelectorAll('input[name="pTeinte"]'), function (r) { r.checked = r.value === p.color; });
-        marquerTouche();
-        majApercuBrouillon();
-    });
-    t.appendChild(creer('label', { classe: 'w-teinte--perso', attrs: { 'for': 'pCouleurPerso' } }, [perso, 'Sur mesure']));
-    fs.appendChild(t);
-    if (!ecritDansPage(b.layout)) {
-        g.appendChild(fs);
-    }
-    g.appendChild(creer('div', { classe: 'w-ligne2' }, [
-        (function () { var sp = liste('pPolice', POLICES, p.font || 'sans'); sp.addEventListener('change', function () { change('font')(sp.value); }); return groupeChamp('Police', sp, 'Arial, Verdana, Times New Roman, Georgia et Courier New sont installées sur tous les postes : le PDF les reprend telles quelles.'); })(),
-        groupeRadios('pCadre', 'Cadre de page', [{ valeur: 'none', libelle: 'Aucun' }, { valeur: 'thin', libelle: 'Filet fin' }, { valeur: 'double', libelle: 'Double cadre' }], p.border, change('border'))
-    ]));
-    g.appendChild(caseACocher('pVcentre', 'Centrer le contenu verticalement sur la page', !!p.vcenter, function (e) { p.vcenter = e.target.checked; marquerTouche(); majApercuBrouillon(); }, { aide: 'Pour les documents d\'une page, comme les attestations.' }));
-    g.appendChild(blocLignesConcernees());
-    g.appendChild(blocMarquage());
-    return g;
 }
 function blocLignesConcernees() {
     var b = etat.brouillon;
@@ -9983,19 +9651,6 @@ async function abandonnerCreation() {
     effacerBrouillonGarde(b);
     return true;
 }
-async function quitterAssistant() {
-    if (!(await abandonnerCreation())) {
-        return;
-    }
-    etat.brouillon = null;
-    await chargerMeta();
-    if (etat.tableaux.length) {
-        await chargerTout();
-    }
-    else {
-        demarrerCreation();
-    }
-}
 async function ouvrirEdition() {
     if (!etat.peutParametrer || !etat.config) {
         return;
@@ -10019,17 +9674,6 @@ async function ouvrirEdition() {
     masquerLoader();
     afficherVue('assistant');
     relayer(proposerReprise(b), 'Reprise des modifications');
-}
-function etapeGeneral() {
-    var b = etat.brouillon;
-    var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'pSecDoc' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'pSecDoc', texte: 'Le document' })]),
-        champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); }),
-        creer('p', { classe: 'w-mention', texte: 'Table utilisée : « ' + libelleTable(b.table) + ' ».' }),
-        creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { return allerEtape(ETAPE_DROITS); }, { petit: true, id: 'aVersDroits' })])
-    ]);
-    var danger = blocSupprimer('Supprimer le modèle de document', 'Le modèle disparaît des onglets et ses réglages sont effacés. Vos tables et leurs lignes restent dans le document.', supprimerDocument);
-    return grilleParam([[section], [danger]], '2-1');
 }
 var DELAI_AUTOSAVE_MS = 900;
 function majAttente() {
@@ -14232,12 +13876,6 @@ function majEtiquetteDonnees() {
     parts[0].textContent = tx.visible;
     parts[1].textContent = tx.lu + (el.tagName === 'BUTTON' ? '. Changer la table ou la correspondance des champs' : '');
 }
-function etiquetteAssistant(b) {
-    if (!b || b.etape < 2 || !b.table || !etat.meta.tables[b.table]) {
-        return null;
-    }
-    return etiquetteDonnees(cfgBrouillon(b), b.etape === 2 ? null : function () { return allerEtape(2); });
-}
 function etiquetteVueDocument(cfg) {
     return etiquetteDonnees(cfg, etat.peutParametrer ? ouvrirEditionDonnees : null);
 }
@@ -14390,10 +14028,6 @@ function champNomFichier() {
         groupeChamp('Champ à ajouter au nom', sel), exemple
     ]);
 }
-function blocNomDocument() {
-    var b = etat.brouillon;
-    return creer('div', { classe: 'w-nom-doc', id: 'pNomDocGroupe' }, [champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); })]);
-}
 async function verifierNomBrouillon() {
     var b = etat.brouillon;
     var err = erreurNomDocument(b.name, b.mode === 'edition' ? b.cle : null);
@@ -14413,9 +14047,6 @@ async function verifierNomBrouillon() {
 }
 var APERCU_MODELE_MAX = 800;
 var _apercuModele = { ids: [], k: 0, opts: {}, clavier: null };
-function modelesApercu() {
-    return MISES_EN_PAGE.filter(function (m) { return MODELES.some(function (x) { return x.layout === m.id; }); }).map(function (m) { return m.id; });
-}
 function vignetteAgrandissable(o) {
     var btn = creer('button', { classe: 'w-modele__vignette w-modele__agrandir', id: o.agrandir.id, attrs: { type: 'button', 'aria-label': 'Agrandir l\'aperçu : ' + o.agrandir.nom } }, [
         o.vignette ? o.vignette.el : null,
@@ -14437,141 +14068,6 @@ function configApercuModele(layout, opts) {
     Object.keys(opts || {}).forEach(function (k) { o[k] = opts[k]; });
     var cfg = { layout: layout, blocks: genererBlocs(layout, virt.principale, undefined, o, gv.numero || gv.nom), page: pageDeMiseEnPage(layout, {}), table: virt.principale };
     return { cfg: cfg, tid: virt.principale, i: ordreLignes(virt.principale)[0], mod: mod };
-}
-function variantesApercu(layout) {
-    if (layout === 'programme') {
-        return { cle: 'variante', options: [{ v: 'programme', nom: 'Programme' }, { v: 'deroule', nom: 'Déroulé détaillé' }] };
-    }
-    if (layout === 'checklist') {
-        return { cle: 'vierge', options: [{ v: false, nom: 'Selon l\'avancement' }, { v: true, nom: 'Checklist vierge' }] };
-    }
-    return null;
-}
-function dessinerApercuModele() {
-    var a = _apercuModele;
-    var layout = a.ids[a.k];
-    var m = miseEnPage(layout);
-    var corps = document.getElementById('wModaleCorps');
-    if (!corps) {
-        return;
-    }
-    document.getElementById('wModaleTitre').textContent = m.nom;
-    var sous = document.getElementById('wModaleSous');
-    sous.textContent = m.desc || '';
-    sous.hidden = !m.desc;
-    vider(corps);
-    var vars = variantesApercu(layout);
-    if (vars) {
-        var actuel = a.opts[vars.cle] !== undefined ? a.opts[vars.cle] : vars.options[0].v;
-        var seg = creer('div', { classe: 'w-segment w-segment--auto', id: 'pApercuVariantes', attrs: { role: 'group', 'aria-label': 'Variante' } });
-        vars.options.forEach(function (op, k) {
-            var bt = creer('button', { id: 'pApercuVariante' + k, attrs: { type: 'button', 'aria-pressed': op.v === actuel ? 'true' : 'false' } }, [op.nom]);
-            bt.addEventListener('click', function () {
-                if (op.v === actuel) {
-                    return;
-                }
-                a.opts[vars.cle] = op.v;
-                dessinerApercuModele();
-                var f = document.getElementById('pApercuVariante' + k);
-                if (f) {
-                    f.focus();
-                }
-                annoncer('Variante : ' + op.nom + '.');
-            });
-            seg.appendChild(bt);
-        });
-        corps.appendChild(seg);
-    }
-    var zone = creer('div', { classe: 'w-pages w-apercu-modele__pages', id: 'pApercuModelePages', attrs: { role: 'region', 'aria-label': 'Aperçu du modèle ' + m.nom, tabindex: '0' } });
-    corps.appendChild(zone);
-    try {
-        var x = configApercuModele(layout, a.opts);
-        paginerDocument(x.cfg, { cfg: x.cfg, tid: x.tid, i: x.i, apercu: false, editeur: false }, zone, { envelopper: enveloppeApercu });
-        if (layout === 'libre') {
-            lignesFictives(zone);
-        }
-        var geo = geometrie(x.cfg);
-        var largeur = Math.min(APERCU_MODELE_MAX, (zone.clientWidth || corps.clientWidth || 800) - 8);
-        appliquerZoom(zone, Math.max(0.25, Math.min(1, largeur / geo.w)));
-    }
-    catch (e) {
-        logSecurite('AVERTISSEMENT', 'Apercu du modele non dessine', e);
-        zone.appendChild(creer('p', { classe: 'w-texte', texte: 'L\'aperçu de ce modèle n\'a pas pu être dessiné.' }));
-    }
-    var pos = document.getElementById('pApercuPos');
-    if (pos) {
-        pos.textContent = a.seul ? '' : (a.k + 1) + ' sur ' + a.ids.length;
-    }
-}
-function ouvrirApercuModele(layout) {
-    var a = _apercuModele;
-    var parcours = modelesApercu();
-    a.seul = parcours.indexOf(layout) === -1;
-    a.ids = a.seul ? [layout] : parcours;
-    a.k = Math.max(0, a.ids.indexOf(layout));
-    a.opts = {};
-    var aller = function (sens) {
-        a.k = (a.k + sens + a.ids.length) % a.ids.length;
-        a.opts = {};
-        dessinerApercuModele();
-    };
-    var choisir = function () {
-        var id = a.ids[a.k];
-        fermerModale();
-        relayer(choisirType(id), 'Choix du modèle');
-    };
-    var pied = [
-        creer('p', { classe: 'w-mention w-apercu-modele__pos', id: 'pApercuPos', attrs: { 'aria-live': 'polite' } }),
-        a.seul ? null : bouton('Modèle précédent', 'tertiaire', 'arrow-left-line', function () { aller(-1); }, { petit: true, id: 'pApercuPrec' }),
-        a.seul ? null : bouton('Modèle suivant', 'tertiaire', 'arrow-right-line', function () { aller(1); }, { petit: true, iconeDroite: true, id: 'pApercuSuiv' }),
-        bouton('Fermer', 'secondaire', null, fermerModale, { id: 'pApercuFermer' }),
-        bouton(a.seul ? 'Choisir' : 'Choisir ce modèle', null, 'check-line', choisir, { id: 'pApercuChoisir', aria: a.seul ? 'Choisir : ' + miseEnPage(layout).nom : null })
-    ];
-    var ov = document.getElementById('wModale');
-    a.clavier = function (e) {
-        if (a.seul || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) {
-            return;
-        }
-        var t = e.target;
-        if (t && (t.closest('input, select, textarea, [contenteditable="true"], [role="group"]'))) {
-            return;
-        }
-        e.preventDefault();
-        aller(e.key === 'ArrowLeft' ? -1 : 1);
-    };
-    ov.addEventListener('keydown', a.clavier);
-    ouvrirModale({ titre: miseEnPage(layout).nom, sousTitre: miseEnPage(layout).desc, large: true, corps: [], pied: pied, fermerDehors: true, focus: 'pApercuChoisir',
-        surFermeture: function () {
-            ov.removeEventListener('keydown', a.clavier);
-            a.clavier = null;
-            var c = document.getElementById('wModaleCorps');
-            if (c) {
-                vider(c);
-            }
-        } });
-    dessinerApercuModele();
-}
-function lignesFictives(racine) {
-    var p = racine.querySelector('.p-page');
-    var logos = p ? p.querySelector('.p-logos') : null;
-    var parent = logos ? logos.parentNode : (p ? p.querySelector('.p-body') || p : null);
-    if (!parent) {
-        return;
-    }
-    var bloc = creer('div', { classe: 'w-lignes-fictives', attrs: { 'aria-hidden': 'true' } });
-    [92, 100, 96, 70, 0, 100, 88, 97, 60, 0, 94, 82].forEach(function (l) {
-        var s = creer('span', { classe: l ? 'w-lignes-fictives__l' : 'w-lignes-fictives__vide' });
-        if (l) {
-            s.style.width = l + '%';
-        }
-        bloc.appendChild(s);
-    });
-    if (logos && logos.nextSibling) {
-        parent.insertBefore(bloc, logos.nextSibling);
-    }
-    else {
-        parent.appendChild(bloc);
-    }
 }
 function motsDe(texte) { return ' ' + normalizer(texte).replace(/[^a-z0-9]+/g, ' ').trim() + ' '; }
 function evoque(col, role) {
@@ -17609,21 +17105,6 @@ function tableauWordEnBlocs(z, tid, manquants, bilan) {
     }
     return sortie;
 }
-function carteImportWord() {
-    var b = etat.brouillon;
-    var fichier = creer('input', { id: 'pWordFichier', classe: 'fr-sr-only w-fichier', attrs: { type: 'file', accept: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'aria-describedby': 'pWordAide' } });
-    fichier.addEventListener('change', function () {
-        var f = fichier.files && fichier.files[0];
-        fichier.value = '';
-        if (f) {
-            relayer(importerWord(f), 'Import d\'un document Word');
-        }
-    });
-    var btn = creer('div', { classe: 'w-fichier-groupe' }, [fichier,
-        creer('label', { classe: 'fr-btn fr-btn--sm fr-btn--icon-left fr-icon-upload-2-line w-fichier__btn' + (b.importWord && !b.modeleWord ? '' : ' fr-btn--secondary'), attrs: { 'for': 'pWordFichier' } }, [b.importWord && !b.modeleWord ? 'Choisir un autre fichier' : 'Choisir un fichier .docx'])]);
-    return carteGalerie({ id: 'pTypeTword', icone: 'file-text-line', titre: 'Importer un document Word', texte: 'Votre courrier ou votre modèle de publipostage Word devient une page blanche : texte, titres, listes et champs de fusion sont repris.',
-        lignes: b.importWord && !b.modeleWord ? ['Fichier lu : ' + b.importWord.nom] : [], bouton: btn, choisi: !!b.importWord && !b.modeleWord });
-}
 async function importerWord(f, lu) {
     var b = etat.brouillon;
     if (!b) {
@@ -18322,22 +17803,6 @@ function verifierFichierModeleWord(f, idChamp) {
         return false;
     }
     return true;
-}
-function carteModeleWord() {
-    var b = etat.brouillon;
-    var choisi = !!b.modeleWord;
-    var fichier = creer('input', { id: 'pModeleFichier', classe: 'fr-sr-only w-fichier', attrs: { type: 'file', accept: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document' } });
-    fichier.addEventListener('change', function () {
-        var f = fichier.files && fichier.files[0];
-        fichier.value = '';
-        if (f) {
-            relayer(importerModeleWord(f), 'Modèle Word');
-        }
-    });
-    var btn = creer('div', { classe: 'w-fichier-groupe' }, [fichier,
-        creer('label', { classe: 'fr-btn fr-btn--sm fr-btn--icon-left fr-icon-upload-2-line w-fichier__btn' + (choisi ? '' : ' fr-btn--secondary'), attrs: { 'for': 'pModeleFichier' } }, [choisi ? 'Choisir un autre fichier' : 'Choisir un fichier .docx'])]);
-    return carteGalerie({ id: 'pTypeTmodele', icone: 'article-line', titre: 'Partir d\'un modèle Word', texte: 'Votre document Word garde toute sa mise en page : colonnes, marges, tabulations, styles, en-têtes et pieds de page. Ses champs de fusion sont remplis pour chaque ligne et vous téléchargez des fichiers Word.',
-        lignes: choisi ? ['Fichier choisi : ' + b.modeleWord.nom] : [], bouton: btn, choisi: choisi });
 }
 async function lireModeleWord(f) {
     afficherLoader('Lecture du modèle Word…');

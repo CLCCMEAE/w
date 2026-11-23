@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitSalles
+  Version : 1.0.0 - 23/11/2026
+  Description : réservation de salles, règles, validation et pages des agents.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -10,6 +15,7 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -346,10 +352,12 @@
     .w-ico--sortir { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3v6H3M15 3v6h6M21 15h-6v6M3 15h6v6'/%3E%3C/svg%3E"); }
     @media (forced-colors: active) { .w-ico::before { forced-color-adjust: none; background-color: ButtonText; } }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; right: 0; white-space: nowrap; pointer-events: none; padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; top: auto; bottom: calc(100% + .375rem); }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-infobulle--dessous::after { bottom: auto; top: calc(100% + .375rem); }
@@ -536,6 +544,7 @@
     .c-carte__pied { display: flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-top: 1px solid var(--border-default-grey); background: var(--background-alt-grey); }
     .c-carte__supprimer.fr-btn { color: var(--text-default-error); }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .c-loupe, .c-aplan, .c-carte { display: none !important; }
       .c-heures { max-height: none; overflow: visible; }
       .c-cal { overflow: visible; }
@@ -590,13 +599,14 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
       .w-tuile { padding: 1rem; }
     }
     .gp-impression-titre { display: none; }
     @media print {
-      html, body { height: auto; overflow: visible; display: block; background: var(--background-default-grey); }
+      html, body { height: auto; overflow: visible; display: block; background: var(--background-default-grey); color: inherit; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #skipLink, .w-bandeau, .w-panneau-aide, .w-onglets, .w-volet, .w-volet-mobile, .w-mobile-actions, .w-barre-vue__commandes, .gp-outils, .w-toast, .w-loader, .w-overlay { display: none !important; }
       .w-contenu, .w-contenu--plan { overflow: visible; padding: 0; display: block; }
       .w-disposition, .w-principal, #pPanneau { display: block; }
@@ -604,6 +614,7 @@
     }
     @media print {
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-volet-mobile, .w-barre-vue__commandes, .w-barre-vue__compteurs, .w-panneau-aide,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-toast, #skipLink { display: none !important; }
     }
   
@@ -626,8 +637,8 @@
     .s-occ { min-width: 44rem; }
     .s-occ__ligne { display: grid; grid-template-columns: minmax(9rem, 14rem) minmax(0, 1fr); border-bottom: 1px solid var(--border-default-grey); }
     .s-occ__ligne:last-child { border-bottom: 0; }
-    .s-occ__ligne--tete { position: sticky; top: 0; z-index: 3; background-color: var(--background-default-grey); }
-    .s-occ__salle { display: flex; flex-direction: column; justify-content: center; gap: .125rem; padding: .5rem .75rem; border-right: 1px solid var(--border-default-grey); background-color: var(--background-alt-grey); min-width: 0; }
+    .s-occ__ligne--tete { position: sticky; top: 0; z-index: 3; background-color: var(--background-default-grey); color: inherit; }
+    .s-occ__salle { display: flex; flex-direction: column; justify-content: center; gap: .125rem; padding: .5rem .75rem; border-right: 1px solid var(--border-default-grey); background-color: var(--background-alt-grey); min-width: 0; color: inherit; }
     .s-occ__ligne--tete .s-occ__salle { font-size: .8125rem; font-weight: 700; }
     .s-occ__nom { font-weight: 700; font-size: .875rem; overflow-wrap: anywhere; }
     .s-occ__infos { font-size: .75rem; color: var(--text-mention-grey); }
@@ -637,7 +648,7 @@
     .s-occ__regle { min-height: 2rem; }
     .s-occ__heure { position: absolute; top: .5rem; transform: translateX(-50%); font-size: .75rem; color: var(--text-mention-grey); white-space: nowrap; }
     .s-occ__trait { position: absolute; top: 0; bottom: 0; border-left: 1px dashed var(--border-default-grey); pointer-events: none; }
-    .s-occ__hors { position: absolute; top: 0; bottom: 0; background-color: var(--background-alt-grey); pointer-events: none; }
+    .s-occ__hors { position: absolute; top: 0; bottom: 0; background-color: var(--background-alt-grey); pointer-events: none; color: inherit; }
     .s-occ__maintenant { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--border-plain-error); z-index: 2; pointer-events: none; }
     .s-occ .c-ev--bloc.s-occ__bloc { flex-direction: column; justify-content: center; }
     .s-occ__bloc .c-ev__titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -646,12 +657,12 @@
     .s-vue-salles__outils { margin-bottom: 1rem; }
     .s-carte__infos { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .25rem; font-size: .875rem; }
     .s-carte__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-    .s-carte--inactive { background-color: var(--background-alt-grey); }
+    .s-carte--inactive { background-color: var(--background-alt-grey); color: inherit; }
     @media print { .s-occ__defile { max-height: none; overflow: visible; border: 0; } .s-occ__piste--libre:hover { background-color: transparent; } }
     .w-etapes__item--action { justify-content: flex-start; padding-top: .5rem; }
     .w-etapes__item--premiere-action { border-left: 1px solid var(--border-default-grey); padding-left: .75rem; margin-left: .5rem; }
     .w-etapes__item--action .fr-btn { white-space: nowrap; }
-    .w-dialogue--pousse { flex: 0 0 34rem; width: 34rem; max-width: 50%; height: auto; min-height: 0; border-left: 1px solid var(--border-default-grey); box-shadow: -4px 0 12px rgba(0,0,18,.08); }
+    .w-dialogue--pousse { flex: 0 0 34rem; width: 34rem; max-width: 50%; height: auto; min-height: 0; border-left: 1px solid var(--border-default-grey); outline: 1px solid var(--border-default-grey); }
     .w-dialogue--pousse .w-dialogue__corps { overflow-y: auto; }
     .w-dialogue--pousse.w-dialogue--etroit { flex-basis: 24rem; width: 24rem; max-width: 50%; }
     @container (max-width: 48rem) { .w-dialogue--pousse { position: fixed; inset: 0; width: 100%; max-width: none; z-index: 9990; } }
@@ -661,10 +672,10 @@
     .s-bloc { display: flex; flex-direction: column; gap: .75rem; }
     .s-bloc__tete { display: flex; gap: .75rem; align-items: flex-start; }
     .s-bloc__num { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .875rem; }
-    .s-bloc__titre { margin: 0; font-size: 1.125rem; }
+    .s-bloc__titre { margin: 0; font-size: 1rem; }
     .s-tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; }
     .s-tuile { display: flex; flex-direction: column; gap: .25rem; border: 1px solid var(--border-default-grey); padding: .75rem 1rem; cursor: pointer; }
-    .s-tuile--active { border: 2px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); padding: calc(.75rem - 1px) calc(1rem - 1px); }
+    .s-tuile--active { border: 2px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); padding: calc(.75rem - 1px) calc(1rem - 1px); color: inherit; }
     .s-tuile__tete { display: flex; gap: .5rem; align-items: center; }
     .s-tuile__texte { font-size: .875rem; color: var(--text-mention-grey); }
     .s-tuile--compacte { padding: .5rem .75rem; }
@@ -679,7 +690,7 @@
     .s-acc__liste { border: 1px solid var(--border-default-grey); border-bottom: 0; }
     .s-acc { border-bottom: 1px solid var(--border-default-grey); }
     .s-acc__tete { width: 100%; display: flex; align-items: center; gap: .75rem; font: inherit; text-align: left; background: var(--background-default-grey); border: 0; padding: .75rem 1rem; cursor: pointer; color: inherit; }
-    .s-acc--ouvert .s-acc__tete, .s-acc__corps { background: var(--background-alt-blue-france); }
+    .s-acc--ouvert .s-acc__tete, .s-acc__corps { background: var(--background-alt-blue-france); color: inherit; }
     .s-acc__chevron { color: var(--text-action-high-blue-france); flex: none; }
     .s-acc__textes { flex: 1; display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
     .s-acc__titre { font-weight: 700; color: var(--text-action-high-blue-france); }
@@ -692,7 +703,7 @@
     .s-table .fr-input, .s-table .fr-select { margin-top: 0; }
     .s-num { text-align: right; }
     .s-apercu { display: flex; flex-direction: column; gap: .75rem; }
-    .s-enclair { margin: 0; padding: .75rem 1rem; background: var(--background-alt-blue-france); border-left: 4px solid var(--border-active-blue-france); }
+    .s-enclair { margin: 0; padding: .75rem 1rem; background: var(--background-alt-blue-france); border-left: 4px solid var(--border-active-blue-france); color: inherit; }
     .s-essai { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; }
     .s-essai__titre { margin: 0 0 .5rem; font-size: 1rem; }
     .s-essai__res { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .375rem; }
@@ -700,91 +711,91 @@
     @container assistant (max-width: 50rem) { .s-salles-grille { grid-template-columns: minmax(0, 1fr); } }
     .s-liste-salles { display: flex; flex-direction: column; gap: .5rem; }
     .s-liste-salles__titre { margin: 0; font-size: 1rem; display: flex; gap: .5rem; align-items: center; }
-    .s-liste-salles__batiment { margin: .5rem 0 0; font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--text-mention-grey); }
+    .s-liste-salles__batiment { margin: .5rem 0 0; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
     .s-carte-salle { display: flex; flex-direction: column; gap: .125rem; text-align: left; font: inherit; color: inherit; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: .5rem .75rem; cursor: pointer; }
     .s-carte-salle--active { border: 2px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); padding: calc(.5rem - 1px) calc(.75rem - 1px); }
     .s-carte-salle--inactive { opacity: .65; }
     .s-carte-salle__tete { display: flex; gap: .375rem; align-items: center; flex-wrap: wrap; }
     .s-fiche-salle__cadre { border: 1px solid var(--border-default-grey); padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
     .s-fiche-salle__tete { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
-    .s-fiche-salle__titre { margin: 0; font-size: 1.25rem; }
+    .s-fiche-salle__titre { margin: 0; font-size: 1rem; }
     .s-fiche-salle__actions { display: flex; gap: .5rem; flex-wrap: wrap; border-top: 1px solid var(--border-default-grey); padding-top: .75rem; }
     .s-encadre { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; }
     .s-regle-propre { display: flex; justify-content: space-between; gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
     .s-regle-propre__textes { display: flex; flex-direction: column; gap: .25rem; }
-    .s-nouvelle-salle { border: 2px dashed var(--border-active-blue-france); padding: .75rem; display: flex; flex-direction: column; gap: .5rem; background: var(--background-alt-blue-france); }
+    .s-nouvelle-salle { border: 2px dashed var(--border-active-blue-france); padding: .75rem; display: flex; flex-direction: column; gap: .5rem; background: var(--background-alt-blue-france); color: inherit; }
     .s-nouvelle-salle__titre { margin: 0; font-size: 1rem; }
     .s-carte-apercu { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .375rem; }
     .s-ordre { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .25rem; }
     .s-ordre li span { margin-right: .5rem; }
     .s-apercu-form__cadre { border: 2px dashed var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .625rem; }
     .s-apercu-form__champ { display: flex; flex-direction: column; gap: .25rem; font-size: .875rem; }
-    .s-apercu-form__zone { display: block; height: 2rem; background: var(--background-contrast-grey); border-bottom: 2px solid var(--border-plain-grey); }
+    .s-apercu-form__zone { display: block; height: 2rem; background: var(--background-contrast-grey); border-bottom: 2px solid var(--border-plain-grey); color: inherit; }
     .s-apercu-form__demandes { margin: 0; padding: 0; list-style: none; }
-    .s-consignes { margin: 0; padding: .625rem .75rem; background: var(--background-contrast-yellow-tournesol); border-left: 4px solid var(--border-plain-yellow-tournesol); font-size: .875rem; }
+    .s-consignes { margin: 0; padding: .625rem .75rem; background: var(--background-contrast-yellow-tournesol); border-left: 4px solid var(--border-plain-yellow-tournesol); font-size: .875rem; color: inherit; }
     .s-creneau { display: grid; grid-template-columns: minmax(9rem, 1.4fr) minmax(6rem, 1fr) minmax(6rem, 1fr); gap: 0 .75rem; align-items: start; }
     .s-creneau:has(.s-creneau__etiquette) { grid-template-columns: 4.5rem minmax(9rem, 1.4fr) minmax(6rem, 1fr); }
     .s-creneau__etiquette { padding-top: 2.5rem; font-weight: 700; }
     .s-jour-semaine { display: block; font-size: .8125rem; color: var(--text-mention-grey); margin-top: .25rem; }
     .s-champ-court { max-width: 8rem; }
     .s-puces { display: flex; gap: .375rem; flex-wrap: wrap; align-items: center; }
-    .s-puce { font: inherit; font-size: .875rem; padding: .25rem .75rem; border-radius: 1rem; border: 1px solid var(--border-action-high-blue-france); background: var(--background-default-grey); color: var(--text-action-high-blue-france); cursor: pointer; }
+    .s-puce { font: inherit; font-size: .875rem; padding: .25rem .75rem; border-radius: 999px; border: 1px solid var(--border-action-high-blue-france); background: var(--background-default-grey); color: var(--text-action-high-blue-france); cursor: pointer; }
     .s-puce--on { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .s-puces .fr-input { width: auto; margin: 0; }
-    .s-resume { margin: 0; padding: .625rem .75rem; background: var(--background-alt-grey); font-size: .875rem; }
+    .s-resume { margin: 0; padding: .625rem .75rem; background: var(--background-alt-grey); font-size: .875rem; color: inherit; }
     .s-repetition { display: flex; flex-direction: column; gap: .5rem; }
     .s-codes { display: inline-flex; gap: .375rem; flex-wrap: wrap; align-items: center; }
     .s-code { display: inline-flex; align-items: center; gap: .25rem; padding: .0625rem .4375rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); font-size: .8125rem; line-height: 1.25rem; color: var(--text-default-grey); }
     .s-code__val { font-weight: 700; }
     .s-code--voulu { border-color: var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-action-high-blue-france); }
     .s-demande__detail { padding-left: 2rem; display: flex; flex-direction: column; gap: .5rem; }
-    .s-demande-param { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .25rem; }
+    .s-demande-param { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .25rem; color: inherit; }
     .s-apercu-form__choix { display: block; font-size: .8125rem; color: var(--text-mention-grey); padding-left: 1.25rem; }
-    .s-visio { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; background: var(--background-alt-blue-france); }
-    .s-visio--fiche { flex-direction: row; align-items: center; flex-wrap: wrap; background: transparent; border: 0; padding: 0; }
+    .s-visio { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; background: var(--background-alt-blue-france); color: inherit; }
+    .s-visio--fiche { flex-direction: row; align-items: center; flex-wrap: wrap; background: transparent; border: 0; padding: 0; color: inherit; }
     .s-visio__titre { margin: 0; font-size: 1rem; }
     .s-visio .fr-input { margin-top: 0; flex: 1; }
     .s-libres { display: flex; flex-direction: column; gap: 1rem; padding: .5rem 0; }
-    .s-libres__questions { display: flex; flex-wrap: wrap; gap: 0 1.5rem; align-items: flex-end; padding: .75rem 1rem; background: var(--background-alt-blue-france); }
+    .s-libres__questions { display: flex; flex-wrap: wrap; gap: 0 1.5rem; align-items: flex-end; padding: .75rem 1rem; background: var(--background-alt-blue-france); color: inherit; }
     .s-libres__questions .fr-input-group { margin-bottom: .5rem; }
-    .s-libres__titre { margin: .5rem 0 0; font-size: 1.125rem; }
+    .s-libres__titre { margin: .5rem 0 0; font-size: 1rem; }
     .s-cartes-libres { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .75rem; }
     .s-carte-libre { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
-    .s-carte-libre--secondaire { opacity: .7; background: var(--background-alt-grey); }
+    .s-carte-libre--secondaire { opacity: .7; background: var(--background-alt-grey); color: inherit; }
     .s-carte-libre__tete { display: flex; justify-content: space-between; gap: .5rem; align-items: center; }
-    .s-carte-libre__nom { margin: 0; font-size: 1.0625rem; }
+    .s-carte-libre__nom { margin: 0; font-size: 1rem; }
     .s-carte-libre__jusqua { margin: 0; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
     .s-carte-libre__jusqua::before { content: ''; width: .625rem; height: .625rem; border-radius: 50%; background: var(--background-flat-success); }
     .s-creneaux { list-style: none; margin: 0; padding: 0; display: flex; gap: .5rem; flex-wrap: wrap; }
-    .s-occ__passe { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, transparent 4px 8px); pointer-events: none; }
-    .s-occ__groupe { background: var(--background-alt-grey); }
-    .s-occ__groupe-nom { padding: .375rem .75rem; font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--text-mention-grey); }
+    .s-occ__passe { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, transparent 4px 8px); pointer-events: none; color: inherit; }
+    .s-occ__groupe { background: var(--background-alt-grey); color: inherit; }
+    .s-occ__groupe-nom { padding: .375rem .75rem; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
     .s-stats { display: flex; flex-direction: column; gap: 1rem; }
     .s-stats__outils { display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; }
     .s-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; }
     .s-kpi__tuile { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .125rem; }
-    .s-kpi__valeur { font-size: 1.5rem; color: var(--text-title-blue-france); }
+    .s-kpi__valeur { font-size: 2rem; color: var(--text-title-blue-france); }
     .s-stats__grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; }
     .s-stat { border: 1px solid var(--border-default-grey); padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
-    .s-stat__titre { margin: 0; font-size: 1.0625rem; }
+    .s-stat__titre { margin: 0; font-size: 1rem; }
     .s-barres { display: flex; flex-direction: column; gap: .375rem; }
     .s-barres__ligne { display: grid; grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr) 3rem; gap: .5rem; align-items: center; font-size: .875rem; }
     .s-barres__piste { height: .75rem; background: var(--background-contrast-grey); display: block; }
     .s-barres__barre { display: block; height: 100%; background: var(--background-action-high-blue-france); }
     .s-barres__val { text-align: right; }
-    .s-chaleur { display: grid; gap: 2px; font-size: .6875rem; }
-    .s-chaleur__case { display: block; height: 1.25rem; background: var(--background-action-high-blue-france); }
+    .s-chaleur { display: grid; gap: 2px; font-size: .75rem; }
+    .s-chaleur__case { display: block; height: 1.25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .s-chaleur__heure { text-align: center; color: var(--text-mention-grey); }
     .s-chaleur__jour { font-weight: 700; }
     .s-question { margin: 0; }
     .s-libres__questions { gap: .25rem 2rem; }
     .s-resultats { display: flex; flex-direction: column; gap: .75rem; }
     .s-libres__compte { margin-left: .5rem; vertical-align: middle; }
-    .s-carte-libre--presque { border-style: dashed; background: var(--background-alt-grey); }
+    .s-carte-libre--presque { border-style: dashed; background: var(--background-alt-grey); color: inherit; }
     .s-alternatives { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
     .s-alternative { border-left: 4px solid var(--border-active-blue-france); padding-left: .75rem; display: flex; flex-direction: column; gap: .5rem; }
     .s-alternative__quand { margin: 0; }
-    .s-confirmer__titre { margin: 0; font-size: 1.25rem; }
+    .s-confirmer__titre { margin: 0; font-size: 1rem; }
     .s-mes__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
     .s-mes__ligne { width: 100%; text-align: left; font: inherit; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: .375rem .5rem; cursor: pointer; display: flex; flex-direction: column; gap: .125rem; color: inherit; }
     .s-mes__ligne:hover { background: var(--background-alt-blue-france); }
@@ -805,7 +816,7 @@
     .s-mois__barre-pris { display: block; height: 100%; background: var(--background-action-high-blue-france); }
     .s-jr { display: flex; flex-direction: column; min-height: 20rem; gap: .5rem; }
     .s-jr__defile { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
-    .s-jr__tete { display: grid; gap: 2px; position: sticky; top: 0; z-index: 2; background: var(--background-default-grey); }
+    .s-jr__tete { display: grid; gap: 2px; position: sticky; top: 0; z-index: 2; background: var(--background-default-grey); color: inherit; }
     .s-jr__salle { display: flex; flex-direction: column; gap: .125rem; padding: .375rem .5rem; background: var(--s-couleur, var(--background-action-high-blue-france)); color: var(--text-inverted-blue-france); }
     .s-jr__salle .s-code { background: transparent; color: inherit; border-color: rgba(255,255,255,.5); }
     .s-jr__salle .s-code--voulu { background: var(--background-default-grey); color: var(--text-action-high-blue-france); border-color: var(--background-default-grey); }
@@ -816,9 +827,9 @@
     .s-jr__regle { position: relative; }
     .s-jr__heure { position: absolute; right: .375rem; transform: translateY(-50%); font-size: .75rem; color: var(--text-mention-grey); }
     .s-jr__heure:first-child { transform: none; }
-    .s-jr__col { position: relative; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); cursor: pointer; }
+    .s-jr__col { position: relative; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); cursor: pointer; color: inherit; }
     .s-jr__trait { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border-default-grey); }
-    .s-jr__hors { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, var(--background-alt-grey) 4px 8px); pointer-events: none; }
+    .s-jr__hors { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, var(--background-contrast-grey) 0 4px, var(--background-alt-grey) 4px 8px); pointer-events: none; color: inherit; }
     .s-jr__resa { position: absolute; left: 3px; right: 3px; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0; overflow: hidden; text-align: left; font: inherit; font-size: .75rem; padding: .125rem .375rem; border: 0; border-left: 4px solid var(--s-couleur, var(--border-action-high-blue-france));
       background: color-mix(in srgb, var(--s-couleur, var(--background-action-high-blue-france)) 14%, var(--background-default-grey)); color: var(--text-default-grey); cursor: pointer; }
     .s-jr__resa--attente { background: repeating-linear-gradient(135deg, var(--background-contrast-warning) 0 6px, var(--background-default-grey) 6px 12px); outline: 1px dashed var(--border-plain-warning); outline-offset: -1px; }
@@ -856,8 +867,8 @@
     .s-recherche-msg .fr-btn { margin-top: .5rem; }
     .s-eq-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .75rem; }
     .s-eq-liste li { display: inline-flex; align-items: center; gap: .25rem; padding: 0; }
-    .s-carte-salle { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--border-action-high-blue-france); background: var(--background-alt-blue-france); }
-    .s-carte-salle__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .s-carte-salle { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--border-action-high-blue-france); background: var(--background-alt-blue-france); color: inherit; }
+    .s-carte-salle__nom { margin: 0; font-size: 1rem; line-height: 1.5rem; }
     .s-carte-salle__jour { margin: .125rem 0 .5rem; font-size: 1rem; font-weight: 700; }
     .s-carte-salle__infos { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 0 0 .375rem; font-size: .875rem; }
     .s-carte-salle__info { display: inline-flex; align-items: center; gap: .25rem; }
@@ -877,35 +888,35 @@
     .s-aval__service { display: inline-flex; align-items: center; }
     .s-aval__puces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
     .s-aval__puces li { padding: 0; }
-    .s-aval__puce { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; padding: .375rem .75rem; border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-warning); background: var(--background-default-grey); font-size: .875rem; text-align: left; cursor: pointer; }
+    .s-aval__puce { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; padding: .375rem .75rem; border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-warning); background: var(--background-default-grey); font-size: .875rem; text-align: left; cursor: pointer; color: inherit; }
     .s-aval__puce:hover { background: var(--background-default-grey-hover); }
     .s-aval__puce--choisie { border-color: var(--border-action-high-blue-france); border-left-color: var(--border-plain-warning); box-shadow: inset 0 0 0 1px var(--border-action-high-blue-france); }
     .s-jr__resa--choisie { box-shadow: 0 0 0 3px var(--border-action-high-blue-france); z-index: 3; }
     .s-decision { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
     .s-aval__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
-    .s-aval__ligne { display: grid; grid-template-columns: 11rem minmax(0, 1fr) auto; gap: 1rem; align-items: start; padding: 1rem; border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-warning); background: var(--background-default-grey); }
+    .s-aval__ligne { display: grid; grid-template-columns: 11rem minmax(0, 1fr) auto; gap: 1rem; align-items: start; padding: 1rem; border: 1px solid var(--border-default-grey); border-left: 4px solid var(--border-plain-warning); background: var(--background-default-grey); color: inherit; }
     .s-aval__quand { display: flex; flex-direction: column; gap: .125rem; }
     .s-aval__salle { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .s-aval__objet { padding: 0; border: 0; background: none; font-size: 1.125rem; font-weight: 700; text-align: left; color: var(--text-title-grey); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .s-aval__objet { padding: 0; border: 0; background: none; font-size: 1rem; font-weight: 700; text-align: left; color: var(--text-title-grey); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
     .s-aval__details { list-style: none; margin: .375rem 0 0; padding: 0; font-size: .875rem; }
     .s-aval__details li { display: flex; gap: .375rem; align-items: flex-start; padding: .0625rem 0; }
     .s-aval__alerte { color: var(--text-default-warning); font-weight: 700; }
     .s-aval__actions { min-width: 12rem; }
     .s-aval__actions .fr-input-group { margin-bottom: .5rem; }
     .s-aval__vide { display: flex; align-items: center; gap: .5rem; padding: 2rem 1rem; color: var(--text-mention-grey); }
-    .s-aval__vide p { margin: 0; font-size: 1.125rem; }
+    .s-aval__vide p { margin: 0; font-size: 1rem; }
     .s-historique { margin-top: 1rem; font-size: .875rem; }
     .s-historique ul { margin: .5rem 0 0; padding-left: 1rem; }
     .s-page-gestion { margin-bottom: 1rem; }
     @media (max-width: 48em) { .s-aval__ligne { grid-template-columns: 1fr; } }
     .s-services { margin-top: .25rem; }
-    .s-fiche-resa { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--s-couleur, var(--border-action-high-blue-france)); background: var(--background-alt-grey); }
+    .s-fiche-resa { padding: .75rem 1rem; margin-bottom: 1rem; border-left: 4px solid var(--s-couleur, var(--border-action-high-blue-france)); background: var(--background-alt-grey); color: inherit; }
     .s-fiche-resa p { margin: 0 0 .375rem; }
     .s-fiche-resa__quand { display: flex; flex-direction: column; font-size: 1rem; }
     .s-fiche-resa__salle { display: flex; align-items: center; flex-wrap: wrap; font-size: .875rem; }
     .s-fiche-resa__modifier { margin: .75rem 0; }
     .s-fiche-resa__dates { color: var(--text-mention-grey); font-size: .8125rem; }
-    .s-fiche-resa__motif { padding: .5rem .75rem; margin: .75rem 0; border-left: 4px solid var(--border-plain-error); background: var(--background-contrast-error); font-size: .875rem; }
+    .s-fiche-resa__motif { padding: .5rem .75rem; margin: .75rem 0; border-left: 4px solid var(--border-plain-error); background: var(--background-contrast-error); font-size: .875rem; color: inherit; }
     .w-dialogue .s-aval__details { margin: 0; }
     .w-dialogue .s-aval__details li { padding: .25rem 0; border-bottom: 1px solid var(--border-default-grey); }
     .s-pastille { display: inline-block; flex: none; width: .75rem; height: .75rem; margin-right: .375rem; background: var(--s-couleur); vertical-align: middle; }
@@ -914,11 +925,11 @@
     .s-couleurs { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0 0 1rem; padding: 0; border: 0; }
     .s-couleurs legend { width: 100%; margin-bottom: .5rem; }
     .s-couleurs__radio { position: absolute; opacity: 0; width: 1px; height: 1px; }
-    .s-couleurs__choix { width: 2rem; height: 2rem; background: var(--s-couleur); cursor: pointer; border: 2px solid var(--background-default-grey); box-shadow: 0 0 0 1px var(--border-default-grey); }
+    .s-couleurs__choix { width: 2rem; height: 2rem; background: var(--s-couleur); cursor: pointer; border: 2px solid var(--background-default-grey); box-shadow: 0 0 0 1px var(--border-default-grey); color: inherit; }
     .s-couleurs__radio:checked + .s-couleurs__choix { box-shadow: 0 0 0 3px var(--border-action-high-blue-france); }
     .s-couleurs__radio:focus-visible + .s-couleurs__choix { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 4px; }
     .s-aval__salle-nom { display: inline-flex; align-items: center; }
-    .s-photo { display: block; max-width: 100%; object-fit: cover; background: var(--background-alt-grey); }
+    .s-photo { display: block; max-width: 100%; object-fit: cover; background: var(--background-alt-grey); color: inherit; }
     .s-photo--carte { width: 100%; height: 9rem; margin-bottom: .75rem; }
     .s-photo--fiche { width: 100%; max-height: 14rem; margin-bottom: .75rem; }
     .s-photo--vignette { width: 6rem; height: 4.5rem; }
@@ -927,8 +938,8 @@
     .s-jr__salle-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -938,30 +949,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -970,14 +988,15 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-titre-nav { display: inline-flex; align-items: center; gap: .5rem; }
     .s-titre-date { white-space: nowrap; }
     .s-titre-nav .c-aller { margin-left: .25rem; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-titre-nav .c-aller__champ:not(.c-aller__champ--visible) { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: 0 !important; border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); }
     .s-cases-eq { margin: 0; }
     .s-cases-eq .fr-fieldset__element { margin-bottom: .25rem; }
-    .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1.125rem; }
+    .s-creneau-jour { margin: 0; font-weight: 700; font-size: 1rem; }
     .s-dm { width: 100%; display: flex; gap: .75rem; align-items: center; text-align: left; font: inherit; cursor: pointer; padding: .75rem; border: 1px solid var(--border-active-blue-france); border-left: 4px solid var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .s-dm:hover { background: var(--background-alt-blue-france-hover); }
     .s-dm--calme { border-color: var(--border-default-grey); border-left-color: var(--border-default-grey); background: var(--background-alt-grey); }
@@ -989,25 +1008,30 @@
     .s-depart { align-items: center; padding: 1.5rem 0; }
     .s-depart__carte { max-width: 40rem; margin: 0 auto; border: 1px solid var(--border-default-grey); padding: 2rem; display: flex; flex-direction: column; gap: .75rem; align-items: flex-start; }
     .s-depart__icone { color: var(--text-action-high-blue-france); }
-    .s-depart__titre { margin: 0; font-size: 1.5rem; }
+    .s-depart__titre { margin: 0; font-size: 1rem; }
     .s-depart__points { margin: 0; padding-left: 1.25rem; }
-    .s-depart__bouton { margin-top: .5rem; font-size: 1.125rem; padding: .75rem 1.5rem; }
+    .s-depart__bouton { margin-top: .5rem; font-size: 1rem; padding: .75rem 1.5rem; }
     .s-depart__autre { text-align: center; margin: 1rem auto 0; max-width: 40rem; }
-    @media print { .s-stats__outils, .w-volet { display: none !important; } .s-chaleur__case { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      .s-stats__outils, .w-volet { display: none !important; }
+      .s-chaleur__case { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
@@ -1016,7 +1040,7 @@
   .w-choix-grist { border: 1px solid rgba(0, 0, 0, .08); }
   .w-choix-liste { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
 /* cadre Wuit (repris de WuitWorkflow) */
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-acc { display: flex; min-height: 100%; }
     .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
     .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
@@ -1028,7 +1052,7 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .gb-accueil__menu > .gb-accueil__titre, .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
     .w-acc__menu { flex: 1 0 15.5rem; max-width: 15.5rem; padding: 1rem .75rem; gap: .25rem; }
     .w-acc__groupe { margin: 0; padding: 1rem .75rem .375rem; font-size: .8125rem; font-weight: 700; color: var(--text-mention-grey); }
@@ -1037,7 +1061,7 @@
     .w-acc__item[aria-current="page"] { background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; box-shadow: inset 3px 0 0 var(--border-action-high-blue-france); }
     .w-acc__ico { flex: none; width: 1.75rem; text-align: center; }
     .w-acc__scene { padding: 1rem 1.5rem 1.5rem; }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
     .w-acc { align-items: stretch; }
     .w-acc__scene > .w-titre-fluo { margin-bottom: .25rem; }
     .w-acc__scene .w-stepper, .w-acc__scene .w-entete-param__titre { display: none; }
@@ -1048,15 +1072,15 @@
     .s-acc-etape[aria-current="page"] .s-acc-num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .s-acc-etape:not(.s-acc-etape--derniere)::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2rem; bottom: -.75rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .s-aval__bande--3 { gap: 1.25rem; align-items: start; }
-    .s-aval__groupe { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); border-top: 4px solid var(--s-aval-teinte, var(--border-plain-warning)); padding: 1rem 1rem 1.25rem; }
-    .s-aval__groupe--V { --s-aval-teinte: var(--border-plain-warning); --s-aval-fond: var(--background-contrast-warning); --s-aval-texte: var(--text-default-warning); }
-    .s-aval__groupe--R { --s-aval-teinte: var(--border-plain-success); --s-aval-fond: var(--background-contrast-success); --s-aval-texte: var(--text-default-success); }
-    .s-aval__groupe--A { --s-aval-teinte: var(--border-plain-info); --s-aval-fond: var(--background-contrast-info); --s-aval-texte: var(--text-default-info); }
+    .s-aval__groupe { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); border-top: 4px solid var(--s-aval-teinte, var(--border-plain-warning)); padding: 1rem 1rem 1.25rem; color: inherit; }
+    .s-aval__groupe--V { --s-aval-teinte: var(--border-plain-warning); --s-aval-fond: var(--background-contrast-warning); --s-aval-texte: var(--text-default-warning); color: inherit; }
+    .s-aval__groupe--R { --s-aval-teinte: var(--border-plain-success); --s-aval-fond: var(--background-contrast-success); --s-aval-texte: var(--text-default-success); color: inherit; }
+    .s-aval__groupe--A { --s-aval-teinte: var(--border-plain-info); --s-aval-fond: var(--background-contrast-info); --s-aval-texte: var(--text-default-info); color: inherit; }
     .s-aval__titre { gap: .625rem; margin: 0 0 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); font-size: 1rem; line-height: 1.5rem; }
     .s-aval__ico { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--s-aval-fond); color: var(--s-aval-texte); }
     .s-aval__ico::before { --icon-size: 1.25rem; }
     .s-aval__titre-texte { flex: 1 1 auto; }
-    .s-aval__nb { flex: none; min-width: 1.75rem; padding: 0 .5rem; border-radius: 1rem; text-align: center; font-size: .875rem; font-weight: 700; background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+    .s-aval__nb { flex: none; min-width: 1.75rem; padding: 0 .5rem; border-radius: 999px; text-align: center; font-size: .875rem; font-weight: 700; background: var(--background-contrast-grey); color: var(--text-mention-grey); }
     .s-aval__nb--plein { background: var(--s-aval-teinte); color: var(--text-inverted-grey); }
     .s-aval__rien { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: 1.5rem .5rem; text-align: center; color: var(--text-mention-grey); }
     .s-aval__rien > span::before { --icon-size: 2rem; color: var(--s-aval-teinte); }
@@ -1064,7 +1088,7 @@
     .s-aval__bande--3 .s-aval__puces { gap: .625rem; }
     .s-aval__puce { padding: .625rem .875rem; gap: .25rem; border-left-color: var(--s-aval-teinte); }
     .s-aval__puce--speciale { border-left-color: var(--s-aval-teinte); }
-    .s-aval__puce--choisie { border-left-color: var(--s-aval-teinte); background: var(--background-alt-blue-france); }
+    .s-aval__puce--choisie { border-left-color: var(--s-aval-teinte); background: var(--background-alt-blue-france); color: inherit; }
     .s-aval__puce strong { color: var(--text-title-grey); }
     .s-aval__salle-nom { display: inline-flex; align-items: center; gap: .375rem; color: var(--text-default-grey); }
     .s-acc-pastille { flex: none; width: .75rem; height: .75rem; border-radius: 50%; margin: 0 .5rem 0 .25rem; }
@@ -1073,7 +1097,7 @@
     .w-acc__scene .s-fiche-salle__tete { display: none; }
     .w-acc__scene .w-assistant { gap: 1rem; }
     .w-acc__scene .w-entete-param:not(:has(.w-statut:not(:empty))) { display: none; }
-    .w-acc__scene .w-grille { padding: 0; background: transparent; }
+    .w-acc__scene .w-grille { padding: 0; background: transparent; color: inherit; }
     .w-acc__scene .w-grille--2-1 { grid-template-columns: minmax(0, 1fr); }
     .w-acc__scene .w-param-apercu { grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr); gap: 1.5rem; }
     .w-acc__scene .w-param-apercu > :last-child { position: sticky; top: 1rem; }
@@ -1085,7 +1109,7 @@
     .s-fil-sec::before { content: ""; position: absolute; left: .875rem; top: 2rem; bottom: .25rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .s-fil-sec__tete { position: relative; display: flex; gap: .75rem; margin: 0 0 1rem -3rem; }
     .s-fil-sec__num { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .875rem; margin-right: .5rem; }
-    .s-fil-sec__titre { margin: 0; font-size: 1.125rem; line-height: 1.75rem; }
+    .s-fil-sec__titre { margin: 0; font-size: 1rem; line-height: 1.5rem; }
     .s-fil-sec__aide { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
     .s-fil-sec__corps { display: flex; flex-direction: column; gap: 1rem; }
     .s-fil-sec__corps .fr-input-group, .s-fil-sec__corps .fr-fieldset { margin: 0; }
@@ -1151,6 +1175,9 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var VERSION_WIDGET = '1.0.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
@@ -1487,24 +1514,6 @@ async function creerTableOwner() {
 function pagesDuPlan(cle) {
     return Object.keys(etat.copies || {}).filter(function (x) { return etat.copies[x].consultation && etat.copies[x].plans.indexOf(cle) !== -1 && etat.nomsPages && etat.nomsPages[x]; });
 }
-function resumePage(x) {
-    var p = etat.copies[x];
-    var parts = [];
-    if (p.titre) {
-        parts.push('Bandeau : ' + p.titre);
-    }
-    var noms = p.plans.map(function (cle) { var t = trouverPlan(cle); return t ? t.config.name || 'Planning sans titre' : ''; }).filter(Boolean);
-    if (noms.length > 1) {
-        parts.push('Plannings : ' + noms.join(', '));
-    }
-    if (p.vue) {
-        parts.push('Vue ' + VUES_CALENDRIER.filter(function (v) { return v.id === p.vue; })[0].libelle);
-    }
-    var e = etiquettesPage(p);
-    parts.push(e.length ? 'Montre : ' + e.join(' ; ') : 'Toutes les réservations');
-    parts.push(p.lectureSeule ? 'Lecture seule' : (p.ajouter && p.modifier ? 'Ajout et modification' : (p.ajouter ? 'Ajout seulement' : 'Modification, sans ajout')));
-    return parts.join('. ');
-}
 function colonnesConditionPossibles() {
     var t = etat.config.table;
     return colonnesUtiles(t).filter(function (c) {
@@ -1830,32 +1839,6 @@ async function supprimerPageConsultation(badge) {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée. Réessayez.', e);
     }
 }
-function sectionsPages() {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var r = aide('aAideReserver', 'Cacher cette page', 'Pour cacher cette page, le widget y pose une vue de la table « ' + titreOwner() + ' », repliée en haut de la page. La règle d\'accès à poser sur cette table est dans l\'étape « Les droits » des paramétrages. Seule la page où le widget est installé est cachée : les pages des utilisateurs créées avec « Publier sur une nouvelle page » ne sont pas touchées. N\'installez pas le widget à la main sur une autre page : il ne saurait plus quelle page cacher.');
-    var admin = sectionPage('aSecAdmin', 'Cette page', [
-        creer('p', { classe: 'w-texte' }, [etat.pageProtegee ? 'Cette page, avec tous les plannings et leurs paramétrages, est cachée aux personnes qui ne peuvent pas lire la table « ' + titreOwner() + ' ».' : 'Cette page montre tous les plannings et leurs paramétrages. Elle est visible par tous.', ' ', r.bouton]), r.panneau
-    ], etat.pageProtegee ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPage, { petit: true, id: 'aReserverPage' }));
-    var ic = aide('aAideConsult', 'Page des utilisateurs', 'Chaque page montre un ou plusieurs plannings, sans aide, sans onglet « Nouveau planning » et sans paramétrages. Vous choisissez la vue à l\'ouverture, les dates et les réservations montrées, ce que les personnes peuvent y faire et les filtres laissés dans le panneau. Ce ne sont pas des droits : une personne qui a accès à la table par ailleurs voit tous les réservations, et une personne en lecture seule ne modifie jamais rien.');
-    if (etat.editionPage) {
-        return [admin, sectionPage('aSecConsult', 'Page des utilisateurs', [creer('p', { classe: 'w-page-sous-titre', texte: etat.editionPage.badge ? 'Modifier la page' : 'Nouvelle page' })].concat(formulairePage()), null)];
-    }
-    var lst = creer('ul', { classe: 'w-pages-liste' });
-    pagesDuPlan(etat.cleConfig).forEach(function (x, k) {
-        var nom = etat.nomsPages[x];
-        lst.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
-            creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: nom }), creer('span', { classe: 'w-mention', texte: resumePage(x) })]),
-            boutonIcone('Modifier « ' + nom + ' »', 'edit-line', function () { return editerPage(x, false); }, { variante: 'discret', id: 'aPageModif' + k, classe: 'w-infobulle--dessus' }),
-            boutonIcone('Dupliquer « ' + nom + ' »', iconeDispo(['file-copy-line', 'file-add-line', 'add-line']), function () { return editerPage(x, true); }, { variante: 'discret', id: 'aPageDupl' + k, classe: 'w-infobulle--dessus' }),
-            boutonIcone('Supprimer « ' + nom + ' »', 'delete-line', function () { return supprimerPageConsultation(x); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus' })
-        ]));
-    });
-    var consult = sectionPage('aSecConsult', 'Page des utilisateurs', [
-        creer('p', { classe: 'w-texte' }, ['Les pages qui montrent ce planning sans paramétrages, avec leurs propres réglages. ', ic.bouton]), ic.panneau,
-        lst.childNodes.length ? lst : creer('p', { classe: 'w-mention', id: 'aPagesVide', texte: 'Ce planning n\'est montré sur aucune page du document.' })
-    ], bouton('Publier sur une nouvelle page', 'secondaire', 'layout-grid-line', function () { return editerPage(null, false); }, { petit: true, id: 'aPageConsultation' }));
-    return [admin, consult];
-}
 async function referenceWidget() {
     var ici = location.origin + location.pathname;
     var iciComplet = location.href.split('#')[0];
@@ -2101,10 +2084,6 @@ async function nettoyerCopies() {
         logSecurite('INFO', 'Réglages de pages non vérifiés', e);
     }
     return false;
-}
-function sectionPage(id, titre, noeuds, action) {
-    return creer('section', { classe: 'w-section w-section-page', attrs: { 'aria-labelledby': id } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: id, texte: titre, attrs: { tabindex: '-1' } })])].concat(noeuds, [action ? creer('div', { classe: 'w-section-page__bas' }, [action]) : null]));
 }
 var CLE_ACCES_EDITION = 'ACCES_EDITION';
 var CLE_ACCES_PARAMETRAGE = 'ACCES_PARAMETRAGE';
@@ -2376,13 +2355,6 @@ function relayer(promesse, quoi) {
         promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
     }
     return promesse;
-}
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
@@ -2703,16 +2675,6 @@ function vider(n) { while (n.firstChild) {
 } }
 function normalizer(s) {
     return String(s === null || s === undefined ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-}
-function versIdentifiant(libelle) {
-    var s = String(libelle || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    if (!s) {
-        s = 'INFO';
-    }
-    if (/^[0-9]/.test(s)) {
-        s = 'C_' + s;
-    }
-    return s;
 }
 var _fuseauDoc = null, _docInfoLu = false;
 function fuseauDoc() { return _fuseauDoc || FUSEAU_DEFAUT; }
@@ -3795,10 +3757,6 @@ function stepper(n, noms, aller, fin) {
     return d;
 }
 function uid() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 'u' + etat.uidSeq; }
-function titreColonne(texte, explication, id) {
-    var a = explication ? aide(id, texte, explication) : null;
-    return creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', texte: texte }), a ? a.bouton : null, a ? a.panneau : null]);
-}
 function grilleParam(colonnes, gabarit, pied, apercu) {
     var remplir = function (div, noeuds) {
         var cur = null;
@@ -3960,9 +3918,6 @@ function sortiesVolet(entrees) {
     });
     return bloc;
 }
-function ajoutVolet(libelle, action, id) {
-    return creer('div', { classe: 'w-volet__bloc w-ajout' }, [bouton(libelle, null, 'add-line', action, { id: id })]);
-}
 var _toast = { minuterie: null, texte: null, type: null, surFermeture: null };
 function toast(message, opts) {
     opts = opts || {};
@@ -3972,7 +3927,7 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info') + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
@@ -4215,11 +4170,6 @@ function enteteParametrage(nom, retourLibelle, retourFn, statut) {
         retourLibelle ? bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' }) : null
     ]);
 }
-function enteteCreation(titre) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })])
-    ]);
-}
 function piedEtape(precedente, suivante, actionFinale) {
     var boutons = [];
     if (precedente) {
@@ -4232,52 +4182,6 @@ function piedEtape(precedente, suivante, actionFinale) {
         boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
     }
     return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
-function blocSupprimer(libelle, mention, fn) {
-    return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
-        creer('p', { classe: 'w-mention', texte: mention }),
-        creer('div', {}, [bouton(libelle, 'secondaire', 'delete-line', fn, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })])
-    ]);
 }
 function apercuEtape(nomEtape) {
     var a = apercuContenu(nomEtape);
@@ -4305,20 +4209,6 @@ function majApercu() {
             note.textContent = a.note || 'Avec vos données, rien n\'est enregistré ici.';
         }
     }
-}
-function blocRecapitulatif(groupes) {
-    return creer('div', { classe: 'w-recap' }, groupes.map(function (g) {
-        var dl = creer('dl', { classe: 'w-recap__liste' });
-        g.lignes.forEach(function (l) {
-            dl.appendChild(creer('dt', { texte: l[0] }));
-            dl.appendChild(creer('dd', { texte: l[1] === '' || l[1] === null || l[1] === undefined ? 'Aucun' : String(l[1]) }));
-        });
-        return creer('section', { classe: 'w-recap__groupe', attrs: { 'aria-label': g.etape } }, [
-            creer('div', { classe: 'w-recap__tete' }, [creer('p', { classe: 'w-recap__titre', texte: g.etape }),
-                bouton('Modifier', 'discret', 'edit-line', function () { allerEtape(g.rang); }, { petit: true, id: 'aRecapModifier' + g.rang, aria: 'Modifier : ' + g.etape })]),
-            dl
-        ]);
-    }));
 }
 var CLE_AIDE = NOM_WIDGET.toLowerCase() + ':aide';
 var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
@@ -4520,10 +4410,6 @@ var AIDE = {
                 '« Commencer : créer mes salles » : après confirmation, le widget crée les deux tables, une salle « Salle 1 » à renommer et la page « Réserver une salle ».',
                 'Vous arrivez ensuite dans la console : « Mes salles » pour décrire vos salles, « Pour toutes les salles » pour les règles et le formulaire.'
             ] },
-        'La table': { titre: 'la table des réservations.', points: [
-                'Choisissez la table qui contient les réservations : elle doit avoir des colonnes de date et heure.',
-                'Chaque ligne de la table est une réservation. Votre table n\'est jamais restructurée sans votre accord.'
-            ] },
         'Les colonnes': { titre: 'ce que contient chaque colonne de votre table.', points: [
                 '« Salle réservée » : de préférence une référence vers la table des salles.',
                 '« Début » et « Fin » : des colonnes de date et heure.',
@@ -4549,11 +4435,6 @@ var AIDE = {
                 '« Consignes du poste » : un texte court, en haut de la fenêtre de réservation.',
                 '« Demandé » et « Obligatoire » : les champs proposés à l\'agent. L\'objet est toujours demandé.',
                 '« Demandes particulières » : assistance technique, café d\'accueil… Chacune a sa case, son détail et son délai ; elle crée deux colonnes dans la table.'
-            ] },
-        'Récapitulatif': { titre: 'vérifiez, nommez, créez.', points: [
-                '« Modifier » ramène à l\'étape concernée.',
-                '« Créer aussi la page des agents » : une page « Réserver une salle », sans les paramétrages, qui s\'ouvre sur les salles libres.',
-                '« Créer mon planning », au bout de la barre des étapes, enregistre tout ; « Annuler la création » abandonne.'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -4601,13 +4482,11 @@ function contexteAide() {
             repere: 'Les tables ne sont créées qu\'après votre confirmation. Ensuite, tout se règle dans la console.' };
     }
     if (etat.vue === 'assistant' && b) {
-        var perso = b.mode === 'parametrage';
-        return { etapes: nomsEtapes(b), courante: b.etape,
-            repere: perso ? null : 'Rien n\'est enregistré avant « Créer mon planning », sauf les tables d\'un modèle, créées après confirmation.' };
+        return { etapes: nomsEtapes(b), courante: b.etape, repere: null };
     }
     if (etat.config) {
         return { etapes: ETAPES.param, courante: -1,
-            repere: etat.peutParametrer ? 'Pour changer ces réglages : « Paramétrages de ce planning », en bas du panneau de gauche.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
+            repere: etat.peutParametrer ? 'Pour changer ces réglages : ouvrez le planning depuis la page d\'administration.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
     }
     return { etapes: ETAPES.creation, courante: -1, repere: null };
 }
@@ -4627,26 +4506,6 @@ function apercuContenu(nom) {
     var hote = creer('div', { classe: 'w-apercu__pile', id: 'aApercu' });
     relayer(dessinerApercu(hote, nom), 'Aperçu');
     return { contenu: hote, note: 'Avec vos données, rien n\'est enregistré ici.' };
-}
-function ficheApercu(cfg) {
-    var it = etat.items.filter(function (x) { return x.s !== null; })[0] || etat.items[0];
-    if (!it) {
-        return null;
-    }
-    var dl = creer('dl', { classe: 'w-recap__liste' });
-    var ajouter = function (lib, val) { dl.appendChild(creer('dt', { texte: lib })); dl.appendChild(creer('dd', { texte: val || 'Non renseigné' })); };
-    (cfg.details || []).forEach(function (k) { var col = infoColonne(cfg.table, k); if (col) {
-        ajouter(col.label, texteCellule(valeurLigne(it.i, k), col));
-    } });
-    var colPJ = cfg.colAttach ? infoColonne(cfg.table, cfg.colAttach) : null;
-    if (colPJ) {
-        var pj = valeurCellule(valeurLigne(it.i, cfg.colAttach));
-        ajouter(colPJ.label, Array.isArray(pj) && pj.length > 1 ? pluriel(pj.length - 1, 'pièce jointe', 'pièces jointes') : '');
-    }
-    if (!dl.childNodes.length) {
-        return creer('p', { classe: 'w-mention', texte: 'Aucun autre champ coché : la fiche montre le titre, les dates, la salle et le statut.' });
-    }
-    return creer('div', { classe: 'w-apercu__fiche' }, [creer('p', { classe: 'w-apercu__sous-titre', texte: 'Fiche de « ' + it.titre + ' »' }), dl]);
 }
 async function determinerDroits() {
     if (!etat.biblio) {
@@ -9325,13 +9184,6 @@ async function annulerDernier() {
         afficherErreur('Le déplacement n\'a pas pu être annulé.', e);
     }
 }
-function libelleDansPhrase(l) {
-    var s = String(l || '');
-    if (s === s.toUpperCase()) {
-        return s.toLowerCase().replace(/_/g, ' ');
-    }
-    return /^[A-ZÀ-Ý][a-zà-ÿ]/.test(s) && !/[A-Z]/.test(s.slice(1)) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
-}
 function cfgParDefaut(g) {
     return completerSalles({ name: nomLisibleTable(g.table), description: '', table: g.table, colTitle: g.colTitle,
         dateMode: g.dateMode, colStart: g.colStart, colEnd: g.colEnd, colDuration: g.colDuration,
@@ -9455,24 +9307,6 @@ async function quitterParametrage() {
     await chargerTout();
     return true;
 }
-async function annulerCreation() {
-    var b = etat.brouillon;
-    if (b && (b.cfg || b.tablesCreees)) {
-        var ok = await confirmerAction('Abandonner la création ?', b.tablesCreees ? 'Le planning n\'est pas créé. Les choix faits pour le nouveau planning ne sont pas gardés.'
-            : 'Rien n\'a été créé. Les choix faits pour le nouveau planning ne sont pas gardés.', 'Abandonner', { destructif: true });
-        if (!ok) {
-            return;
-        }
-        await proposerSuppressionTables(b);
-    }
-    etat.brouillon = null;
-    if (etat.plans.length) {
-        await chargerTout();
-    }
-    else {
-        demarrerCreation();
-    }
-}
 async function proposerSuppressionTables(b) {
     await chargerMeta();
     var l = b && b.tablesCreees ? b.tablesCreees.filter(function (t) { return !!etat.meta.tables[t]; }) : [];
@@ -9555,47 +9389,28 @@ function rendreAssistant(zone) {
     var nom = noms[b.etape];
     var perso = b.mode === 'parametrage';
     b.etapeMax = Math.max(b.etapeMax || 0, b.etape);
-    if (b.cfg && !perso) {
-        b.cfg.depuisDonnees = !!b.depuisDonnees;
-    }
-    if (!perso && b.mode === 'creation' && nom === 'Point de départ') {
-        zone.appendChild(creer('div', { classe: 'w-assistant' }, [contenuEtape(nom)]));
+    if (!perso) {
+        /* La création se fait en un clic depuis l'écran de démarrage : il n'y
+           a plus d'étapes de création. */
+        b.etape = 0;
+        zone.appendChild(creer('div', { classe: 'w-assistant' }, [etapeDepart()]));
         return;
     }
-    var entete = perso
-        ? enteteParametrage(etat.config.name, null, null, b.statut)
-        : enteteCreation('Nouveau planning des salles');
-    var fin = perso ? null : [b.cfg ? { libelle: 'Créer mon planning', action: creerPlan, id: 'aCreer', icone: 'check-line' } : null,
-        b.etape === 0 && !b.cfg && !etat.plans.length ? null : { libelle: 'Annuler la création', action: annulerCreation, id: 'aAnnuler', icone: 'close-line', variante: 'tertiaire' }].filter(Boolean);
+    var entete = enteteParametrage(etat.config.name, null, null, b.statut);
     var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(n, noms, function (r) {
-            if (!perso && r - 1 > b.etapeMax + 1) {
-                return null;
-            }
-            if (!perso && r > 1 && !b.cfg) {
-                return null;
-            }
             return function () { if (r - 1 > b.etape && !validerEtape(nom)) {
                 return;
             } allerEtape(r - 1); };
-        }, fin)]);
+        }, null)]);
     bloc.addEventListener('input', majAttente);
     bloc.addEventListener('change', majAttente);
-    if (b.origine && nom === 'Les colonnes' && !perso) {
-        bloc.appendChild(alerte('info', null, 'Prérempli d\'après ' + b.origine + '. Vérifiez chaque étape (tout peut être changé), ou passez directement au récapitulatif par la barre des étapes.'));
-    }
     bloc.appendChild(contenuEtape(nom));
-    if (!(nom === 'Point de départ' && !b.cfg) && !(perso && estConsoleAdmin())) {
+    if (!estConsoleAdmin()) {
         bloc.appendChild(piedAssistant(b, noms));
     }
     zone.appendChild(bloc);
 }
 function contenuEtape(nom) {
-    if (nom === 'Point de départ') {
-        return etapeDepart();
-    }
-    if (nom === 'La table') {
-        return ecranDonnees();
-    }
     if (nom === 'Général') {
         return etapeGeneral('general');
     }
@@ -9605,9 +9420,6 @@ function contenuEtape(nom) {
     if (nom === 'Les droits') {
         return creer('div', {}, [etapeGeneral('droits'), etapeDroits()]);
     }
-    if (nom === 'Récapitulatif') {
-        return etapeRecapitulatif();
-    }
     if (nom === 'Les règles' && estConsoleAdmin()) {
         return creer('div', {}, [etapeGeneral('general'), grilleParam([], '1-1', [etapeRegles()], apercuEtape(nom))]);
     }
@@ -9616,7 +9428,7 @@ function contenuEtape(nom) {
 }
 function piedAssistant(b, noms) {
     var i = b.etape;
-    var premiere = b.mode === 'creation' ? 1 : 0;
+    var premiere = 0;
     if (b.mode === 'parametrage' && (noms[i] === 'Les droits' || noms[i] === 'Publier')) {
         return piedEtape(noms[i] === 'Publier' ? { libelle: noms[i - 1], action: function () { allerEtape(i - 1); } } : null, null, null);
     }
@@ -9633,13 +9445,6 @@ function allerEtape(i) {
     var b = etat.brouillon;
     b.etape = i;
     b.tableChoisie = null;
-    if (i === 0 && b.mode === 'creation') {
-        b.ecran = b.tablesCreees ? 'modeles' : 'depart';
-    }
-    if (b.mode === 'creation' && nomsEtapes(b)[i] === 'La table') {
-        relayer(ouvrirDonnees(), 'Tables');
-        return;
-    }
     afficherVue('assistant');
     var c = document.getElementById('contenu');
     if (c) {
@@ -9747,14 +9552,6 @@ async function dessinerApercu(hote, nomEtape) {
         etat.sallesDonnees = sallesAvant;
     }
 }
-function tuileDepart(id, icone, titre, texte, libelle, action, principal, desactive) {
-    return creer('section', { classe: 'w-tuile w-tuile--depart', attrs: { 'aria-labelledby': id } }, [
-        creer('span', { classe: 'fr-icon-' + icone + ' fr-icon--lg w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-        creer('h3', { classe: 'fr-h5 fr-m-0', id: id, texte: titre }),
-        creer('p', { classe: 'w-texte w-mention', texte: texte }),
-        creer('div', { classe: 'w-tuile__bas' }, [bouton(libelle, principal ? null : 'secondaire', 'arrow-right-line', action, { desactive: desactive, id: id + 'B' })])
-    ]);
-}
 function etapeDepart() {
     var b = etat.brouillon;
     var tables = tablesBranchables().filter(function (t) { return colonnesDates(t).length > 0; });
@@ -9774,148 +9571,6 @@ function etapeDepart() {
         }, { id: 'dCommencer', iconeDroite: true, classe: 's-depart__bouton' })
     ]));
     return zone;
-}
-function retourDepart() {
-    return bouton('Retour au point de départ', 'discret', 'arrow-left-line', function () { etat.brouillon.ecran = 'depart'; afficherVue('assistant'); }, { petit: true, id: 'aRetourDepart' });
-}
-async function ouvrirDonnees() {
-    var b = etat.brouillon;
-    afficherLoader('Lecture de vos tables…');
-    try {
-        await chargerMeta();
-        var tables = tablesBranchables().filter(function (t) { return colonnesDates(t).length > 0; }).slice(0, 24);
-        for (var i = 0; i < tables.length; i++) {
-            try {
-                await donneesTable(tables[i]);
-            }
-            catch (e) {
-                logSecurite('AVERTISSEMENT', 'Table non lue : ' + tables[i], e);
-            }
-        }
-        b.depuisDonnees = true;
-        b.etape = rangEtape('La table');
-        b.ecran = 'depart';
-        masquerLoader();
-        afficherVue('assistant');
-    }
-    catch (e) {
-        masquerLoader();
-        afficherErreur('La lecture des tables du document n\'a pas abouti.', e);
-    }
-}
-function suggestionsDeDonnees() {
-    var res = [];
-    tablesBranchables().forEach(function (tid) {
-        if (planDeTable(tid) || !colonnesDates(tid).length) {
-            return;
-        }
-        var d = etat.cacheTables[tid];
-        var g = deviner(tid, d);
-        if (!g.colStart || !g.colTitle) {
-            return;
-        }
-        var n = d ? d.id.length : 0;
-        var score = (g.dateMode === 'range' ? 4 : (g.dateMode === 'duration' ? 3 : 1)) + (g.colLane ? 2 : 0) + (g.colStatus ? 2 : 0)
-            + (n > 0 ? 1 : 0) + (evoque(infoColonne(tid, g.colStart), 'debut') ? 1 : 0);
-        res.push({ g: g, score: score, n: n, cfg: cfgParDefaut(g) });
-    });
-    return res.sort(function (x, y) { return y.score - x.score || y.n - x.n; }).slice(0, 6);
-}
-function faitsCfg(cfg, d) {
-    var t = cfg.table;
-    var l = [];
-    var lib = function (x) { var c = infoColonne(t, x); return c ? c.label : x; };
-    if (cfg.dateMode === 'range') {
-        l.push(['Dates', lib(cfg.colStart) + ' → ' + lib(cfg.colEnd)]);
-    }
-    else if (cfg.dateMode === 'duration') {
-        l.push(['Dates', lib(cfg.colStart) + ' + ' + lib(cfg.colDuration)]);
-    }
-    else {
-        l.push(['Date', lib(cfg.colStart)]);
-    }
-    l.push(['Titre', lib(cfg.colTitle)]);
-    if (cfg.colLane) {
-        l.push(['Salle', lib(cfg.colLane)]);
-    }
-    if (cfg.colorMode === 'choice' && cfg.colColor) {
-        var vals = valeursColonne(t, cfg.colColor, d);
-        var col = infoColonne(t, cfg.colColor);
-        if (col && String(col.type).indexOf('Ref:') === 0) {
-            vals = [];
-        }
-        l.push(['Couleurs', lib(cfg.colColor) + (vals.length ? ' : ' + vals.slice(0, 5).join(', ') + (vals.length > 5 ? '…' : '') : '')]);
-    }
-    return l;
-}
-function miniCalendrier(evs) {
-    var box = creer('div', { classe: 'c-mini', attrs: { 'aria-hidden': 'true' } });
-    if (!evs.length) {
-        return box;
-    }
-    var parMois = {};
-    evs.forEach(function (x) { var p = partiesJour(x.j); var k = p.a * 12 + p.m; parMois[k] = (parMois[k] || 0) + 1; });
-    var auj = aujourdhuiMur(fuseauDoc());
-    var pa = partiesJour(auj);
-    var meilleur = Object.keys(parMois).sort(function (a, b) { return parMois[b] - parMois[a] || Math.abs(a - (pa.a * 12 + pa.m)) - Math.abs(b - (pa.a * 12 + pa.m)); })[0];
-    var an = Math.floor(meilleur / 12), mo = meilleur % 12;
-    var premier = jourDe(an, mo, 1), dernier = jourDe(an, mo + 1, 1);
-    box.appendChild(creer('span', { classe: 'c-mini__mois', texte: MOIS_LONGS[mo] + ' ' + an }));
-    var grille = creer('span', { classe: 'c-mini__grille' });
-    var parJour = {};
-    evs.forEach(function (x) { (parJour[x.j] = parJour[x.j] || []).push(x.couleur); });
-    for (var w = lundiDe(premier); w < lundiDe(dernier - JOUR) + 7 * JOUR; w += JOUR) {
-        var cell = creer('span', { classe: 'c-mini__j' + (w < premier || w >= dernier ? ' c-mini__j--hors' : '') + (estWeekEnd(w) ? ' c-mini__j--we' : '') + (w === auj ? ' c-mini__j--auj' : '') });
-        (parJour[w] || []).slice(0, 3).forEach(function (c) { var pt = creer('span', { classe: 'c-mini__ev' }); pt.style.background = c; cell.appendChild(pt); });
-        grille.appendChild(cell);
-    }
-    box.appendChild(grille);
-    return box;
-}
-function miniDepuisCfg(cfg, d) {
-    if (!d) {
-        return creer('div', { classe: 'c-mini', attrs: { 'aria-hidden': 'true' } });
-    }
-    var evs = [];
-    avecContexte(cfg, d, function () {
-        etat.items.forEach(function (it) {
-            if (it.s === null) {
-                return;
-            }
-            var st = styleItem(it, etat.couleurs);
-            var fin = Math.min(it.e, it.s + 31 * JOUR);
-            for (var w = Math.floor(it.s / JOUR) * JOUR; w < Math.max(fin, it.s + 1); w += JOUR) {
-                evs.push({ j: w, couleur: st.plein });
-            }
-        });
-    });
-    return miniCalendrier(evs);
-}
-function ecranDonnees() {
-    var b = etat.brouillon;
-    var sug = suggestionsDeDonnees();
-    var tuiles = creer('div', { classe: 'w-tuiles w-tuiles--grille' });
-    sug.forEach(function (sg, i) {
-        var d = etat.cacheTables[sg.g.table];
-        tuiles.appendChild(creer('section', { classe: 'w-tuile', attrs: { 'aria-labelledby': 'sTitre' + i } }, [
-            creer('div', { classe: 'gp-tuile-tete' }, [creer('span', { classe: 'fr-icon-calendar-2-line w-tuile__icone', attrs: { 'aria-hidden': 'true' } }),
-                creer('h4', { classe: 'fr-h6 fr-m-0', id: 'sTitre' + i, texte: sg.cfg.name }), badge(pluriel(sg.n, 'ligne'), 'info')]),
-            miniDepuisCfg(sg.cfg, d),
-            creer('ul', { classe: 'gp-faits' }, faitsCfg(sg.cfg, d).map(function (f) { return creer('li', {}, [creer('b', { texte: f[0] + ' : ' }), f[1]]); })),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Utiliser cette suggestion', 'secondaire', 'arrow-right-line', function () {
-                    b.cfg = JSON.parse(JSON.stringify(sg.cfg));
-                    b.origine = 'la suggestion « ' + sg.cfg.name + ' »';
-                    b.etape = rangEtape('Les salles');
-                    b.etapeMax = ETAPES.creation.length - 1;
-                    afficherVue('assistant');
-                }, { petit: true, id: 'sU' + i, aria: 'Utiliser cette suggestion : ' + sg.cfg.name })])
-        ]));
-    });
-    return creer('div', { classe: 'w-assistant' }, [creer('div', { classe: 'gp-outils' }, [retourDepart()]),
-        creer('section', { attrs: { 'aria-labelledby': 'sSugg' } }, [creer('h3', { classe: 'fr-h6', id: 'sSugg', texte: 'Plannings suggérés d\'après vos tables' }),
-            creer('p', { classe: 'w-texte w-mention fr-mb-1w', texte: 'WuitSalles a reconnu les dates, les titres, les salles et les statuts de vos tables (noms de colonnes en français ou en anglais). Vous vérifierez tout avant de confirmer.' }),
-            sug.length ? tuiles : creer('p', { classe: 'w-texte w-mention', texte: 'Aucune suggestion : choisissez une table ci-dessous.' })]),
-        ecranTables(false)]);
 }
 function ecranTables(parametrage) {
     var b = etat.brouillon;
@@ -10359,14 +10014,7 @@ function caseCochee(id, libelle, valeur, surChange, aideTexte) {
 }
 function ligneTable(cfg) {
     return creer('p', { classe: 'w-texte' }, ['Table : ', creer('strong', { texte: libelleTable(cfg.table) }), ' ',
-        bouton('Changer', 'discret', 'edit-line', function () { allerEtape(rangEtape(etat.brouillon.mode === 'creation' ? 'La table' : 'Général')); }, { petit: true, aria: 'Changer de table', id: 'aChangerTable' })]);
-}
-function compteVides(cfg, colId) {
-    var d = etat.cacheTables[cfg.table];
-    if (!d || !colId || !d[colId]) {
-        return 0;
-    }
-    return d[colId].filter(function (v) { return dateValide(v) === null; }).length;
+        bouton('Changer', 'discret', 'edit-line', function () { allerEtape(rangEtape('Général')); }, { petit: true, aria: 'Changer de table', id: 'aChangerTable' })]);
 }
 function blocAjouterHeures(c, colS, colE) {
     var cols = [colS].concat(colE && !estDateTime(colE) ? [colE] : []);
@@ -10481,34 +10129,6 @@ function etapeBarres() {
     bloc.appendChild(fl);
     return bloc;
 }
-function etapeLiens() {
-    var c = etat.brouillon.cfg;
-    var t = c.table;
-    var bloc = creer('div', { classe: 'w-c3__col' });
-    var pj = colonnesPJ(t);
-    if (pj.length) {
-        bloc.appendChild(choixColonne('aPJ', 'Pièces jointes', 'Affichées dans la fiche ; les images s\'ouvrent dans une visionneuse.', pj, c.colAttach, true, function (v) { c.colAttach = v; }));
-    }
-    var cand = candidatsFiche(c);
-    var aideF = aide('aFicheAide', 'autres champs de la fiche', 'Le titre, les dates, la salle et le statut y figurent toujours. Les éditeurs modifient les valeurs ; les colonnes calculées restent en lecture seule. Une colonne ajoutée plus tard à la table apparaît d\'office dans la fiche.');
-    aideF.panneau.classList.add('w-aide__texte--flux');
-    var fs = creer('fieldset', { classe: 'fr-fieldset' }, [creer('legend', { classe: 'fr-fieldset__legend w-champ-aide' }, ['Autres champs de la fiche', aideF.bouton]), aideF.panneau]);
-    var g = creer('div', { classe: 'gp-cases' });
-    cand.forEach(function (x, i) {
-        g.appendChild(caseCochee('aDet' + i, x.label, (c.details || []).indexOf(x.colId) !== -1, function (coche) {
-            c.details = (c.details || []).filter(function (y) { return y !== x.colId; });
-            if (coche) {
-                c.details.push(x.colId);
-            }
-        }, libelleType(x)));
-    });
-    if (!cand.length) {
-        g.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucune autre colonne dans cette table.' }));
-    }
-    fs.appendChild(g);
-    bloc.appendChild(fs);
-    return bloc;
-}
 function etapeFiltres() {
     var c = etat.brouillon.cfg;
     var f = c.filters = c.filters || {};
@@ -10518,27 +10138,6 @@ function etapeFiltres() {
     bloc.appendChild(radios('aVueDef', 'Affichage par défaut, à l\'ouverture du planning', VUES_CALENDRIER.filter(function (z) { return z.id !== 'avalider'; }).map(function (z) { return { v: z.id, l: z.libelle, a: aides[z.id] || null }; }), vueDef, function (v) { c.defaultZoom = v; }, 'Chacun peut ensuite changer d\'affichage. Si vous changez ce réglage, il s\'applique de nouveau à tous à leur prochaine ouverture.'));
     bloc.appendChild(caseCochee('aOuvres', 'Sans samedi ni dimanche par défaut', c.workingDays, function (x) { c.workingDays = x; planifierApercu(); }, 'Chacun peut le changer au-dessus du planning.'));
     return bloc;
-}
-function reglesDroitsConseillees() {
-    var c = etat.config || (etat.brouillon && etat.brouillon.cfg) || {};
-    var nomRes = c.table ? libelleTable(c.table) : 'des réservations';
-    var ts = tableSalles(c);
-    var nomSalles = ts ? libelleTable(ts) : 'des salles';
-    var colStat = c.colStatus || 'STATUT';
-    var sv = statutsDe(c);
-    var biblio = etat.biblioCentrale || !etat.biblio ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var duW = etat.biblioCentrale || !etat.biblio ? ' and rec.WIDGET == "' + NOM_WIDGET + '"' : '';
-    return [
-        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». Dans « Règles spéciales », décochez « Autoriser les Éditeurs à modifier la structure » : sinon les agents contournent toutes les règles ci-dessous. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne ; ne recopiez pas les règles d\'une autre table qui citent des colonnes absentes de celle-ci.' },
-        { titre: 'Cacher cette page', texte: 'Ajoutez une règle sur la table « ' + titreOwner() + ' ». Condition ci-dessous, puis refusez tout : Lecture, Création, Modification, Suppression. La page Admin disparaît pour les agents. Cette table n\'a qu\'une colonne (INFO) : aucune autre condition n\'y a de sens.', code: 'user.Access != OWNER' },
-        { titre: 'Protéger les réglages', texte: 'Sur la table « ' + biblio + ' » : une règle avec cette condition, qui refuse la Lecture (le widget sait ainsi qui est propriétaire)…', code: 'user.Access != OWNER and rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW },
-        { titre: '', texte: '… et une seconde règle qui refuse Création, Modification et Suppression.', code: 'user.Access != OWNER' + (duW ? ' and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '")' : '') },
-        { titre: 'Les salles', texte: 'Sur la table « ' + nomSalles + ' » : refusez Création, Modification et Suppression. La lecture reste ouverte à tous.', code: 'user.Access != OWNER' },
-        { titre: 'Les réservations', texte: 'Sur la table « ' + nomRes + ' » : chacun crée, mais ne modifie que ses propres réservations. Règle qui refuse la Modification…', code: 'user.Access != OWNER and rec.CREE_PAR != user.Email' },
-        { titre: '', texte: '… et règle qui refuse la Suppression à tous les agents (ils annulent, ils ne suppriment pas).', code: 'user.Access != OWNER' },
-        { titre: 'Le statut', texte: 'Règle de colonne sur ' + colStat + ' (et MOTIF s\'il existe) : un agent peut seulement annuler, ou remettre « ' + (sv.attente || 'En attente') + ' » en modifiant sa réservation. Refusez la Modification.', code: 'user.Access != OWNER and newRec.' + colStat + ' not in ["' + (sv.annulee || 'Annulée') + '", "' + (sv.attente || 'En attente') + '"]' },
-        { titre: 'Vérifier', texte: 'Bouton « Voir en tant que » en haut des Permissions avancées, avec le courriel d\'un agent : il ne voit pas la page Admin, il réserve, il modifie et annule ses réservations, pas celles des autres.' }
-    ];
 }
 function modeleAcl(titre, blocs, prefixe) {
     var lettres = [['R', 'Lecture'], ['U', 'Modification'], ['C', 'Création'], ['D', 'Suppression']];
@@ -10760,68 +10359,6 @@ function etapeGeneral(partie) {
         return creer('div', { classe: 'w-general' }, [grilleParam([[col2]], '2-1')]);
     }
     return creer('div', { classe: 'w-general' }, [grilleParam([[col1], [col2], [col3]], '1-1-1')]);
-}
-function etapeRecapitulatif() {
-    var b = etat.brouillon;
-    var c = b.cfg;
-    var t = c.table;
-    var noms = nomsEtapes(b);
-    var lib = function (x) { var col = x ? infoColonne(t, x) : null; return col ? col.label : ''; };
-    var nom = saisie('aNom', c.name, { indice: 'Par exemple : Congés de l\'équipe' });
-    nom.addEventListener('input', function () { c.name = nom.value; });
-    var desc = saisie('aDesc', c.description, { multiligne: true, lignes: 2 });
-    desc.addEventListener('input', function () { c.description = desc.value; });
-    var groupes = [];
-    var ajouter = function (etape, lignes) { var r = noms.indexOf(etape); if (r > 0) {
-        groupes.push({ etape: etape, rang: r, lignes: lignes });
-    } };
-    ajouter('La table', [['Table', libelleTable(t)]]);
-    var tsR = tableSalles(c);
-    var rcR = roomColsDe(c);
-    var libS = function (x) { var col = tsR && x ? infoColonne(tsR, x) : null; return col ? col.label : ''; };
-    var rgR = reglesDe(c);
-    var stR = statutsDe(c);
-    ajouter('Les colonnes', [['Salle réservée', lib(c.colLane)], ['Dates', lib(c.colStart) + ' → ' + lib(c.colEnd)], ['Objet', lib(c.colTitle)], ['Personnes', lib(c.colParticipants)],
-        ['Statut', c.colStatus ? lib(c.colStatus) + ' (' + [stR.attente, stR.validee, stR.refusee, stR.annulee].filter(Boolean).join(', ') + ')' : ''],
-        ['Chevauchements', c.colConflict ? 'Signalés par la colonne ' + lib(c.colConflict) : 'Repérés par le widget']]);
-    var sallesR = sallesBrouillon();
-    var batsR = [];
-    sallesR.forEach(function (x) { if (x.batiment && batsR.indexOf(x.batiment) === -1) {
-        batsR.push(x.batiment);
-    } });
-    ajouter('Les salles', [['Salles', sallesR.length ? sallesR.map(function (x) { return x.nom; }).slice(0, 8).join(', ') + (sallesR.length > 8 ? '…' : '') : ''], ['Bâtiments', batsR.join(', ')],
-        ['Table des salles', tsR ? libelleTable(tsR) : 'aucune (liste de choix)']]);
-    ajouter('Les règles', [['En clair', texteEnClair(c, sallesR)]]);
-    var fR = formulaireDe(c);
-    ajouter('Le formulaire', [['Consignes', fR.consignes.trim() ? 'Oui' : ''], ['Champs demandés', ['Objet'].concat(colonnesDemandees(c).map(function (x) { return libelleLisible(lib(x)); })).join(', ')],
-        ['Demandes particulières', fR.demandes.map(function (x) { return x.libelle; }).join(', ')]]);
-    ajouter('Affichage et filtres', [['À l\'ouverture', (VUES_CALENDRIER.filter(function (z) { return z.id === c.defaultZoom; })[0] || { libelle: 'Mois' }).libelle + (c.workingDays ? ', sans samedi ni dimanche' : '')],
-]);
-    var ecrit = [];
-    var cbPage = creer('input', { attrs: { type: 'checkbox', id: 'aPageAgents' }, coche: b.pageAgents !== false });
-    cbPage.addEventListener('change', function () { b.pageAgents = cbPage.checked; });
-    var blocPage = creer('div', { classe: 'fr-checkbox-group s-encadre' }, [cbPage, creer('label', { classe: 'fr-label', attrs: { 'for': 'aPageAgents' } }, ['Créer aussi la page des agents « Réserver une salle »',
-            creer('span', { classe: 'fr-hint-text', texte: 'Les agents y réservent ; les réservations se gèrent ici, dans l\'onglet « Validations et demandes spéciales ». Réglez qui voit chaque page dans les droits du document.' })])]);
-    if (b.tablesCreees && b.tablesCreees.length) {
-        ecrit.push('Déjà créées pour le modèle : ' + b.tablesCreees.map(libelleTable).join(', ') + '.');
-    }
-    if (b.tablesReutilisees && b.tablesReutilisees.length) {
-        ecrit.push('Reprises telles quelles : ' + b.tablesReutilisees.map(function (x) { return libelleTable(x) + ' (existante)'; }).join(', ') + '.');
-    }
-    ecrit.push(etat.biblio ? 'Une ligne de réglages dans ' + (etat.biblioCentrale ? LABEL_CENTRALE : libelleTable(etat.biblio)) + '.' : 'La table partagée ' + LABEL_CENTRALE + ', créée car le document n\'en a pas encore, avec une ligne de réglages par planning.');
-    if (b.tablesCreees && b.tablesCreees.indexOf(t) !== -1) {
-        ecrit.push('La formule du statut de départ, dans la colonne ' + lib(c.colStatus) + ', d\'après vos règles de validation.');
-    }
-    else {
-        ecrit.push('Votre table ' + libelleTable(t) + ' n\'est pas restructurée : aucune colonne n\'est retypée ou supprimée' + (c.creerSerie ? ' ; la colonne SERIE est ajoutée pour les réservations répétées.' : '.'));
-    }
-    if (b.pageAgents !== false) {
-        ecrit.push('La page « Réserver une salle », pour les agents.');
-    }
-    return grilleParam([], '1-1', [titreColonne('Le planning des salles', null, 'aSecNom'), groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc, null),
-        titreColonne('Vos choix', null, 'aSecRecap'), blocRecapitulatif(groupes),
-        titreColonne('La page des agents', null, 'aSecPage'), blocPage,
-        titreColonne('Ce qui sera écrit dans votre document', null, 'aSecEcrit'), creer('ul', { classe: 'w-texte w-panneau-aide__liste' }, ecrit.map(function (x) { return creer('li', { texte: x }); }))], apercuEtape('Récapitulatif'));
 }
 function validerEtape(nom) {
     var b = etat.brouillon;
@@ -11555,7 +11092,6 @@ function heuresPossibles(r, fin) {
     }
     return l;
 }
-function arrondiPas(min, pas) { return Math.round(min / pas) * pas; }
 function statutDepartEcrit(c, salle, occ, nb, repetee) {
     var col = c.colStatus ? infoColonne(c.table, c.colStatus) : null;
     if (!col || col.formule || col.declencheur || !estModifiable(col, genreDe(col, null))) {
@@ -14120,12 +13656,6 @@ function lireParticipants(res) {
     var n = parseInt(t, 10);
     return n >= 1 && n <= 100000 ? n : NaN;
 }
-function controlerCreneau(s, e, r) {
-    if (s === null || e === null) {
-        return 'Indiquez le jour, l\'heure de début et l\'heure de fin.';
-    }
-    return controlerSalleCreneau(s, e, r, null, '');
-}
 function validerCreneau(res) {
     var c = etat.config;
     var r = reglesDe(c);
@@ -14539,7 +14069,6 @@ function lireInfosReservation(res, sansControle) {
     res.valeurs = champs;
     return champs;
 }
-function lireEditeursReservation(res, sansControle) { return lireInfosReservation(res, sansControle); }
 async function enregistrerReservation() {
     var res = etat.reservation;
     var c = etat.config;
@@ -14915,65 +14444,6 @@ function badgesSalle(s, voulus) {
         l.push(codeEquipement(x, voulus && voulus.indexOf(x) !== -1));
     });
     return l.length ? creer('span', { classe: 's-codes' }, l) : null;
-}
-function etatDerniereMinute() {
-    var c = etat.config;
-    if (!c || !c.colLane) {
-        return null;
-    }
-    var tz = fuseauPlan(c);
-    var auj = aujourdhuiMur(tz);
-    var maintenant = maintenantMur(tz);
-    var pas = reglesDe(c).pas * 60;
-    var libres = 0;
-    var prochaine = null;
-    sallesActives().forEach(function (s) {
-        var cr = creneauxLibres(s, auj, 30);
-        if (!cr || !cr.length) {
-            return;
-        }
-        if (cr[0][0] <= maintenant + pas) {
-            libres++;
-        }
-        else if (prochaine === null || cr[0][0] < prochaine) {
-            prochaine = cr[0][0];
-        }
-    });
-    return { libres: libres, prochaine: prochaine };
-}
-function texteDerniereMinute(d) {
-    if (d.libres) {
-        return pluriel(d.libres, 'salle libre', 'salles libres') + ' maintenant';
-    }
-    if (d.prochaine !== null) {
-        return 'Prochaine salle libre à ' + texteHeureMur(d.prochaine);
-    }
-    var c = etat.config;
-    var dem = prochainJourOuvert(c, aujourdhuiMur(fuseauPlan(c)) + JOUR);
-    return 'Fermé pour aujourd\'hui · ' + nomJour(dem).toLowerCase() + ' dès ' + texteHeure(horairesDuJour(reglesDe(c), rangJour(dem), null).o);
-}
-function tuileDerniereMinute() {
-    if (!peutAjouterEvenements() || !tableSalles()) {
-        return null;
-    }
-    var d = etatDerniereMinute();
-    if (!d) {
-        return null;
-    }
-    var bt = creer('button', { classe: 's-dm' + (d.libres ? '' : ' s-dm--calme'), id: 'pDerniereMinute', attrs: { type: 'button' } }, [
-        creer('span', { classe: 'fr-icon-' + iconeDispo(['flashlight-line', 'flashlight-fill', 'timer-flash-line', 'time-line']) + ' s-dm__icone', attrs: { 'aria-hidden': 'true' } }),
-        creer('span', { classe: 's-dm__textes' }, [creer('strong', { classe: 's-dm__titre', texte: 'Dernière minute' }), creer('span', { classe: 's-dm__texte', texte: texteDerniereMinute(d) })])
-    ]);
-    bt.addEventListener('click', allerDerniereMinute);
-    return creer('div', { classe: 'w-volet__bloc' }, [bt]);
-}
-function bandeauDerniereMinute() {
-    var d = etatDerniereMinute();
-    if (!d || !peutAjouterEvenements()) {
-        return null;
-    }
-    return creer('div', { classe: 's-dm-bandeau' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(['flashlight-line', 'flashlight-fill', 'time-line']) + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }),
-        creer('span', {}, [creer('strong', { texte: 'Dernière minute : ' }), texteDerniereMinute(d) + '.']), bouton('Voir', 'secondaire', null, allerDerniereMinute, { petit: true, id: 'pDmVoir' })]);
 }
 function etatRecherche() {
     var c = etat.config;
@@ -15463,23 +14933,6 @@ function allerRecherche(garder) {
     }
     annoncer('Trouver une salle : décrivez votre besoin.');
 }
-function allerDerniereMinute() {
-    var v = etat.v;
-    if (estAgent()) {
-        var tzD = fuseauPlan(etat.config);
-        return ouvrirCreneau(Math.ceil(maintenantMur(tzD) / (reglesDe(etat.config).pas * 60)) * reglesDe(etat.config).pas * 60);
-    }
-    etatRecherche();
-    v.libres.quand = 'maintenant';
-    v.mode = 'libres';
-    memoriserEtatVue();
-    afficherVue('plan', true);
-    var t = document.getElementById('lQuand_maintenant') || document.getElementById('titreVue');
-    if (t) {
-        t.focus();
-    }
-    annoncer('Salles libres maintenant.');
-}
 function ligneReservationVolet(it, id) {
     var c = etat.config;
     var s = salleParCle(it.couloirs[0]);
@@ -15744,27 +15197,6 @@ function ongletAdminCourant() {
     }
     return etat.v && etat.v.mode === 'stats' ? 'statistiques' : etat.v && etat.v.mode === 'avalider' ? 'atraiter' : 'reservations';
 }
-function ongletsAdmin() {
-    var courant = ongletAdminCourant();
-    var nb = 0;
-    var c = etat.config;
-    var sv = statutsDe(c);
-    if (c.colStatus && sv.attente) {
-        var maint = maintenantMur(fuseauPlan(c));
-        nb = demandesAValider().length;
-    }
-    var nbT = elementsATraiter().length;
-    var defs = [['reservations', 'Réservations', 'calendar-2-line'], ['atraiter', 'Validations et demandes spéciales' + (nbT ? ' (' + nbT + ')' : ''), 'checkbox-circle-line'], ['statistiques', 'Statistiques', 'bar-chart-box-line'], ['parametrage', 'Paramétrage', 'settings-5-line']];
-    var ul = creer('ul', { classe: 'fr-tabs__list', attrs: { role: 'tablist', 'aria-label': 'Administration des salles' } });
-    defs.forEach(function (d) {
-        var actif = d[0] === courant;
-        var b = creer('button', { classe: 'fr-tabs__tab fr-tabs__tab--icon-left fr-icon-' + d[2] + ' w-onglet', id: 'pAdmin_' + d[0], texte: d[1],
-            attrs: { role: 'tab', 'aria-selected': actif ? 'true' : 'false', tabindex: actif ? '0' : '-1' } });
-        b.addEventListener('click', function () { relayer(allerOngletAdmin(d[0]), 'Onglet ' + d[1]); });
-        ul.appendChild(creer('li', { attrs: { role: 'presentation' } }, [b]));
-    });
-    return creer('nav', { classe: 'tab-nav w-onglets', attrs: { 'aria-label': 'Administration des salles' } }, [ul]);
-}
 async function allerOngletAdmin(cle) {
     if (cle === ongletAdminCourant()) {
         return;
@@ -15806,9 +15238,6 @@ function appliquerOngletAdmin() {
     if (f) {
         f.focus();
     }
-}
-function valeurPageGestion() {
-    return JSON.stringify(pageValide({ consultation: true, gestion: true, plans: [etat.cleConfig], titre: 'Gérer les réservations', vue: 'avalider', ajouter: true, modifier: true, exporter: true }));
 }
 function demandesAValider() {
     var c = etat.config;

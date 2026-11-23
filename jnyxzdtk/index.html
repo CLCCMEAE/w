@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitFormulaire
+  Version : 1.0.0 - 23/11/2026
+  Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -10,6 +15,7 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -111,7 +117,7 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       .w-loader__spinner { animation: none; }
@@ -172,12 +178,14 @@
     .w-aide[aria-expanded="true"] .w-aide__rond { color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-aide:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 0; }
     .w-aide__texte { flex: 1 0 100%; margin: .25rem 0 0; padding: .75rem; font-size: .8125rem; line-height: 1.45; color: var(--text-default-grey); background: var(--background-alt-grey); border-left: 3px solid var(--border-action-high-blue-france); }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; top: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
       padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
       color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-sorties .w-infobulle::after, .w-palette .w-infobulle::after { left: 0; right: auto; }
@@ -223,6 +231,7 @@
     .w-table thead th { background: var(--background-alt-grey); color: var(--text-title-grey); font-weight: 700; white-space: nowrap; }
     .w-table code { font-size: .8125rem; }
     .w-bulle-question { display: inline-block; border-bottom: 1px dotted currentColor; cursor: help; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-bulle-question::after { left: 0; right: auto; white-space: normal !important; width: max-content !important; max-width: 22rem !important; font-weight: 400; }
     .w-bulle-question:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     .w-carte-stat__question { margin: -.5rem 0 .75rem; }
@@ -472,7 +481,7 @@
     .w-barre-sel { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .5rem .75rem; background: var(--background-alt-blue-france); color: var(--text-default-grey); }
     .w-barre-sel__compte { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; }
     .w-cellule-case { width: 2.5rem; }
-    .w-ligne-dossier--choisie td { background: var(--background-alt-blue-france); }
+    .w-ligne-dossier--choisie td { background: var(--background-alt-blue-france); color: inherit; }
     .w-statut-dossier { display: inline-block; padding: .0625rem .5rem; border-radius: 999px; font-size: .8125rem; font-weight: 700; white-space: nowrap; }
     .w-statut-dossier--brouillon { background: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-statut-dossier--depose { background: var(--background-contrast-info); color: var(--text-default-info); }
@@ -593,12 +602,17 @@
       .w-pastille-rouge, .w-remplir__seg--fait, .w-barres__barre { forced-color-adjust: none; }
     }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body { height: auto !important; overflow: visible !important; display: block !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-corps, .w-contenu, .w-contenu--plein, .w-contenu--plein > .w-vue, .w-disposition, .w-principal, .w-fiche, .w-fiche__contenu { display: block !important; overflow: visible !important; height: auto !important; flex: none !important; }
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-volet-mobile, .w-entete-form, .w-barre-vue__commandes, .w-barre-vue__compteurs,
       .w-panneau-aide, .w-toast, .w-loader, .w-overlay, #skipLink, .w-barre-sel, .w-cellule-case, .w-onglets-dossiers, .w-onglets-fiche, .w-fiche__actions,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-fiche-tete .fr-btn, .w-fiche-sorties, .w-remplir__nav, .w-recu__actions, .w-bandeau-apercu, .w-sommaire { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-imprime-seul, .w-impression-seule { display: block !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-remplir__carte, .w-feuille { border: 0 !important; padding: 0 !important; }
       .w-table th, .w-table td { padding: .25rem .375rem; }
       .w-statut-dossier, .w-etiquette, .w-pastille-rouge, .w-barres__barre { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -637,17 +651,18 @@
       .w-etapes__item:not(.w-etapes__item--en-cours) .w-etapes__nom { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     }
     .w-assistant .fr-stepper { margin-bottom: 0; }
-    .w-reg { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 0; min-height: 30rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-reg { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 0; min-height: 30rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: inherit; }
     .w-reg-som { border-right: 1px solid var(--border-default-grey); padding: .75rem 0; display: flex; flex-direction: column; gap: .5rem; }
     .w-reg-som ul { list-style: none; margin: 0; padding: 0; }
     .w-reg-som li { margin: 0; padding: 0; }
-    .w-reg-som__lien { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; background: none; padding: .5625rem 1rem; font: inherit; font-size: .9375rem; color: var(--text-default-grey); cursor: pointer; }
+    .w-reg-som__lien { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; background: none; padding: .5625rem 1rem; font: inherit; font-size: .875rem; color: var(--text-default-grey); cursor: pointer; }
     .w-reg-som__lien:hover { background: var(--background-default-grey-hover); }
     .w-reg-som__lien--actif { border-left-color: var(--border-active-blue-france); background: var(--background-alt-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
     .w-reg-som__lien:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
     .w-reg-som__bas { border-top: 1px solid var(--border-default-grey); padding: .75rem .5rem 0; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-reg-som__suppr { color: var(--text-default-error) !important; white-space: nowrap; max-width: 100%; margin: 0; }
-    .w-reg__corps { padding: 1rem 1.5rem 1.5rem; background: var(--background-alt-grey); min-width: 0; }
+    .w-reg__corps { padding: 1rem 1.5rem 1.5rem; background: var(--background-alt-grey); min-width: 0; color: inherit; }
     .w-reg-tete { display: flex; align-items: baseline; flex-wrap: wrap; gap: .25rem 1rem; margin-bottom: 1rem; }
     .w-reg-tete__titre { margin: 0; }
     @media (max-width: 48em) {
@@ -661,10 +676,15 @@
     .w-bandeau-apercu { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
     body.w-pleine-page { background: var(--background-alt-grey); }
     body.w-pleine-page .w-bandeau, body.w-pleine-page .w-onglets, body.w-pleine-page #wEnteteForm, body.w-pleine-page .w-bandeau-apercu,
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     body.w-pleine-page .w-remplir-outils, body.w-pleine-page .w-panneau-aide, body.w-pleine-page #skipLink { display: none !important; }
     body.w-pleine-page .w-contenu { padding: 3.5rem 1rem 2rem; background: var(--background-alt-grey); }
-    .w-pleine-page__quitter { position: fixed; top: .75rem; right: .75rem; z-index: 50; background: var(--background-default-grey) !important; }
-    @media print { .w-pleine-page__quitter, .w-pleine-page__ouvrir { display: none !important; } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
+    .w-pleine-page__quitter { position: fixed; top: .75rem; right: .75rem; z-index: 50; background: var(--background-default-grey) !important; color: inherit; }
+    @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      .w-pleine-page__quitter, .w-pleine-page__ouvrir { display: none !important; }
+    }
     .w-palette__champs { display: flex; flex-direction: column; gap: .375rem; padding-bottom: .75rem; margin-bottom: .25rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-palette__champs .w-palette__titre { margin-top: 0; }
     .w-palette__item--champ { border-style: dashed; }
@@ -724,8 +744,8 @@
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -735,30 +755,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -767,18 +794,18 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
@@ -786,12 +813,13 @@
     .w-grille--1-1-1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     @media (max-width: 62em) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
     @container assistant (max-width: 40rem) { .w-grille--1-1-1 { grid-template-columns: minmax(0, 1fr); } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
 /* accueil du cadre Wuit */
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-acc { display: flex; min-height: 100%; }
     .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
     .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
@@ -803,10 +831,10 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
-    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; color: inherit; }
+    .w-acc__carte:hover { background: var(--background-default-grey-hover); }
     .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
     .w-acc__carte-nom { font-weight: 700; }
     .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
@@ -828,16 +856,16 @@
     .w-acc__carte-texte { padding: .75rem .75rem 0; }
     .w-acc__carte-nom { font-size: .875rem; color: var(--text-title-grey); }
     .w-acc__carte-bas { padding: .75rem; }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume, #e8edff); }
-    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px #fff; }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume); color: inherit; }
+    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px var(--background-default-grey); color: var(--text-inverted-blue-france); }
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
-    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-choix-table-fo { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-fo__bas { display: flex; justify-content: flex-end; gap: .5rem; }
-    .w-acc__vig .w-vig-ligne { display: block; height: .5rem; margin: .5rem 0 0 1rem; background: var(--border-plain-grey, #929292); opacity: .45; }
+    .w-acc__vig .w-vig-ligne { display: block; height: .5rem; margin: .5rem 0 0 1rem; background: var(--border-plain-grey); opacity: .45; color: inherit; }
     .w-acc__vig .w-vig-ligne:first-child { margin-top: 2rem; }
     .w-entete-form__accueil { margin: 0 1rem 0 0; flex: none; }
 </style>
@@ -884,6 +912,9 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var DF = {};
 DF.outils = (function () {
     function echapperHTML(v) {
@@ -5150,7 +5181,7 @@ function toast(message, opts) {
     }
     fermerToast();
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast w-toast--' + _toast.type;
+    z.className = 'w-toast w-toast--' + _toast.type + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
     msg.textContent = '';
@@ -5357,82 +5388,8 @@ function marquerInvalide(id, message, sansFocus) {
     }
     annoncer(message);
 }
-function enteteCreation(annulerFn) {
-    if (!annulerFn) {
-        return null;
-    }
-    return creer('div', { classe: 'w-entete-param w-entete-creation' }, [
-        bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' })
-    ]);
-}
-function piedEtape(precedente, suivante, actionFinale) {
-    var boutons = [];
-    if (precedente) {
-        boutons.push(bouton('Étape précédente : ' + precedente.libelle, 'secondaire', 'arrow-left-line', precedente.action, { id: 'aPrecedent' }));
-    }
-    if (suivante) {
-        boutons.push(bouton('Continuer : ' + suivante.libelle, null, 'arrow-right-line', suivante.action, { id: 'aSuivant', iconeDroite: true }));
-    }
-    else if (actionFinale) {
-        boutons.push(bouton(actionFinale.libelle, null, actionFinale.icone || 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', iconeDroite: !!actionFinale.icone }));
-    }
-    return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function filAriane(noms, courante, aller, cliquable) {
-    var n = courante + 1;
-    var d = creer('div', { classe: 'fr-stepper w-stepper' });
-    d.appendChild(creer('h2', { classe: 'fr-stepper__title', attrs: { tabindex: '-1', id: 'titreVue' } }, [noms[courante],
-        creer('span', { classe: 'fr-stepper__state', texte: 'Étape ' + n + ' sur ' + noms.length })]));
-    var ol = creer('ol', { classe: 'w-etapes', attrs: { 'aria-label': 'Étapes' } });
-    noms.forEach(function (nom, i) {
-        var rang = i + 1;
-        var etatEtape = rang < n ? 'faite' : (rang === n ? 'en-cours' : 'a-venir');
-        var lien = rang !== n && (cliquable ? cliquable(i) : true);
-        var suivante = lien && rang === n + 1;
-        var precedente = lien && rang === n - 1;
-        var contenu = [
-            creer('span', { classe: 'w-etapes__segment', attrs: { 'aria-hidden': 'true' } }),
-            creer('span', { classe: 'w-etapes__ligne' }, [
-                etatEtape === 'faite' ? creer('span', { classe: 'fr-icon-checkbox-circle-fill w-etapes__coche', attrs: { 'aria-hidden': 'true' } }) : null,
-                creer('span', { classe: 'w-etapes__nom', texte: nom })
-            ]),
-            creer('span', { classe: 'fr-sr-only', texte: etatEtape === 'faite' ? ' (terminée)' : (etatEtape === 'en-cours' ? ' (en cours)' : ' (à venir)') }),
-            suivante ? creer('span', { classe: 'w-etapes__appel' }, ['Continuer', creer('span', { classe: 'fr-icon-arrow-right-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } })]) : null,
-            precedente ? creer('span', { classe: 'w-etapes__appel w-etapes__appel--retour' }, [creer('span', { classe: 'fr-icon-arrow-left-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Retour']) : null
-        ];
-        var li = creer('li', { classe: 'w-etapes__item w-etapes__item--' + etatEtape + (lien ? ' w-etapes__item--lien' : '') + (suivante ? ' w-etapes__item--suivante' : '') + (precedente ? ' w-etapes__item--precedente' : '') }, lien ? [creer('button', { classe: 'w-etapes__bouton', id: 'aEtape' + i, attrs: { type: 'button' }, clic: function () { aller(i); } }, contenu)] : contenu);
-        if (etatEtape === 'en-cours') {
-            li.setAttribute('aria-current', 'step');
-        }
-        ol.appendChild(li);
-    });
-    d.appendChild(ol);
-    return d;
-}
 function etapeReglesWidget() {
     return { titre: 'Les règles des formulaires', sansTables: true, texte: 'Le widget les pose lui-même : onglet « Partager », bouton « Poser les règles d\'accès ». Il protège la bibliothèque des formulaires et les tables de réponses (qui répond, qui instruit, qui gère). Vérifiez ensuite dans les Permissions avancées : ses règles portent un mémo qui commence par « ' + DF.acces.MEMO.trim() + ' ». Les règles ajoutées à la main sont conservées et placées après les siennes.' };
-}
-function encartDroits() {
-    var nomBib = etat.biblio || ID_BIBLIO;
-    var regles = [
-        'Poser les règles du formulaire : onglet « Partager », bouton « Poser les règles d\'accès ». Le widget ajoute sur la table ' + nomBib + ' une règle qui rend la ligne témoin ACCES_PARAMETRAGE illisible pour qui n\'est pas propriétaire (ni éditeur, si les éditeurs gèrent les réponses).',
-        'Vérifier dans le panneau de gauche du document, rubrique « Outils », « Permissions avancées » : les règles du widget portent un mémo qui commence par « ' + DF.acces.MEMO.trim() + ' ».',
-        'Les règles ajoutées à la main sont conservées et placées après celles du widget.'
-    ];
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }).concat([
-        creer('p', { classe: 'w-texte', texte: 'Sans ces règles, le paramétrage reste proposé à toute personne qui ouvre la page. Masquer est un confort : la protection réelle vient des règles d\'accès et des droits du document.' })
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        creer('p', { classe: 'w-texte', texte: 'Les propriétaires conçoivent les formulaires et posent les règles. Les autres personnes du document répondent, retrouvent leurs dossiers et, si elles sont instructrices, traitent les dossiers de leur groupe.' }),
-        btn, detail
-    ]);
 }
 var _statutMinuterie = null;
 function statutSauvegarde(texte, erreur) {
@@ -5708,9 +5665,6 @@ var AIDE = {
     ],
     etapes: {
         'Accueil': { titre: 'tous vos formulaires', points: ['« Un formulaire » : vos formulaires, avec leur état. « Modifier » ouvre l\'éditeur ; « ← Accueil », en haut du formulaire, ramène ici.', '« Utiliser ce modèle » ou le « + » créent le formulaire et ouvrent l\'éditeur.', '« À partir de mes données » : un formulaire par table du document, une question par colonne ; les réponses arrivent dans cette table.', '« Les droits » : inviter les personnes et poser les règles d\'accès.'] },
-        'Point de départ': { titre: 'choisir comment commencer', points: ['« Partir d\'un modèle » : six formulaires prêts à adapter.', '« Partir de zéro » : un formulaire vide avec une page de questions, la vérification et une fin.', '« Partir d\'une table existante » : une question par colonne de la table choisie, et les réponses arrivent dans cette table.'] },
-        'Modèle': { titre: 'choisir le modèle', points: ['Cliquez sur une carte pour la choisir.', 'Tout reste modifiable ensuite : questions, pages, logique, réglages.'] },
-        'Les tables': { titre: 'nommer la table des réponses', points: ['Le nom proposé vient du nom du formulaire.', 'Si une table porte déjà ce nom, choisissez de la réutiliser ou donnez un autre nom : le widget ne crée jamais de table numérotée.'] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
                 '« Poser les règles d\'accès » : chaque modèle reproduit la page des Permissions avancées ; copiez chaque condition, réglez les lettres, puis cliquez sur « Enregistrer ».',
@@ -5761,11 +5715,6 @@ function contexteAide() {
     var v = etat.vue;
     if (v === 'accueil' && pageAdminFo()) {
         return { etapes: ['Accueil', 'Concevoir', 'Logique', 'Réglages', 'Aperçu', instructionActive() ? 'Dossiers' : 'Réponses', 'Partager'], courante: 0, repere: 'Ouvrez un formulaire ou créez-en un depuis l\'accueil.' };
-    }
-    if (v === 'creation') {
-        var c = etat.creation || {};
-        var noms = nomsEtapesCreation();
-        return { etapes: noms, courante: Math.min(c.etape || 0, noms.length - 1), repere: 'Création d\'un formulaire' };
     }
     if (v === 'reglages') {
         var r = RUBRIQUES_REGLAGES.filter(function (x) { return x.cle === (etat.param.rubrique || 'general'); })[0] || RUBRIQUES_REGLAGES[0];
@@ -7698,15 +7647,7 @@ function ecransDisponibles(def) {
 function rendreOngletsFormulaires() {
     var forms = formulairesVisibles();
     var items = forms.map(function (f) { return { cle: f.def.id, libelle: f.def.nom || 'Sans nom' }; });
-    var enCreation = etat.vue === 'creation';
-    var ul = onglets('wOngletsForm', items, enCreation ? '' : etat.courant, function (cle) { choisirFormulaire(cle); }, { aria: 'Formulaires', classe: 'w-onglets-form' });
-    if (etat.peutParametrer) {
-        var plus = creer('button', { classe: 'w-onglet-btn w-onglet-plus fr-icon-add-line', id: 'wNouveauForm', attrs: { role: 'tab', 'aria-selected': enCreation ? 'true' : 'false', tabindex: enCreation ? '0' : '-1' }, texte: 'Nouveau formulaire',
-            clic: function () { if (etat.vue !== 'creation') {
-                demarrerCreation();
-            } } });
-        ul.appendChild(creer('li', { attrs: { role: 'presentation' } }, [plus]));
-    }
+    var ul = onglets('wOngletsForm', items, etat.courant, function (cle) { choisirFormulaire(cle); }, { aria: 'Formulaires', classe: 'w-onglets-form' });
     return creer('nav', { classe: 'w-onglets', attrs: { 'aria-label': 'Formulaires' } }, [ul]);
 }
 function compteReponses(def) {
@@ -7987,6 +7928,12 @@ function rafraichirApresDroits(focusId) {
     }
 }
 function afficherVue(vue, o) {
+    if (vue === 'creation' || (!vue && etat.vue === 'creation')) {
+        /* L'ancien assistant de création n'existe plus : on crée un
+           formulaire depuis l'accueil de la page Admin. */
+        etat.creation = null;
+        vue = pageAdminFo() ? 'accueil' : (etat.courant ? 'remplir' : 'accueil');
+    }
     majBandeauRole();
     o = o || {};
     if (vue) {
@@ -8017,16 +7964,8 @@ function afficherVue(vue, o) {
         return;
     }
     var def = defCourante();
-    if (etat.vue !== 'creation' && !pageAdminFo() && (etat.page ? formulairesVisibles().length > 1 : (formulairesVisibles().length || etat.peutParametrer))) {
+    if (!pageAdminFo() && (etat.page ? formulairesVisibles().length > 1 : (formulairesVisibles().length || etat.peutParametrer))) {
         main.appendChild(rendreOngletsFormulaires());
-    }
-    if (etat.vue === 'creation') {
-        if (!pageAdminFo()) {
-            main.appendChild(rendreOngletsFormulaires());
-        }
-        rendreCreation(main);
-        panneauAide();
-        return;
     }
     if (!def) {
         rendreAccueil(main);
@@ -8080,7 +8019,7 @@ function rendreAccueil(main) {
         main.appendChild(creer('div', { classe: 'w-centre' }, [
             creer('h2', { classe: 'fr-h4', id: 'titreVue', texte: 'Aucun formulaire pour l\'instant', attrs: { tabindex: '-1' } }),
             creer('p', { classe: 'w-texte', texte: 'Créez un formulaire à partir d\'un modèle, de zéro ou d\'une table du document. Chaque réponse deviendra une ligne d\'une table, avec une colonne par question.' }),
-            bouton('Créer un formulaire', null, 'add-line', function () { demarrerCreation(); }, { id: 'wCreerPremier' })
+            creer('p', { classe: 'w-mention', texte: 'Les formulaires se créent depuis la page d\'administration.' })
         ]));
         return;
     }
@@ -8459,155 +8398,6 @@ function rendreAccueilFo(main) {
     }
     main.appendChild(creer('div', { classe: 'w-acc' }, [menu, scene]));
 }
-function demarrerCreation() {
-    relayer(attendreSauvegarde(), 'Enregistrement');
-    etat.creation = { etape: 0, depart: '', modele: '', nom: '', table: '', reutiliser: false, autreNom: '', tableSource: '' };
-    afficherVue('creation');
-}
-function nomsEtapesCreation() {
-    var c = etat.creation;
-    if (c.depart === 'modele') {
-        return ['Point de départ', 'Modèle', 'Les tables'];
-    }
-    if (c.depart === 'table') {
-        return ['Point de départ', 'Table existante'];
-    }
-    return ['Point de départ', 'Les tables'];
-}
-function allerCreation(n) { etat.creation.etape = n; afficherVue('creation'); var t = document.getElementById('titreVue'); if (t) {
-    t.focus();
-} }
-function rendreCreation(main) {
-    var c = etat.creation;
-    var noms = nomsEtapesCreation();
-    var a = creer('div', { classe: 'w-assistant' });
-    var entete = enteteCreation(etat.formulaires.length ? function () { etat.creation = null; afficherVue(etat.peutParametrer ? 'concevoir' : 'remplir'); } : null);
-    if (entete) {
-        a.appendChild(entete);
-    }
-    a.appendChild(filAriane(noms, c.etape, function (i) {
-        if (i < c.etape) {
-            allerCreation(i);
-            return;
-        }
-        var b = document.getElementById('aSuivant');
-        if (b) {
-            b.click();
-        }
-    }, function (i) { return i < c.etape || (i === c.etape + 1 && c.etape > 0); }));
-    var nom = noms[c.etape];
-    if (nom === 'Point de départ') {
-        a.appendChild(etapeDepart());
-    }
-    else if (nom === 'Modèle') {
-        a.appendChild(etapeModele());
-        a.appendChild(piedEtape({ libelle: 'Point de départ', action: function () { allerCreation(0); } }, { libelle: 'Les tables', action: function () {
-                if (!c.modele) {
-                    toast('Choisissez un modèle.', { type: 'erreur' });
-                    return;
-                }
-                allerCreation(2);
-            } }));
-    }
-    else if (nom === 'Table existante') {
-        a.appendChild(etapeTableSource());
-        a.appendChild(piedEtape({ libelle: 'Point de départ', action: function () { allerCreation(0); } }, null, { libelle: 'Créer et ouvrir l\'éditeur', id: 'aCreer', action: function () { return creerFormulaire(); } }));
-    }
-    else {
-        a.appendChild(etapeTablesCreation());
-        a.appendChild(piedEtape({ libelle: noms[c.etape - 1], action: function () { allerCreation(c.etape - 1); } }, null, { libelle: 'Créer et ouvrir l\'éditeur', id: 'aCreer', action: function () { return creerFormulaire(); } }));
-    }
-    main.appendChild(a);
-}
-function etapeDepart() {
-    var tuiles = [
-        { cle: 'modele', icone: '🧩', titre: 'Partir d\'un modèle', texte: 'Six formulaires prêts à adapter : télétravail, formation, subvention instruite, satisfaction, signalement, quiz.' },
-        { cle: 'zero', icone: '📄', titre: 'Partir de zéro', texte: 'Un formulaire vide avec une page de questions, la vérification et une page de fin.' },
-        { cle: 'table', icone: '🗃', titre: 'Partir d\'une table existante', texte: 'Une question par colonne d\'une table du document ; les réponses arrivent dans cette table.' }
-    ];
-    return creer('div', { classe: 'w-tuiles' }, tuiles.map(function (t) {
-        return creer('div', { classe: 'w-tuile' + (etat.creation.depart === t.cle ? ' w-tuile--choisie' : '') }, [
-            creer('div', { classe: 'w-tuile__tete' }, [creer('span', { classe: 'w-tuile__emoji', texte: t.icone, attrs: { 'aria-hidden': 'true' } }), creer('h3', { classe: 'w-c3__titre', texte: t.titre })]),
-            creer('p', { classe: 'w-texte', texte: t.texte }),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton('Choisir', etat.creation.depart === t.cle ? null : 'secondaire', 'arrow-right-line', function () {
-                    etat.creation.depart = t.cle;
-                    if (t.cle === 'zero' && !etat.creation.nom) {
-                        etat.creation.nom = 'Nouveau formulaire';
-                    }
-                    allerCreation(1);
-                }, { petit: true, iconeDroite: true, id: 'aDepart_' + t.cle, aria: 'Choisir : ' + t.titre })])
-        ]);
-    }));
-}
-function etapeModele() {
-    return creer('div', { classe: 'w-cartes-modeles', attrs: { role: 'list' } }, MODELES.map(function (m) {
-        var choisi = etat.creation.modele === m.cle;
-        return creer('div', { attrs: { role: 'listitem' } }, [creer('button', { classe: 'w-carte-modele' + (choisi ? ' w-carte-modele--choisie' : ''), id: 'aModele_' + m.cle, attrs: { 'aria-pressed': choisi ? 'true' : 'false' },
-                clic: function () { etat.creation.modele = m.cle; etat.creation.nom = m.construire().nom; afficherVue('creation'); var b = document.getElementById('aModele_' + m.cle); if (b) {
-                    b.focus();
-                } } }, [
-                creer('span', { classe: 'w-carte-modele__icone', texte: m.icone, attrs: { 'aria-hidden': 'true' } }),
-                creer('span', { classe: 'w-carte-modele__titre', texte: m.titre }),
-                creer('span', { classe: 'w-carte-modele__texte', texte: m.description }),
-                creer('ul', { classe: 'w-carte-modele__puces' }, m.puces.map(function (p) { return creer('li', { texte: p }); }))
-            ])]);
-    }));
-}
-function etapeTablesCreation() {
-    var c = etat.creation;
-    var champNom = saisie('aNom', c.nom);
-    var zoneTable = creer('div', { id: 'aZoneTable', classe: 'w-pile' });
-    var majTable = function () {
-        vider(zoneTable);
-        var prop = DF.colonnes.tablePourFormulaire(c.nom, tablesUtilisateur());
-        if (!prop.existe) {
-            c.reutiliser = false;
-            zoneTable.appendChild(creer('p', { classe: 'w-texte' }, ['Les réponses seront enregistrées dans une nouvelle table ', creer('strong', { texte: '📋 ' + c.nom }), ' (identifiant ', creer('code', { texte: prop.id }), ').']));
-        }
-        else {
-            zoneTable.appendChild(alerte('warning', 'Une table ' + trouverTable(prop.id) + ' existe déjà', 'Réutilisez-la (le widget ajoute seulement les colonnes manquantes, sans rien effacer) ou donnez un autre nom.'));
-            zoneTable.appendChild(radios('aReutil', 'Que faire ?', [{ valeur: 'oui', libelle: 'Réutiliser la table ' + trouverTable(prop.id) }, { valeur: 'non', libelle: 'Donner un autre nom' }], c.reutiliser ? 'oui' : 'non', function (v) { c.reutiliser = v === 'oui'; autre.hidden = c.reutiliser; }));
-            var autre = groupeChamp('Nom de la nouvelle table', saisie('aAutreNom', c.autreNom), 'Sans accent ni espace, le widget l\'adapte.');
-            autre.hidden = c.reutiliser;
-            autre.querySelector('input').addEventListener('input', function (e) { c.autreNom = e.target.value; });
-            zoneTable.appendChild(autre);
-        }
-        if (c.depart === 'modele' && c.modele === 'subvention') {
-            zoneTable.appendChild(creer('p', { classe: 'w-mention', texte: 'L\'instruction étant activée, le widget créera aussi l\'historique, la messagerie, les avis d\'experts, les groupes d\'instructeurs et, si besoin, la table des utilisateurs.' }));
-        }
-    };
-    champNom.addEventListener('input', function () { c.nom = champNom.value; c.autreNom = ''; });
-    champNom.addEventListener('change', majTable);
-    majTable();
-    return creer('div', { classe: 'w-grille w-grille--1-1' }, [
-        section('Le formulaire', 'Le nom s\'affiche dans l\'onglet et en haut du formulaire.', 'aSecNom', [groupeChamp('Nom du formulaire', champNom, null, true)]),
-        section('Les tables', 'Chaque réponse devient une ligne de cette table. Le widget ne crée jamais de table numérotée : si le nom est pris, choisissez.', 'aSecTables', [zoneTable])
-    ]);
-}
-function etapeTableSource() {
-    var c = etat.creation;
-    var tables = tablesUtilisateur().filter(function (t) { return t.toUpperCase().indexOf(ID_BIBLIO) !== 0 && !DF.colonnes.estTableGroupes(t) && !DF.util.estBibliothequeWidget(t); });
-    var sel = liste('aTableSource', tables.map(function (t) { return { valeur: t, libelle: t }; }), c.tableSource, { vide: 'Choisir une table' });
-    var apercu = creer('div', { id: 'aApercuSource' });
-    var maj = function () {
-        vider(apercu);
-        if (!c.tableSource) {
-            return;
-        }
-        var qs = questionsDepuisTable(c.tableSource);
-        apercu.appendChild(creer('p', { classe: 'w-texte', texte: 'Le formulaire démarre vide. Dans l\'éditeur, ' + (qs.length > 1 ? 'ces ' + qs.length + ' champs de la table vous attendent' : 'ce champ de la table vous attend') + ' dans le panneau de gauche, « Champs de votre table » : cliquez ou glissez ceux que vous voulez, ou « Tout ajouter ».' }));
-        apercu.appendChild(creer('ul', { classe: 'w-texte', id: 'aChampsProposes' }, qs.map(function (q) { return creer('li', { texte: q.libelle + ' (' + DF.schema.type(q.type).libelle + ')' }); })));
-        var ecartees = colonnesEcartees(c.tableSource);
-        if (ecartees.length) {
-            apercu.appendChild(creer('p', { classe: 'w-texte', texte: 'Colonnes non proposées comme questions :' }));
-            apercu.appendChild(creer('ul', { classe: 'w-texte', id: 'aColonnesEcartees' }, ecartees.map(function (x) { return creer('li', { texte: x.colonne + ' (' + x.raison + ')' }); })));
-        }
-        apercu.appendChild(creer('p', { classe: 'w-mention', texte: 'Le widget ajoutera à cette table ses colonnes de suivi (numéro, statut, dates, compte). Les colonnes et les lignes existantes ne sont pas modifiées.' }));
-    };
-    sel.addEventListener('change', function () { c.tableSource = sel.value; c.nom = sel.value ? sel.value.charAt(0) + sel.value.slice(1).toLowerCase().replace(/_/g, ' ') : ''; maj(); });
-    maj();
-    return section('Table du document', 'Les formules, les colonnes remplies automatiquement et les métadonnées (créé le, créé par, modifié le, modifié par) ne deviennent pas des questions.', 'aSecSource', [groupeChamp('Table', sel, null, true), apercu]);
-}
 var MOTIF_METADONNEE = /^(CREE|CREEE|DATE CREATION|MODIFIE|MODIFIEE|DATE MODIFICATION|DERNIERE MODIFICATION|MIS A JOUR|MISE A JOUR|DATE MISE A JOUR|MAJ|DATE MAJ|CREATED|CREATED AT|CREATED BY|UPDATED|UPDATED AT|UPDATED BY|MODIFIED|MODIFIED AT|MODIFIED BY|LAST MODIFIED|LAST UPDATED)( LE| PAR| AT| BY| DATE)?$/;
 function raisonExclusion(k, c) {
     if (/^gristHelper/.test(k) || k === 'manualSort') {
@@ -8628,14 +8418,6 @@ function raisonExclusion(k, c) {
         return 'colonne du widget';
     }
     return '';
-}
-function colonnesEcartees(tid) {
-    var m = tableMeta(tid);
-    if (!m) {
-        return [];
-    }
-    return m.ordre.map(function (k) { return { colonne: m.colonnes[k].label || k, raison: raisonExclusion(k, m.colonnes[k]) }; })
-        .filter(function (x) { return x.raison && x.raison !== 'colonne technique'; });
 }
 function questionDepuisColonne(tid, k) {
     var m = tableMeta(tid);
@@ -13505,7 +13287,7 @@ async function demarrerWidget() {
         if (badge !== etat.badge) {
             var avantBadge = etat.badge;
             etat.badge = badge;
-            if (avantBadge !== null && etat.vue !== 'chargement' && etat.vue !== 'creation') {
+            if (avantBadge !== null && etat.vue !== 'chargement') {
                 relayer(chargerTout(), 'Changement du réglage de la page');
             }
         }

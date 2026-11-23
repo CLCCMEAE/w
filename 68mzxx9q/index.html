@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
+<!--
+  Widget : WuitCarte
+  Version : 1.0.0 - 23/11/2026
+  Description : carte des lieux d'une table, avec fiches, filtres et pages pour les utilisateurs.
+-->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
@@ -12,6 +17,7 @@
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js" integrity="sha256-zTeJj5eCrfVIIMQTGRtWkYA/DxN8eZ1u3P04UjtMLDE=" crossorigin="anonymous"></script>
   <style>
+    /* !important : le DSFR impose un display à ses composants : sans lui, un élément masqué resterait visible */
     [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
@@ -217,7 +223,7 @@
     }
     .w-apercu .w-apercu-boite { justify-content: center; }
     .w-apercu-etiquette { display: inline-flex; flex-direction: column; align-self: flex-start; max-width: 100%; padding: .25rem .5rem; font-size: .8125rem; line-height: 1.4;
-      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-plain-grey); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-plain-grey); outline: 1px solid var(--border-default-grey); }
     .w-apercu-etiquette strong { color: var(--text-title-grey); }
     .w-apercu__fiche .w-recap__liste { margin: 0; }
     .w-apercu__fiche-titre { margin: 0 0 .25rem; font-weight: 700; color: var(--text-title-grey); overflow-wrap: anywhere; }
@@ -357,12 +363,14 @@
     .w-segment__bouton::before { --icon-size: 1.25rem; }
     .w-segment__bouton:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
     @media (forced-colors: active) { .w-segment__bouton { border: 1px solid CanvasText; } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle { position: relative; overflow: visible !important; }
     .w-infobulle::after { content: attr(data-infobulle); position: absolute; z-index: 40; bottom: calc(100% + .375rem); right: 0; white-space: nowrap; pointer-events: none;
       padding: .25rem .5rem; font-family: Marianne, arial, sans-serif; font-size: .75rem; font-weight: 400; font-style: normal; line-height: 1.4;
       color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); opacity: 0; visibility: hidden; }
     .w-infobulle:hover::after, .w-infobulle:focus-visible::after { opacity: 1; visibility: visible; }
     .w-infobulle[data-infobulle]::after { -webkit-mask-image: none; mask-image: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-infobulle[data-infobulle]::after { content: attr(data-infobulle) !important; display: block !important; width: auto !important; height: auto !important;
       min-width: 0; max-width: none; margin: 0; flex: none; vertical-align: baseline; background-color: var(--background-default-grey) !important; }
     .w-sorties .w-infobulle::after { left: 0; right: auto; }
@@ -604,7 +612,7 @@
       .w-bandeau__marque { gap: .5rem; min-width: 0; flex-shrink: 1; }
       #bandeau-logo { width: 56px; }
       .w-bandeau__titre { font-size: 1rem; }
-      .w-bandeau__version { font-size: .625rem; }
+      .w-bandeau__version { font-size: .75rem; }
       .w-tuile { padding: 1rem; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -616,6 +624,7 @@
     }
     @media print {
       .w-bandeau, .w-onglets, .w-volet, .w-volet[hidden], .w-volet__poignee, .w-volet-mobile,
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       .w-barre-vue__commandes, .w-barre-vue__compteurs, .w-panneau-aide, .w-toast, #skipLink { display: none !important; }
     }
   
@@ -626,8 +635,8 @@
     .w-grille--1-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
     .s-acl { margin: .5rem 0 .25rem; }
     .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
-    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: .25rem; font-size: .75rem; }
-    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); text-transform: uppercase; font-size: .625rem; letter-spacing: .03em; text-align: left; border-bottom: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
     .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
     .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
     .s-acl__tableau tbody tr:first-child td { border-top: 0; }
@@ -637,30 +646,37 @@
     .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
     .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
     .s-acl__droits { display: inline-flex; gap: .25rem; }
-    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .6875rem; font-weight: 700; border-radius: .125rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
     .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
     .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
     .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
     .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
-    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: .25rem; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
-    .s-acl__btn--fait { background: var(--background-contrast-grey-active, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
     .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
     .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
     .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
-    .s-roles thead th { background: var(--background-alt-grey); }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
     .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
     #wImprDroits { display: none; }
     @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
-      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-grille { display: block !important; padding: 0 !important; background: none !important; color: inherit; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
       #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
       #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .s-impr__titre { font-size: 1.25rem; margin: 0 0 .5rem; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
       .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
     }
     .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
@@ -669,22 +685,23 @@
     .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
     .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
     .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; word-break: break-all; color: inherit; }
     .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
     .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
     .s-acl__chevron { color: var(--text-mention-grey); }
-    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: .125rem; }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
     .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
     .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
     .s-acl__pousse { flex: 1; }
-    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .6875rem; border-radius: .125rem; }
-    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey, #6a6f7d); color: var(--text-inverted-grey, #fff); }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
     .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
-    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success, #18753c); color: #fff; font-size: .625rem; font-weight: 700; }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
     .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
     .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
     .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
     @media (max-width: 62em) { .w-grille--1-2 { grid-template-columns: minmax(0, 1fr); } }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
     .w-stepper > .fr-stepper__title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* boutons-droite : les boutons d'action des blocs sont alignés à droite */
     :is(.w-section, .w-section > .w-colonne, .w-zone-retrait) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
@@ -708,10 +725,11 @@
     .w-modele__texte { display: flex; flex-direction: column; gap: .25rem; padding: .75rem; }
     .w-modele__nom { font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
     .w-modele__desc { font-size: .75rem; color: var(--text-mention-grey); }
-    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
+    .w-atelier { flex: 0 0 min(40rem, 58vw); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: inherit; }
     .w-atelier__defile { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
     .w-atelier__bas { flex: none; display: flex; align-items: center; gap: .5rem; padding: .75rem 1.25rem; border-top: 1px solid var(--border-default-grey); }
     .w-atelier__bas .fr-btn { margin: 0; }
+    /* !important : surcharge les grilles posées par les étapes, car le panneau n'a qu'une colonne */
     .w-atelier .w-grille, .w-atelier .w-grille-param { display: flex !important; flex-direction: column; gap: 1rem; }
     .w-atl-bloc { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-atl-tableaux { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
@@ -736,7 +754,7 @@
     .w-atl-etape__resume { font-size: .75rem; color: var(--text-mention-grey); }
     .w-atl-etape--verrouillee > .w-atl-etape__tete { opacity: .45; cursor: not-allowed; }
     .w-atl-etape__corps { padding: .75rem 0 .5rem 2.25rem; }
-    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: #161616; background: #fff200; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
     .w-disposition--admin > .w-volet[hidden] { display: none; }
     .w-ouvrir-param { margin: 0 .75rem 0 0; flex: none; }
     .w-contenu--accueil { padding: 0; }
@@ -751,10 +769,10 @@
     .w-acc__creer .fr-btn { margin: 0; width: auto; }
     .w-acc__creer { align-self: flex-start; }
     .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
-    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
     .w-acc__cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; }
-    .w-acc__carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .w-acc__carte { display: flex; flex-direction: column; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); cursor: pointer; color: inherit; }
+    .w-acc__carte:hover { background: var(--background-default-grey-hover); }
     .w-acc__carte-texte { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; padding: .75rem 1rem 0; }
     .w-acc__carte-nom { font-weight: 700; }
     .w-acc__carte-bas { margin-top: auto; padding: .75rem 1rem; display: flex; justify-content: flex-end; }
@@ -776,12 +794,12 @@
     .w-atl-etape--num { position: relative; }
     .w-atl-etape--num::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2.25rem; bottom: -.5rem; border-left: 1px solid var(--border-action-high-blue-france); }
     .w-atl-etape--num:has(+ .w-atl-etape--separee)::before, .w-atl-etape--num:last-child::before { display: none; }
-    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); }
-    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); }
+    .w-atl-etape--num .w-atl-etape__num { position: relative; z-index: 1; background: var(--background-default-grey); color: inherit; }
+    .w-atl-etape--num.w-atl-etape--ouverte .w-atl-etape__num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
     .w-atl-etape--num + .w-atl-etape--num { margin-top: .5rem; }
     .w-entete-admin { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 0 0 .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-entete-admin .fr-btn { margin: 0; }
-    .w-entete-admin__nom { margin: 0; font-size: 1.25rem; line-height: 1.75rem; }
+    .w-entete-admin__nom { margin: 0; font-size: 1rem; line-height: 1.75rem; }
     .w-bouton-danger.fr-btn--tertiary { color: var(--text-default-error); }
     .w-entete-admin > .w-pousse { flex: 1 1 auto; }
     .w-acc__suggestion { position: absolute; top: .375rem; right: .375rem; }
@@ -796,26 +814,26 @@
     .w-param-fin__titre { margin: 0; font-size: .875rem; font-weight: 700; }
     .w-param-fin .w-mention { margin: 0; }
     .w-param-fin--danger .w-param-fin__titre { color: var(--text-default-error); }
-    #bandeauRole.fr-badge { background-color: #fff200; color: #161616; }
-    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume, #e8edff); }
-    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px #fff; }
+    #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
+    .w-acc__vig { position: relative; display: block; height: 7.5rem; overflow: hidden; background: var(--background-contrast-blue-ecume); color: inherit; }
+    .w-acc__vig i { position: absolute; width: .75rem; height: .75rem; border-radius: 50%; background: var(--background-action-high-blue-france); box-shadow: 0 0 0 2px var(--background-default-grey); color: var(--text-inverted-blue-france); }
     .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
     .w-acc__ligne .fr-btn { margin: 0; }
     .w-disposition--param > .w-principal { flex: 1 1 auto; min-width: 0; }
     .w-disposition--admin > .w-volet { display: none; }
-    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; }
+    .w-disposition--admin > .w-principal { background: var(--background-alt-grey); padding: 1rem 1.5rem 1.5rem; color: inherit; }
     .w-disposition--admin > .w-principal > .w-titre-fluo { margin: 0 0 1rem; }
-    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); }
+    .w-disposition--admin > .w-atelier { background: var(--background-default-grey); color: inherit; }
     .w-disposition--admin > .w-atelier .w-atelier__defile { padding-top: 1rem; }
     .w-atelier .w-param-apercu { display: flex; flex-direction: column; gap: 1rem; }
-    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey, #eee); color: var(--text-default-grey, #3a3a3a); }
+    .fr-badge.w-badge-brouillon { background-color: var(--background-contrast-grey); color: var(--text-default-grey); }
     .w-general--court { display: flex; flex-direction: column; gap: .25rem; }
     .w-general--court .fr-input-group { margin-bottom: .75rem; }
-    .w-publier-court .w-section { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; }
+    .w-publier-court .w-section { border: 0; padding: 0; margin: 0; background: none; box-shadow: none; color: inherit; }
     .w-publier-court .w-c3__titre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .w-publier-court .w-champ-aide { border: 0; padding: 0; margin: 0; }
-    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; }
+    .w-atelier .w-grille, .w-atelier .w-grille-param { align-items: stretch; padding: 0; background: none; width: 100%; color: inherit; }
     .w-atelier .w-grille__col, .w-atelier .w-grille__pied { width: 100%; align-items: stretch; }
     .w-atelier .w-atl-etape__corps .w-section { width: 100%; box-sizing: border-box; }
     .w-atelier .fr-fieldset { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin: 0; padding: 0; border: 0; }
@@ -824,7 +842,7 @@
     .w-atelier .fr-hint-text, .w-atelier .w-mention { font-size: .875rem; }
     .w-choix-table-ca { max-width: 32rem; margin-top: 1.25rem; }
     .w-choix-table-ca__bas { display: flex; justify-content: flex-end; gap: .5rem; }
-    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; }
+    .w-atelier .w-section--seule { border: 0; padding: 0; background: none; box-shadow: none; color: inherit; }
     .w-atelier .w-section--seule > .w-champ-aide:first-child { border-bottom: 0; padding-bottom: 0; }
 </style>
 </head>
@@ -870,6 +888,9 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
+/* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
+   repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
+   séries proposées aux utilisateurs. */
 var VERSION_WIDGET = '1.0.0';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
@@ -948,22 +969,6 @@ function colorerCasesChoix(conteneur, col) {
         }
     });
     return conteneur;
-}
-function valeurAvecCouleurs(col, v, texte) {
-    var t = String(col && col.type || '');
-    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
-        return badgeChoixGrist(col, v);
-    }
-    if (t === 'ChoiceList' && Array.isArray(v)) {
-        var vals = v[0] === 'L' ? v.slice(1) : v;
-        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
-            var sp = document.createElement('span');
-            sp.className = 'w-choix-liste';
-            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
-            return sp;
-        }
-    }
-    return texte;
 }
 function badgeChoixGrist(col, valeur, classe) {
     var b = document.createElement('span');
@@ -1234,13 +1239,6 @@ function relayer(promesse, quoi) {
         promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
     }
     return promesse;
-}
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
@@ -2805,7 +2803,6 @@ async function cacherPage() {
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de modifier la structure du document.' : 'La page n\'a pas pu être cachée.' + (e && e.message ? ' Détail : ' + e.message + '.' : ' Réessayez.'), e);
     }
 }
-function reserverPage() { return cacherPage(); }
 async function creerPageConsultation(nomPage, filtres, retires, titre) {
     var c = etat.config;
     var cle = etat.cleConfig;
@@ -3623,80 +3620,6 @@ function stepper(n, noms, aller) {
     return d;
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function enteteParametrage(nom, retourLibelle, retourFn, statut) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [
-            creer('p', { classe: 'w-entete-param__titre', id: 'aTitrePerso', texte: titreParametrage(nom) }),
-            creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: statut || '' })
-        ]),
-        bouton(retourLibelle, 'secondaire', 'arrow-go-back-line', retourFn, { petit: true, id: 'aRetour', classe: 'w-entete-param__action' })
-    ]);
-}
-function enteteCreation(titre, annulerFn) {
-    return creer('div', { classe: 'w-entete-param' }, [
-        creer('div', { classe: 'w-entete-param__textes' }, [creer('p', { classe: 'w-entete-param__titre', texte: titre })]),
-        annulerFn ? bouton('Annuler la création', 'tertiaire', 'close-line', annulerFn, { petit: true, id: 'aAnnuler', classe: 'w-entete-param__action' }) : null
-    ]);
-}
-function piedEtape(precedente, suivante, actionFinale) {
-    var boutons = [];
-    if (precedente) {
-        boutons.push(bouton('Étape précédente : ' + precedente.libelle, 'secondaire', 'arrow-left-line', precedente.action, { id: 'aPrecedent' }));
-    }
-    if (suivante) {
-        boutons.push(bouton('Continuer : ' + suivante.libelle, null, 'arrow-right-line', suivante.action, { id: 'aSuivant', iconeDroite: true }));
-    }
-    else if (actionFinale) {
-        boutons.push(bouton(actionFinale.libelle, null, 'check-line', actionFinale.action, { id: actionFinale.id || 'aFinale', classe: 'w-pied-final' }));
-    }
-    return creer('div', { classe: 'w-assistant__pied' }, boutons);
-}
-function encartDroits(t) {
-    var centrale = etat.biblioCentrale || !etat.biblio;
-    var nomBib = centrale ? LABEL_CENTRALE : libelleTable(etat.biblio);
-    var du = centrale ? 'rec.WIDGET == "' + NOM_WIDGET + '" and ' : '';
-    var regles = [
-        'Réserver le paramétrage aux propriétaires. Condition : user.Access != OWNER and ' + du + 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '". Refuser la Lecture.'
-    ];
-    if (t.figer) {
-        regles.push(t.figer + '. Condition : user.Access not in [OWNER, EDITOR] and ' + du + 'rec.CLE == "' + CLE_ACCES_EDITION + '". Refuser la Lecture.');
-    }
-    regles.push(centrale
-        ? 'Protéger les réglages. Condition : user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"). Refuser Création, Modification et Suppression (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').'
-        : 'Protéger les réglages. Condition : user.Access != OWNER. Refuser Création, Modification et Suppression sur toute la table ' + nomBib + ' (la Lecture reste autorisée : sans elle, personne ne voit plus ' + t.pluriel + ').');
-    var detail = creer('div', { classe: 'w-droits__detail', id: 'aDroitsDetail', attrs: { hidden: '' } }, [
-        creer('p', { classe: 'w-texte', texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez sur la table ' + nomBib + ' :' })
-    ].concat(regles.map(function (r, i) { return creer('p', { classe: 'w-texte', texte: (i + 1) + '. ' + r }); }), [
-        creer('p', { classe: 'w-texte', texte: t.figer
-                ? 'Sans ces règles, le paramétrage reste proposé à tous, et une personne au rôle Lecteur voit les commandes de modification jusqu\'à son premier essai, qui lui est refusé par le document. Masquer est un confort : la protection réelle vient de la règle 3 et des droits du document.'
-                : 'Sans ces règles, le paramétrage reste proposé à tous les éditeurs. Masquer est un confort : la protection réelle vient de la règle 2 et des droits du document.' }),
-        t.complement ? creer('p', { classe: 'w-texte', texte: t.complement }) : null
-    ]));
-    var btn = bouton('Voir la marche à suivre', 'discret', null, function () {
-        var ouvrir = detail.hidden;
-        detail.hidden = !ouvrir;
-        btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
-        btn.textContent = ouvrir ? 'Masquer la marche à suivre' : 'Voir la marche à suivre';
-    }, { petit: true, id: 'aDroitsVoir', attrs: { 'aria-expanded': 'false', 'aria-controls': 'aDroitsDetail' } });
-    var ac = etat.ancienneConservee && etat.meta.tables[etat.ancienneConservee.table] ? etat.ancienneConservee : null;
-    var ancien = ac ? creer('p', { classe: 'w-texte fr-mb-1w', texte: 'Les réglages sont désormais dans ' + LABEL_CENTRALE + '. L\'ancienne table « ' + libelleTable(ac.table) + ' » reste dans le document '
-            + (ac.raison === 'regles' ? 'tant que des règles d\'accès la visent : posez les règles ci-dessous sur ' + LABEL_CENTRALE + ', retirez celles de l\'ancienne table, et elle sera supprimée à la prochaine ouverture.'
-                : (ac.raison === 'incomplet' ? 'car la recopie n\'a pas pu être vérifiée : elle sera reprise à la prochaine ouverture.'
-                    : 'car elle n\'a pas pu être supprimée (structure du document verrouillée ou droits insuffisants) : elle le sera à une prochaine ouverture par un propriétaire.')) }) : null;
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm w-droits' }, [
-        creer('p', { classe: 'fr-alert__title', texte: 'Réserver le paramétrage aux propriétaires' }),
-        ancien,
-        creer('p', { classe: 'w-texte', texte: t.usages }),
-        btn, detail
-    ]);
-}
-function blocSupprimer(libelle, mention, fn) {
-    return creer('section', { classe: 'w-section w-section--danger', attrs: { 'aria-labelledby': 'aSecSuppr' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecSuppr', texte: libelle })]),
-        creer('p', { classe: 'w-mention', texte: mention }),
-        creer('div', {}, [bouton(libelle, 'secondaire', 'delete-line', fn, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })])
-    ]);
-}
 function apercuEtape(nomEtape) {
     if (etat.panneauCa) {
         return null;
@@ -4339,7 +4262,7 @@ function toast(message, opts) {
     }
     fermerToast(true);
     _toast.type = opts.type || 'info';
-    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info');
+    z.className = 'w-toast fr-alert fr-alert--sm fr-alert--' + ({ succes: 'success', erreur: 'error', avertissement: 'warning' }[_toast.type] || 'info') + (_toast.type === 'erreur' ? ' w-erreur' : '');
     z.setAttribute('role', _toast.type === 'erreur' ? 'alert' : 'status');
     z.setAttribute('aria-live', _toast.type === 'erreur' ? 'assertive' : 'polite');
     var msg = document.getElementById('wToastMsg');
@@ -4548,9 +4471,6 @@ function rendreVueCarte(zone) {
     cont.appendChild(creer('div', { id: 'vBlocLegende' }));
     var adminCa = pageAdminCa();
     var paramCa = adminCa && etat.brouillon && etat.brouillon.mode === 'personnalisation';
-    if (etat.peutParametrer && !adminCa) {
-        cont.appendChild(creer('div', { classe: 'w-volet__bloc w-volet__ajout' }, [bouton('Paramétrages de cette carte', 'secondaire', 'settings-5-line', function () { ouvrirParametrage(); }, { petit: true, id: 'vParametrer' })]));
-    }
     cont.appendChild(sortiesVolet([
         boutonIcone('Imprimer', 'printer-line', imprimer, { id: 'vImprimer' }),
         boutonIcone('Enregistrer en PDF', 'file-pdf-line', function () { imprimerPdf(imprimer); }, { id: 'vPdf' })
@@ -9081,10 +9001,23 @@ function rafraichirApresDroits(focusId) {
     }
 }
 function afficherVue(vue, garderFocus) {
-    if (vue === 'assistant' && etat.brouillon && etat.brouillon.mode === 'personnalisation' && pageAdminCa() && etat.config) {
-        vue = 'carte';
-        var dfl = document.getElementById('cAtelierDefile');
-        etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+    if (vue === 'assistant') {
+        /* L'ancien assistant n'existe plus : le paramétrage s'ouvre dans le
+           panneau de la page Admin, la création se fait depuis l'accueil. */
+        var bA = etat.brouillon;
+        if (bA && bA.mode === 'personnalisation' && pageAdminCa() && etat.config) {
+            vue = 'carte';
+            var dfl = document.getElementById('cAtelierDefile');
+            etat.defileAtelier = dfl ? dfl.scrollTop : 0;
+        }
+        else {
+            etat.brouillon = null;
+            vue = pageAdminCa() ? 'accueil' : (etat.config ? 'carte' : 'aucune');
+            if (bA && bA.mode === 'creation') {
+                etat.surAccueil = true;
+                setTimeout(function () { afficherErreur('La carte n\'a pas été créée : vérifiez la table et ses colonnes, puis réessayez.'); }, 0);
+            }
+        }
     }
     majBandeauRole();
     if (etat.vue === 'carte' && vue !== 'carte') {
@@ -9099,9 +9032,6 @@ function afficherVue(vue, garderFocus) {
     zone.classList.toggle('w-contenu--carte', vue === 'carte');
     if (vue === 'carte') {
         rendreVueCarte(zone);
-    }
-    else if (vue === 'assistant') {
-        rendreAssistant(zone);
     }
     else if (vue === 'accueil') {
         rendreAccueilCa(zone);
@@ -9918,15 +9848,12 @@ function nomsEtapes(b) {
     return b.parcours ? ETAPES[b.parcours] : ['Point de départ'];
 }
 function demarrerCreation() {
-    if (!etat.peutParametrer) {
+    if (!pageAdminCa()) {
         return;
     }
-    detruireCarte();
-    etat.fiche = null;
-    etat.choisi = null;
-    etat.brouillon = { mode: 'creation', parcours: null, etape: 0, etapeMax: 0 };
-    etat.donneesAssistant = {};
-    afficherVue('assistant');
+    etat.brouillon = null;
+    etat.surAccueil = true;
+    afficherVue('accueil');
 }
 function ouvrirParametrage(nomEtape) {
     if (!etat.peutParametrer || !etat.config) {
@@ -9960,47 +9887,6 @@ function ouvrirParametrage(nomEtape) {
 }
 function etatComparable(b) {
     return [b.table, b.ajoutCoords, b.colLat, b.colLon, b.colAdresse, b.colPays, b.colNom, b.colCategorie, b.categories, b.champsFiche, b.filtres, b.nom, b.apparence, b.colImage || '', b.colIcone || '', b.colDate || '', b.colDateFin || '', !!b.approximatif, b.colAfficher || '', b.etiquette || null, b.ordreFiche || [], b.description || '', !!b.ficheLecture, !!b.masquerVides, b.champsFiges || [], b.champsEnValeur || []];
-}
-function rendreAssistant(zone) {
-    var b = etat.brouillon;
-    if (b.mode === 'creation' && b.etape === 0) {
-        rendreDepart(zone);
-        return;
-    }
-    var noms = nomsEtapes(b);
-    var n = b.etape + 1;
-    var nom = noms[b.etape];
-    var perso = b.mode === 'personnalisation';
-    var entete = perso
-        ? enteteParametrage(etat.config.nom, 'Retour à la carte', function () { return sortirParametrages(true); }, b.statut)
-        : enteteCreation('Nouvelle carte', quitterCreation);
-    var bloc = creer('div', { classe: 'w-assistant' }, [entete, stepper(n, noms, function (r) {
-            if (!perso && r - 1 > b.etapeMax + 1) {
-                return null;
-            }
-            return function () {
-                if (r - 1 > b.etape && !validerEtape(nom)) {
-                    return;
-                }
-                if (b.mode === 'creation' && r === 1) {
-                    b.parcours = null;
-                }
-                allerEtape(r - 1);
-            };
-        })]);
-    var corps = contenuEtape(nom);
-    if (corps) {
-        bloc.appendChild(corps);
-    }
-    bloc.appendChild(piedAssistant(b, noms));
-    zone.appendChild(bloc);
-}
-function piedAssistant(b, noms) {
-    var i = b.etape;
-    var premiere = b.mode === 'creation' ? 1 : 0;
-    return piedEtape(i > premiere ? { libelle: noms[i - 1], action: function () { allerEtape(i - 1); } } : null, i < noms.length - 1 ? { libelle: noms[i + 1], action: function () { if (validerEtape(noms[i])) {
-            allerEtape(i + 1);
-        } } } : null, b.mode === 'creation' ? { libelle: 'Créer ma carte', action: creerCarte, id: 'aCreer' } : null);
 }
 function contenuEtape(nom) {
     if (nom === 'La table') {
@@ -10106,122 +9992,11 @@ function redessinerEtape(focusId) {
         }
     }
 }
-async function quitterCreation() {
-    var b = etat.brouillon;
-    if (b && b.etape > 0) {
-        var ok = await confirmerAction('Abandonner la création ?', 'Rien n\'a été créé. Les choix faits dans ces étapes ne sont pas conservés.', 'Abandonner', { destructif: true });
-        if (!ok) {
-            return;
-        }
-    }
-    etat.brouillon = null;
-    if (pageAdminCa()) {
-        etat.surAccueil = true;
-        await chargerTout();
-        return;
-    }
-    if (etat.cartes.length) {
-        await chargerTout();
-    }
-    else {
-        demarrerCreation();
-    }
-}
 function tablesProposees() {
     return Object.keys(etat.meta.tables).filter(function (tid) {
         var t = etat.meta.tables[tid];
         return !estTableExclue(tid) && !t.resume && !estTableLieuxPartagee(tid) && tid !== etat.biblio && colonnesDe(tid).length > 0;
     }).sort(function (a, b) { return comparerNomsTables(libelleTable(a), libelleTable(b)); });
-}
-function rendreDepart(zone) {
-    var b = etat.brouillon;
-    var tables = tablesProposees();
-    var bloc = creer('div', { classe: 'w-assistant' }, [enteteCreation('Nouvelle carte', etat.cartes.length ? quitterCreation : null), stepper(1, ['Point de départ'], null)]);
-    bloc.appendChild(creer('p', { classe: 'w-texte', texte: 'Une carte affiche des lieux : un poste, un site, un fournisseur, un événement... Avez-vous déjà ces lieux dans une table de ce document ?' }));
-    var tuile = function (id, icone, titre, texte, puces, libelle, action, desactive) {
-        return creer('div', { classe: 'w-tuile' }, [creer('span', { classe: 'w-tuile__icone fr-icon-' + icone + ' fr-icon--lg', attrs: { 'aria-hidden': 'true' } }),
-            creer('h3', { classe: 'fr-h6 fr-mb-0', texte: titre }), creer('p', { classe: 'w-texte', texte: texte }),
-            creer('ul', { classe: 'w-texte' }, puces.map(function (p) { return creer('li', { texte: p }); })),
-            creer('div', { classe: 'w-tuile__bas' }, [bouton(libelle, null, 'arrow-right-line', action, { id: id, iconeDroite: true, desactive: desactive })])]);
-    };
-    bloc.appendChild(creer('div', { classe: 'w-tuiles' }, [
-        tuile('aDepartDonnees', 'table-line', 'J\'ai déjà des données', tables.length ? 'Vos lieux sont dans une table de ce document.' : 'Ce document n\'a pas encore de table utilisable.', ['Coordonnées détectées, ou colonnes ajoutées à votre table', 'Adresses placées automatiquement', 'Votre table garde sa structure'], 'Partir de mes données', function () {
-            b.parcours = 'donnees';
-            if (b.preparation !== 'donnees') {
-                b.preparation = 'donnees';
-                b.nom = '';
-                choisirTable(tables[0]);
-            }
-            allerEtape(1);
-        }, !tables.length),
-        tuile('aDepartVierge', 'map-pin-2-line', 'Je n\'ai pas encore de données', 'Le widget prépare une table de lieux prête à l\'emploi.', ['Nom, adresse, pays, catégorie, description, lien, case « afficher »', 'Saisie dans la carte ou dans un tableau', 'Les catégories se choisissent à l\'étape suivante'], 'Partir de zéro', function () {
-            b.parcours = 'vierge';
-            if (b.preparation !== 'vierge') {
-                b.preparation = 'vierge';
-                b.table = null;
-                b.ajoutCoords = false;
-                b.categories = CATEGORIES_EXEMPLE.slice();
-                b.champsFiche = ['ADRESSE', 'PAYS', 'DESCRIPTION', 'LIEN'];
-                b.filtres = ['PAYS'];
-                b.colImage = '';
-                b.colIcone = '';
-                b.colDate = '';
-                b.colDateFin = '';
-                b.approximatif = false;
-                b.apparence = Object.assign({}, APPARENCE_DEFAUT);
-                b.nom = '';
-            }
-            allerEtape(1);
-        })
-    ]));
-    var analysees = tables.slice(0, MAX_TABLES_ANALYSEES);
-    var section = creer('section', { attrs: { 'aria-labelledby': 'aSuggTitre' } }, [creer('h3', { classe: 'fr-h6 fr-mt-4w', id: 'aSuggTitre', texte: 'Cartes suggérées d\'après vos tables' })]);
-    if (!donneesPretes(analysees)) {
-        section.appendChild(creer('p', { classe: 'w-mention', attrs: { role: 'status' }, texte: 'Analyse de vos tables…' }));
-    }
-    else {
-        var lib = function (tid, colId) { var c = infoColonne(tid, colId); return '« ' + (c ? c.label : colId) + ' »'; };
-        var sugg = [];
-        analysees.forEach(function (tid) {
-            var p = proposerColonnes(tid);
-            if (!p.lignes || !((p.colLat && p.colLon) || p.colAdresse || p.colPays)) {
-                return;
-            }
-            var puces = ['Nom des lieux : ' + (p.colNom ? lib(tid, p.colNom) : 'à choisir')];
-            if (p.colLat) {
-                puces.push('Position : ' + lib(tid, p.colLat) + ' et ' + lib(tid, p.colLon) + ', ' + p.places + ' sur ' + p.lignes + ' déjà placés');
-            }
-            else if (p.colAdresse) {
-                puces.push('Position : d\'après ' + lib(tid, p.colAdresse) + ', ' + p.aPlacer + ' à placer automatiquement');
-            }
-            else {
-                puces.push('Un cercle par pays : ' + lib(tid, p.colPays));
-            }
-            if (p.colCategorie) {
-                puces.push('Couleurs : ' + lib(tid, p.colCategorie));
-            }
-            if (p.colDate) {
-                puces.push('Dates : ' + lib(tid, p.colDate));
-            }
-            var k = sugg.length;
-            sugg.push(tuile('aSugg' + k, 'map-pin-2-line', 'Carte « ' + libelleTable(tid) + ' »', p.lignes + (p.lignes > 1 ? ' lignes' : ' ligne'), puces, 'Utiliser cette suggestion', function () {
-                b.parcours = 'donnees';
-                b.preparation = 'donnees';
-                b.nom = '';
-                b.apparence = Object.assign({}, APPARENCE_DEFAUT);
-                choisirTable(tid);
-                if (!p.colLat && !p.colAdresse) {
-                    b.apparence.representation = 'pays';
-                }
-                allerEtape(2);
-                annoncer('Suggestion « ' + libelleTable(tid) + ' » choisie : vérifiez les colonnes proposées.');
-            }));
-        });
-        section.appendChild(sugg.length ? creer('div', { classe: 'w-tuiles' }, sugg)
-            : creer('p', { classe: 'w-mention', texte: 'Aucune de vos tables n\'a de coordonnées, d\'adresses ou de pays reconnus : partez de vos données pour choisir les colonnes vous-même.' }));
-    }
-    bloc.appendChild(section);
-    zone.appendChild(bloc);
 }
 function motsDe(texte) { return normaliser(texte).split(/[^a-z0-9]+/).filter(Boolean); }
 function correspond(col, cle) {
@@ -10373,13 +10148,8 @@ function etapeFiche() {
     var droite = [];
     if (tid) {
         droite.push(titreColonne('Valeurs des listes de choix', 'Une liste par colonne de choix : renommez, ajoutez ou supprimez ses valeurs. Les couleurs se règlent dans la liste de la colonne qui colore les repères. Ils changent directement dans la table.', 'aAideValeurs'));
-        if (perso) {
-            var acc = accordeonsValeurs(tid, vierge ? 'CATEGORIE' : b.colCategorie, vierge ? ['PAYS'] : []);
-            droite = droite.concat(acc.length ? acc : [creer('p', { classe: 'w-mention', texte: 'Aucune colonne de liste de choix modifiable dans cette table.' })]);
-        }
-        else {
-            droite.push(creer('p', { classe: 'w-mention', texte: 'Rien n\'est écrit dans votre table avant « Créer ma carte » : les valeurs et leurs couleurs se gèrent ici ensuite, dans « Paramétrages de cette carte ».' }));
-        }
+        var acc = accordeonsValeurs(tid, vierge ? 'CATEGORIE' : b.colCategorie, vierge ? ['PAYS'] : []);
+        droite = droite.concat(acc.length ? acc : [creer('p', { classe: 'w-mention', texte: 'Aucune colonne de liste de choix modifiable dans cette table.' })]);
     }
     droite.push(titreColonne('Image et icône', 'L\'image s\'affiche en tête de la fiche du lieu ; l\'icône est dessinée dans son repère. Les images sont chargées depuis leur adresse web, sans transmettre d\'autre information.', 'aAideImg'));
     if (vierge) {
@@ -10542,34 +10312,8 @@ function etapeGeneral() {
     nom.addEventListener('input', function () { b.nom = nom.value; majAttente(); });
     var desc = saisie('aDescCarte', b.description || '', { multiligne: true, lignes: 3, indice: 'À quoi sert cette carte, d\'où viennent ses lieux…' });
     desc.addEventListener('input', function () { b.description = desc.value; majAttente(); });
-    var section = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecCarte' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecCarte', texte: '1. Nom de la carte' })]),
-        groupeChamp('Nom de la carte', nom, 'Affiché en titre et dans son onglet.', true),
-        creer('p', { classe: 'w-mention', texte: 'Table utilisée : « ' + libelleTable(tableDuContenu(b)) + ' ».' })
-    ]);
-    var sectionDesc = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecDesc' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecDesc', texte: '2. Description de la carte' })]),
-        groupeChamp('Description', desc, 'Affichée sous le titre de la carte.')
-    ]);
-    var perso = b.mode === 'personnalisation' && !!etat.cleConfig;
-    if (etat.panneauCa) {
-        desc.setAttribute('rows', '2');
-        return creer('div', { classe: 'w-general w-general--court' }, [groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc)]);
-    }
-    var seule = !!etat.carteFixe && etat.carteFixe === etat.cleConfig;
-    var danger = blocSupprimer('Supprimer la carte', b.parcours === 'vierge'
-        ? 'La carte disparaît des onglets et ses lieux sont supprimés de la table des lieux. Cette action est définitive.'
-        : 'La carte disparaît des onglets. Votre table et ses lignes restent dans le document.', supprimerCarte);
-    var titreDanger = danger.querySelector('.w-c3__titre');
-    if (titreDanger) {
-        titreDanger.textContent = (perso && !seule ? '6. ' : (perso ? '5. ' : '3. ')) + titreDanger.textContent;
-    }
-    var pages = perso ? sectionsPages(seule) : [null, null];
-    var droits = perso ? creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecVersDroits' } }, [
-        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecVersDroits', texte: (seule ? '4. ' : '5. ') + 'Les droits' })]),
-        creer('div', {}, [bouton('Inviter les personnes et régler les droits', 'tertiaire', 'team-line', function () { allerEtape(nomsEtapes(etat.brouillon).indexOf('Les droits')); }, { petit: true, id: 'aVersDroits' })])
-    ]) : null;
-    return creer('div', { classe: 'w-general' }, [grilleParam([[section, sectionDesc], [pages[0], pages[1]], [droits, danger]], '1-1-1')]);
+    desc.setAttribute('rows', '2');
+    return creer('div', { classe: 'w-general w-general--court' }, [groupeChamp('Nom', nom, null, true), groupeChamp('Description', desc)]);
 }
 function sectionPage(id, titre, noeuds, action) {
     return creer('section', { classe: 'w-section w-section-page', attrs: { 'aria-labelledby': id } }, [
@@ -10829,15 +10573,9 @@ var AIDE = {
         'Créer ou paramétrer une carte demande le droit de modifier le document.'
     ],
     etapes: {
-        'Point de départ': { titre: 'partez de vos données ou de zéro.', points: [
-                '« Partir de mes données » : vous choisissez ensuite la table et ses colonnes.',
-                '« Partir de zéro » : le widget crée une table de lieux prête à remplir.',
-                '« Utiliser cette suggestion » remplit les étapes d\'après une de vos tables : il ne reste qu\'à vérifier.'
-            ] },
         'La table': { titre: 'la table où sont vos lieux.', points: [
                 'Chaque ligne de la table deviendra un lieu sur la carte.',
-                'Les mentions « Coordonnées détectées », « Adresses détectées » ou « Pays détectés » signalent une table déjà prête.',
-                'Rien n\'est écrit dans le document avant « Créer ma carte ».'
+                'Les mentions « Coordonnées détectées », « Adresses détectées » ou « Pays détectés » signalent une table déjà prête.'
             ] },
         'La localisation': { titre: 'ce qui place chaque lieu.', points: [
                 '« Colonne de latitude » et « Colonne de longitude » : en degrés décimaux, par exemple 48,8566 et 2,3522.',
@@ -10868,11 +10606,6 @@ var AIDE = {
                 '« 2. Où chercher ? » : tous les pays ou quelques-uns.',
                 '« Lancer la recherche » : les lieux trouvés s\'ajoutent à la carte au fur et à mesure.',
                 'Les lieux déjà présents ne sont pas ajoutés de nouveau.'
-            ] },
-        'Récapitulatif': { titre: 'vérifiez, nommez, créez.', points: [
-                '« Nom de la carte » : affiché en titre et dans son onglet.',
-                '« Modifier » ramène à l\'étape concernée.',
-                '« Créer ma carte » enregistre la carte ; tout reste modifiable ensuite depuis l\'accueil, en ouvrant la carte.'
             ] },
         'Les droits': { titre: 'inviter les personnes, leur donner un rôle, poser les règles d\'accès.', points: [
                 '« Inviter les personnes » : bouton « Partager », « Gérer les utilisateurs », un courriel et un rôle par personne.',
@@ -10907,11 +10640,6 @@ var AIDE = {
 };
 function contexteAide() {
     var b = etat.brouillon;
-    if (etat.vue === 'assistant' && b) {
-        var perso = b.mode === 'personnalisation';
-        return { etapes: b.parcours ? nomsEtapes(b) : ETAPES.donnees, courante: b.etape,
-            repere: perso ? '' : 'Rien n\'est enregistré avant « Créer ma carte ».' };
-    }
     if (pageAdminCa() && b && b.mode === 'personnalisation') {
         var lp = etapesPanneauCa(b);
         return { etapes: lp, courante: lp.indexOf(b.etapePanneau || nomsEtapes(b)[b.etape]), repere: '' };
@@ -10922,9 +10650,9 @@ function contexteAide() {
     }
     if (etat.config) {
         return { etapes: etat.config.mode === 'vierge' ? ETAPES.paramVierge : ETAPES.paramDonnees, courante: -1,
-            repere: etat.peutParametrer ? 'Pour changer ces réglages : « Paramétrages de cette carte », en bas du panneau de gauche.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
+            repere: etat.peutParametrer ? 'Pour changer ces réglages : ouvrez la carte depuis l\'accueil de la page d\'administration.' : 'Le paramétrage est réservé aux personnes qui gèrent le document.' };
     }
-    return { etapes: ETAPES.donnees, courante: -1, repere: null };
+    return { etapes: ETAPES.paramDonnees, courante: -1, repere: null };
 }
 var MAX_APERCU_LIEUX = 3;
 function texteApercu(tid, colId, i) {
