@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.2.2 - 23/11/2026
+  Version : 1.2.3 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1137,7 +1137,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.2.2';
+var VERSION_WIDGET = '1.2.3';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -4773,8 +4773,16 @@ function estImagePJ(id) {
     return !!m && PJ_IMAGES.indexOf(extensionDe(m.nom)) !== -1;
 }
 function classes() { return Array.prototype.filter.call(arguments, Boolean).join(' '); }
+function margeHautMm(b) { return b && typeof b.mt === 'number' && b.mt > 0 ? Math.min(250, b.mt) : 0; }
 function unitesBloc(b, rc) {
     var l = unitesBlocBrut(b, rc);
+    var mt = margeHautMm(b);
+    if (mt && !(rc && rc.editeur === true)) {
+        var premiere = l.filter(function (u) { return u.el && u.el.style; })[0];
+        if (premiere) {
+            premiere.el.style.marginTop = mt + 'mm';
+        }
+    }
     if (b && b.id && rc && rc.editeur !== false) {
         l.forEach(function (u) { if (u.el && u.el.setAttribute) {
             u.el.setAttribute('data-rb', String(b.id));
@@ -13485,7 +13493,7 @@ function barreOutilsCourrier(info) {
             outil('pOutilRetraitMoins', 'Diminuer le retrait', iconeDispo(['indent-decrease', 'arrow-left-line']), function () { retraitCourrier(-1); }, { attrs: {} }),
             outil('pOutilRetraitPlus', 'Augmenter le retrait', iconeDispo(['indent-increase', 'arrow-right-line']), function () { retraitCourrier(1); }, { attrs: {} })])
     ];
-    var elementsInseres = [inserer('spacer', 'Espace'), inserer('table', 'Tableau'), inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
+    var elementsInseres = [inserer('table', 'Tableau'), inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
     var ins = null;
     ins = outil('pOutilInserer', 'Autres éléments', 'add-circle-line', function () {
         if (_suggestOuverte && document.getElementById('pInserer')) {
@@ -13858,6 +13866,9 @@ function elementPage(bl, liste, k, ctx) {
     if (bl.type !== 'footer') {
         w.appendChild(gripBloc(bl));
     }
+    if (margeHautMm(bl)) {
+        w.style.marginTop = margeHautMm(bl) + 'mm';
+    }
     if (bl.type === 'spacer') {
         w.classList.add('w-ec-el--espace');
         w.appendChild(poigneeEspace(bl, w));
@@ -14172,6 +14183,62 @@ function depotChampHorsTexte(e) {
 }
 function typesGlisses(e) { return e.dataTransfer && e.dataTransfer.types ? Array.prototype.slice.call(e.dataTransfer.types) : []; }
 function horsZoneTexte(e) { return !(e.target && e.target.closest && e.target.closest('[contenteditable="true"]')); }
+/* Le bloc reste où on le lâche : l'écart entre le bloc précédent et
+   l'endroit du lâcher devient un espace au-dessus du bloc (en mm). Les
+   blocs suivants descendent d'autant : rien ne se chevauche. */
+var DECALAGE_PRISE = 12;
+function pxParMmPage() {
+    var page = document.querySelector('#pCourrier .w-ec-page');
+    var b = etat.brouillon;
+    if (!page || !b) {
+        return 3.78;
+    }
+    var geo = geometrie(normaliserConfig(cfgBrouillon(b)));
+    return page.getBoundingClientRect().width / geo.w * 3.7795;
+}
+function margeAuLacher(e, liste, exclu, prise) {
+    var cadre = document.getElementById('pCourrierCadre');
+    if (!cadre) {
+        return { mm: 0, y: null };
+    }
+    var freres = [];
+    Array.prototype.forEach.call(cadre.querySelectorAll('[data-el]'), function (el) {
+        var id = el.getAttribute('data-el');
+        var em = id !== exclu ? emplacementBloc(id) : null;
+        if (em && em.liste === liste && em.bl.type !== 'footer') {
+            freres.push({ el: el, k: em.k });
+        }
+    });
+    freres.sort(function (a, c) { return a.k - c.k; });
+    var prec = null;
+    freres.forEach(function (f) { var r = f.el.getBoundingClientRect(); if (e.clientY > r.top + r.height / 2) {
+        prec = f;
+    } });
+    var haut;
+    if (prec) {
+        haut = prec.el.getBoundingClientRect().bottom;
+    }
+    else {
+        var parent = freres.length ? freres[0].el.parentNode : null;
+        if (!parent) {
+            return { mm: 0, y: null };
+        }
+        var rp = parent.getBoundingClientRect();
+        haut = rp.top + (parseFloat(getComputedStyle(parent).paddingTop) || 0);
+    }
+    var voulu = e.clientY - (prise || 0);
+    var mm = (voulu - haut) / pxParMmPage();
+    var rc = cadre.getBoundingClientRect();
+    return { mm: mm >= 3 ? Math.round(mm) : 0, y: Math.max(voulu, haut) - rc.top + cadre.scrollTop };
+}
+function poserMarge(bl, mm) {
+    if (mm > 0) {
+        bl.mt = Math.min(250, mm);
+    }
+    else {
+        delete bl.mt;
+    }
+}
 function brancherGlisserBlocs(cont) {
     if (cont._glisser) {
         return;
@@ -14190,7 +14257,8 @@ function brancherGlisserBlocs(cont) {
             }
             lc.hidden = !cc;
             if (cc) {
-                lc.style.top = Math.round(cc.y) + 'px';
+                var mc = margeAuLacher(e, etat.brouillon.blocks, null, 0);
+                lc.style.top = Math.round(mc.y !== null && mc.mm ? mc.y : cc.y) + 'px';
                 lc.style.left = Math.round(cc.x) + 'px';
                 lc.style.width = Math.round(cc.l) + 'px';
             }
@@ -14219,7 +14287,8 @@ function brancherGlisserBlocs(cont) {
             return;
         }
         l.hidden = false;
-        l.style.top = Math.round(c.y) + 'px';
+        var mv = margeAuLacher(e, c.src.liste, _glisse, DECALAGE_PRISE);
+        l.style.top = Math.round(mv.y !== null && mv.mm ? mv.y : c.y) + 'px';
         l.style.left = Math.round(c.x) + 'px';
         l.style.width = Math.round(c.l) + 'px';
     }, true);
@@ -14241,6 +14310,7 @@ function brancherGlisserBlocs(cont) {
             var cc = depotChampHorsTexte(e);
             if (v && cc) {
                 var nb = B('paragraph', { text: '{' + v + '}' });
+                poserMarge(nb, margeAuLacher(e, etat.brouillon.blocks, null, 0).mm);
                 etat.brouillon.blocks.splice(cc.j, 0, nb);
                 etat.brouillon.choisi = nb.id;
                 apresStructure(nb.id, 'Champ ajouté dans un nouveau paragraphe.');
@@ -14254,9 +14324,17 @@ function brancherGlisserBlocs(cont) {
         e.stopPropagation();
         var c = cibleDepot(e);
         var id = _glisse;
+        var m = c ? margeAuLacher(e, c.src.liste, id, DECALAGE_PRISE) : null;
         finGlisser();
-        if (c && c.j !== c.src.k) {
+        if (!c) {
+            return;
+        }
+        poserMarge(c.src.bl, m ? m.mm : 0);
+        if (c.j !== c.src.k) {
             deplacerElement(id, c.j);
+        }
+        else {
+            apresStructure(id, m && m.mm ? 'Bloc placé, ' + m.mm + ' mm sous le précédent.' : 'Bloc replacé.');
         }
     }, true);
 }
@@ -14678,6 +14756,11 @@ function panneauElement() {
     var titre = creer('h3', { classe: 'w-elem__titre', id: 'pElemTitre' }, [creer('span', { classe: 'fr-icon-' + def.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), def.nom]);
     var fermer = bouton('Fermer', 'discret', 'close-line', deselectionnerElement, { petit: true, iconeSeule: true, aria: 'Fermer les réglages de : ' + def.nom, id: 'pElemFermer' });
     var corps = [changeurType(em.liste, em.k, em.dedans)].concat(editeurBloc(bl, em.dedans, { page: true }));
+    if (bl.type !== 'footer') {
+        var mt = saisie(idEd(bl, 'mt'), String(margeHautMm(bl)), { clavier: 'numeric' });
+        mt.addEventListener('change', function () { var v = parseInt(mt.value, 10); poserMarge(bl, v > 0 ? v : 0); mt.value = String(margeHautMm(bl)); marquerTouche(); apresStructure(bl.id); });
+        corps.push(groupeChamp('Espace au-dessus (mm)', mt, 'Se règle aussi en déplaçant le bloc dans la page.'));
+    }
     return [creer('section', { classe: 'w-elem', attrs: { 'aria-labelledby': 'pElemTitre' } }, [creer('div', { classe: 'w-elem__tete' }, [titre, fermer])].concat(corps))];
 }
 function editeurCourrier() {
