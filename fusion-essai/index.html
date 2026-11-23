@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.1-essai - 23/11/2026
+  Version : 1.4.0-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -234,6 +234,10 @@
     .w-fu-centre__nom { font-weight: 700; }
     .w-fu-centre .w-feuilles { flex: 1; min-height: 0; }
     .w-fu-centre--ecrire .w-ec { flex: 1 1 auto; min-height: 0; gap: .5rem; }
+    .w-atelier.w-atelier--ferme { display: none; }
+    .w-atelier.w-atelier--ferme.w-atelier--elem { display: flex; flex-basis: min(26rem, 42vw); }
+    .w-atelier--ferme .w-atl-tete, .w-atelier--ferme .w-atl-etapes, .w-atelier--ferme .w-param-fin { display: none; }
+    .w-fu-centre__tete #pReglagesFu[aria-expanded="true"] { background-color: var(--background-action-low-blue-france); }
     .w-fu-centre--ecrire .w-ec-cadre { flex: 1 1 auto; min-height: 0; }
     .w-fu-elem:not(:empty) { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-fu-texte__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
@@ -1097,7 +1101,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.1-essai';
+var VERSION_WIDGET = '1.4.0-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2921,10 +2925,74 @@ function contenuEtapeFu(b, nom) {
     }
     return null;
 }
+/* Écran façon traitement de texte : le document occupe la place, les
+   réglages s'ouvrent seulement à la demande (bouton « Réglages »). Les
+   réglages d'un bloc (condition, image, encadré...) s'affichent seuls
+   dans le panneau quand on les demande ou qu'on choisit un élément
+   qui n'est pas du texte. */
+function basculerReglagesFu() {
+    etat.reglagesFu = !etat.reglagesFu;
+    var a = document.getElementById('pAtelier');
+    if (a) {
+        a.classList.toggle('w-atelier--ferme', !etat.reglagesFu);
+    }
+    var bt = document.getElementById('pReglagesFu');
+    if (bt) {
+        bt.setAttribute('aria-expanded', etat.reglagesFu ? 'true' : 'false');
+    }
+    majApercuBrouillon();
+    if (etat.reglagesFu) {
+        var h = document.getElementById('pTitreParam');
+        if (h) {
+            h.focus({ preventScroll: true });
+        }
+    }
+    else if (bt) {
+        bt.focus({ preventScroll: true });
+    }
+    annoncer(etat.reglagesFu ? 'Réglages ouverts.' : 'Réglages fermés.');
+}
+function elementAMontrerFu() {
+    var b = etat.brouillon;
+    if (!b || !b.choisi || b.avance) {
+        return false;
+    }
+    var em = emplacementBloc(b.choisi);
+    if (!em) {
+        return false;
+    }
+    return etat.elemFuDemande === b.choisi || ['paragraph', 'heading'].indexOf(em.bl.type) === -1;
+}
+function majPanneauElementFu() {
+    var a = document.getElementById('pAtelier');
+    if (a) {
+        a.classList.toggle('w-atelier--elem', elementAMontrerFu());
+    }
+}
+function ouvrirReglagesBloc(id) {
+    if (!id) {
+        return;
+    }
+    etat.elemFuDemande = id;
+    choisirElement(id);
+    majPanneauElement();
+    var c = document.querySelector('#pElementZone select, #pElementZone input');
+    var t = document.getElementById('pElemTitre');
+    if (t) {
+        t.setAttribute('tabindex', '-1');
+        t.focus({ preventScroll: false });
+    }
+    else if (c) {
+        c.focus();
+    }
+}
 function allerEtapeFu(n) {
     var b = etat.brouillon;
     if (!b) {
         return;
+    }
+    if (n !== ETAPE_TEXTE) {
+        etat.reglagesFu = true;
     }
     if (n === ETAPE_TEXTE) {
         b.etapeAvantTexte = b.etape;
@@ -2973,8 +3041,8 @@ function panneauParamFu(b) {
         bouton('Supprimer le document', 'secondaire', 'delete-line', supprimerDocument, { petit: true, id: 'aSupprimer', classe: 'w-bouton-danger' })]);
     var tete = creer('div', { classe: 'w-atl-tete' }, [creer('h2', { classe: 'w-titre-fluo', id: 'pTitreParam', texte: 'Paramétrage du document', attrs: { tabindex: '-1' } }),
         creer('span', { classe: 'w-pousse' }),
-        bouton('Fermer le paramétrage', 'discret', 'close-line', function () { return allerAccueilFu(); }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
-    return creer('aside', { classe: 'w-atelier', id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
+        bouton('Fermer les réglages', 'discret', 'close-line', function () { if (etat.reglagesFu) { basculerReglagesFu(); } }, { petit: true, iconeSeule: true, id: 'pFermerParam' })]);
+    return creer('aside', { classe: 'w-atelier' + (etat.reglagesFu ? '' : ' w-atelier--ferme') + (elementAMontrerFu() ? ' w-atelier--elem' : ''), id: 'pAtelier', attrs: { 'aria-label': 'Paramétrage du document' } }, [
         creer('div', { classe: 'w-atelier__defile', id: 'pAtelierDefile' }, [tete, b.avance ? null : creer('div', { classe: 'w-elem-zone w-fu-elem', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()), ol, danger]),
         creer('div', { classe: 'w-atelier__bas' }, [creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: b.statut || '' })])]);
 }
@@ -2986,9 +3054,11 @@ function centreApercuFu(b) {
     var tete = creer('div', { classe: 'w-fu-centre__tete' }, [
         bouton('Accueil', 'secondaire', 'arrow-left-line', function () { return allerAccueilFu(); }, { petit: true, id: 'pAccueil' }),
         creer('span', { classe: 'w-fu-centre__nom', texte: b.name || 'Document sans titre' }),
+        b.table ? bouton('Données : ' + libelleSansEmoji(libelleTable(b.table)), 'tertiaire', 'table-line', function () { return allerEtapeFu(2); }, { petit: true, id: 'pCentreDonnees', attrs: { title: 'Changer la table ou la correspondance des champs' } }) : null,
         ecrire ? basculeVueCourrier() : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
         creer('span', { classe: 'w-pousse' }),
-        etat.donnees[b.table] && ordreLignes(b.table).length ? navEchantillon() : null]);
+        etat.donnees[b.table] && ordreLignes(b.table).length ? navEchantillon() : null,
+        bouton('Réglages', 'secondaire', 'settings-5-line', basculerReglagesFu, { petit: true, id: 'pReglagesFu', attrs: { 'aria-expanded': etat.reglagesFu ? 'true' : 'false', 'aria-controls': 'pAtelier' } })]);
     if (ecrire) {
         return creer('section', { classe: 'w-fu-centre w-fu-centre--ecrire', id: 'pDocCentre', attrs: { 'aria-label': estTypeLettre(b.layout) ? 'Le courrier, modifiable dans la page' : 'La page, modifiable' } }, [tete, editeurCourrier()]);
     }
@@ -13018,7 +13088,7 @@ function barreOutilsCourrier(info) {
         }
     }, { texte: true, classe: 'fr-btn--secondary', attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pCourrierChampsListe', title: 'Insérer une colonne de la liste (ou tapez « { » dans le texte)' } });
     champ.classList.remove('fr-btn--tertiary-no-outline');
-    var elementsInseres = [inserer('items', 'Tableau'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
+    var elementsInseres = [inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
     var ins = null;
     ins = outil('pOutilInserer', 'Autres éléments', 'add-circle-line', function () {
         if (_suggestOuverte && document.getElementById('pInserer')) {
@@ -13035,8 +13105,14 @@ function barreOutilsCourrier(info) {
         var br = ins.getBoundingClientRect();
         placerSuggestion('pInserer', { left: br.left, bottom: br.bottom });
     }, { texte: true, attrs: { 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-controls': 'pInsererListe', title: 'Titre, paragraphe, logo, signature, espace, pied de page…' } });
+    var cond = outil('pOutilCondition', 'Condition', 'filter-line', function () {
+        var z = zoneActive();
+        if (z) {
+            ouvrirReglagesBloc(z.bl.id);
+        }
+    }, { texte: true, attrs: { title: 'Imprimer ce bloc seulement si une colonne est remplie, vide, vaut une valeur…' } });
     var ligne2 = [
-        groupe('Données', [champ]),
+        groupe('Données', [champ, cond]),
         sep(),
         groupe('Insérer', elementsInseres.concat([ins]))
     ];
@@ -13537,6 +13613,7 @@ function barreElement(id) {
         barre.appendChild(bt('Tout en bas', iconeExtreme(false), function () { deplacerElement(id, fin); }, k >= fin, 'pElBas2'));
         barre.appendChild(bt('Dupliquer', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () { dupliquerElement(id); }, false, 'pElDup'));
     }
+    barre.appendChild(bt('Condition et réglages', 'settings-5-line', function () { ouvrirReglagesBloc(id); }, false, 'pElRegl'));
     barre.appendChild(bt('Supprimer', 'delete-line', function () { return supprimerElement(id); }, false, 'pElSuppr'));
     return barre;
 }
@@ -13579,6 +13656,7 @@ function deselectionnerElement() {
     }
     var id = b.choisi;
     b.choisi = null;
+    etat.elemFuDemande = null;
     marquerChoisiDom();
     majPanneauElement();
     majOutilsCourrier();
@@ -13903,6 +13981,7 @@ function majSelectsOutils() {
     }
 }
 function majPanneauElement() {
+    majPanneauElementFu();
     var zone = document.getElementById('pElementZone');
     if (!zone) {
         return;
