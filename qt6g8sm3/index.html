@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.2.1 - 23/11/2026
+  Version : 1.2.2 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -239,6 +239,12 @@
     .w-fu-ligne .w-echantillon .fr-select { flex: 1 1 auto; min-width: 0; margin: 0; }
     .w-fu-ligne .w-echantillon[hidden] { display: none; }
     .w-fu-atelier--pleine > .w-atelier { display: none; }
+    .w-ec-el--espace { outline: 1px dashed var(--border-default-grey); outline-offset: 0; }
+    .w-ec-el--espace .p-sp { background: repeating-linear-gradient(45deg, transparent 0 6px, var(--background-alt-grey) 6px 12px); }
+    .w-ec-espace-poignee { position: absolute; left: 50%; bottom: -6px; width: 3rem; height: 12px; margin-left: -1.5rem; border-radius: 6px; cursor: ns-resize; z-index: 26;
+      background: var(--background-action-high-blue-france); opacity: 0; }
+    .w-ec-el--espace:hover > .w-ec-espace-poignee, .w-ec-espace-poignee:focus-visible, .w-ec-el--choisi > .w-ec-espace-poignee { opacity: .85; }
+    @media print { .w-ec-el--espace .p-sp { background: none; } }
     .w-fu-types { flex: 1; min-height: 0; overflow: auto; padding-bottom: 1rem; }
     .w-ec-poignee { cursor: grab; }
     .w-ec-poignee:active, .w-ec-grip:active { cursor: grabbing; }
@@ -254,8 +260,8 @@
       background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-size: .8125rem; cursor: grab; }
     .w-champ-puce:hover { background: var(--background-action-low-blue-france-hover); }
     .w-champ-puce:active { cursor: grabbing; }
-    .w-fu-centre--ecrire .w-ec-page { background-image: radial-gradient(circle, var(--border-default-grey) 1px, transparent 1.2px); background-size: 1rem 1rem; }
-    .w-glisse-en-cours .w-fu-centre--ecrire .w-ec-page { background-image: linear-gradient(var(--border-default-grey) 1px, transparent 1px), linear-gradient(90deg, var(--border-default-grey) 1px, transparent 1px); }
+    .w-fu-centre--ecrire .w-ec-page { background-image: radial-gradient(circle, color-mix(in srgb, var(--border-default-grey) 40%, transparent) 1px, transparent 1.2px); background-size: 1rem 1rem; }
+    .w-glisse-en-cours .w-fu-centre--ecrire .w-ec-page { background-image: linear-gradient(color-mix(in srgb, var(--border-default-grey) 35%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--border-default-grey) 35%, transparent) 1px, transparent 1px); }
     .w-fu-centre--ecrire .w-ec-cadre { flex: 1 1 auto; min-height: 0; }
     .w-fu-elem:not(:empty) { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); }
     .w-fu-texte__tete { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
@@ -1131,7 +1137,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.2.1';
+var VERSION_WIDGET = '1.2.2';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2977,8 +2983,8 @@ function colonnesAInsererFu(b) {
     var l = [creer('h3', { classe: 'w-c3__titre', id: 'pColInsTitre', texte: 'Ajouter un champ' }),
         creer('p', { classe: 'w-mention fr-mb-0', texte: 'Glissez un champ dans le texte, ou cliquez dans le texte puis sur le champ.' })];
     optionsChamps(b.table, true).forEach(function (g, kg) {
-        l.push(creer('p', { classe: 'w-champs__groupe', texte: kg === 0 ? 'Données de la ligne' : 'Automatiques' }));
-        l.push(creer('ul', { classe: 'w-champs w-champs--glisser', attrs: { 'aria-label': kg === 0 ? 'Données de la ligne' : 'Champs automatiques' } }, g.options.map(function (o, k) {
+        l.push(creer('p', { classe: 'w-champs__groupe', texte: kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Automatiques' : g.nom) }));
+        l.push(creer('ul', { classe: 'w-champs w-champs--glisser', attrs: { 'aria-label': kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Champs automatiques' : g.nom) } }, g.options.map(function (o, k) {
             var bt = creer('span', { classe: 'w-champ-puce', id: 'pChampDispo' + kg + '_' + k, attrs: { role: 'button', tabindex: '0', draggable: 'true', title: 'Glisser dans le texte, ou cliquer pour l\'ajouter au curseur', 'aria-label': 'Ajouter le champ ' + o.libelle } }, [
                 creer('span', { classe: 'fr-icon-draggable fr-icon--xs', attrs: { 'aria-hidden': 'true' } }), o.libelle]);
             bt.addEventListener('click', function () { insererChampDepuisPanneau(o.valeur); });
@@ -4795,7 +4801,12 @@ function unitesBlocBrut(b, rc) {
         case 'signature': return uniteSignature(b, rc);
         case 'letterhead': return uniteEnteteCourrier(b, rc);
         case 'divider': return [{ el: creer('hr', { classe: 'p-u p-hr p-hr--' + valeurDans(b.style, ['thin', 'thick', 'brand', 'short', 'band'], 'thin') }) }];
-        case 'spacer': return [{ el: creer('div', { classe: 'p-u p-sp p-sp--' + valeurDans(b.size, ['S', 'M', 'L', 'XL'], 'M'), attrs: { 'aria-hidden': 'true' } }) }];
+        case 'spacer':
+            var sp = creer('div', { classe: 'p-u p-sp p-sp--' + valeurDans(b.size, ['S', 'M', 'L', 'XL'], 'M'), attrs: { 'aria-hidden': 'true' } });
+            if (typeof b.h === 'number' && b.h > 0) {
+                sp.style.height = Math.min(250, b.h) + 'mm';
+            }
+            return [{ el: sp }];
         case 'pagebreak': return [{ saut: true }];
         default: return [];
     }
@@ -10177,7 +10188,7 @@ function resumeBloc(bl) {
         case 'table': return pluriel(lignesTableau(bl).length, 'ligne') + ' × ' + pluriel(nbColonnesTableau(bl), 'colonne');
         case 'letterhead': return 'Expéditeur, adresse à la fenêtre, lieu et date';
         case 'divider': return { thin: 'Filet fin', thick: 'Filet épais', brand: 'Trait de couleur', short: 'Trait court centré', band: 'Bandeau de couleur' }[bl.style] || 'Filet fin';
-        case 'spacer': return 'Hauteur ' + (bl.size || 'M');
+        case 'spacer': return 'Hauteur ' + Math.round(hauteurEspaceMm(bl)) + ' mm';
         case 'pagebreak': return 'Le bloc suivant sur une nouvelle page';
         default: return '';
     }
@@ -10961,7 +10972,16 @@ function editeurBloc(bl, dedans, o) {
                 { valeur: 'short', libelle: 'Trait court centré' }, { valeur: 'band', libelle: 'Bandeau de couleur' }]));
             break;
         case 'spacer':
-            l.push(choixListe(bl, 'size', 'Hauteur', TAILLES));
+            var mm = saisie(idEd(bl, 'h'), String(Math.round(hauteurEspaceMm(bl))), { clavier: 'numeric' });
+            mm.addEventListener('change', function () {
+                var v = parseInt(mm.value, 10);
+                if (v > 0) {
+                    bl.h = Math.max(2, Math.min(250, v));
+                    mm.value = String(bl.h);
+                    changeBloc();
+                }
+            });
+            l.push(groupeChamp('Hauteur (mm)', mm, 'Ou tirez le bord bas de l\'espace, dans la page.'));
             break;
         case 'pagebreak':
             l.push(creer('p', { classe: 'w-texte w-mention', texte: 'Le bloc suivant commence sur une nouvelle page. En « Plusieurs lignes », chaque document commence toujours sur une nouvelle page.' }));
@@ -13465,7 +13485,7 @@ function barreOutilsCourrier(info) {
             outil('pOutilRetraitMoins', 'Diminuer le retrait', iconeDispo(['indent-decrease', 'arrow-left-line']), function () { retraitCourrier(-1); }, { attrs: {} }),
             outil('pOutilRetraitPlus', 'Augmenter le retrait', iconeDispo(['indent-increase', 'arrow-right-line']), function () { retraitCourrier(1); }, { attrs: {} })])
     ];
-    var elementsInseres = [inserer('table', 'Tableau'), inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
+    var elementsInseres = [inserer('spacer', 'Espace'), inserer('table', 'Tableau'), inserer('items', 'Tableau des lignes'), inserer('image', 'Image'), inserer('box', 'Encadré'), inserer('columns', 'Colonnes'), inserer('divider', 'Trait'), inserer('pagebreak', 'Saut de page')];
     var ins = null;
     ins = outil('pOutilInserer', 'Autres éléments', 'add-circle-line', function () {
         if (_suggestOuverte && document.getElementById('pInserer')) {
@@ -13838,6 +13858,10 @@ function elementPage(bl, liste, k, ctx) {
     if (bl.type !== 'footer') {
         w.appendChild(gripBloc(bl));
     }
+    if (bl.type === 'spacer') {
+        w.classList.add('w-ec-el--espace');
+        w.appendChild(poigneeEspace(bl, w));
+    }
     var cond = texteCondition(bl);
     if (estZoneCourrier(bl)) {
         w.classList.add('w-ec-el--texte');
@@ -13986,6 +14010,53 @@ function demarrerGlisser(e, id, el) {
     }
     document.body.classList.add('w-glisse-en-cours');
 }
+/* Espace vide entre deux blocs : on tire le bord bas pour l'agrandir ou le
+   réduire (hauteur en millimètres, de 2 à 250). Flèches haut et bas au
+   clavier sur la poignée. */
+function hauteurEspaceMm(bl) {
+    if (typeof bl.h === 'number' && bl.h > 0) {
+        return bl.h;
+    }
+    return { S: 2, M: 5, L: 10.5, XL: 20 }[valeurDans(bl.size, ['S', 'M', 'L', 'XL'], 'M')];
+}
+function poigneeEspace(bl, w) {
+    var p = creer('span', { classe: 'w-ec-espace-poignee', attrs: { role: 'slider', tabindex: '0', 'aria-label': 'Hauteur de l\'espace, en millimètres', 'aria-valuemin': '2', 'aria-valuemax': '250', 'aria-valuenow': String(Math.round(hauteurEspaceMm(bl))), title: 'Tirer pour changer la hauteur' } });
+    var poser = function (mm, fin) {
+        bl.h = Math.max(2, Math.min(250, Math.round(mm)));
+        var sp = w.querySelector('.p-sp');
+        if (sp) {
+            sp.style.height = bl.h + 'mm';
+        }
+        p.setAttribute('aria-valuenow', String(bl.h));
+        if (fin) {
+            marquerTouche();
+            planifierCompteCourrier();
+            annoncer('Espace : ' + bl.h + ' mm.');
+        }
+    };
+    p.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var sp = w.querySelector('.p-sp');
+        if (!sp) {
+            return;
+        }
+        var y0 = e.clientY, h0 = hauteurEspaceMm(bl), pxParMm = sp.getBoundingClientRect().height / h0 || 3.78;
+        p.setPointerCapture(e.pointerId);
+        var bouger = function (ev) { poser(h0 + (ev.clientY - y0) / pxParMm, false); };
+        var lacher = function () { p.removeEventListener('pointermove', bouger); p.removeEventListener('pointerup', lacher); poser(bl.h || h0, true); };
+        p.addEventListener('pointermove', bouger);
+        p.addEventListener('pointerup', lacher);
+    });
+    p.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            poser(hauteurEspaceMm(bl) + (e.key === 'ArrowDown' ? 2 : -2), true);
+        }
+    });
+    return p;
+}
 function gripBloc(bl) {
     var g = creer('span', { classe: 'w-ec-grip fr-icon-' + iconeDispo(['draggable', 'drag-move-2-line', 'drag-move-line']) + ' fr-icon--sm', attrs: { draggable: 'true', title: 'Glisser pour déplacer le bloc', 'aria-hidden': 'true' } });
     g.addEventListener('dragstart', function (e) { demarrerGlisser(e, bl.id, g); });
@@ -14075,6 +14146,32 @@ function cibleDepot(e) {
     var y = (p < f.freres.length ? rr.top - 4 : rr.bottom + 4) - rc.top + f.cadre.scrollTop;
     return { j: j, y: y, x: rr.left - rc.left + f.cadre.scrollLeft, l: rr.width, cadre: f.cadre, src: f.src };
 }
+function depotChampHorsTexte(e) {
+    var b = etat.brouillon, cadre = document.getElementById('pCourrierCadre');
+    if (!b || !cadre) {
+        return null;
+    }
+    var freres = [];
+    Array.prototype.forEach.call(cadre.querySelectorAll('[data-el]'), function (el) {
+        var em = emplacementBloc(el.getAttribute('data-el'));
+        if (em && em.liste === b.blocks && em.bl.type !== 'footer') {
+            freres.push({ el: el, k: em.k });
+        }
+    });
+    freres.sort(function (a, c) { return a.k - c.k; });
+    if (!freres.length) {
+        return { j: 0, y: 0, x: 0, l: cadre.clientWidth };
+    }
+    var p = 0;
+    freres.forEach(function (f, i) { var r = f.el.getBoundingClientRect(); if (e.clientY > r.top + r.height / 2) {
+        p = i + 1;
+    } });
+    var ref = p < freres.length ? freres[p].el : freres[freres.length - 1].el;
+    var rr = ref.getBoundingClientRect(), rc = cadre.getBoundingClientRect();
+    return { j: p < freres.length ? freres[p].k : freres[freres.length - 1].k + 1, y: (p < freres.length ? rr.top - 4 : rr.bottom + 4) - rc.top + cadre.scrollTop, x: rr.left - rc.left + cadre.scrollLeft, l: rr.width };
+}
+function typesGlisses(e) { return e.dataTransfer && e.dataTransfer.types ? Array.prototype.slice.call(e.dataTransfer.types) : []; }
+function horsZoneTexte(e) { return !(e.target && e.target.closest && e.target.closest('[contenteditable="true"]')); }
 function brancherGlisserBlocs(cont) {
     if (cont._glisser) {
         return;
@@ -14082,6 +14179,23 @@ function brancherGlisserBlocs(cont) {
     cont._glisser = true;
     var cadre = cont.closest('#pCourrierCadre') || cont.parentNode;
     cadre.addEventListener('dragover', function (e) {
+        if (!_glisse && typesGlisses(e).indexOf(MIME_CHAMP) !== -1 && horsZoneTexte(e)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            var cc = depotChampHorsTexte(e);
+            var lc = document.getElementById('pDepotLigne');
+            if (!lc) {
+                lc = creer('div', { classe: 'w-ec-depot-ligne', id: 'pDepotLigne', attrs: { 'aria-hidden': 'true' } });
+                cadre.appendChild(lc);
+            }
+            lc.hidden = !cc;
+            if (cc) {
+                lc.style.top = Math.round(cc.y) + 'px';
+                lc.style.left = Math.round(cc.x) + 'px';
+                lc.style.width = Math.round(cc.l) + 'px';
+            }
+            return;
+        }
         if (!_glisse) {
             return;
         }
@@ -14110,6 +14224,29 @@ function brancherGlisserBlocs(cont) {
         l.style.width = Math.round(c.l) + 'px';
     }, true);
     cadre.addEventListener('drop', function (e) {
+        if (!_glisse && typesGlisses(e).indexOf(MIME_CHAMP) !== -1 && horsZoneTexte(e)) {
+            e.preventDefault();
+            e.stopPropagation();
+            var lc = document.getElementById('pDepotLigne');
+            if (lc) {
+                lc.hidden = true;
+            }
+            var v = '';
+            try {
+                v = e.dataTransfer.getData(MIME_CHAMP);
+            }
+            catch (er) {
+                v = '';
+            }
+            var cc = depotChampHorsTexte(e);
+            if (v && cc) {
+                var nb = B('paragraph', { text: '{' + v + '}' });
+                etat.brouillon.blocks.splice(cc.j, 0, nb);
+                etat.brouillon.choisi = nb.id;
+                apresStructure(nb.id, 'Champ ajouté dans un nouveau paragraphe.');
+            }
+            return;
+        }
         if (!_glisse) {
             return;
         }
