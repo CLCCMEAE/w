@@ -513,6 +513,32 @@
     .gb-table tbody tr:hover td { background: var(--background-alt-grey); color: var(--text-default-grey); }
     .gb-table tfoot td { font-weight: 650; border-top: 1px solid var(--border-default-grey); border-bottom: 0; }
     .gb-table__defile { overflow: auto; max-height: 22rem; }
+    .gb-alertes { list-style: none; margin: 0; padding: 0; container-type: inline-size; container-name: alertes; }
+    .gb-alerte { margin: 0; padding: 0; border-top: 1px solid var(--border-default-grey); }
+    .gb-alerte:first-child { border-top: 0; }
+    .gb-alerte__tete { width: 100%; display: flex; align-items: center; gap: .75rem; padding: .625rem 0; background: none; border: 0; text-align: left; font: inherit; color: var(--text-default-grey); cursor: pointer; }
+    .gb-alerte__tete--fixe { cursor: default; }
+    .gb-alerte__nb { flex: none; min-width: 2.5rem; height: 2.25rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 .5rem; box-sizing: border-box; font-size: 1rem; font-weight: 700; }
+    .gb-alerte__nb--petit { min-width: 1.75rem; height: 1.5rem; padding: 0 .25rem; font-size: .75rem; }
+    .gb-alerte__textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .125rem; }
+    .gb-alerte__nom { font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .gb-alerte__resume { font-size: .75rem; color: var(--text-mention-grey); }
+    .gb-alerte__etat { flex: none; padding: .125rem .5rem; font-size: .75rem; font-weight: 700; }
+    .gb-alerte__chevron { flex: none; color: var(--text-action-high-blue-france); }
+    .gb-alerte__corps { padding: 0 0 .75rem 3.25rem; }
+    .gb-alerte__liens { display: flex; flex-wrap: wrap; gap: 1rem; margin: .5rem 0 0; font-size: .8125rem; }
+    .gb-alerte--rouge { background: var(--background-contrast-error); color: var(--text-default-error); }
+    .gb-alerte--orange { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+    .gb-alerte--vert { background: var(--background-contrast-success); color: var(--text-default-success); }
+    .gb-alerte--seuil, .gb-alerte--attente { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .gb-alerte--erreur { background: var(--background-contrast-grey); color: var(--text-default-error); }
+    .gb-alertes-regles { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1rem; padding: 0; }
+    .gb-alertes-regles li { margin: 0; padding: 0; }
+    .gb-alertes-regles__item { display: inline-flex; align-items: center; gap: .5rem; padding: .25rem .75rem .25rem .25rem; background: var(--background-alt-grey); border: 1px solid var(--border-default-grey); font: inherit; font-size: .875rem; color: var(--text-default-grey); cursor: pointer; }
+    .gb-alertes-regles__item[aria-current="true"] { background: var(--background-action-low-blue-france); border-color: var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
+    .gb-alertes-compte { margin: .75rem 0 0; padding: .5rem .75rem; font-size: .875rem; font-weight: 700; }
+    .gb-alertes-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+    @container alertes (max-width: 34rem) { .gb-alerte__corps { padding-left: 0; } .gb-alerte__tete { flex-wrap: wrap; } .gb-alerte__textes { flex-basis: calc(100% - 3.5rem); } .gb-alerte__etat { margin-left: 3.25rem; } }
     .gb-table caption { text-align: left; font-size: .75rem; color: var(--text-mention-grey); padding: 0 0 .25rem; }
     .gb-lien-ligne { background: none; border: 0; padding: 0; font: inherit; color: var(--text-action-high-blue-france); cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
     .gb-table td.gb-num .gb-lien-ligne { color: var(--text-default-grey); text-decoration: none; }
@@ -2133,6 +2159,7 @@ var TYPES_TUILES = [
     { code: 'gantt', nom: 'Diagramme de Gantt', icone: 'calendar-2-line', desc: 'Des tâches sur une ligne de temps, de leur début à leur fin.', taille: 'XL' },
     { code: 'progress', nom: 'Liste de progression', icone: 'equalizer-line', desc: 'Une barre par catégorie, comparée à son objectif.', taille: 'M' },
     { code: 'latest', nom: 'Dernières lignes', icone: 'time-line', desc: 'Les lignes les plus récentes, selon une colonne de date.', taille: 'M' },
+    { code: 'alertes', nom: 'Points d\'attention', icone: 'alarm-warning-line', icones: ['alarm-warning-line', 'error-warning-line', 'notification-3-line'], desc: 'Les lignes qui demandent une action, selon vos règles, sur une ou plusieurs listes.', taille: 'L' },
     { code: 'text', nom: 'Texte ou intertitre', icone: 'article-line', desc: 'Un titre ou une note pour les utilisateurs.', taille: 'XL' }
 ];
 var AGREGATS = [
@@ -4230,6 +4257,7 @@ var OPS = {
         ['ltCol', 'est inférieur à la colonne'], ['lteCol', 'est au plus la colonne'], ['gtCol', 'est supérieur à la colonne'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
     date: [['past', 'est avant aujourd\'hui'], ['future', 'est après aujourd\'hui'], ['today', 'est aujourd\'hui'], ['thisWeek', 'est cette semaine'], ['thisMonth', 'est ce mois-ci'],
         ['thisQuarter', 'est ce trimestre'], ['thisYear', 'est cette année'], ['last30', 'est dans les 30 derniers jours'], ['last12m', 'est dans les 12 derniers mois'],
+        ['olderDays', 'est passée depuis plus de… jours'], ['nextDays', 'est dans les… prochains jours'],
         ['before', 'est avant le'], ['after', 'est après le'], ['year', 'est dans l\'année'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
     bool: [['true', 'est coché'], ['false', 'n\'est pas coché']]
 };
@@ -4311,6 +4339,19 @@ function predicat(tid, c) {
             }
             de += JOUR;
         }
+        else if (op === 'olderDays' || op === 'nextDays') {
+            var nj = parseInt(c.val, 10);
+            if (!(nj >= 0)) {
+                return function () { return true; };
+            }
+            if (op === 'olderDays') {
+                a = t - nj * JOUR;
+            }
+            else {
+                de = t;
+                a = t + (nj + 1) * JOUR;
+            }
+        }
         else if (op === 'year') {
             var y = parseInt(c.val, 10);
             if (!y) {
@@ -4371,6 +4412,12 @@ function libelleCondition(tid, c) {
     else if (['empty', 'notEmpty', 'true', 'false', 'past', 'future', 'today', 'thisWeek', 'thisMonth', 'thisQuarter', 'thisYear', 'last30', 'last12m'].indexOf(c.op) === -1) {
         var vals = Array.isArray(c.val) ? c.val : [c.val];
         v = ' ' + vals.filter(function (x) { return x !== null && x !== undefined; }).map(function (x) { return x === '' ? NOM_VIDE : String(x); }).join(c.op === 'not' ? ' ni ' : ' ou ');
+    }
+    if (c.op === 'olderDays') {
+        return libCol(tid, c.col) + ' est passée depuis plus de ' + nombreSur(parseInt(c.val, 10) || 0, 'jour');
+    }
+    if (c.op === 'nextDays') {
+        return libCol(tid, c.col) + ' est dans les ' + (parseInt(c.val, 10) || 0) + ' prochains jours';
     }
     return libCol(tid, c.col) + ' ' + lib + v;
 }
@@ -5766,7 +5813,7 @@ function sousTitreAuto(t) {
 }
 function filtresNonAppliques(t) {
     var cfg = etat.config, res = [];
-    if (!cfg || !etat.filtres || !t.table) {
+    if (!cfg || !etat.filtres || !t.table || t.type === 'alertes') {
         return res;
     }
     if (filtrePeriodeActif(cfg) && !infoColonne(t.table, cfg.periode.col)) {
@@ -5798,6 +5845,9 @@ function etatVide(titre, texte, erreur) {
 function problemeTuile(t) {
     if (t.type === 'text') {
         return null;
+    }
+    if (t.type === 'alertes') {
+        return reglesAlerte(t).length ? null : 'Ajoutez au moins une règle.';
     }
     if (!t.table || !etat.meta.tables[t.table]) {
         return 'Sa liste n\'existe plus dans ce document.';
@@ -5866,7 +5916,7 @@ function rendreTuile(t, o) {
     if (t.type !== 'text' && !probleme && !o.sansOutils) {
         var outils = creer('div', { classe: 'gb-tuile__outils' });
         var bVue = creer('button', { classe: 'gb-outil fr-icon-table-line w-infobulle w-infobulle--dessous', attrs: { 'aria-pressed': vueDonnees ? 'true' : 'false', 'aria-label': 'Voir les données : ' + (t.titre || ''), 'data-infobulle': vueDonnees ? 'Revenir au graphique' : 'Voir les données' } });
-        if (t.type === 'table' || t.type === 'latest') {
+        if (t.type === 'table' || t.type === 'latest' || t.type === 'alertes') {
             bVue = null;
         }
         if (bVue) {
@@ -5931,6 +5981,231 @@ function rendreTuile(t, o) {
         art.appendChild(creer('p', { classe: 'gb-tuile__pied', texte: 'Non filtrée par ' + na.join(', ') + ' : sa liste n\'a pas cette colonne.' }));
     }
     return art;
+}
+/* Tuile « Points d'attention » : des règles fixées par l'administrateur, chacune sur une
+   liste du document. Chaque règle compte les lignes qui remplissent ses filtres au moment de
+   l'affichage, sur les données et les statuts tels qu'ils sont dans la base. La tuile ne
+   mémorise rien et n'écrit rien : quand une ligne change de statut dans sa liste, elle sort
+   de l'alerte. */
+var NIVEAUX_ALERTE = {
+    rouge: { libelle: 'À traiter' },
+    orange: { libelle: 'À surveiller' },
+    vert: { libelle: 'Rien à signaler' },
+    seuil: { libelle: 'Sous le seuil' },
+    erreur: { libelle: 'Règle suspendue' }
+};
+function regleAlerteNeuve(tid) {
+    var r = { nom: '', table: tid || null, filtres: [], orange: 1, rouge: 5, colonnes: [], triCol: null, triSens: 'asc', max: 5 };
+    if (!tid || !etat.meta.tables[tid]) {
+        return r;
+    }
+    r.nom = 'À traiter : ' + minuscule(nomTable(tid));
+    var titre = colonneTitre(tid);
+    r.colonnes = [titre].concat(colonnesUtiles(tid).map(function (c) { return c.colId; }).filter(function (c) { return c !== titre && IDS_META.indexOf(c) === -1; }).slice(0, 3)).filter(Boolean);
+    r.triCol = meilleureDate(tid) || null;
+    return r;
+}
+function reglesAlerte(t) { return t && t.type === 'alertes' && Array.isArray(t.regles) ? t.regles.filter(function (r) { return r && typeof r === 'object'; }) : []; }
+function feuillesConditions(conds) {
+    var m = (conds || []).filter(estMarqueArbre)[0];
+    return m ? feuillesArbre(m.arbre) : (conds || []).filter(function (c) { return c && c.col; });
+}
+function problemeRegleAlerte(r) {
+    if (!r.table || !etat.meta.tables[r.table]) {
+        return 'Sa liste n\'existe plus dans ce document.';
+    }
+    if (etat.illisibles[r.table]) {
+        return 'Sa liste n\'a pas pu être lue : votre accès est peut-être restreint.';
+    }
+    if (feuillesConditions(r.filtres).some(function (c) { return !infoColonne(r.table, c.col); })) {
+        return 'Un de ses filtres utilise une colonne qui n\'existe plus : la règle est suspendue pour ne pas compter de lignes à tort.';
+    }
+    return null;
+}
+function niveauAlerte(r, n) {
+    var orange = typeof r.orange === 'number' && r.orange > 0 ? r.orange : 1;
+    var rouge = typeof r.rouge === 'number' && r.rouge > 0 ? Math.max(r.rouge, orange) : null;
+    if (!n) {
+        return 'vert';
+    }
+    if (rouge !== null && n >= rouge) {
+        return 'rouge';
+    }
+    return n >= orange ? 'orange' : 'seuil';
+}
+function tuileRegleAlerte(r, max) {
+    return { table: r.table, filtres: r.filtres || [], colonnes: r.colonnes || [], triCol: r.triCol, triSens: r.triSens === 'desc' ? 'desc' : 'asc', max: max || r.max || 5, titre: r.nom || 'Règle', _sansPeriode: true };
+}
+function etatRegleAlerte(r) {
+    var pb = problemeRegleAlerte(r);
+    if (pb) {
+        return { n: null, niveau: 'erreur', libelle: NIVEAUX_ALERTE.erreur.libelle, probleme: pb };
+    }
+    if (!etat.donnees[r.table]) {
+        return { n: null, niveau: 'attente', libelle: 'Lecture…', probleme: null };
+    }
+    var n = selection(r.table, r.filtres, { sansPeriode: true }).length;
+    var niv = niveauAlerte(r, n);
+    return { n: n, niveau: niv, libelle: NIVEAUX_ALERTE[niv].libelle, probleme: null };
+}
+function resumeRegleAlerte(r) {
+    var tid = r.table;
+    if (!tid || !etat.meta.tables[tid]) {
+        return '';
+    }
+    var phrase = phraseArbre(tid, arbreConditions(r.filtres || []));
+    return libelleTable(tid) + (phrase ? ' · ' + phrase : ' · toutes les lignes');
+}
+function exporterRegleAlerte(r) {
+    var tuile = tuileRegleAlerte(r, 1e9);
+    var idx = lignesTop(tuile);
+    var cols = colonnesAffichees(tuile);
+    telechargerCSV((r.nom || 'regle') + suffixeMiseAJour(), cols.map(function (c) { return libCol(r.table, c); }), idx.map(function (i) { return cols.map(function (c) { return texteCellule(r.table, c, i); }); }));
+}
+function rendreAlertes(t, corps, o) {
+    o = o || {};
+    etat.alertesOuvertes = etat.alertesOuvertes || {};
+    var regles = reglesAlerte(t);
+    var manquantes = regles.map(function (r) { return r.table; }).filter(function (tid, k, l) { return tid && etat.meta.tables[tid] && !etat.donnees[tid] && !etat.illisibles[tid] && l.indexOf(tid) === k; });
+    if (manquantes.length) {
+        corps.appendChild(etatVide('Lecture des listes…', ''));
+        relayer(Promise.all(manquantes.map(assurerDonnees)).then(function () { vider(corps); rendreAlertes(t, corps, o); }), 'Lecture des listes des règles');
+        return;
+    }
+    var etats = regles.map(etatRegleAlerte);
+    var base = String((o.prefixe || '') + t.id).replace(/[^A-Za-z0-9_-]/g, '');
+    var defaut = -1;
+    etats.some(function (e, k) { if (e.niveau === 'rouge' || e.niveau === 'orange') {
+        defaut = k;
+        return true;
+    } return false; });
+    var ul = creer('ul', { classe: 'gb-alertes', attrs: { 'aria-label': 'Règles de ' + (t.titre || 'la tuile') } });
+    regles.forEach(function (r, k) {
+        var e = etats[k];
+        var cle = base + ':' + k;
+        var ouvert = etats[k].n > 0 && (etat.alertesOuvertes[cle] === undefined ? k === defaut : !!etat.alertesOuvertes[cle]);
+        var idB = 'gAl-' + base + '-' + k;
+        var nb = creer('span', { classe: 'gb-alerte__nb gb-alerte--' + e.niveau, texte: e.n === null ? '!' : nombreCompte(e.n), attrs: { 'aria-hidden': 'true' } });
+        var textes = creer('span', { classe: 'gb-alerte__textes' }, [
+            creer('span', { classe: 'gb-alerte__nom', texte: r.nom || 'Règle sans nom' }),
+            creer('span', { classe: 'gb-alerte__resume', texte: e.probleme || resumeRegleAlerte(r) })]);
+        var etiquette = creer('span', { classe: 'gb-alerte__etat gb-alerte--' + e.niveau, texte: e.libelle });
+        var lecteurEcran = creer('span', { classe: 'fr-sr-only', texte: (e.n === null ? '' : nombreSur(e.n, 'ligne') + ', ') });
+        var tete;
+        if (e.n > 0) {
+            tete = creer('button', { classe: 'gb-alerte__tete', id: idB, attrs: { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': idB + 'C' } }, [nb, lecteurEcran, textes, etiquette,
+                creer('span', { classe: 'gb-alerte__chevron fr-icon-arrow-' + (ouvert ? 'up' : 'down') + '-s-line', attrs: { 'aria-hidden': 'true' } })]);
+            tete.addEventListener('click', function () {
+                etat.alertesOuvertes[cle] = !ouvert;
+                vider(corps);
+                rendreAlertes(t, corps, o);
+                var b = document.getElementById(idB);
+                if (b) {
+                    b.focus();
+                }
+            });
+        }
+        else {
+            tete = creer('div', { classe: 'gb-alerte__tete gb-alerte__tete--fixe' }, [nb, lecteurEcran, textes, etiquette]);
+        }
+        var li = creer('li', { classe: 'gb-alerte' }, [tete]);
+        if (ouvert) {
+            var tuile = tuileRegleAlerte(r);
+            var res = tableauTop(tuile);
+            var tous = function () { return lignesTop(tuileRegleAlerte(r, 1e9)); };
+            var liens = creer('p', { classe: 'gb-alerte__liens' }, [
+                creer('button', { classe: 'gb-lien-ligne', id: idB + 'Tout', texte: e.n > res.n ? 'Voir les ' + nombreCompte(e.n) + ' lignes' : 'Voir le détail', attrs: { type: 'button' } }),
+                creer('button', { classe: 'gb-lien-ligne', id: idB + 'Csv', texte: 'Exporter (CSV)', attrs: { type: 'button' } })]);
+            liens.firstChild.addEventListener('click', function () { ouvrirLignes(tuile, r.nom || 'Règle', tous()); });
+            liens.lastChild.addEventListener('click', function () { exporterRegleAlerte(r); });
+            li.appendChild(creer('div', { classe: 'gb-alerte__corps', id: idB + 'C' }, [
+                creer('div', { classe: 'gb-table__defile', attrs: { tabindex: '0', role: 'region', 'aria-label': r.nom || 'Lignes de la règle' } }, [res.table]), liens]));
+        }
+        ul.appendChild(li);
+    });
+    corps.appendChild(ul);
+}
+var _regleAlerte = 0;
+function formulaireAlertes(cont, b, redessiner, maj) {
+    b.regles = reglesAlerte(b);
+    if (!b.regles.length) {
+        b.regles.push(regleAlerteNeuve(b.table || tablesUtilisateur()[0]));
+    }
+    var synchro = function () { b.table = b.regles[0].table; };
+    synchro();
+    _regleAlerte = Math.max(0, Math.min(_regleAlerte, b.regles.length - 1));
+    var k = _regleAlerte;
+    var r = b.regles[k];
+    var manquantes = b.regles.map(function (x) { return x.table; }).filter(function (tid, i, l) { return tid && etat.meta.tables[tid] && !etat.donnees[tid] && !etat.illisibles[tid] && l.indexOf(tid) === i; });
+    if (manquantes.length) {
+        cont.appendChild(etatVide('Lecture des listes…', ''));
+        relayer(Promise.all(manquantes.map(assurerDonnees)).then(function () { redessiner(); }), 'Lecture des listes des règles');
+        return;
+    }
+    var onglets = creer('ul', { classe: 'gb-alertes-regles', attrs: { 'aria-label': 'Règles de la tuile' } });
+    b.regles.forEach(function (x, i) {
+        var e = etatRegleAlerte(x);
+        var bt = creer('button', { classe: 'gb-alertes-regles__item', id: 'eAlR' + i, attrs: { type: 'button', 'aria-current': i === k ? 'true' : null } }, [
+            creer('span', { classe: 'gb-alerte__nb gb-alerte__nb--petit gb-alerte--' + e.niveau, texte: e.n === null ? '!' : nombreCompte(e.n), attrs: { 'aria-hidden': 'true' } }),
+            creer('span', { texte: x.nom || 'Règle sans nom' })]);
+        bt.addEventListener('click', function () { _regleAlerte = i; redessiner('eAlR' + i); });
+        onglets.appendChild(creer('li', {}, [bt]));
+    });
+    var ajout = bouton('Ajouter une règle', 'tertiaire', 'add-line', function () {
+        b.regles.push(regleAlerteNeuve(r.table || tablesUtilisateur()[0]));
+        _regleAlerte = b.regles.length - 1;
+        redessiner('eAlNom');
+    }, { petit: true, id: 'eAlAjout' });
+    onglets.appendChild(creer('li', {}, [ajout]));
+    cont.appendChild(onglets);
+
+    var compte = creer('p', { classe: 'gb-alertes-compte', id: 'eAlCompte', attrs: { 'aria-live': 'polite' } });
+    var majCompte = function () {
+        var e = etatRegleAlerte(r);
+        compte.className = 'gb-alertes-compte gb-alerte--' + e.niveau;
+        compte.textContent = e.probleme ? e.probleme : (e.n === null ? '' : (e.n ? nombreSur(e.n, 'ligne') + (e.n > 1 ? ' remplissent' : ' remplit') + ' cette règle aujourd\'hui' : 'Aucune ligne ne remplit cette règle aujourd\'hui') + ' : ' + minuscule(e.libelle) + '.');
+    };
+    var majRegle = function () { synchro(); majCompte(); maj(); };
+    var tables = tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; });
+    cont.appendChild(section('La règle', [
+        groupe('Nom de la règle', champSaisie('eAlNom', r.nom || '', function (v) { r.nom = v; majRegle(); }), 'Par exemple : Demandes en retard sans responsable.'),
+        groupe('Liste', champListe('eAlTable', tables, r.table, function (v) {
+            var neuve = regleAlerteNeuve(v);
+            neuve.nom = r.nom || neuve.nom;
+            neuve.orange = r.orange;
+            neuve.rouge = r.rouge;
+            b.regles[k] = neuve;
+            synchro();
+            relayer(assurerDonnees(v).then(function () { redessiner('eAlTable'); }), 'Changement de liste de la règle');
+        }, 'Choisissez une liste'))]));
+    if (r.table && etat.meta.tables[r.table]) {
+        cont.appendChild(section('Les lignes qui déclenchent l\'alerte', [
+            creer('p', { classe: 'w-mention', texte: 'Les filtres s\'appuient sur les colonnes de la liste : statuts, cases à cocher, dates, responsables. Une ligne sort de l\'alerte dès qu\'elle ne remplit plus ces filtres.' }),
+            editeurConditions(r, 'filtres', 'eAl' + k, redessiner, majRegle), compte]));
+        majCompte();
+        cont.appendChild(section('Les seuils de couleur', [
+            creer('p', { classe: 'w-mention', texte: 'Sans ligne, la règle est au vert. Elle passe à l\'orange, puis au rouge, à partir du nombre de lignes indiqué.' }),
+            rangee([choixNombre('eAlOrange', 'Orange à partir de', r, 'orange', 1, 1, 100000, majRegle), choixNombre('eAlRouge', 'Rouge à partir de', r, 'rouge', 5, 1, 100000, majRegle)])]));
+        var optsTri = [{ valeur: '', libelle: 'Ordre de la liste' }].concat(optionsColonnes(r.table));
+        cont.appendChild(section('La liste des lignes', [
+            groupe('Colonnes montrées', listeCases('eAlCols', optionsColonnes(r.table), r.colonnes || [], function (l) { r.colonnes = l; majRegle(); })),
+            rangee([groupe('Trier par', champListe('eAlTri', optsTri, r.triCol || '', function (v) { r.triCol = v || null; majRegle(); })),
+                groupe('Ordre', champListe('eAlSens', [{ valeur: 'asc', libelle: 'Croissant (les plus anciennes d\'abord)' }, { valeur: 'desc', libelle: 'Décroissant (les plus récentes d\'abord)' }], r.triSens === 'desc' ? 'desc' : 'asc', function (v) { r.triSens = v; majRegle(); })),
+                choixNombre('eAlMax', 'Lignes montrées', r, 'max', 5, 1, 50, majRegle)])]));
+    }
+    var actions = [];
+    if (k > 0) {
+        actions.push(bouton('Monter la règle', 'tertiaire', 'arrow-up-line', function () { b.regles.splice(k - 1, 0, b.regles.splice(k, 1)[0]); _regleAlerte = k - 1; synchro(); redessiner('eAlR' + (k - 1)); }, { petit: true, id: 'eAlMonter' }));
+    }
+    if (k < b.regles.length - 1) {
+        actions.push(bouton('Descendre la règle', 'tertiaire', 'arrow-down-line', function () { b.regles.splice(k + 1, 0, b.regles.splice(k, 1)[0]); _regleAlerte = k + 1; synchro(); redessiner('eAlR' + (k + 1)); }, { petit: true, id: 'eAlDescendre' }));
+    }
+    if (b.regles.length > 1) {
+        actions.push(bouton('Supprimer la règle', 'tertiaire', 'delete-line', function () { b.regles.splice(k, 1); _regleAlerte = Math.max(0, k - 1); synchro(); redessiner('eAlR' + _regleAlerte); }, { petit: true, id: 'eAlSupprimer' }));
+    }
+    if (actions.length) {
+        cont.appendChild(creer('div', { classe: 'gb-alertes-actions' }, actions));
+    }
 }
 var MAX_COPIES = 12;
 var TYPES_COPIES = ['bar', 'line', 'donut'];
@@ -6039,6 +6314,10 @@ function rendreCorps(t, corps, o) {
     }
     if (t.type === 'latest') {
         rendreDernieres(t, corps);
+        return;
+    }
+    if (t.type === 'alertes') {
+        rendreAlertes(t, corps, o);
         return;
     }
     if (t.type === 'progress') {
@@ -7343,7 +7622,7 @@ function rendreProgression(t, corps) {
 }
 function lignesTop(t) {
     var tid = t.table;
-    var idx = selection(tid, t.filtres).slice();
+    var idx = selection(tid, t.filtres, t._sansPeriode ? { sansPeriode: true } : undefined).slice();
     if (t.triCol && infoColonne(tid, t.triCol)) {
         var l = lecteur(tid, t.triCol);
         var sens = t.triSens === 'asc' ? 1 : -1;
@@ -8008,6 +8287,10 @@ function donneesTabulaires(t) {
         });
         return { entetes: [libCol(tid, t.repeter), premiere].concat(ents), lignes: lgs, brut: brs, colsTexte: 2 };
     }
+    if (t.type === 'alertes') {
+        var ra = reglesAlerte(t).map(function (r) { var e = etatRegleAlerte(r); return [r.nom || '', libelleTable(r.table), e.n === null ? '' : e.n, e.libelle]; });
+        return { entetes: ['Règle', 'Liste', 'Lignes concernées', 'Niveau'], lignes: ra, brut: ra };
+    }
     if (t.type === 'kpi' || t.type === 'gauge') {
         var k = calculKPI(t);
         var lignes = [['Valeur', typeof k.valeur === 'number' ? (t.prefixe || '') + k.fmt.plein(k.valeur) + (t.suffixe || '') : 'Aucune donnée']];
@@ -8397,6 +8680,21 @@ function visiterReferences(cfg, fT, fC) {
         }
         conditions(t.filtres, tid);
         conditions(t.partFiltres, tid);
+        (Array.isArray(t.regles) ? t.regles : []).forEach(function (r) {
+            if (!r || typeof r !== 'object') {
+                return;
+            }
+            T(r, 'table');
+            var rt = r.table;
+            conditions(r.filtres, rt);
+            (Array.isArray(r.filtres) ? r.filtres : []).forEach(function (c) { if (estMarqueArbre(c)) {
+                conditions(feuillesArbre(c.arbre), rt);
+            } });
+            C(r, 'triCol', rt);
+            if (Array.isArray(r.colonnes) && rt) {
+                r.colonnes = r.colonnes.map(function (x) { return typeof x === 'string' && x ? fC(rt, x) : x; });
+            }
+        });
         if (t.cible) {
             T(t.cible, 'table');
             var tc = (t.cible.mode === 'table' || t.cible.mode === 'somme') && t.cible.table ? t.cible.table : tid;
@@ -9035,7 +9333,7 @@ function tablesDuTableau(cfg) {
     } };
     (cfg.tuiles || []).forEach(function (t) { ajouter(t.table); if (t.cible && t.cible.table) {
         ajouter(t.cible.table);
-    } });
+    } reglesAlerte(t).forEach(function (r) { ajouter(r.table); }); });
     if (cfg.periode) {
         ajouter(cfg.periode.table);
     }
@@ -9918,6 +10216,11 @@ function nouvelleTuile(type, tid) {
         t.taille = 'XL';
         t.mesure = null;
     }
+    if (type === 'alertes') {
+        t.titre = 'Points d\'attention';
+        t.mesure = null;
+        t.regles = [regleAlerteNeuve(tid)];
+    }
     if (type === 'text') {
         t.table = null;
         t.style = 'note';
@@ -10179,6 +10482,10 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         vp.appendChild(blocFond);
     }
     else {
+        if (b.type === 'alertes') {
+            formulaireAlertes(contenus.lignes, b, redessiner, maj);
+        }
+        else {
         contenus.lignes.appendChild(groupe('Liste', champListe('eTable', tablesUtilisateur().map(function (x) { return { valeur: x, libelle: libelleIcone(x) }; }), tid, function (v) {
             var neuve = nouvelleTuile(b.type, v);
             neuve.id = b.id;
@@ -10209,6 +10516,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
                 contenus[cle].appendChild(n);
             });
         }
+        }
         if (b.type === 'table') {
             var cq = creer('input', { attrs: { type: 'checkbox', id: 'eQuadrillage' }, coche: !!b.quadrillage });
             cq.addEventListener('change', function () { b.quadrillage = cq.checked; maj(); });
@@ -10230,6 +10538,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
     visibles = (o.avant || []).concat(visibles).concat(o.apres || []);
     visibles.forEach(function (g, k) {
         var c = contenus[g.cle];
+        var nomG = b.type === 'alertes' && g.cle === 'lignes' ? 'Les règles' : g.nom;
         Array.prototype.forEach.call(c.querySelectorAll('.gb-section'), function (sct) {
             if (!sct.textContent.trim()) {
                 sct.remove();
@@ -10242,7 +10551,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
                 h1.remove();
             }
         }
-        var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
+        var resume = { sorte: function () { return nomTypeTuile(b.type); }, lignes: function () { return b.type === 'alertes' ? nombreSur(reglesAlerte(b).length, 'règle') : resumeLignesTuile(b); }, reperes: function () { return resumeReperes(b); },
             presentation: function () { return o.sansTaille ? (b.fond ? 'Fond ' + minuscule(nomFond(b.fond)) : 'Par défaut') : 'Taille ' + (b.taille || 'M') + (b.fond ? ', fond ' + minuscule(nomFond(b.fond)) : ''); } }[g.cle];
         resume = sup[g.cle] ? sup[g.cle].resume() : (resume ? resume() : resumeDepuisChamps(c));
         if (o.panneau && !visibles.some(function (v) { return v.cle === _sectionTuile; })) {
@@ -10251,7 +10560,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         var ouvert = _sectionTuile === g.cle;
         var bt = creer('button', { classe: 'gb-acc__tete', id: 'eSec-' + g.cle, attrs: o.panneau ? { type: 'button', 'aria-current': ouvert ? 'step' : null } : { type: 'button', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': 'eSecCorps-' + g.cle } }, [
             creer('span', { classe: 'gb-acc__num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }),
-            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: g.nom }), resume ? creer('span', { classe: 'gb-acc__resume', texte: resume }) : null])]);
+            creer('span', { classe: 'gb-acc__textes' }, [creer('span', { classe: 'gb-acc__nom', texte: nomG }), resume ? creer('span', { classe: 'gb-acc__resume', texte: resume }) : null])]);
         bt.addEventListener('click', function () {
             _sectionTuile = o.panneau ? g.cle : (_sectionTuile === g.cle ? null : g.cle);
             redessiner('eSec-' + g.cle);
@@ -10259,7 +10568,7 @@ function construireFormulaire(form, b, redessiner, majApercu, o) {
         c.id = 'eSecCorps-' + g.cle;
         if (o.panneau) {
             if (ouvert) {
-                o.panneau.appendChild(creer('h3', { classe: 'fr-sr-only', texte: g.nom }));
+                o.panneau.appendChild(creer('h3', { classe: 'fr-sr-only', texte: nomG }));
                 o.panneau.appendChild(c);
             }
             liste.appendChild(creer('li', { classe: 'gb-acc__item' + (ouvert ? ' gb-acc__item--ouvert' : '') }, [bt]));
@@ -10822,7 +11131,7 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
                         c.val = null;
                     }
                     else if (fam === 'date') {
-                        c.val = v === 'year' ? (typeof c.val === 'number' ? c.val : new Date().getFullYear()) : (typeof c.val === 'string' ? c.val : '');
+                        c.val = v === 'year' ? (typeof c.val === 'number' ? c.val : new Date().getFullYear()) : (v === 'olderDays' || v === 'nextDays' ? (typeof c.val === 'number' ? c.val : 7) : (typeof c.val === 'string' ? c.val : ''));
                     }
                     changer(id + 'Op');
                 });
@@ -10900,6 +11209,11 @@ function champValeurCondition(tid, c, id, maj) {
         return n;
     }
     if (fam === 'date') {
+        if (op === 'olderDays' || op === 'nextDays') {
+            var nj = champSaisie(id, typeof c.val === 'number' ? c.val : '', function (v) { var x = parseInt(v, 10); c.val = isNaN(x) ? null : Math.max(0, x); maj(); }, { type: 'number', clavier: 'numeric' });
+            nj.setAttribute('aria-label', 'Nombre de jours');
+            return nj;
+        }
         if (op === 'year') {
             var annees = anneesColonne(tid, c.col);
             if (c.val && annees.indexOf(Number(c.val)) === -1) {
@@ -11322,6 +11636,13 @@ var MODELES = [
                     { type: 'kpi', titre: 'Traitées ce trimestre', table: D, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'STATUT', op: 'is', val: ['Accordée', 'Refusée'] }], comparer: { col: 'REPONDUE_LE', periode: 'quarter' }, cible: { mode: 'fixe', valeur: 40 } },
                     { type: 'kpi', titre: 'Taux d\'accord', table: D, taille: 'S', mesure: { agg: 'share' }, filtres: [{ col: 'STATUT', op: 'is', val: ['Accordée', 'Refusée'] }], partFiltres: [{ col: 'STATUT', op: 'is', val: ['Accordée'] }], sousTitre: 'Demandes accordées parmi les demandes traitées' },
                     { type: 'kpi', titre: 'Délai moyen de réponse', table: D, taille: 'S', mesure: { agg: 'avgDuration', col: 'RECUE_LE', col2: 'REPONDUE_LE' }, plusBas: true, sousTitre: 'De la réception à la réponse' },
+                    { type: 'alertes', titre: 'Demandes à surveiller', table: D, taille: 'XL', filtres: [], regles: [
+                            { nom: 'Demandes sans réponse depuis plus de 30 jours', table: D, filtres: [{ col: 'STATUT', op: 'is', val: enCours }, { col: 'RECUE_LE', op: 'olderDays', val: 30 }], orange: 1, rouge: 3,
+                                colonnes: ['OBJET', 'DEMANDEUR', 'SERVICE_INSTRUCTEUR', 'RECUE_LE'], triCol: 'RECUE_LE', triSens: 'asc', max: 5 },
+                            { nom: 'En attente de pièces depuis plus de 15 jours', table: D, filtres: [{ col: 'STATUT', op: 'is', val: ['En attente de pièces'] }, { col: 'RECUE_LE', op: 'olderDays', val: 15 }], orange: 1, rouge: 5,
+                                colonnes: ['OBJET', 'DEMANDEUR', 'SERVICE_INSTRUCTEUR', 'RECUE_LE'], triCol: 'RECUE_LE', triSens: 'asc', max: 5 },
+                            { nom: 'Réclamations en cours', table: D, filtres: [{ col: 'NATURE', op: 'is', val: ['Réclamation'] }, { col: 'STATUT', op: 'is', val: enCours }], orange: 1, rouge: 5,
+                                colonnes: ['OBJET', 'DEMANDEUR', 'STATUT', 'RECUE_LE'], triCol: 'RECUE_LE', triSens: 'asc', max: 5 }] },
                     { type: 'bar', titre: 'Demandes par statut', table: D, taille: 'L', groupe: 'STATUT', serie: 'NATURE', empile: true, mesure: { agg: 'count' }, tri: 'naturel', filtres: [] },
                     { type: 'line', titre: 'Demandes reçues par mois', table: D, taille: 'L', colDate: 'RECUE_LE', pas: 'month', derniers: 12, mesure: { agg: 'count' }, aire: true, filtres: [] },
                     { type: 'donut', titre: 'Demandes par canal', table: D, taille: 'L', groupe: 'CANAL', mesure: { agg: 'count' }, tri: 'valeur', max: 6, filtres: [] },
@@ -11366,6 +11687,13 @@ var MODELES = [
                     { type: 'kpi', titre: 'Ouverts cette semaine', table: K, taille: 'S', mesure: { agg: 'count' }, comparer: { col: 'OUVERT_LE', periode: 'week' }, plusBas: true },
                     { type: 'kpi', titre: 'Délai moyen de résolution', table: K, taille: 'S', mesure: { agg: 'avgDuration', col: 'OUVERT_LE', col2: 'CLOS_LE' }, plusBas: true, sousTitre: 'De l\'ouverture à la clôture' },
                     { type: 'kpi', titre: 'Urgents et ouverts', table: K, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'PRIORITE', op: 'is', val: ['Urgente'] }, { col: 'STATUT', op: 'is', val: ouverts }], plusBas: true },
+                    { type: 'alertes', titre: 'Tickets à surveiller', table: K, taille: 'XL', filtres: [], regles: [
+                            { nom: 'Tickets urgents non résolus', table: K, filtres: [{ col: 'PRIORITE', op: 'is', val: ['Urgente'] }, { col: 'STATUT', op: 'is', val: ouverts }], orange: 1, rouge: 3,
+                                colonnes: ['OBJET', 'TECHNICIEN', 'STATUT', 'OUVERT_LE'], triCol: 'OUVERT_LE', triSens: 'asc', max: 5 },
+                            { nom: 'Tickets ouverts depuis plus de 7 jours', table: K, filtres: [{ col: 'STATUT', op: 'is', val: ouverts }, { col: 'OUVERT_LE', op: 'olderDays', val: 7 }], orange: 1, rouge: 10,
+                                colonnes: ['OBJET', 'TECHNICIEN', 'PRIORITE', 'OUVERT_LE'], triCol: 'OUVERT_LE', triSens: 'asc', max: 5 },
+                            { nom: 'Tickets en attente depuis plus de 3 jours', table: K, filtres: [{ col: 'STATUT', op: 'is', val: ['En attente'] }, { col: 'OUVERT_LE', op: 'olderDays', val: 3 }], orange: 1, rouge: 5,
+                                colonnes: ['OBJET', 'TECHNICIEN', 'CATEGORIE', 'OUVERT_LE'], triCol: 'OUVERT_LE', triSens: 'asc', max: 5 }] },
                     { type: 'bar', titre: 'Tickets par catégorie', table: K, taille: 'L', groupe: 'CATEGORIE', serie: 'PRIORITE', empile: true, horizontal: true, tri: 'valeur', mesure: { agg: 'count' }, filtres: [] },
                     { type: 'line', titre: 'Tickets ouverts par semaine', table: K, taille: 'L', colDate: 'OUVERT_LE', pas: 'week', derniers: 12, mesure: { agg: 'count' }, filtres: [] },
                     { type: 'bar', titre: 'Tickets ouverts par technicien', table: K, taille: 'L', groupe: 'TECHNICIEN', tri: 'valeur', mesure: { agg: 'count' }, filtres: [{ col: 'STATUT', op: 'is', val: ouverts }] },
@@ -11403,6 +11731,13 @@ var MODELES = [
                     { type: 'kpi', titre: 'Dans les temps', table: P, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'METEO', op: 'is', val: ['Dans les temps'] }], sousTitre: 'Projets' },
                     { type: 'kpi', titre: 'À surveiller', table: P, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'METEO', op: 'is', val: ['À surveiller'] }], sousTitre: 'Projets', plusBas: true },
                     { type: 'kpi', titre: 'En difficulté', table: P, taille: 'S', mesure: { agg: 'count' }, filtres: [{ col: 'METEO', op: 'is', val: ['En difficulté'] }], sousTitre: 'Projets', plusBas: true },
+                    { type: 'alertes', titre: 'Projets à surveiller', table: P, taille: 'XL', filtres: [], regles: [
+                            { nom: 'Projets dont l\'échéance est dépassée', table: P, filtres: [{ col: 'ECHEANCE', op: 'past' }, { col: 'STATUT', op: 'not', val: ['Terminé'] }], orange: 1, rouge: 3,
+                                colonnes: ['PROJET', 'DIRECTION', 'STATUT', 'ECHEANCE'], triCol: 'ECHEANCE', triSens: 'asc', max: 5 },
+                            { nom: 'Projets en difficulté', table: P, filtres: [{ col: 'METEO', op: 'is', val: ['En difficulté'] }, { col: 'STATUT', op: 'not', val: ['Terminé'] }], orange: 1, rouge: 3,
+                                colonnes: ['PROJET', 'DIRECTION', 'STATUT', 'ECHEANCE'], triCol: 'ECHEANCE', triSens: 'asc', max: 5 },
+                            { nom: 'Échéances dans les 30 prochains jours', table: P, filtres: [{ col: 'ECHEANCE', op: 'nextDays', val: 30 }, { col: 'STATUT', op: 'not', val: ['Terminé'] }], orange: 1, rouge: 6,
+                                colonnes: ['PROJET', 'DIRECTION', 'METEO', 'ECHEANCE'], triCol: 'ECHEANCE', triSens: 'asc', max: 5 }] },
                     { type: 'kpi', titre: 'Budget consommé', table: P, taille: 'S', mesure: { agg: 'sum', col: 'CONSOMME' }, cible: { mode: 'somme', table: P, col: 'BUDGET', libelle: 'budget total' }, plusBas: true, sousTitre: 'Rapporté au budget total' },
                     { type: 'donut', titre: 'Projets par météo', table: P, taille: 'M', groupe: 'METEO', tri: 'naturel', mesure: { agg: 'count' }, max: 6, filtres: [] },
                     { type: 'progress', titre: 'Budget consommé par direction', table: P, taille: 'M', groupe: 'DIRECTION', mesure: { agg: 'sum', col: 'CONSOMME' }, cible: { mode: 'colonne', col: 'BUDGET' }, depassement: 'mauvais', tri: 'valeur', filtres: [] },
@@ -11524,6 +11859,56 @@ var MODELES = [
                     { type: 'line', titre: 'Dépenses par mois', table: E, taille: 'L', colDate: 'DATE_DEPENSE', pas: 'month', mesure: { agg: 'sum', col: 'MONTANT' }, aire: true, filtres: [] },
                     { type: 'bar', titre: 'Dépenses par service', table: E, taille: 'L', groupe: 'SERVICE', serie: 'NATURE', empile: true, tri: 'valeur', mesure: { agg: 'sum', col: 'MONTANT' }, filtres: [] },
                     { type: 'latest', titre: 'Dernières dépenses', table: E, taille: 'L', colDate: 'DATE_DEPENSE', colonnes: ['LIBELLE', 'NATURE', 'MONTANT', 'VALIDEE'], max: 6, filtres: [] }
+                ] };
+        } },
+    { id: 'attention', nom: 'Points d\'attention', icone: 'alarm-warning-line', description: 'Courriers en retard ou sans responsable, contrats à renouveler : ce qui demande une action, sur plusieurs listes.',
+        tables: [{ id: 'COURRIERS', titre: '✉️ Courriers', colonnes: [
+                    { id: 'OBJET', type: 'Text' }, { id: 'EXPEDITEUR', type: 'Text' },
+                    { id: 'STATUT', type: 'Choice', widgetOptions: optionsChoixCouleurs(['Reçu', 'Attribué', 'En rédaction', 'Répondu'], [7, 0, 2, 3]) },
+                    { id: 'RESPONSABLE', type: 'Choice', widgetOptions: optionsChoixCouleurs(AGENTS) },
+                    { id: 'RECU_LE', type: 'Date' }, { id: 'ECHEANCE', type: 'Date' }
+                ],
+                lignes: function (r, t0) {
+                    var objets = ['Demande d\'information', 'Réclamation', 'Demande de rendez-vous', 'Invitation', 'Demande de subvention', 'Signalement', 'Demande d\'attestation', 'Courrier parlementaire'];
+                    var expediteurs = ['Mairie de Saint-Aubin', 'Association Horizon', 'M. Durand', 'Mme Lefèvre', 'Préfecture', 'Chambre de commerce', 'Collège Jean-Moulin', 'Député de la circonscription'];
+                    var l = [];
+                    for (var i = 0; i < 60; i++) {
+                        var recu = -entre(r, 0, 60);
+                        var statut = recu < -25 ? pioche(r, ['Répondu', 'En rédaction', 'Attribué'], [8, 1, 1]) : pioche(r, ['Reçu', 'Attribué', 'En rédaction', 'Répondu'], [2, 3, 2, 3]);
+                        l.push({ OBJET: pioche(r, objets), EXPEDITEUR: pioche(r, expediteurs), STATUT: statut, RESPONSABLE: statut === 'Reçu' && r() < .7 ? null : pioche(r, AGENTS),
+                            RECU_LE: jourRel(t0, recu), ECHEANCE: jourRel(t0, recu + 15) });
+                    }
+                    return l;
+                } }, { id: 'CONTRATS', titre: '📄 Contrats', colonnes: [
+                    { id: 'CONTRAT', type: 'Text' }, { id: 'FOURNISSEUR', type: 'Text' }, { id: 'MONTANT', type: 'Numeric', widgetOptions: devise() },
+                    { id: 'FIN_LE', type: 'Date' }, { id: 'RENOUVELLEMENT_LANCE', type: 'Bool' }
+                ],
+                lignes: function (r, t0) {
+                    var contrats = ['Maintenance des ascenseurs', 'Nettoyage des locaux', 'Location des copieurs', 'Abonnement presse', 'Téléphonie mobile', 'Gardiennage', 'Maintenance du chauffage', 'Licences bureautiques',
+                        'Restauration collective', 'Entretien des espaces verts', 'Fournitures de bureau', 'Affranchissement', 'Assurance des véhicules', 'Hébergement du site', 'Formation des agents', 'Contrôle des extincteurs',
+                        'Location de véhicules', 'Déménagement', 'Traduction', 'Interprétariat', 'Archivage externe', 'Destruction de documents'];
+                    var fournisseurs = ['Société Alpha', 'Groupe Beta', 'Entreprise Gamma', 'Delta Services', 'Epsilon et fils'];
+                    return contrats.map(function (c, i) {
+                        var fin = entre(r, -15, 320);
+                        return { CONTRAT: c, FOURNISSEUR: pioche(r, fournisseurs), MONTANT: Math.round((2 + r() * r() * 120) * 1000 / 100) * 100,
+                            FIN_LE: jourRel(t0, fin), RENOUVELLEMENT_LANCE: fin > 120 ? r() < .2 : r() < .45 };
+                    });
+                } }],
+        tableau: function (T) {
+            var C = T.COURRIERS, K = T.CONTRATS;
+            return { nom: 'Points d\'attention', description: 'Ce qui demande une action, calculé à partir des listes à chaque affichage.', table: C, periode: null, filtres: [],
+                tuiles: [
+                    { type: 'alertes', titre: 'Points d\'attention', table: C, taille: 'XL', filtres: [], regles: [
+                            { nom: 'Courriers en retard', table: C, filtres: [{ col: 'STATUT', op: 'not', val: ['Répondu'] }, { col: 'ECHEANCE', op: 'past' }], orange: 1, rouge: 5,
+                                colonnes: ['OBJET', 'EXPEDITEUR', 'RESPONSABLE', 'ECHEANCE'], triCol: 'ECHEANCE', triSens: 'asc', max: 5 },
+                            { nom: 'Courriers sans responsable depuis plus de 3 jours', table: C, filtres: [{ col: 'RESPONSABLE', op: 'empty' }, { col: 'STATUT', op: 'not', val: ['Répondu'] }, { col: 'RECU_LE', op: 'olderDays', val: 3 }], orange: 1, rouge: 3,
+                                colonnes: ['OBJET', 'EXPEDITEUR', 'RECU_LE', 'ECHEANCE'], triCol: 'RECU_LE', triSens: 'asc', max: 5 },
+                            { nom: 'Contrats à renouveler dans les 60 jours', table: K, filtres: [{ col: 'FIN_LE', op: 'nextDays', val: 60 }, { col: 'RENOUVELLEMENT_LANCE', op: 'false' }], orange: 1, rouge: 3,
+                                colonnes: ['CONTRAT', 'FOURNISSEUR', 'MONTANT', 'FIN_LE'], triCol: 'FIN_LE', triSens: 'asc', max: 5 },
+                            { nom: 'Contrats échus sans renouvellement', table: K, filtres: [{ col: 'FIN_LE', op: 'past' }, { col: 'RENOUVELLEMENT_LANCE', op: 'false' }], orange: 1, rouge: 1,
+                                colonnes: ['CONTRAT', 'FOURNISSEUR', 'MONTANT', 'FIN_LE'], triCol: 'FIN_LE', triSens: 'asc', max: 5 }] },
+                    { type: 'kpi', titre: 'Courriers en attente de réponse', table: C, taille: 'M', mesure: { agg: 'count' }, filtres: [{ col: 'STATUT', op: 'not', val: ['Répondu'] }], plusBas: true },
+                    { type: 'kpi', titre: 'Contrats à renouveler dans l\'année', table: K, taille: 'M', mesure: { agg: 'count' }, filtres: [{ col: 'FIN_LE', op: 'nextDays', val: 365 }, { col: 'RENOUVELLEMENT_LANCE', op: 'false' }], plusBas: true }
                 ] };
         } }
 ];
@@ -11986,6 +12371,7 @@ function raisonNom(b) {
     return doublon ? 'Un autre tableau de bord de ce document porte déjà ce nom.' : null;
 }
 var RANGS_DEPART = [{ cle: 'bar', glyphe: 'bar', titre: 'Un graphique', types: ['bar', 'line', 'donut', 'funnel', 'histogram', 'radar'], max: 4 },
+    { cle: 'alertes', glyphe: 'alertes', titre: 'Des points d\'attention', types: ['alertes'], max: 2 },
     { cle: 'kpi', glyphe: 'kpi', titre: 'Un chiffre', types: ['kpi', 'gauge'], max: 4 },
     { cle: 'croise', glyphe: 'croise', titre: 'Un tableau croisé', types: ['croise'], max: 3 },
     { cle: 'gantt', glyphe: 'gantt', titre: 'Un planning', types: ['gantt'], max: 2 }];
@@ -11995,7 +12381,7 @@ function suggestionsElements() {
         tids.push(x.table);
     } });
     tablesUtilisateur().filter(function (t) { return nbLignes(t) > 0 && tids.indexOf(t) === -1; }).forEach(function (t) { tids.push(t); });
-    var res = { kpi: [], bar: [], croise: [], gantt: [] };
+    var res = { kpi: [], bar: [], croise: [], gantt: [], alertes: [] };
     var vus = {};
     tids.forEach(function (tid) {
         var l = tuilesSuggerees(tid).slice();
@@ -12094,7 +12480,7 @@ function rendreDepart(bloc) {
             }
         }), 'Recherche des réglages des autres widgets');
     }
-    var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [] };
+    var sugg = charge ? suggestionsElements() : { kpi: [], bar: [], croise: [], gantt: [], alertes: [] };
     var items = (etat.reprises || []).filter(function (it) { return !it.vide; });
     var rubriques = [{ cle: 'pages', titre: 'Mes pages publiées', icone: 'layout-grid-line' }].concat(RANGS_DEPART.map(function (r) { return { cle: r.cle, titre: r.titre, glyphe: r.glyphe }; }),
         [{ cle: 'tdb', titre: 'Un tableau de bord', glyphe: 'tdb' }], etat.reprisesPresentes && items.length ? [{ cle: 'reprise', titre: 'Reprendre mes anciens réglages', glyphe: 'reprise' }] : [],
@@ -12203,7 +12589,7 @@ function rendreDepart(bloc) {
     }
     bloc.appendChild(creer('div', { classe: 'gb-accueil' }, [menu, scene]));
 }
-var TITRES_SCENE = { pages: 'Mes pages publiées', bar: 'Mes graphiques', kpi: 'Mes chiffres', croise: 'Mes tableaux croisés', gantt: 'Mes plannings', tdb: 'Mes tableaux de bord', reprise: 'Mes anciens réglages', droits: 'Les droits' };
+var TITRES_SCENE = { pages: 'Mes pages publiées', bar: 'Mes graphiques', alertes: 'Mes points d\'attention', kpi: 'Mes chiffres', croise: 'Mes tableaux croisés', gantt: 'Mes plannings', tdb: 'Mes tableaux de bord', reprise: 'Mes anciens réglages', droits: 'Les droits' };
 async function chargerListesDocument() {
     afficherLoader('Analyse de vos listes…');
     try {
@@ -12838,6 +13224,8 @@ async function choisirDepart(choix) {
     }
 }
 var GLYPHES = {
+    alertes: [['rect', { x: 0, y: 1, width: 10, height: 7 }], ['rect', { x: 14, y: 3, width: 40, height: 3, o: .5 }], ['rect', { x: 0, y: 12, width: 10, height: 7, o: .7 }],
+        ['rect', { x: 14, y: 14, width: 32, height: 3, o: .5 }], ['rect', { x: 0, y: 23, width: 10, height: 7, o: .4 }], ['rect', { x: 14, y: 25, width: 36, height: 3, o: .5 }]],
     kpi: [['rect', { x: 0, y: 5, width: 32, height: 13 }], ['rect', { x: 0, y: 22, width: 20, height: 3, o: .35 }]],
     kpigrid: [['rect', { x: 0, y: 3, width: 18, height: 24, o: .2 }], ['rect', { x: 21, y: 3, width: 18, height: 24, o: .2 }], ['rect', { x: 42, y: 3, width: 18, height: 24, o: .2 }],
         ['rect', { x: 3, y: 9, width: 10, height: 6 }], ['rect', { x: 24, y: 9, width: 12, height: 6 }], ['rect', { x: 45, y: 9, width: 8, height: 6 }]],
