@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.2.0 - 23/11/2026
+  Version : 1.2.1 - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -239,6 +239,7 @@
     .w-fu-ligne .w-echantillon .fr-select { flex: 1 1 auto; min-width: 0; margin: 0; }
     .w-fu-ligne .w-echantillon[hidden] { display: none; }
     .w-fu-atelier--pleine > .w-atelier { display: none; }
+    .w-fu-types { flex: 1; min-height: 0; overflow: auto; padding-bottom: 1rem; }
     .w-ec-poignee { cursor: grab; }
     .w-ec-poignee:active, .w-ec-grip:active { cursor: grabbing; }
     .w-ec-grip { position: absolute; left: -1.75rem; top: 0; width: 1.5rem; height: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 25;
@@ -1130,7 +1131,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.2.0';
+var VERSION_WIDGET = '1.2.1';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2932,8 +2933,8 @@ function resumeEtapeFu(b, nom) {
         var p = b.page || {};
         return (PAPIERS[p.size] || PAPIERS.a4).nom + ', ' + (p.orientation === 'landscape' ? 'paysage' : 'portrait');
     }
-    if (nom === 'Le texte du document') {
-        return 'S\'ouvre en pleine largeur';
+    if (nom === 'Vérifier le document') {
+        return 'Champs vides, nombre de pages';
     }
     return '';
 }
@@ -3001,12 +3002,35 @@ function colonnesAInsererFu(b) {
     return creer('section', { classe: 'w-section w-fu-ligne', attrs: { 'aria-labelledby': 'pColInsTitre' } }, l);
 }
 var MIME_CHAMP = 'application/x-wuit-champ';
+/* Étape « Vérifier le document » : le contrôle de toutes les lignes (champs
+   vides, documents de plus d'une page), le changement de type et la liste
+   des éléments. Le texte, lui, s'écrit directement dans le document. */
+function etapeVerifierFu(b) {
+    return creer('div', {}, [
+        creer('section', { classe: 'w-section w-fu-ligne' }, [
+            creer('h3', { classe: 'w-c3__titre', texte: 'Contrôle sur toutes les lignes' }),
+            creer('p', { classe: 'w-mention', texte: 'WuitFusion prépare le document pour chaque ligne de la table et signale les champs vides et les documents de plus d\'une page.' }),
+            creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } })]),
+        creer('section', { classe: 'w-section w-fu-ligne' }, [
+            creer('h3', { classe: 'w-c3__titre', texte: 'Autres actions' }),
+            creer('div', { classe: 'w-liens' }, [
+                bouton(b.avance ? 'Revenir à l\'écriture dans la page' : 'Voir la liste des éléments', 'secondaire', b.avance ? 'edit-line' : 'list-unordered', function () {
+                    b.avance = !b.avance;
+                    b.vueDonnees = false;
+                    redessinerEtape('pAvance');
+                }, { petit: true, id: 'pAvance' }),
+                bouton('Changer de type de document', 'secondaire', 'file-text-line', function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })]),
+            b.avance ? creer('div', { id: 'pBlocsAvance' }, [colonneBlocs()]) : null])]);
+}
 function contenuEtapeFu(b, nom) {
     if (nom === 'Général') {
         return creer('section', { classe: 'w-section' }, [champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); })]);
     }
     if (nom === 'Vos données') {
         return creer('div', {}, [ligneAfficheeFu(b), colonnesAInsererFu(b), etapeDonnees()]);
+    }
+    if (nom === 'Vérifier le document') {
+        return etapeVerifierFu(b);
     }
     if (nom === 'La mise en page') {
         return etapeMiseEnPage();
@@ -3024,11 +3048,8 @@ function allerEtapeFu(n) {
     if (!b) {
         return;
     }
-    if (n === ETAPE_TEXTE) {
-        b.etapeAvantTexte = b.etape;
-    }
     return allerEtape(n).then(function () {
-        var h = document.getElementById(n === ETAPE_TEXTE ? 'pTitreTexte' : 'pEtape_' + n);
+        var h = document.getElementById('pEtape_' + n);
         if (h) {
             h.focus({ preventScroll: true });
         }
@@ -3112,6 +3133,9 @@ function centreApercuFu(b) {
         ecrire ? (b.vueDonnees ? creer('span', { classe: 'w-mention', texte: 'Avec les données, en lecture seule' }) : null) : creer('span', { classe: 'w-mention', texte: 'Aperçu avec vos données, en lecture seule' }),
         creer('span', { classe: 'w-pousse' }),
         bouton(etat.pleinePageFu ? 'Quitter la pleine page' : 'Pleine page', 'secondaire', etat.pleinePageFu ? 'fullscreen-exit-line' : 'fullscreen-line', basculerPleinePageFu, { petit: true, id: 'pPleinePage', attrs: { 'aria-pressed': etat.pleinePageFu ? 'true' : 'false', title: etat.pleinePageFu ? 'Revenir au paramétrage (Échap)' : 'Cacher le paramétrage pour voir le document en grand' } })]);
+    if (b.vueType) {
+        return creer('section', { classe: 'w-fu-centre w-fu-centre--types', attrs: { 'aria-label': 'Changer de type de document' } }, [tete, creer('div', { classe: 'w-fu-types' }, [etapeChangerType()])]);
+    }
     if (ecrire) {
         return creer('section', { classe: 'w-fu-centre w-fu-centre--ecrire', id: 'pDocCentre', attrs: { 'aria-label': estTypeLettre(b.layout) ? 'Le courrier, modifiable dans la page' : 'La page, modifiable' } }, [tete, editeurCourrier()]);
     }
@@ -5957,7 +5981,7 @@ function afficherVue(vue, garderFocus) {
         envelopperOnglets(zone);
     }
     zone.classList.toggle('w-contenu--doc', vue === 'document');
-    zone.classList.toggle('w-contenu--atelier', vue === 'assistant' && pageAdminFu() && !!etat.brouillon && etat.brouillon.mode === 'edition' && etat.brouillon.etape !== ETAPE_TEXTE);
+    zone.classList.toggle('w-contenu--atelier', vue === 'assistant' && pageAdminFu() && !!etat.brouillon && etat.brouillon.mode === 'edition');
     majTitrePage();
     if (vue === 'document') {
         relayer(Promise.resolve().then(rendreApercuPrincipal), 'Aperçu');
@@ -7262,7 +7286,7 @@ function rendreEchec(zone) {
         bouton('Réessayer', null, 'refresh-line', initialiser)]));
 }
 var ETAPES = ['Point de départ', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Récapitulatif'];
-var ETAPES_PARAM = ['Général', 'Vos données', 'La mise en page', 'Le texte du document', 'Pour les utilisateurs', 'Les droits'];
+var ETAPES_PARAM = ['Général', 'Vos données', 'La mise en page', 'Vérifier le document', 'Pour les utilisateurs', 'Les droits'];
 var ETAPE_FINALE = 6;
 var SEUIL_RECHERCHE_TABLES = 8;
 function demarrerCreation() {
@@ -7781,7 +7805,7 @@ function rendreAssistant(zone) {
     if (b.etape > ETAPES_PARAM.length) {
         b.etape = ETAPES_PARAM.length;
     }
-    zone.appendChild(b.etape === ETAPE_TEXTE ? redactionPleineFu(b) : creer('div', { classe: 'w-fu-atelier' + (etat.pleinePageFu ? ' w-fu-atelier--pleine' : '') }, [centreApercuFu(b), panneauParamFu(b)]));
+    zone.appendChild(creer('div', { classe: 'w-fu-atelier' + (etat.pleinePageFu ? ' w-fu-atelier--pleine' : '') }, [centreApercuFu(b), panneauParamFu(b)]));
     finRenduAssistant(b, true);
 }
 function finRenduAssistant(b, edition) {
@@ -9798,7 +9822,7 @@ function calculerAlertesVerif() {
         ligne('alerte', 'warning-line', [creer('p', { classe: 'w-verif__titre', texte: 'Plus d\'une page' }), creer('p', { id: 'pAlerteLongues', texte: 'Le document dépasse une page pour ' + pluriel(r.longues.length, 'ligne') + ' : ' + listeNoms(r.longues) + '.' })]);
     }
     if (!r.vides.length && !r.longues.length) {
-        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Aucune colonne vide, et chaque document tient sur une page.' })]);
+        ligne('ok', 'checkbox-circle-line', [creer('p', { texte: 'Tout est bon : aucun champ vide, et chaque document tient sur une page.' })]);
     }
     if (r.nb > Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) {
         zone.appendChild(creer('p', { classe: 'w-indice', texte: 'Vérification faite sur les ' + formaterNombre(Math.min(VERIF_MAX_LIGNES, VERIF_MAX_PAGES)) + ' premières lignes pour les pages, ' + formaterNombre(VERIF_MAX_LIGNES) + ' pour les champs.' }));
