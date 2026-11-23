@@ -1390,7 +1390,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.1";
+var VERSION_WIDGET = "1.0.2";
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -1610,7 +1610,7 @@ function optionsOperation() {
 var TRAITEMENTS = ["les2", "anonymiser", "supprimer"];
 var UNITES = [{ valeur: "mois", libelle: "mois" }, { valeur: "ans", libelle: "ans" }];
 var VUES = [{ cle: "traiter", nom: "À traiter" }, { cle: "bientot", nom: "Dans les 3 prochains mois" }, { cle: "attente", nom: "En attente" }];
-var ETAPES_REGLE = ["La table", "Le nom", "Quels dossiers archiver ?", "Traitements", "Tables liées"];
+var ETAPES_REGLE = ["La table", "Le nom", "Quelles lignes archiver ?", "Traitements", "Tables liées"];
 var MOTS_PERSONNELS = [
   "nom",
   "prenom",
@@ -5291,7 +5291,7 @@ function majApercuFiltres(c, idBase) {
     z.appendChild(creer("p", { classe: "w-mention", texte: pluriel(a.bientot, "autre dossier", "autres dossiers") + " dans les 3 prochains mois." }));
   }
   if (a.total && a.liste.length === a.total) {
-    z.appendChild(alerte("warning", null, "Tous les dossiers de la table sont concernés : vérifiez les conditions."));
+    z.appendChild(alerte("warning", null, "Toutes les lignes de la table sont concernées : vérifiez les conditions."));
   }
   if (a.liste.length) {
     var cols = colonnesAffichees(c).slice(0, 4);
@@ -5517,14 +5517,14 @@ function casesColonnesSuggerees(idBase, cols, suggerees, choisies, surChange) {
   return g;
 }
 var APERCUS_ETAPES = {
-  "Quels dossiers archiver ?": function() {
+  "Quelles lignes archiver ?": function() {
     return [
-      creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Tous les dossiers de la table"]),
+      creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-case" }), "Toutes les lignes de la table"]),
       creer("div", { classe: "w-af__ligne" }, [creer("span", { classe: "w-af__lien", texte: "Où" }), creer("div", { classe: "w-af__seg w-apercu-seg" }, [creer("span", { classe: "w-af__col", texte: "Colonne" }), creer("span", { classe: "w-af__op", texte: "Filtre" }), creer("span", { classe: "w-af__valeur", texte: "Valeur" })])]),
       creer("p", { classe: "w-apercu-q", texte: "+ Ajouter un filtre    + Ajouter un groupe de filtres" })
     ];
   },
-  "Que faire de ces dossiers ?": function() {
+  "Que faire de ces lignes ?": function() {
     return ["Vider les données personnelles, et supprimer en second choix", "Vider les données personnelles seulement", "Supprimer seulement"].map(function(t) {
       return creer("p", { classe: "w-apercu-q" }, [creer("span", { classe: "w-apercu-radio" }), t]);
     }).concat([creer("p", { classe: "w-apercu-q w-apercu-sous", texte: "Colonnes à vider" })]);
@@ -5718,12 +5718,12 @@ function rendreEditeur(c, idBase) {
     var perso = tableOk ? champsPersonnelsForts(c.table) : [];
     corpsTable.push(creer("p", { classe: "w-table-choisie" }, [nomTable(c.table), perso.length ? creer("span", { classe: "fr-badge fr-badge--sm fr-badge--no-icon fr-badge--purple-glycine", texte: "Données personnelles" }) : null]));
   }
-  defile.appendChild(carteParam(titreNum("Dans quelle table ?"), "eCarteTable", corpsTable));
+  defile.appendChild(carteParam(titreNum("Archiver des données de quelle table ?"), "eCarteTable", corpsTable));
   if (c.table && !tableOk) {
     defile.appendChild(alerte("error", null, "La table « " + c.table + " » n'existe plus dans le document."));
   }
   if (!tableOk) {
-    ["Quels dossiers archiver ?", "Que faire de ces dossiers ?", "Et les tables liées ?", "Nom de la règle"].forEach(function(t, k) {
+    ["Quelles lignes archiver ?", "Que faire de ces lignes ?", "Et les tables liées ?", "Nom de la règle"].forEach(function(t, k) {
       defile.appendChild(carteParam(titreNum(t), "eCarteV" + k, [], 1));
     });
   }
@@ -5746,8 +5746,8 @@ function rendreEditeur(c, idBase) {
         ensuite();
       }
     };
-    defile.appendChild(carteParam(titreNum("Quels dossiers archiver ?"), "eCarteFiltres", [
-      caseACocher(idBase + "Tous", "Tous les dossiers de la table", !!c.filtres.tous, function(v) {
+    defile.appendChild(carteParam(titreNum("Quelles lignes archiver ?"), "eCarteFiltres", [
+      caseACocher(idBase + "Tous", "Toutes les lignes de la table", !!c.filtres.tous, function(v) {
         c.filtres.tous = v;
         changerFiltres(idBase + "Tous");
       }),
@@ -5769,7 +5769,7 @@ function rendreEditeur(c, idBase) {
       casesColonnesSuggerees(idBase + "Ch", eff, champsSuggeres(c.table, ""), c.champs, apres)
     ]);
     zoneChamps.hidden = c.traitements === "supprimer";
-    defile.appendChild(carteParam(titreNum("Que faire de ces dossiers ?"), "eCarteTrait", v[1] ? [
+    defile.appendChild(carteParam(titreNum("Que faire de ces lignes ?"), "eCarteTrait", v[1] ? [
       radios(idBase + "Trait", "Traitement", [
         { valeur: "les2", libelle: "Vider les données personnelles, et supprimer en second choix" },
         { valeur: "anonymiser", libelle: "Vider les données personnelles seulement" },
@@ -6926,7 +6926,7 @@ function rendreAide() {
   } else {
     var q = [
       ["Je ne vois pas les cases à cocher ni les boutons.", "Vos droits sur ce document ne le permettent pas, ou l'archivage a été réservé aux propriétaires. Vous pouvez tout de même consulter les listes et l'historique."],
-      ["Comment archiver selon un statut ?", "Étape « Quels dossiers archiver ? » : ajoutez un filtre sur la colonne du statut, comparaison « est l'une des valeurs cochées », puis cochez les valeurs (par exemple « Candidat n'a pas répondu »). Les valeurs viennent de la colonne : rien à saisir, donc ni faute de frappe ni erreur de majuscule."],
+      ["Comment archiver selon un statut ?", "Étape « Quelles lignes archiver ? » : ajoutez un filtre sur la colonne du statut, comparaison « est l'une des valeurs cochées », puis cochez les valeurs (par exemple « Candidat n'a pas répondu »). Les valeurs viennent de la colonne : rien à saisir, donc ni faute de frappe ni erreur de majuscule."],
       ["Comment archiver une période ?", "Ajoutez un filtre sur une colonne de date, comparaison « est entre le », puis choisissez les deux dates dans le calendrier (elles sont incluses). « est avant le » et « est après le » ne prennent qu'une date."],
       ["Différence entre « date de plus de » et « est entre le » ?", "« date de plus de 2 ans » se calcule chaque jour à partir de la date du jour : la liste s'allonge toute seule et l'échéancier des 3 prochains mois est proposé. « est entre le » porte sur des dates fixes."],
       ["« Tous les filtres » ou « au moins un » ?", "Tous : le dossier doit remplir chaque filtre (par exemple clos ET fini depuis plus de 2 ans). Au moins un : un seul suffit. La phrase « À archiver : les dossiers dont... » sous les filtres dit exactement ce qui sera retenu."],
