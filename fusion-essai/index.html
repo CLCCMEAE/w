@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.6-essai - 23/11/2026
+  Version : 1.3.7-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -253,6 +253,9 @@
     .w-atelier .w-rg__val { font-size: .875rem; }
     .w-atelier .w-rg__ok { font-size: .875rem; color: var(--text-default-success); }
     .w-atelier .w-rg__groupe { margin: .75rem 0 0; font-size: .75rem; font-weight: 700; text-transform: none; letter-spacing: .02em; color: var(--text-title-grey); border-bottom: 1px solid var(--border-default-grey); padding-bottom: .125rem; }
+    .w-picto { display: inline-flex; flex: none; vertical-align: -.2em; margin-right: .25rem; }
+    .w-picto svg { width: 1em; height: 1em; }
+    .w-champ-puce .w-picto { margin-right: .125rem; }
     .w-fu-affichage { display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap; min-width: 0; }
     .w-fu-affichage .w-echantillon { flex-wrap: nowrap; }
     .w-fu-affichage .w-echantillon .fr-btn { min-height: 2rem; width: 2rem; padding: 0; }
@@ -1182,7 +1185,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.6-essai';
+var VERSION_WIDGET = '1.3.7-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -2978,7 +2981,7 @@ function resumeEtapeFu(b, nom) {
         return '';
     }
     if (nom === 'Les données') {
-        return b.table && etat.meta.tables[b.table] ? libelleSansEmoji(libelleTable(b.table)) + (etat.donnees[b.table] && etat.donnees[b.table].d ? ' · ' + pluriel(etat.donnees[b.table].d.id.length, 'ligne') : '') : 'À choisir';
+        return b.table && etat.meta.tables[b.table] ? [picto('table'), libelleSansEmoji(libelleTable(b.table))].concat(etat.donnees[b.table] && etat.donnees[b.table].d ? [' · ', picto('ligne'), pluriel(etat.donnees[b.table].d.id.length, 'ligne')] : []) : 'À choisir';
     }
     if (nom === 'La page') {
         var p = b.page || {};
@@ -3041,7 +3044,7 @@ function colonnesAInsererFu(b) {
         l.push(creer('p', { classe: 'w-champs__groupe', texte: kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Automatiques' : g.nom) }));
         l.push(creer('ul', { classe: 'w-champs w-champs--glisser', attrs: { 'aria-label': kg === 0 ? 'Données de la ligne' : (g.nom === 'Autres' ? 'Champs automatiques' : g.nom) } }, g.options.map(function (o, k) {
             var bt = creer('span', { classe: 'w-champ-puce', id: 'pChampDispo' + kg + '_' + k, attrs: { role: 'button', tabindex: '0', draggable: 'true', title: 'Glisser dans le texte, ou cliquer pour l\'ajouter au curseur', 'aria-label': 'Ajouter le champ ' + o.libelle } }, [
-                o.libelle]);
+                g.nom === 'Autres' ? null : picto('colonne'), o.libelle]);
             bt.addEventListener('click', function () { insererChampDepuisPanneau(o.valeur); });
             bt.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -3109,8 +3112,8 @@ function aidesEnInfobulles(c) {
         }
     });
 }
-function ligneReglage(libelle, controle, pourId) {
-    return creer('div', { classe: 'w-rg' }, [creer(pourId ? 'label' : 'span', { classe: 'w-rg__lib', texte: libelle, attrs: pourId ? { 'for': pourId } : {} }), creer('div', { classe: 'w-rg__ctl' }, [controle])]);
+function ligneReglage(libelle, controle, pourId, type) {
+    return creer('div', { classe: 'w-rg' }, [creer(pourId ? 'label' : 'span', { classe: 'w-rg__lib', attrs: pourId ? { 'for': pourId } : {} }, type ? [picto(type), libelle] : [libelle]), creer('div', { classe: 'w-rg__ctl' }, [controle])]);
 }
 function sousTitreFu(t) { return creer('p', { classe: 'w-rg__groupe', texte: t }); }
 function replie(id, resume, contenu, ouvert) {
@@ -3121,6 +3124,21 @@ function replie(id, resume, contenu, ouvert) {
     return d;
 }
 /* 1. Le document */
+/* Pictogrammes de la série : table, colonne, ligne (les mêmes partout). */
+var PICTOS_DONNEES = {
+    colonne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="2.5" width="4.5" height="11" fill="currentColor"/></svg>',
+    table: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6h13M1.5 9.5h13M6 6v7.5M10.5 6v7.5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>',
+    ligne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="6" width="13" height="3.5" fill="currentColor"/></svg>'
+};
+function picto(type) {
+    var sp = document.createElement('span');
+    sp.className = 'w-picto';
+    sp.setAttribute('aria-hidden', 'true');
+    sp.innerHTML = PICTOS_DONNEES[type] || '';
+    return sp;
+}
+function libPicto(type, texte) { return creer('span', { classe: 'w-lib-picto' }, [picto(type), texte]); }
+function sansEmojiTri(t) { return String(t || '').replace(/^[^\p{L}\p{N}]+/u, '').toLowerCase(); }
 function etapeDocumentFu(b) {
     var nom = champNomDocument('pNomDoc', b.name, function (v) { b.name = v; marquerTouche(); });
     var desc = saisie('pDescDoc', b.description || '', { multiligne: true, lignes: 2, indice: 'Description de ce document' });
@@ -3143,7 +3161,7 @@ function nommerParFu(b) {
     var rep = liste('pRepereLignes', combis.concat(cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; })), b.labelCol || '', { vide: 'Numéro de ligne' });
     rep.setAttribute('title', 'La colonne qui désigne chaque ligne, par exemple « Mme Claire Dubois » : dans le choix de la ligne au-dessus du document et, par défaut, dans le nom des fichiers.');
     rep.addEventListener('change', function () { b.labelCol = rep.value || null; marquerTouche(); redessinerEtape('pRepereLignes'); });
-    return ligneReglage('Lignes désignées par', rep, 'pRepereLignes');
+    return ligneReglage('Lignes désignées par', rep, 'pRepereLignes', 'ligne');
 }
 function compacterChoixTable(racine) {
     var fs = racine.querySelector('#pDonnees');
@@ -3170,6 +3188,15 @@ function compacterChoixTable(racine) {
         sel.appendChild(op);
         o.hidden = true;
     });
+    var opsT = Array.prototype.slice.call(sel.options);
+    opsT.sort(function (a, b2) { if (a.value === 'pDonneeExemple') {
+        return 1;
+    } if (b2.value === 'pDonneeExemple') {
+        return -1;
+    } return sansEmojiTri(a.textContent).localeCompare(sansEmojiTri(b2.textContent), 'fr'); });
+    var valT = sel.value;
+    opsT.forEach(function (o) { sel.appendChild(o); });
+    sel.value = valT;
     if (!sel.querySelector('option[selected], option:checked')) {
         sel.insertBefore(creer('option', { texte: 'Choisir une table…', attrs: { value: '' } }), sel.firstChild);
         sel.value = '';
@@ -3177,7 +3204,7 @@ function compacterChoixTable(racine) {
     sel.addEventListener('change', function () { var r = document.getElementById(sel.value); if (r && !r.checked) {
         r.click();
     } });
-    var rangee = ligneReglage('Table', sel, 'pTableChoix');
+    var rangee = ligneReglage('Table', sel, 'pTableChoix', 'table');
     Array.prototype.slice.call(fs.children).forEach(function (n) { n.hidden = true; });
     fs.insertBefore(rangee, fs.firstChild);
     return sel;
@@ -3207,7 +3234,7 @@ function compacterCorrespondance(racine) {
     var relies = sels.filter(function (s) { return !!s.value; }).length;
     var section = tab.closest('.w-section') || tab.parentNode;
     var parent = section.parentNode;
-    var d = replie('pCorrReplie', [creer('span', { classe: 'w-rg__lib', texte: 'Infos du modèle' }), creer('span', { classe: relies === sels.length ? 'w-rg__ok' : 'w-rg__val', texte: (relies === sels.length ? 'Toutes trouvées dans la table' : relies + ' sur ' + sels.length + ' trouvées dans la table') + ' · voir' })], [
+    var d = replie('pCorrReplie', [creer('span', { classe: 'w-rg__lib' }, [picto('colonne'), 'Infos du modèle']), creer('span', { classe: relies === sels.length ? 'w-rg__ok' : 'w-rg__val', texte: (relies === sels.length ? 'Toutes trouvées dans la table' : relies + ' sur ' + sels.length + ' trouvées dans la table') + ' · voir' })], [
         creer('p', { classe: 'w-mention', texte: 'Le modèle a besoin de ces informations. Pour chacune, la colonne de la table qui la donne.' }), section], relies < sels.length);
     d.setAttribute('title', 'Les informations que le modèle remplit (nom, adresse…) et la colonne de la table qui donne chacune.');
     parent.appendChild(d);
@@ -3235,7 +3262,7 @@ function etapeDonneesFu(b) {
             lg.parentNode.removeChild(lg);
         }
         if (gs) {
-            gs.parentNode.replaceChild(ligneReglage('Documents pour', sf, 'pFiltreDoc'), gs);
+            gs.parentNode.replaceChild(ligneReglage('Documents pour', sf, 'pFiltreDoc', 'ligne'), gs);
         }
         lc.classList.remove('w-fs');
         Array.prototype.forEach.call(lc.querySelectorAll('option'), function (o) { if (o.textContent === 'Choisir une colonne…') {
@@ -3378,7 +3405,7 @@ function panneauParamFu(b) {
         var resume = resumeEtapeFu(b, nom);
         var tete = creer('button', { classe: 'w-atl-etape__tete', id: 'pEtape_' + (k + 1), attrs: { type: 'button', 'aria-expanded': on ? 'true' : 'false' } }, [
             creer('span', { classe: 'w-atl-etape__num', attrs: { 'aria-hidden': 'true' }, texte: String(k + 1) }),
-            creer('span', { classe: 'w-atl-etape__textes' }, [creer('span', { classe: 'w-atl-etape__nom', texte: nom }), resume ? creer('span', { classe: 'w-atl-etape__resume', texte: resume }) : null])]);
+            creer('span', { classe: 'w-atl-etape__textes' }, [creer('span', { classe: 'w-atl-etape__nom', texte: nom }), resume ? creer('span', { classe: 'w-atl-etape__resume' }, Array.isArray(resume) ? resume : [resume]) : null])]);
         tete.addEventListener('click', function () {
             if (on) {
                 return;
@@ -3443,6 +3470,7 @@ function affichageTeteFu(b) {
         var n = navEchantillon();
         var g = n.classList.contains('w-echantillon') ? n : n.querySelector('.w-echantillon');
         if (g) {
+            g.insertBefore(picto('ligne'), g.firstChild);
             l.push(g);
         }
     }
