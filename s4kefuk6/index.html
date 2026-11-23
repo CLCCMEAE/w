@@ -3041,6 +3041,10 @@ function estRefusDroits(e) {
     return /blocked by|access rules|acl_deny|permission|not allowed|insufficient|read.?only|viewer/i.test(m);
 }
 async function agir(actions) {
+    if (etat.page && etat.page.heritage) {
+        logSecurite('AVERTISSEMENT', 'Écriture refusée : page publiée par ' + etat.page.heritage + ', affichée en lecture seule');
+        throw new Error('Page en lecture seule');
+    }
     if (etat.niveauAcces && etat.niveauAcces !== 'full') {
         logSecurite('AVERTISSEMENT', 'Écriture refusée : accès complet non accordé au widget (niveau : ' + etat.niveauAcces + ')');
         etat.peutModifier = false;
@@ -6672,6 +6676,142 @@ function fusionnerReprises(items) {
     cfg.origine = 'reprise';
     return cfg;
 }
+/* Passerelle de lecture des pages publiées par WuitGraphiques et WuitBoard.
+   L'adresse de ces deux widgets sert désormais le code de WuitViz. Une page qu'ils
+   avaient publiée est convertie à la volée et affichée en lecture seule : rien
+   n'est écrit dans le document. Le propriétaire la reprend ensuite par
+   « Reprendre mes anciens réglages » et la republie. */
+var WIDGETS_HERITES = { 'Générateur de graphiques': 'WuitGraphiques', 'graphique': 'WuitGraphiques', 'Diploboard': 'WuitBoard' };
+var PREFIXE_HERITAGE = 'HERITAGE:';
+function pagePasserelle(d, badge) {
+    var cible = CLE_COPIE + ':' + badge, k = -1, source = '';
+    for (var i = 0; i < (d.id || []).length; i++) {
+        var w = colonneDe(d, 'WIDGET', i);
+        if (WIDGETS_HERITES[w] && colonneDe(d, 'CLE', i) === cible) {
+            k = i;
+            source = WIDGETS_HERITES[w];
+            break;
+        }
+    }
+    if (k < 0) {
+        return null;
+    }
+    var brut = {};
+    try {
+        brut = JSON.parse(String(colonneDe(d, 'VALEUR', k) || '{}')) || {};
+    }
+    catch (e) {
+        logSecurite('AVERTISSEMENT', 'Réglage de page ' + source + ' illisible', e);
+    }
+    if (brut.admin === true || brut.consultation !== true) {
+        return { page: pageValide({ admin: true }), tableaux: [] };
+    }
+    var r = source === 'WuitBoard' ? passerelleBoard(d, brut) : passerelleGraphiques(d, brut);
+    r.page.heritage = source;
+    r.page.ligne = null;
+    logSecurite('INFO', 'Page publiée par ' + source + ' affichée en lecture seule (' + r.tableaux.length + ' tableau(x) de bord)');
+    return r;
+}
+/* Widget principal (sans page) d'un utilisateur qui ne paramètre pas, dans un document
+   sans tableau de bord WuitViz : il voyait jusqu'ici les graphiques de WuitGraphiques ou
+   les tableaux de bord de WuitBoard. Ils restent consultables en lecture seule. */
+function pageHeritageGenerale(d) {
+    var ids = [], aBoard = false;
+    for (var i = 0; i < (d.id || []).length; i++) {
+        var w = colonneDe(d, 'WIDGET', i), cle = colonneDe(d, 'CLE', i), cfg = colonneDe(d, 'CONFIG', i);
+        if ((WIDGETS_HERITES[w] === 'WuitGraphiques' || (!w && !cle)) && cfg) {
+            ids.push(String(d.id[i]));
+        }
+        if (w === 'Diploboard' && typeof cle === 'string' && cle.indexOf(CLE_CONFIG + ':') === 0) {
+            aBoard = true;
+        }
+    }
+    var g = ids.length ? passerelleGraphiques(d, { graphiques: ids, colonnes: 2 }) : { tableaux: [] };
+    var b = aBoard ? passerelleBoard(d, { consultation: true, tableaux: [] }) : { tableaux: [] };
+    var tableaux = g.tableaux.concat(b.tableaux);
+    if (!tableaux.length) {
+        return null;
+    }
+    var page = pageValide({ consultation: true });
+    page.tableaux = tableaux.map(function (t) { return t.cle; });
+    page.lecteurs = b.page ? b.page.lecteurs : {};
+    page.heritage = [g.tableaux.length ? 'WuitGraphiques' : '', b.tableaux.length ? 'WuitBoard' : ''].filter(Boolean).join(' et ');
+    page.ligne = null;
+    logSecurite('INFO', 'Aucun tableau de bord WuitViz : anciens réglages ' + page.heritage + ' affichés en lecture seule');
+    return { page: page, tableaux: tableaux };
+}
+function passerelleBoard(d, brut) {
+    var page = pageValide(brut);
+    var tableaux = [];
+    for (var i = 0; i < (d.id || []).length; i++) {
+        var cle = colonneDe(d, 'CLE', i);
+        if (colonneDe(d, 'WIDGET', i) !== 'Diploboard' || typeof cle !== 'string' || cle.indexOf(CLE_CONFIG + ':') !== 0) {
+            continue;
+        }
+        if (page.tableaux.length && page.tableaux.indexOf(cle) === -1) {
+            continue;
+        }
+        try {
+            var cfg = JSON.parse(colonneDe(d, 'VALEUR', i) || '{}');
+            if (cfg && Array.isArray(cfg.tuiles)) {
+                retrouverRenommages(cfg);
+                tableaux.push({ cle: PREFIXE_HERITAGE + cle, ligne: null, config: cfg, heritage: true, ordre: page.tableaux.indexOf(cle) });
+            }
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Tableau de bord WuitBoard illisible : ' + cle, e);
+        }
+    }
+    tableaux.sort(function (a, b) { return a.ordre - b.ordre; });
+    var lecteurs = {};
+    Object.keys(page.lecteurs).forEach(function (c) { lecteurs[PREFIXE_HERITAGE + c] = page.lecteurs[c]; });
+    page.lecteurs = lecteurs;
+    page.tableaux = tableaux.map(function (t) { return t.cle; });
+    return { page: page, tableaux: tableaux };
+}
+function passerelleGraphiques(d, brut) {
+    var titre = typeof brut.titre === 'string' && brut.titre ? brut.titre : (typeof brut.nom === 'string' ? brut.nom : '');
+    var page = pageValide({ consultation: true, titre: titre });
+    var ids = (Array.isArray(brut.graphiques) ? brut.graphiques : []).map(String);
+    var lignes = (d.id || []).map(String);
+    var items = [];
+    ids.forEach(function (id) {
+        var i = lignes.indexOf(id);
+        if (i < 0) {
+            return;
+        }
+        try {
+            var it = repriseGraphique(JSON.parse(colonneDe(d, 'CONFIG', i) || '{}'), colonneDe(d, 'NOM', i) || '');
+            if (it) {
+                it.cfg.tuiles.forEach(function (t) { t.titre = t.titre || it.nom; });
+                items.push(it);
+            }
+        }
+        catch (e) {
+            logSecurite('AVERTISSEMENT', 'Graphique ' + id + ' illisible pour la passerelle', e);
+        }
+    });
+    if (!items.length) {
+        page.tableaux = [];
+        return { page: page, tableaux: [] };
+    }
+    var cfg = fusionnerReprises(items);
+    cfg.nom = titre || cfg.nom || 'Graphiques';
+    cfg.description = typeof brut.description === 'string' ? brut.description : '';
+    var taille = brut.colonnes === 1 ? 'XL' : 'L';
+    cfg.tuiles.forEach(function (t) { if (t.type !== 'gantt') {
+        t.taille = taille;
+    } });
+    (Array.isArray(brut.lecteurs) ? brut.lecteurs : []).forEach(function (col) {
+        var tid = cfg.tuiles.map(function (t) { return t.table; }).filter(function (x) { return x && infoColonne(x, col); })[0];
+        if (tid && !cfg.filtres.some(function (f) { return f.table === tid && f.col === col; })) {
+            cfg.filtres.push({ table: tid, col: col, libelle: libCol(tid, col) });
+        }
+    });
+    var cle = PREFIXE_HERITAGE + 'graphiques';
+    page.tableaux = [cle];
+    return { page: page, tableaux: [{ cle: cle, ligne: null, config: cfg, heritage: true }] };
+}
 function blocReprises() {
     var b = etat.brouillon;
     var items = etat.reprises || [];
@@ -8126,12 +8266,20 @@ async function lireTableaux() {
         }
     }
     l.sort(function (a, b) { return a.ligne - b.ligne; });
+    if (etat.badge && !copies[etat.badge] && etat.biblioCentrale) {
+        var pp = pagePasserelle(d, etat.badge);
+        if (pp) {
+            copies[etat.badge] = pp.page;
+            pp.tableaux.forEach(function (t) { l.push(t); });
+        }
+    }
     etat.copies = copies;
     etat.tableauxTous = l;
     etat.page = pageCourante();
     etat.tableaux = etat.page ? tableauxDeLaPage(l) : l;
     etat.temoinEdition = temE;
     etat.temoinParam = temP;
+    etat.lignesBiblio = d;
     if (etat.page && etat.page.orpheline && etat.temoinParam) {
         logSecurite('AVERTISSEMENT', 'Réglage de page introuvable sur une page de propriétaire : console rétablie');
         etat.page = null;
@@ -9149,6 +9297,10 @@ function suffixeMiseAJour() {
 }
 function rendreTableau(zone) {
     var cfg = etat.config;
+    if (etat.proprietaireSurPage) {
+        zone.appendChild(creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm fr-mb-2w', id: 'gPageHeritage' }, [
+            creer('p', { texte: 'Cette page a été publiée avec ' + etat.page.heritage + ' : elle s\'affiche en lecture seule. Pour la faire évoluer, ouvrez la page d\'administration, choisissez « Nouveau tableau de bord » puis « Reprendre mes anciens réglages », et republiez la page. Cet encadré n\'est visible que des propriétaires.' })]));
+    }
     initialiserFiltres(cfg);
     var barre = barreVue(cfg.nom || 'Tableau de bord sans nom', [], [menuOutilsLecteur(cfg)]);
     var volet = creer('aside', { classe: 'gb-volet', id: 'gVolet', attrs: { 'aria-label': 'Filtres et commandes du tableau de bord' } });
@@ -9254,6 +9406,15 @@ async function chargerTout() {
     await resoudreBibliotheque();
     await lireTableaux();
     await determinerDroits();
+    if (!etat.page && !etat.peutParametrer && !(etat.tableaux || []).length && etat.biblioCentrale && etat.lignesBiblio) {
+        var ph = pageHeritageGenerale(etat.lignesBiblio);
+        if (ph) {
+            etat.page = ph.page;
+            etat.tableauxTous = (etat.tableauxTous || []).concat(ph.tableaux);
+            etat.tableaux = ph.tableaux;
+        }
+    }
+    etat.proprietaireSurPage = !!(etat.page && etat.page.heritage && etat.peutParametrer);
     if (etat.page) {
         etat.peutModifier = false;
         etat.peutParametrer = false;
