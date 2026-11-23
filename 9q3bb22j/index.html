@@ -551,7 +551,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.8.5';
+var VERSION_WIDGET = '1.8.6';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2514,6 +2514,92 @@ async function chargerMeta() {
     }
     etat.meta = { tables: tables, colonnes: colonnes, colParRef: colParRef };
 }
+/* Icône de table devant chaque nom de liste affiché (règle de la série) :
+   le nom complet, emoji compris, est gardé ; l'icône s'ajoute devant. */
+var SVG_PICTO_TABLE = '<svg viewBox="0 0 16 16" width="1em" height="1em" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6h13M1.5 9.5h13M6 6v7.5M10.5 6v7.5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>';
+function idsTablesPicto() {
+    var ids = [];
+    try {
+        ids = etat && etat.meta && etat.meta.tables ? Object.keys(etat.meta.tables) : [];
+    }
+    catch (e) {
+        ids = [];
+    }
+    return ids.filter(function (t) { return !/^_grist|^GristHidden_|^GristDocTour$/.test(t); });
+}
+function spanPictoTable() {
+    var sp = document.createElement('span');
+    sp.className = 'w-picto w-picto--auto';
+    sp.setAttribute('aria-hidden', 'true');
+    sp.style.cssText = 'display:inline-flex;flex:none;vertical-align:-.15em;margin-right:.25rem;';
+    sp.innerHTML = SVG_PICTO_TABLE;
+    return sp;
+}
+function decorerTablesPicto(racine, ids, noms) {
+    if (!racine || racine.nodeType !== 1) {
+        return;
+    }
+    var exclus = 'select, option, textarea, input, [contenteditable="true"], .w-picto, .w-no-picto, svg, .p-page';
+    var els = [racine].concat(Array.prototype.slice.call(racine.querySelectorAll('span, strong, b, em, p, h1, h2, h3, h4, h5, label, legend, a, button, td, th, li, dt, dd, div, summary')));
+    els.forEach(function (el) {
+        if (el.childElementCount || el.closest(exclus)) {
+            return;
+        }
+        var t = (el.textContent || '').trim();
+        if (t && noms[t]) {
+            el.insertBefore(spanPictoTable(), el.firstChild);
+        }
+    });
+    Array.prototype.forEach.call(racine.tagName === 'SELECT' ? [racine] : racine.querySelectorAll('select'), function (s) {
+        var vals = Array.prototype.map.call(s.options, function (o) { return o.value; }).filter(Boolean);
+        if (!vals.length || !vals.every(function (v) { return ids.indexOf(v) !== -1; }) || !s.id) {
+            return;
+        }
+        var lab = document.querySelector('label[for="' + s.id.replace(/"/g, '') + '"]');
+        if (lab && !lab.querySelector('.w-picto')) {
+            lab.insertBefore(spanPictoTable(), lab.firstChild);
+        }
+    });
+}
+(function () {
+    if (typeof MutationObserver !== 'function') {
+        return;
+    }
+    var cibles = [], prevu = false;
+    var traiter = function () {
+        prevu = false;
+        var l = cibles;
+        cibles = [];
+        try {
+            var ids = idsTablesPicto();
+            if (!ids.length) {
+                return;
+            }
+            var noms = Object.create(null);
+            ids.forEach(function (t) { var n = String(libelleTable(t) || '').trim(); if (n.length > 1) {
+                noms[n] = true;
+            } });
+            l.forEach(function (c) { if (c.isConnected) {
+                decorerTablesPicto(c, ids, noms);
+            } });
+        }
+        catch (e) {
+            cibles = [];
+        }
+    };
+    new MutationObserver(function (ms) {
+        ms.forEach(function (m) {
+            var c = m.target && m.target.nodeType === 1 ? m.target : (m.target ? m.target.parentElement : null);
+            if (c && cibles.indexOf(c) === -1 && cibles.length < 400) {
+                cibles.push(c);
+            }
+        });
+        if (!prevu && cibles.length) {
+            prevu = true;
+            setTimeout(traiter, 120);
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+})();
 function libelleTable(tid) {
     var t = etat.meta && etat.meta.tables ? etat.meta.tables[tid] : null;
     return (t && t.libelle) || String(tid || '').replace(/_/g, ' ');
