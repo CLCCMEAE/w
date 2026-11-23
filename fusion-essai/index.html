@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.5-essai - 23/11/2026
+  Version : 1.3.6-essai - 23/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1182,7 +1182,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.5-essai';
+var VERSION_WIDGET = '1.3.6-essai';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -3136,7 +3136,11 @@ function nommerParFu(b) {
         return null;
     }
     var cols = colonnesUtiles(b.table).filter(function (c) { return c.type !== 'Attachments'; });
-    var rep = liste('pRepereLignes', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), b.labelCol || '', { vide: 'Numéro de ligne' });
+    var g = Object.assign({}, deviner(b.table));
+    g.prenom = colPrenom(b.table);
+    var combis = g.prenom && g.nom && g.prenom !== g.nom ? [{ valeur: g.prenom + '+' + g.nom, libelle: libelleChemin(b.table, g.prenom) + ' ' + libelleChemin(b.table, g.nom) },
+        { valeur: g.nom + '+' + g.prenom, libelle: libelleChemin(b.table, g.nom) + ' ' + libelleChemin(b.table, g.prenom) }] : [];
+    var rep = liste('pRepereLignes', combis.concat(cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; })), b.labelCol || '', { vide: 'Numéro de ligne' });
     rep.setAttribute('title', 'La colonne qui désigne chaque ligne, par exemple « Mme Claire Dubois » : dans le choix de la ligne au-dessus du document et, par défaut, dans le nom des fichiers.');
     rep.addEventListener('change', function () { b.labelCol = rep.value || null; marquerTouche(); redessinerEtape('pRepereLignes'); });
     return ligneReglage('Lignes désignées par', rep, 'pRepereLignes');
@@ -4347,10 +4351,9 @@ function apercuContenu(nom) {
     return { contenu: cadre, note: 'La première page, avec la ligne « ' + texteLigneApercu(b, i) + ' ».' };
 }
 function texteLigneApercu(b, i) {
-    var col = b.labelCol && infoColonne(b.table, b.labelCol) ? b.labelCol : null;
     var d = etat.donnees[b.table];
-    var v = col && d && d.d[col] ? valeurCellule(d.d[col][i]) : null;
-    return v === null || v === undefined || v === '' ? 'ligne ' + (i + 1) : String(v).slice(0, 60);
+    var v = partiesLibelle(b.table, b.labelCol).map(function (c) { var x = d && d.d[c] ? valeurCellule(d.d[c][i]) : null; return x === null || x === undefined ? '' : String(x); }).filter(Boolean).join(' ');
+    return !v ? 'ligne ' + (i + 1) : v.slice(0, 60);
 }
 var BLOC_MARQUE_SVG = '';
 var BLOC_MARQUE_GEOMETRIE = { largeur: 301.3, hauteur: 283.1, deviseX: 31.4, deviseY: 200.7, deviseEchelle: 0.6 };
@@ -5013,9 +5016,34 @@ function conditionRemplie(cond, rc) {
     }
     return cond.join === 'or' ? regles.some(function (r) { return regleRemplie(r, rc); }) : regles.every(function (r) { return regleRemplie(r, rc); });
 }
+/* « Lignes désignées par » peut réunir plusieurs colonnes, par exemple
+   PRENOM+NOM : les valeurs sont mises bout à bout, séparées d'une espace. */
+function partiesLibelle(tid, col) {
+    if (!col) {
+        return [];
+    }
+    var l = String(col).split('+').filter(Boolean);
+    return l.every(function (c) { return !!infoColonne(tid, c); }) ? l : [];
+}
+function libelleValide(tid, col) { return partiesLibelle(tid, col).length > 0; }
+function colPrenom(tid) {
+    var n = function (t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); };
+    var c = colonnesUtiles(tid).filter(function (x) { return /^(prenom|first name|firstname|given name)$/.test(n(x.colId)) || /^(prenom|first name|given name)$/.test(n(x.label)); })[0];
+    return c ? c.colId : null;
+}
+function libelleDefaut(tid) {
+    var g = Object.assign({}, deviner(tid));
+    g.prenom = colPrenom(tid);
+    if (g.numero) {
+        return g.numero;
+    }
+    if (g.prenom && g.nom && g.prenom !== g.nom) {
+        return g.prenom + '+' + g.nom;
+    }
+    return g.nom || null;
+}
 function libelleLigne(cfg, i) {
-    var col = cfg.labelCol && infoColonne(cfg.table, cfg.labelCol) ? cfg.labelCol : null;
-    var t = col ? valeurChemin(cfg.table, i, col, []).texte : '';
+    var t = partiesLibelle(cfg.table, cfg.labelCol).map(function (c) { return valeurChemin(cfg.table, i, c, []).texte; }).filter(Boolean).join(' ');
     return t || ('Ligne ' + idDe(cfg.table, i));
 }
 function geometrie(cfg) {
@@ -6444,7 +6472,7 @@ function reecrireChamps(s, f) {
 function parcourirCheminsConfig(cfg, f) {
     var tp = cfg.table;
     if (cfg.labelCol) {
-        cfg.labelCol = f(tp, cfg.labelCol);
+        cfg.labelCol = String(cfg.labelCol).split('+').map(function (c) { return f(tp, c); }).join('+');
     }
     if (cfg.writeBack && cfg.writeBack.col) {
         cfg.writeBack.col = f(tp, cfg.writeBack.col);
@@ -6591,7 +6619,7 @@ function verifierConfig(cfg) {
         return false;
     }
     normaliserConfig(cfg);
-    if (!cfg.labelCol || !infoColonne(cfg.table, cfg.labelCol)) {
+    if (!cfg.labelCol || !libelleValide(cfg.table, cfg.labelCol)) {
         cfg.labelCol = deviner(cfg.table).nom || null;
     }
     parcourirBlocs(cfg.blocks, function (b) {
@@ -7804,7 +7832,7 @@ function brancherTable(b, tid, opts) {
     var g = deviner(tid);
     var auto = nomEstAuto(b);
     b.table = tid;
-    b.labelCol = g.numero || g.nom || null;
+    b.labelCol = libelleDefaut(tid);
     b.sampleId = null;
     b.enfant = undefined;
     b.opts = opts || (b.optsTable === tid ? b.opts : {});
@@ -9372,9 +9400,15 @@ function appelOfficiel(ctx) {
     var a = colCond(ctx, ['FORMULE_APPEL'], 'salutation');
     return a ? [B('paragraph', { text: F(a) + ',', cond: { op: 'filled', path: a } }), B('paragraph', { text: 'Madame, Monsieur,', cond: { op: 'empty', path: a } })] : [B('paragraph', { text: 'Madame, Monsieur,' })];
 }
+function nomDestinataire(ctx) {
+    if (infoColonne(ctx.tid, 'NOM') && !infoColonne(ctx.tid, 'DESTINATAIRE')) {
+        return sansVides([infoColonne(ctx.tid, 'CIVILITE') ? F('CIVILITE') : null, infoColonne(ctx.tid, 'PRENOM') ? F('PRENOM') : null, F('NOM')]).join(' ');
+    }
+    return colM(ctx, ['DESTINATAIRE'], 'nom');
+}
 function genLettreMeae(ctx, direction) {
     var ref = colCond(ctx, ['REFERENCE'], null);
-    var dest = sansVides(['**' + (colM(ctx, ['DESTINATAIRE'], 'nom') || 'Nom du destinataire') + '**', colM(ctx, ['FONCTION_DESTINATAIRE'], 'fonction'), colM(ctx, ['ADRESSE'], 'adresse') || 'Adresse', colM(ctx, ['PAYS'], null)]).join('\n');
+    var dest = sansVides(['**' + (nomDestinataire(ctx) || 'Nom du destinataire') + '**', colM(ctx, ['FONCTION_DESTINATAIRE'], 'fonction'), colM(ctx, ['ADRESSE'], 'adresse') || 'Adresse', colM(ctx, ['PAYS'], null)]).join('\n');
     return sansVides([
         enTeteOfficiel(direction ? '**Direction du numérique**\n**Sous-direction**' : '**Directeur du numérique**'),
         B('spacer', { size: 'S' }),
@@ -15897,7 +15931,8 @@ function genLibre() {
 function genLettre(ctx, opts) {
     opts = opts || {};
     var g = ctx.g;
-    var dest = sansVides([g.nom ? F(g.nom) : null, g.fonction && g.fonction !== g.nom ? F(g.fonction) : null, g.societe ? F(g.societe) : null, g.adresse ? F(g.adresse) : null]).join('\n');
+    var qui = sansVides([g.civilite ? F(g.civilite) : null, g.prenom ? F(g.prenom) : null, g.nom ? F(g.nom) : null]).join(' ');
+    var dest = sansVides([qui || null, g.fonction && g.fonction !== g.nom ? F(g.fonction) : null, g.societe ? F(g.societe) : null, g.adresse ? F(g.adresse) : null]).join('\n');
     return sansVides([
         B('letterhead', { sender: opts.societe || EMETTEUR_EXEMPLE, recipient: dest || 'Nom du destinataire\nAdresse', lieu: VILLE_EXEMPLE + ', le ' + F('aujourdhui'), refs: '', window: 'DL' }),
         B('paragraph', { text: '**Objet :** ' + (opts.objet || 'Objet du courrier') }),
@@ -15981,6 +16016,9 @@ function pageDeMiseEnPage(layout, actuelle) {
     return normaliserConfig({ page: p }).page;
 }
 function genererBlocs(layout, tid, enfant, opts, labelCol, roles) {
+    if (labelCol && String(labelCol).indexOf('+') !== -1) {
+        labelCol = String(labelCol).split('+').pop();
+    }
     if (!roles) {
         roles = rolesInitiaux(layout, tid, labelCol);
     }
@@ -16154,23 +16192,25 @@ var T_JALONS = { cle: 'jalons', id: 'JALONS', titre: '📌 Jalons', reutiliser: 
         .map(function (x) { return { PROJET: R('projets', x[0]), INTITULE: x[1], ECHEANCE: J(x[2]), STATUT: x[3] }; }) };
 var T_LETTRES = { cle: 'lettres', id: 'LETTRES', titre: '📨 Lettres', reutiliser: true, colonnes: [{ id: 'N_ENREGISTREMENT', type: 'Text', titre: 'N° d\'enregistrement' },
         { id: 'OBJET', type: 'Text', titre: 'Objet' }, { id: 'REFERENCE', type: 'Text', titre: 'Référence' }, { id: 'FORMULE_APPEL', type: 'Text', titre: 'Formule d\'appel' },
-        { id: 'DESTINATAIRE', type: 'Text', titre: 'Destinataire' }, { id: 'FONCTION_DESTINATAIRE', type: 'Text', titre: 'Fonction du destinataire' },
+        { id: 'CIVILITE', type: 'Choice', options: choix(['Madame', 'Monsieur'], ['bleu', 'vert']), titre: 'Civilité' }, { id: 'PRENOM', type: 'Text', titre: 'Prénom' }, { id: 'NOM', type: 'Text', titre: 'Nom' },
+        { id: 'FONCTION_DESTINATAIRE', type: 'Text', titre: 'Fonction du destinataire' },
         { id: 'ADRESSE', type: 'Text', options: LONG, titre: 'Adresse' }, { id: 'PAYS', type: 'Text', titre: 'Pays' }],
     lignes: [
-        { N_ENREGISTREMENT: '2026-0087', OBJET: 'Mise à disposition de l\'outil de suivi des demandes', FORMULE_APPEL: 'Madame la directrice', DESTINATAIRE: 'Mme Claire Dubois', FONCTION_DESTINATAIRE: 'Directrice', ADRESSE: 'Centre de formation Horizon\n8 avenue des Tilleuls\n35000 Rennes', PAYS: 'FRANCE' },
-        { N_ENREGISTREMENT: '2026-0088', OBJET: 'Renouvellement de la convention de partenariat', REFERENCE: 'Votre courrier du 2 octobre', FORMULE_APPEL: 'Monsieur le président', DESTINATAIRE: 'M. Julien Moreau', FONCTION_DESTINATAIRE: 'Président', ADRESSE: 'Association Lire ensemble\n3 rue du Port\n13002 Marseille', PAYS: 'FRANCE' }
+        { N_ENREGISTREMENT: '2026-0087', OBJET: 'Mise à disposition de l\'outil de suivi des demandes', FORMULE_APPEL: 'Madame la directrice', CIVILITE: 'Madame', PRENOM: 'Claire', NOM: 'Dubois', FONCTION_DESTINATAIRE: 'Directrice', ADRESSE: 'Centre de formation Horizon\n8 avenue des Tilleuls\n35000 Rennes', PAYS: 'FRANCE' },
+        { N_ENREGISTREMENT: '2026-0088', OBJET: 'Renouvellement de la convention de partenariat', REFERENCE: 'Votre courrier du 2 octobre', FORMULE_APPEL: 'Monsieur le président', CIVILITE: 'Monsieur', PRENOM: 'Julien', NOM: 'Moreau', FONCTION_DESTINATAIRE: 'Président', ADRESSE: 'Association Lire ensemble\n3 rue du Port\n13002 Marseille', PAYS: 'FRANCE' }
     ] };
 var MODELES = [
     { id: 'letter', nom: 'Courrier', icone: 'mail-line', layout: 'letter', principale: 'destinataires',
         opts: { paragraphePerso: 'PARAGRAPHE_PERSONNALISE', objet: 'Invitation au comité de suivi du programme de formation', corps: 'J\'ai le plaisir de vous inviter à la prochaine réunion du comité de suivi du programme de formation, auquel votre structure, {ORGANISME}, est associée depuis son lancement.\n\nVous trouverez ci-joint l\'ordre du jour et le bilan des actions menées depuis la dernière réunion. Afin de faciliter l\'organisation, je vous remercie de bien vouloir confirmer votre présence avant la fin du mois.\n\nMes services se tiennent à votre disposition pour tout renseignement complémentaire.' },
         description: 'Des destinataires avec leur fonction, leur organisme, leur adresse et leur civilité, fusionnés dans un courrier daté du jour. La colonne « Paragraphe personnalisé », remplie pour un destinataire, ajoute un paragraphe à son seul courrier.',
-        tables: [{ cle: 'destinataires', id: 'DESTINATAIRES', titre: '✉️ Destinataires', reutiliser: true, colonnes: [{ id: 'NOM', type: 'Text', titre: 'Nom' }, { id: 'FONCTION', type: 'Text', titre: 'Fonction' }, { id: 'ORGANISME', type: 'Text', titre: 'Organisme' },
-                    { id: 'ADRESSE', type: 'Text', options: { wrap: true }, titre: 'Adresse' }, { id: 'CIVILITE', type: 'Text', titre: 'Civilité' },
+        tables: [{ cle: 'destinataires', id: 'DESTINATAIRES', titre: '✉️ Destinataires', reutiliser: true, colonnes: [{ id: 'CIVILITE', type: 'Choice', options: choix(['Madame', 'Monsieur'], ['bleu', 'vert']), titre: 'Civilité' },
+                    { id: 'PRENOM', type: 'Text', titre: 'Prénom' }, { id: 'NOM', type: 'Text', titre: 'Nom' }, { id: 'FONCTION', type: 'Text', titre: 'Fonction' }, { id: 'ORGANISME', type: 'Text', titre: 'Organisme' },
+                    { id: 'ADRESSE', type: 'Text', options: { wrap: true }, titre: 'Adresse' }, { id: 'FORMULE_APPEL', type: 'Text', titre: 'Formule d\'appel' },
                     { id: 'PARAGRAPHE_PERSONNALISE', type: 'Text', options: { wrap: true }, titre: 'Paragraphe personnalisé' }],
                 lignes: [
-                    { NOM: 'Mme Claire Dubois', FONCTION: 'Directrice', ORGANISME: 'Centre de formation Horizon', ADRESSE: '8 avenue des Tilleuls\n35000 Rennes', CIVILITE: 'Madame la directrice' },
-                    { NOM: 'M. Julien Moreau', FONCTION: 'Chef du service des finances', ORGANISME: 'Communauté de communes du Val Fleuri', ADRESSE: 'Hôtel communautaire\n1 place de la Mairie\n71000 Mâcon', CIVILITE: 'Monsieur' },
-                    { NOM: 'Mme Nadia Benali', FONCTION: 'Responsable des ressources humaines', ORGANISME: 'Association Lire ensemble', ADRESSE: '3 rue du Port\n13002 Marseille', CIVILITE: 'Madame',
+                    { CIVILITE: 'Madame', PRENOM: 'Claire', NOM: 'Dubois', FONCTION: 'Directrice', ORGANISME: 'Centre de formation Horizon', ADRESSE: '8 avenue des Tilleuls\n35000 Rennes', FORMULE_APPEL: 'Madame la directrice' },
+                    { CIVILITE: 'Monsieur', PRENOM: 'Julien', NOM: 'Moreau', FONCTION: 'Chef du service des finances', ORGANISME: 'Communauté de communes du Val Fleuri', ADRESSE: 'Hôtel communautaire\n1 place de la Mairie\n71000 Mâcon', FORMULE_APPEL: 'Monsieur' },
+                    { CIVILITE: 'Madame', PRENOM: 'Nadia', NOM: 'Benali', FONCTION: 'Responsable des ressources humaines', ORGANISME: 'Association Lire ensemble', ADRESSE: '3 rue du Port\n13002 Marseille', FORMULE_APPEL: 'Madame',
                         PARAGRAPHE_PERSONNALISE: 'Je vous remercie également pour l\'accueil réservé à nos stagiaires lors de l\'atelier d\'écriture du mois dernier, dont les participants ont souligné la qualité.' }
                 ] }] },
     { id: 'lettre_meae', nom: 'Lettre administrative', icone: 'mail-send-line', layout: 'lettre_meae', principale: 'lettres',
@@ -16502,7 +16542,7 @@ function convenance(tid, layout) {
     return { ok: !estDesLignes, raison: pluriel(colonnesUtiles(tid).length, 'champ') + ', une page par ligne' };
 }
 var ROLES_TYPES = {
-    letter: ['nom', 'fonction', 'societe', 'adresse', 'salutation', 'perso'],
+    letter: ['civilite', 'prenom', 'nom', 'fonction', 'societe', 'adresse', 'salutation', 'perso'],
     convocation: ['civilite', 'prenom', 'nom', 'fonction', 'societe', 'adresse', 'salutation', 'intitule', 'date_debut', 'heure', 'lieu', 'adresse_lieu', 'ordre', 'limite', 'organisateur'],
     programme: ['intitule', 'date_debut', 'date_fin', 'lieu', 'organisateur'],
     emargement: ['intitule', 'date_debut', 'heure', 'lieu'],
@@ -16527,6 +16567,9 @@ var NOMS_ROLES = { nom: 'Nom', prenom: 'Prénom', civilite: 'Civilité', fonctio
 var NOMS_ROLES_TYPE = { convocation: { salutation: 'Formule d\'appel' }, suivi: { nom: 'Nom du projet' }, interlocuteur: { nom: 'Nom' } };
 function nomRole(layout, r) { return (NOMS_ROLES_TYPE[layout] || {})[r] || NOMS_ROLES[r] || r; }
 function rolesInitiaux(layout, tid, labelCol) {
+    if (labelCol && String(labelCol).indexOf('+') !== -1) {
+        labelCol = String(labelCol).split('+').pop();
+    }
     var g = deviner(tid);
     var classiques = layout === 'letter' || layout === 'certificate';
     var r = {};
