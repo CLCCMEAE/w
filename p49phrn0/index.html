@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBureaux
-  Version : 1.0.7 - 24/11/2026
+  Version : 1.0.8 - 24/11/2026
   Description : réservation de postes de travail par demi-journée, présence et prêt des postes attitrés.
 -->
 <head>
@@ -524,8 +524,12 @@
     .wb-g__c:not(.wb-g__c--apm) { border-left: 1px solid var(--border-default-grey); }
     .wb-g__c--pris { background: repeating-linear-gradient(135deg, var(--background-alt-grey) 0 4px, var(--background-default-grey) 4px 8px); }
     .wb-g__nom { font-size: .75rem; color: var(--text-default-grey); }
-    .wb-g__c--moi { background: var(--background-contrast-blue-france); }
-    .wb-g__c--moi .wb-g__nom { font-weight: 700; color: var(--text-action-high-blue-france); }
+    .wb-g__c--moi { background: var(--background-contrast-success); }
+    .wb-g__moi { display: inline-flex; flex-direction: column; align-items: center; gap: .125rem; }
+    .wb-g__nom-moi { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; font-weight: 700; color: var(--text-default-success); }
+    .wb-legende__moi { color: var(--text-default-success); }
+    .wb-g__c--moi .wb-switch[aria-checked="true"] { background: var(--background-flat-success); border-color: var(--border-plain-success); }
+    .wb-g__c--moi .wb-switch[aria-checked="true"]:hover:not(:disabled) { background: var(--background-flat-success); }
     .wb-g__c--ferme, .wb-g__ferme, .wb-g__c--passe, .wb-g__c--attitre { background: var(--background-alt-grey); color: var(--text-mention-grey); font-size: .75rem; }
     .wb-g__c--passe .wb-g__nom { color: var(--text-mention-grey); }
     .wb-g__ferme { text-align: left; padding: .375rem .75rem; }
@@ -606,7 +610,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.7';
+var VERSION_WIDGET = '1.0.8';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBureaux';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -3161,7 +3165,7 @@ function legendeSemaine() {
     if (etat.postes.some(function (p) { return p.type === 'Bureau fermé'; })) {
         l.push(creer('li', { classe: 'wb-legende__eq' }, [creer('span', { classe: 'fr-icon-' + iconeBureauFerme() + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Bureau fermé']));
     }
-    l.push(creer('li', {}, [creer('span', { classe: 'wb-legende__pastille wb-legende__pastille--moi', attrs: { 'aria-hidden': 'true' } }), 'Réservé par vous']));
+    l.push(creer('li', {}, [creer('span', { classe: 'wb-legende__moi fr-icon-' + iconeCoche() + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), 'Réservé par vous']));
     l.push(creer('li', {}, [creer('span', { classe: 'wb-legende__pastille wb-legende__pastille--pris', attrs: { 'aria-hidden': 'true' } }), 'Pris (nom de la personne)']));
     return creer('ul', { classe: 'wb-legende', attrs: { 'aria-label': 'Légende' } }, l);
 }
@@ -3247,7 +3251,7 @@ function caseDemi(p, j, d, e, k) {
         return creer('td', { classe: cl, texte: 'Fermé' });
     }
     if (e.type === 'pris' || (e.type === 'moi' && e.passe)) {
-        return creer('td', { classe: cl, attrs: { 'aria-label': (e.type === 'moi' ? 'Réservé par vous' : 'Pris par ' + e.nom) + ' : ' + quand } }, [creer('span', { classe: 'wb-g__nom', texte: e.nom })]);
+        return creer('td', { classe: cl, attrs: { 'aria-label': (e.type === 'moi' ? 'Réservé par vous' : 'Pris par ' + e.nom) + ' : ' + quand } }, [e.type === 'moi' ? nomMoi() : creer('span', { classe: 'wb-g__nom', texte: e.nom })]);
     }
     if (e.type === 'attitre') {
         return creer('td', { classe: cl, texte: 'Vous' });
@@ -3264,7 +3268,12 @@ function caseDemi(p, j, d, e, k) {
         bt.setAttribute('aria-checked', moi ? 'false' : 'true');
         relayer(moi ? rendreDemi(p.id, j, d, id) : reserverDemi(p.id, j, d, id), 'Demi-journée');
     });
-    return creer('td', { classe: cl }, [e.aide ? creer('span', { classe: 'w-infobulle wb-switch-cadre', attrs: { 'data-infobulle': e.aide } }, [bt]) : bt]);
+    var inter = e.aide ? creer('span', { classe: 'w-infobulle wb-switch-cadre', attrs: { 'data-infobulle': e.aide } }, [bt]) : bt;
+    return creer('td', { classe: cl }, moi ? [creer('span', { classe: 'wb-g__moi' }, [inter, nomMoi()])] : [inter]);
+}
+function iconeCoche() { return iconeDispo(['checkbox-circle-fill', 'check-line']); }
+function nomMoi() {
+    return creer('span', { classe: 'wb-g__nom-moi' }, [creer('span', { classe: 'fr-icon-' + iconeCoche() + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: nomCourt(etat.moi) })]);
 }
 async function reserverDemi(idPoste, j, d, focus) {
     try {
