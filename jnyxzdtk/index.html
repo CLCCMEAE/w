@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.11 - 24/11/2026
+  Version : 1.1.12 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -286,6 +286,7 @@
     .w-feuille__titres { flex: 1; display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
     .w-feuille__titre.fr-input { font-size: 1rem; font-weight: 700; }
     .w-feuille__outils { display: flex; gap: .125rem; }
+    .w-feuille__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding-bottom: .5rem; margin-bottom: .75rem; border-bottom: 1px solid var(--border-default-grey); }
     .w-questions { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
     .w-questions--section { margin: .25rem .5rem .5rem 1.25rem; padding-left: .75rem; border-left: 2px solid var(--border-default-grey); width: calc(100% - 1.75rem); }
     .w-questions__fin { flex: 1 1 100%; padding: .75rem; text-align: center; font-size: .8125rem; color: var(--text-mention-grey); border: 1px dashed var(--border-plain-grey); }
@@ -1158,7 +1159,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.11';
+var VERSION_WIDGET = '1.1.12';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -1646,7 +1647,7 @@ DF.cond = (function () {
         if (src.source === 'score') {
             return 'nombre';
         }
-        if (src.source === 'dossier') {
+        if (src.source === 'dossier' || src.source === 'ligne') {
             return src.famille || 'texte';
         }
         return 'texte';
@@ -1677,6 +1678,15 @@ DF.cond = (function () {
             case 'calcul': return (ctx.calculs || {})[src.id];
             case 'score': return ctx.score;
             case 'dossier': return (ctx.dossier || {})[src.champ];
+            case 'ligne':
+                r = (ctx.ligne || {})[src.champ];
+                if ((src.famille === 'date' || src.famille === 'dateheure') && typeof r === 'number') {
+                    return new Date(r * 1000).toISOString().slice(0, 10);
+                }
+                if (Array.isArray(r) && r[0] === 'L') {
+                    return r.slice(1);
+                }
+                return r;
             default: return null;
         }
     }
@@ -2281,15 +2291,19 @@ DF.calc = (function () {
         if (q.source && q.source.table) {
             var lignes = (tables && tables[q.source.table]) || [];
             var f = q.source.filtre;
-            res = lignes.filter(function (l) {
+            var garde = function (l) {
+                if (f && f.type === 'groupe') {
+                    return !(f.elements || []).length || DF.cond.evaluer(f, { ligne: l, reponses: {}, def: { pages: [], calculs: [] }, aujourdhui: O.aujourdhui() });
+                }
                 if (!f || !f.colonne) {
                     return true;
                 }
                 var ctxF = { reponses: { _f: l[f.colonne] }, def: { pages: [{ questions: [{ id: '_f', type: 'court' }] }], calculs: [] } };
                 return DF.cond.evaluer({ type: 'condition', source: { source: 'question', id: '_f' }, op: f.op || 'est', valeur: f.valeur }, ctxF);
-            }).map(function (l) {
-                var lib = l[q.source.colonneLibelle];
-                return { valeur: q.type === 'reference' ? l.id : String(lib === null || lib === undefined ? '' : lib), libelle: String(lib === null || lib === undefined ? '' : lib), id: 'r' + l.id };
+            };
+            res = lignes.map(function (l) { return { l: l, ok: garde(l) }; }).filter(function (x) { return x.ok || q.source.attente; }).map(function (x) {
+                var l = x.l, lib = l[q.source.colonneLibelle];
+                return { valeur: q.type === 'reference' ? l.id : String(lib === null || lib === undefined ? '' : lib), libelle: String(lib === null || lib === undefined ? '' : lib), id: 'r' + l.id, attente: !x.ok };
             }).filter(function (o) { return o.libelle !== ''; });
         }
         else {
@@ -3349,7 +3363,7 @@ DF.colonnes = (function () {
     var ID_UTILISATEURS = 'UTILISATEURS_';
     var LABEL_UTILISATEURS = '👤 UTILISATEURS ⚡';
     function libelleTable(emoji, texte) { return emoji + ' ' + String(texte || '').replace(/\s+/g, ' ').trim().toUpperCase() + ' ⚡'; }
-    var RESERVES = ['ID', 'MANUALSORT', 'N_DOSSIER', 'STATUT_DOSSIER', 'EMAIL_REPONDANT', 'EMAIL_COMPTE', 'ADRESSE_AUTORISEE',
+    var RESERVES = ['ID', 'MANUALSORT', 'N_DOSSIER', 'STATUT_DOSSIER', 'EMAIL_REPONDANT', 'EMAIL_COMPTE', 'ADRESSE_AUTORISEE', 'LISTE_ATTENTE',
         'DEPOT_CONFORME', 'INSTRUCTION_VIDE', 'DECISION_CONFORME', 'FIN_ATTEINTE', 'SCORE', 'VERSION_FORMULAIRE', 'DEPOSE_LE',
         'EN_INSTRUCTION_LE', 'DECIDE_LE', 'MOTIVATION', 'JUSTIFICATIF', 'ARCHIVE', 'CORBEILLE', 'CORBEILLE_LE', 'EXPIRE_LE',
         'GROUPE_INSTRUCTEUR', 'SUIVI', 'ETIQUETTES', 'INSCRIPTION', 'RANG_ATTENTE', 'PLACES_PRISES', 'ACCES_EMAILS', 'ACCES_GESTION', 'ACCES_EXPERTS', 'CREE_LE', 'CREE_PAR',
@@ -3577,6 +3591,7 @@ DF.colonnes = (function () {
         't = globals().get($TABLE_REPONSES)\nif t is None:\n  return None\n' +
         'return len([r for r in t.all if r.STATUT_DOSSIER not in ' + EXCLUS_PLACES + ' and getattr(r, "INSCRIPTION", "") != "Liste d\'attente" and not getattr(r, "CORBEILLE", False)])';
     function placesLimitees(def) { var rg = def.reglages || {}; return +rg.nombreMaxReponses > 0; }
+    function attenteParLigne(def) { return DF.schema.toutesQuestions(def, true).some(function (x) { return !!(x.q.source && x.q.source.table && x.q.source.attente); }); }
     function specReponses(def, ctx) {
         ctx = ctx || {};
         var instr = def.instruction && def.instruction.actif;
@@ -3638,6 +3653,9 @@ DF.colonnes = (function () {
                 cols.push(c);
             });
         });
+        if (attenteParLigne(def)) {
+            cols.push({ id: 'LISTE_ATTENTE', type: 'Bool', label: 'LISTE D\'ATTENTE', description: 'Vrai si la personne a choisi une ligne déjà prise, proposée en liste d\'attente.' });
+        }
         if (placesLimitees(def) && def.reglages.listeAttente) {
             var T = '{{T:formulaire_' + def.id + '}}';
             cols.push({ id: 'INSCRIPTION', type: 'Choice', label: 'INSCRIPTION', widgetOptions: { choices: ['Inscrit', 'Liste d\'attente'] }, formula: formuleInscription(T, def.reglages.nombreMaxReponses), recalcWhen: 2,
@@ -3833,7 +3851,7 @@ DF.colonnes = (function () {
         return [['ModifyColumn', table, colId, { visibleCol: colRefCible }], ['SetDisplayFormula', table, null, colRefColonne, '$' + colId + '.' + colonneCible]];
     }
     return { STATUTS: STATUTS, ID_BIBLIO: ID_BIBLIO, LABEL_BIBLIO: LABEL_BIBLIO, ID_GROUPES: ID_GROUPES, IDS_GROUPES_CONNUS: IDS_GROUPES_CONNUS, LABEL_GROUPES: LABEL_GROUPES, utiliserTableGroupes: utiliserTableGroupes, estTableGroupes: estTableGroupes,
-        ID_UTILISATEURS: ID_UTILISATEURS, libelleTable: libelleTable, placesLimitees: placesLimitees, LABEL_UTILISATEURS: LABEL_UTILISATEURS, META: META, RESERVES: RESERVES,
+        ID_UTILISATEURS: ID_UTILISATEURS, libelleTable: libelleTable, placesLimitees: placesLimitees, attenteParLigne: attenteParLigne, LABEL_UTILISATEURS: LABEL_UTILISATEURS, META: META, RESERVES: RESERVES,
         identifiant: identifiant, unique: unique, tablePourFormulaire: tablePourFormulaire, libelle: libelle, attribuerColonnes: attribuerColonnes,
         colonnesQuestion: colonnesQuestion, specReponses: specReponses, specsLiees: specsLiees, specBibliotheque: specBibliotheque,
         specGroupes: specGroupes, specUtilisateurs: specUtilisateurs, planTable: planTable, remplacerJetons: remplacerJetons,
@@ -4119,6 +4137,9 @@ DF.enreg = (function () {
         });
         if (m.statut) {
             champs.STATUT_DOSSIER = m.statut;
+        }
+        if (DF.colonnes.attenteParLigne(def)) {
+            champs.LISTE_ATTENTE = !!m.listeAttente;
         }
         if (m.emailRepondant !== undefined) {
             champs.EMAIL_REPONDANT = String(m.emailRepondant || '').trim().toLowerCase();
@@ -5495,6 +5516,9 @@ function pastilleStatut(statut) {
 }
 function pastilleDossier(d) {
     var p = pastilleStatut(d && d.STATUT_DOSSIER);
+    if (d && d.LISTE_ATTENTE === true && d.INSCRIPTION !== 'Liste d\'attente') {
+        return creer('span', { classe: 'w-statuts' }, [p, creer('span', { classe: 'w-statut-dossier w-statut-dossier--attente', texte: 'Liste d\'attente' })]);
+    }
     if (!d || d.INSCRIPTION !== 'Liste d\'attente') {
         return p;
     }
@@ -7837,6 +7861,9 @@ function compteReponses(def) {
 }
 function enTeteFormulaire(def) {
     var st = { brouillon: ['Brouillon', 'info'], publie: ['Publié', 'success'], ferme: ['Fermé', 'warning'] }[def.reglages.statut] || ['Brouillon', 'info'];
+    if (def.reglages.statut === 'publie' && !etat.page && etat.peutParametrer && !pagesDuFormulaire(def.id).length) {
+        st = ['Sans page', 'warning'];
+    }
     var titre = creer('h2', { classe: 'fr-h5 w-form-titre', id: 'wFormTitre', texte: def.nom || 'Sans nom' });
     var badges = creer('div', { classe: 'w-form-badges', id: 'wFormBadges' }, [etatFormulaire(st[0], st[1]), etat.peutParametrer || estInstructeur(def) ? creer('span', { classe: 'w-compteur', texte: compteReponses(def) }) : null]);
     var ecrans = ecransDisponibles(def);
@@ -8335,10 +8362,7 @@ async function publierFormulaire() {
     afficherVue();
     var dp = defCourante();
     if (dp && dp.reglages.statut === 'publie' && !etat.page && !pagesDuFormulaire(dp.id).length) {
-        var oui = await confirmerAction('Créer la page des utilisateurs ?', 'Le formulaire est publié, mais aucune page ne le montre encore. Les personnes répondent depuis une page sans les écrans de conception.', 'Créer la page');
-        if (oui) {
-            creerPageUtilisateurs();
-        }
+        creerPageUtilisateurs();
     }
 }
 function creerPageUtilisateurs() {
@@ -9147,9 +9171,15 @@ function cleSource(s) {
     if (s.source === 'dossier') {
         return 'dossier:' + s.champ;
     }
+    if (s.source === 'ligne') {
+        return 'ligne:' + s.champ;
+    }
     return s.source;
 }
 function valeursChoix(def, src) {
+    if (src && src.source === 'ligne') {
+        return src.choix || null;
+    }
     if (!src || src.source !== 'question') {
         return null;
     }
@@ -9205,7 +9235,7 @@ function editeurCondition(groupe, def, surChange, o) {
     function focusDernier(id) { var l = racine.querySelectorAll('#' + id + ' .w-cond__ligne select, .w-cond__ligne select'); if (l.length) {
         l[l.length - 3 >= 0 ? l.length - 3 : 0].focus();
     } }
-    var sources = sourcesCondition(def, o.exclure, o);
+    var sources = o.sources || sourcesCondition(def, o.exclure, o);
     function conditionVide() { var s = sources[0]; return DF.cond.condition(s ? DF.outils.copie(s.source) : { source: 'utilisateur', champ: 'email' }, '', ''); }
     function ligneCondition(c, g, id) {
         var ligne = creer('div', { classe: 'w-cond__ligne', id: id });
@@ -9544,22 +9574,25 @@ function menuNouvellePage(def) {
 }
 function editeurPage(def, p) {
     var carte = creer('section', { classe: 'w-feuille', attrs: { 'aria-label': 'Page en cours : ' + nomPage(def, p) } });
-    var titre = saisie('cPageTitre', p.titre, { indice: 'Titre de la page' });
+    var titre = saisie('cPageTitre', p.titre, {});
     titre.classList.add('w-feuille__titre');
     titre.addEventListener('input', function () { p.titre = titre.value; modifie(); var b = document.getElementById('cPg_' + p.id); if (b) {
-        b.textContent = nomPage(def, p);
+        (b.querySelector('.w-page-puce__nom') || b).textContent = nomPage(def, p);
     } });
-    var desc = saisie('cPageDesc', p.description, { multiligne: true, lignes: 2, indice: 'Texte d\'introduction ; @ pour reprendre une réponse' });
+    var desc = saisie('cPageDesc', p.description, { multiligne: true, lignes: 2, indice: 'Quelques mots pour présenter la page' });
     desc.addEventListener('input', function () { p.description = desc.value; modifie(); });
-    var outils = creer('div', { classe: 'w-feuille__outils' }, [
-        boutonIcone('Déplacer la page vers la gauche', 'arrow-left-line', function () { deplacerPage(def, p, -1); }, { id: 'cPageGauche', variante: 'discret' }),
-        boutonIcone('Déplacer la page vers la droite', 'arrow-right-line', function () { deplacerPage(def, p, 1); }, { id: 'cPageDroite', variante: 'discret' }),
-        boutonIcone('Supprimer la page', 'delete-line', function () { return supprimerPage(def, p); }, { id: 'cPageSuppr', variante: 'discret' })
-    ]);
-    carte.appendChild(creer('div', { classe: 'w-feuille__tete' }, [creer('div', { classe: 'w-feuille__titres' }, [
-            creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'cPageTitre' }, texte: 'Titre de la page' }), titre,
-            creer('label', { classe: 'fr-sr-only', attrs: { 'for': 'cPageDesc' }, texte: 'Texte de la page' }), desc
-        ]), outils]));
+    var pos = def.pages.indexOf(p), nbP = def.pages.length;
+    var genre = { accueil: 'Page d\'accueil', verification: 'Page de vérification', fin: 'Page de fin', page: 'Page de questions' }[p.type] || 'Page';
+    carte.appendChild(creer('div', { classe: 'w-feuille__actions' }, [
+        creer('span', { classe: 'w-mention', texte: genre + ' · ' + (pos + 1) + ' sur ' + nbP }), creer('span', { classe: 'w-pousse' }),
+        bouton('Placer avant', 'tertiaire', 'arrow-left-line', function () { deplacerPage(def, p, -1); }, { petit: true, id: 'cPageGauche', desactive: pos <= 0 }),
+        bouton('Placer après', 'tertiaire', 'arrow-right-line', function () { deplacerPage(def, p, 1); }, { petit: true, id: 'cPageDroite', iconeDroite: true, desactive: pos >= nbP - 1 }),
+        bouton('Supprimer la page', 'tertiaire', 'delete-line', function () { return supprimerPage(def, p); }, { petit: true, id: 'cPageSuppr' })
+    ]));
+    carte.appendChild(creer('div', { classe: 'w-feuille__titres' }, [
+        creer('label', { classe: 'fr-label', attrs: { 'for': 'cPageTitre' }, texte: 'Titre de la page' }), titre,
+        creer('label', { classe: 'fr-label', attrs: { 'for': 'cPageDesc' } }, ['Texte d\'introduction ', creer('span', { classe: 'fr-hint-text', texte: 'Facultatif ; @ pour reprendre une réponse.' })]), desc
+    ]));
     if (p.type === 'fin') {
         var af = p.actionsFin = p.actionsFin || {};
         carte.appendChild(creer('div', { classe: 'w-pile' }, [creer('p', { classe: 'w-mention', texte: 'Page de fin : le dossier est enregistré à l\'arrivée ici (colonne FIN ATTEINTE). Les règles de la Logique y mènent.' }),
@@ -9688,7 +9721,7 @@ function contenuCarte(def, q) {
 function apercuChamp(def, q) {
     var t = DF.schema.type(q.type);
     if (t.options || q.type === 'ouinon' || q.type === 'civilite') {
-        var ch = q.type === 'ouinon' ? [q.libelleOui, q.libelleNon] : (q.source && q.source.table ? ['Liste tirée de la table ' + q.source.table] : (q.options || []).map(function (o) { return o.libelle; }));
+        var ch = q.type === 'ouinon' ? [q.libelleOui, q.libelleNon] : (q.source && q.source.table ? ['Options tirées de la liste ' + q.source.table] : (q.options || []).map(function (o) { return o.libelle; }));
         if (q.autre) {
             ch = ch.concat(['Autre']);
         }
@@ -10163,7 +10196,7 @@ function editeurOptions(def, q, maj) {
     function dessiner(focus) {
         vider(corpsO);
         if (q.type !== 'civilite' && q.type !== 'grille' && q.type !== 'classement') {
-            corpsO.appendChild(caseACocher('cDyn', 'Options tirées d\'une table du document', dyn, function (v) {
+            corpsO.appendChild(caseACocher('cDyn', 'Options tirées d\'une liste du document', dyn, function (v) {
                 dyn = v;
                 if (v) {
                     q.source = q.source && q.source.table ? q.source : { table: '', colonneLibelle: '', filtre: null };
@@ -10225,6 +10258,25 @@ function editeurOptions(def, q, maj) {
     z.appendChild(corpsO);
     return z;
 }
+function sourcesColonnes(tid) {
+    var m = tableMeta(trouverTable(tid) || tid);
+    if (!m) {
+        return [];
+    }
+    var fam = { Text: 'texte', Choice: 'choix', ChoiceList: 'choixMultiples', Numeric: 'nombre', Int: 'nombre', Date: 'date', DateTime: 'dateheure', Bool: 'booleen', Any: 'texte' };
+    return m.ordre.filter(function (k) { return fam[String(m.colonnes[k].type || '').split(':')[0]] !== undefined; }).map(function (k) {
+        var c = m.colonnes[k], f = fam[String(c.type).split(':')[0]];
+        var src = { source: 'ligne', champ: k, famille: f, nom: c.label || k };
+        if ((f === 'choix' || f === 'choixMultiples') && c.widgetOptions && Array.isArray(c.widgetOptions.choices)) {
+            src.choix = c.widgetOptions.choices.slice();
+        }
+        return { cle: 'ligne:' + k, libelle: c.label || k, source: src };
+    });
+}
+function filtreSourceDepuisAncien(f, sources) {
+    var src = f && f.colonne ? sources.filter(function (x) { return x.source.champ === f.colonne; })[0] : null;
+    return DF.cond.groupe('et', src ? [DF.cond.condition(DF.outils.copie(src.source), f.op || 'est', f.valeur)] : []);
+}
 function editeurSourceTable(q, maj, avecId) {
     q.source = q.source || { table: '', colonneLibelle: '', filtre: null };
     var s = q.source;
@@ -10242,16 +10294,39 @@ function editeurSourceTable(q, maj, avecId) {
         var selC = liste('cSourceCol', cols, s.colonneLibelle, { vide: 'Choisir une colonne' });
         selC.addEventListener('change', function () { s.colonneLibelle = selC.value; maj(); });
         zc.appendChild(groupeChamp(avecId ? 'Colonne affichée' : 'Colonne des libellés', selC));
-        var f = s.filtre || { colonne: '', op: 'est', valeur: '' };
-        var selF = liste('cSourceFiltre', cols, f.colonne, { vide: 'Aucun filtre' });
-        var valF = saisie('cSourceFiltreVal', f.valeur, { indice: 'valeur' });
-        selF.addEventListener('change', function () { f.colonne = selF.value; s.filtre = f.colonne ? f : null; maj(); });
-        valF.addEventListener('input', function () { f.valeur = valF.value; s.filtre = f.colonne ? f : null; maj(); });
-        zc.appendChild(creer('div', { classe: 'w-ligne-champs' }, [groupeChamp('Seulement si la colonne', selF), groupeChamp('vaut', valF)]));
+        var sourcesL = sourcesColonnes(s.table);
+        if (!s.filtre || s.filtre.type !== 'groupe') {
+            s.filtre = filtreSourceDepuisAncien(s.filtre, sourcesL);
+        }
+        var defC = defCourante();
+        var phrase = creer('p', { classe: 'w-mention', id: 'cSourcePhrase', attrs: { 'aria-live': 'polite' } });
+        var majPhrase = function () {
+            var d = DF.cond.decrire(s.filtre, defC);
+            phrase.textContent = d ? '« ' + d + ' »' : 'Toutes les lignes sont proposées.';
+            var tid = trouverTable(s.table) || s.table;
+            relayer(lireLignes(tid).then(function (ls) {
+                var n = ls.filter(function (l) { return !(s.filtre.elements || []).length || DF.cond.evaluer(s.filtre, { ligne: l, reponses: {}, def: { pages: [], calculs: [] }, aujourdhui: DF.outils.aujourdhui() }); }).length;
+                phrase.textContent = (d ? '« ' + d + ' » : ' : '') + n + (n > 1 ? ' lignes' : ' ligne') + ' sur ' + ls.length + '.';
+            }), 'Lignes proposées');
+        };
+        zc.appendChild(creer('p', { classe: 'fr-label', texte: 'Proposer seulement les lignes où' }));
+        zc.appendChild(editeurCondition(s.filtre, defC, function () { maj(); majPhrase(); }, { sources: sourcesL, prefixe: 'cSourceF' }));
+        zc.appendChild(phrase);
+        majPhrase();
+        var zAtt = creer('div', { classe: 'w-pile' });
+        var majAtt = function () {
+            vider(zAtt);
+            if (s.attente && defC) {
+                zAtt.appendChild(champLie('cSourceMsgAttente', 'Message de la liste d\'attente (page de fin)', defC.reglages, 'messageAttente', { multiligne: true }));
+            }
+        };
+        zc.appendChild(caseACocher('cSourceAttente', 'Proposer aussi les autres lignes, en liste d\'attente', !!s.attente, function (v) { s.attente = v; maj(); majAtt(); }));
+        zc.appendChild(zAtt);
+        majAtt();
     };
     selT.addEventListener('change', function () { s.table = selT.value; s.colonneLibelle = ''; s.filtre = null; maj(); majC(); });
     majC();
-    z.appendChild(groupeChamp('Table', selT));
+    z.appendChild(groupeChamp('Liste', selT));
     z.appendChild(zc);
     return z;
 }
@@ -11335,7 +11410,7 @@ function optionsDe(s, q) {
     if (q.type === 'territoire') {
         return DF.ref.valeurs(q.referentiel, q.filtreRegion).map(function (x, i) { return { valeur: x, libelle: x, id: 't' + i }; });
     }
-    return DF.calc.options(q, s.tables, s.graine);
+    return DF.calc.options(q, s.tables, s.graine).map(function (o) { return o.attente ? Object.assign({}, o, { libelle: o.libelle + ' (liste d\'attente)' }) : o; });
 }
 function choixUnique(s, q, v, maj, lib) {
     var id = idChamp(q);
@@ -11993,6 +12068,13 @@ async function envoyer(s, fin) {
         if (groupe !== undefined && (!s.dossierId || s.statutInitial === 'Brouillon')) {
             meta.groupe = groupe;
         }
+        var verif = await verifierLignesChoisies(s);
+        if (verif.prise) {
+            throw { lignePrise: verif.prise };
+        }
+        if (verif.attente) {
+            meta.listeAttente = true;
+        }
         var champs = DF.enreg.ligneDossier(def, rep, meta);
         var id = s.dossierId;
         if (id) {
@@ -12019,6 +12101,7 @@ async function envoyer(s, fin) {
             }
         }
         recu.numero = id;
+        recu.attenteLigne = !!verif.attente;
         s.dossierId = id;
         s.recu = recu;
         if (DF.colonnes.placesLimitees(def) && def.reglages.listeAttente) {
@@ -12035,6 +12118,10 @@ async function envoyer(s, fin) {
         masquerLoader();
         s.parcours = DF.parcours.reculer(s.parcours);
         dessinerEtape(s, true);
+        if (e && e.lignePrise) {
+            afficherErreur('Le choix « ' + e.lignePrise + ' » vient d\'être pris : revenez à la question pour en choisir un autre.');
+            return;
+        }
         afficherErreur(estRefusDroits(e) ? 'Le document a refusé l\'envoi : ' + (String(e.message || '').indexOf('Diploformulaire : ') !== -1 ? String(e.message).split('Diploformulaire : ')[1] : 'vérifiez votre adresse ou contactez la personne qui gère le formulaire.') : 'L\'envoi n\'a pas abouti : ' + messageErreur(e), e);
         return;
     }
@@ -12042,8 +12129,52 @@ async function envoyer(s, fin) {
     s.envoiEnCours = false;
     dessinerEtape(s, true);
 }
+async function verifierLignesChoisies(s) {
+    var res = { prise: '', attente: false };
+    var qs = DF.schema.toutesQuestions(s.def, true).map(function (x) { return x.q; }).filter(function (q) {
+        var f = q.source && q.source.table ? q.source.filtre : null;
+        return !!f && (f.type === 'groupe' ? (f.elements || []).length > 0 : !!f.colonne);
+    });
+    for (var i = 0; i < qs.length; i++) {
+        var q = qs[i], v = s.ctx.reponses[q.id];
+        if (DF.outils.estVide(v)) {
+            continue;
+        }
+        var tid = trouverTable(q.source.table);
+        if (!tid) {
+            continue;
+        }
+        try {
+            s.tables[q.source.table] = await lireLignes(tid);
+        }
+        catch (e) {
+            logSecurite('INFO', 'Liste des options non relue', e);
+            continue;
+        }
+        var opts = DF.calc.options(q, s.tables, s.graine);
+        (Array.isArray(v) ? v : [v]).forEach(function (x) {
+            if (x && typeof x === 'object' && x.autre !== undefined) {
+                return;
+            }
+            var val = x && typeof x === 'object' ? x.id : x;
+            var o = opts.filter(function (op) { return String(op.valeur) === String(val); })[0];
+            if (!o) {
+                res.prise = res.prise || String(x && typeof x === 'object' ? (x.libelle || val) : val);
+            }
+            else if (o.attente) {
+                res.attente = true;
+            }
+        });
+    }
+    return res;
+}
 function majAttenteRecu(s, zone) {
     var rg = s.def.reglages;
+    if (s.recu && s.recu.attenteLigne && !s.recu.apercu) {
+        vider(zone);
+        zone.appendChild(alerte('info', 'Liste d\'attente', creer('p', { texte: rg.messageAttente })));
+        return;
+    }
     if (!s.recu || s.recu.apercu || !rg.listeAttente || !+rg.nombreMaxReponses) {
         return;
     }
