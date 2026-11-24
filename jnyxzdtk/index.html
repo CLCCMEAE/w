@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.12 - 24/11/2026
+  Version : 1.1.13 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -1159,7 +1159,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.12';
+var VERSION_WIDGET = '1.1.13';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -3945,6 +3945,9 @@ DF.acces = (function () {
             B.push(r('', 'none', 'filtres enregistrés personnels.'));
             res.push({ tableId: t.bibliotheque, colIds: '*', regles: B });
         }
+        (t.sources || []).forEach(function (ts) {
+            res.push({ tableId: ts, colIds: '*', regles: [proprio, r(ANON, '+R-CUD', 'un visiteur sans compte lit les options proposées par le formulaire.')] });
+        });
         if (t.groupes) {
             res.push({ tableId: t.groupes, colIds: '*', regles: [proprio, r(ANON, 'none', 'accès réservé.'), r('', '+R-CUD', 'groupes modifiés par les propriétaires.')] });
         }
@@ -7696,6 +7699,16 @@ async function lireRegles() {
     return { resources: enLignes(res).map(function (x) { return { id: x.id, tableId: x.tableId, colIds: x.colIds }; }),
         rules: enLignes(ru).map(function (x) { return { id: x.id, resource: x.resource, aclFormula: x.aclFormula || '', permissionsText: x.permissionsText || '', rulePos: x.rulePos, memo: x.memo || '', userAttributes: x.userAttributes || '' }; }) };
 }
+function tablesSourcesDe(def) {
+    var res = [];
+    DF.schema.toutesQuestions(def, true).forEach(function (x) {
+        var t = x.q.source && x.q.source.table ? trouverTable(x.q.source.table) : '';
+        if (t && res.indexOf(t) === -1 && t !== etat.biblio) {
+            res.push(t);
+        }
+    });
+    return res;
+}
 function paramsAcces(def) {
     var t = (def.instruction && def.instruction.tables) || {};
     var instr = !!(def.instruction && def.instruction.actif);
@@ -7707,7 +7720,8 @@ function paramsAcces(def) {
             tableaux: DF.schema.toutesQuestions(def).filter(function (x) { return x.q.type === 'tableau' && x.q.tableLiee; }).map(function (x) { return trouverTable(x.q.tableLiee); }).filter(Boolean),
             historique: instr ? trouverTable(t.historique) : '', messages: instr ? trouverTable(t.messages) : '', avis: instr ? trouverTable(t.avis) : '',
             bibliotheque: etat.biblio, groupes: trouverGroupes(),
-            utilisateurs: u && u.valeur ? trouverTable(u.valeur.table) : '', utilisateursCrees: !!(u && u.valeur && u.valeur.cree)
+            utilisateurs: u && u.valeur ? trouverTable(u.valeur.table) : '', utilisateursCrees: !!(u && u.valeur && u.valeur.cree),
+            sources: def.reglages.public ? tablesSourcesDe(def) : []
         },
         formulairesPublics: etat.formulaires.some(function (f) { return f.def.reglages.public && f.def.reglages.statut !== 'brouillon'; })
     };
@@ -7778,7 +7792,11 @@ async function verifierReglesPubliques() {
     var regles = await lireRegles();
     var tables = Object.keys(etat.meta.tables).filter(function (t) { return t.indexOf('_grist') !== 0; });
     var nos = regles.rules.filter(DF.acces.estNotre).length;
-    return { lisibles: tablesLisiblesVisiteur(regles, tables, [etat.biblio]), nombre: nos };
+    var sources = [];
+    etat.formulaires.filter(function (f) { return f.def.reglages.public; }).forEach(function (f) { tablesSourcesDe(f.def).forEach(function (t) { if (sources.indexOf(t) === -1) {
+        sources.push(t);
+    } }); });
+    return { lisibles: tablesLisiblesVisiteur(regles, tables, [etat.biblio].concat(sources)), nombre: nos };
 }
 var ECRANS_AUTEUR = [
     { cle: 'concevoir', libelle: 'Concevoir', icone: ['edit-line'] },
