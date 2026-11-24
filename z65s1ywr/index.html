@@ -3,7 +3,7 @@
   ============================================================================
   READ ME - WuitWorkflow
   ============================================================================
-  Version     : 1.1.3
+  Version     : 1.1.7
   Date        : 23/11/2026
   Auteur      : DNUM / MEAE - Centre de Service No-Code (CSNC)
   Plateforme  : Diplotable
@@ -1127,7 +1127,7 @@
    Toutes les constantes sont declarees ici, au premier niveau et avant toute
    fonction : initialiser() peut etre declenchee par le premier onRecords
    avant la fin de l'evaluation du script. */
-var VERSION_WIDGET = '1.1.6';
+var VERSION_WIDGET = '1.1.7';
 var ESSAI_WIDGET = 0;
 /* Badge Homologue du bandeau : reste a false tant que le widget n'a pas ete
    audite et la version validee pour la production. */
@@ -2637,6 +2637,56 @@ function formaterDate(sec) {
   return parseInt(p.day, 10) + ' ' + MOIS[parseInt(p.month, 10) - 1] + ' ' + p.year;
 }
 
+/* Date et heure dans le fuseau de la colonne (Europe/Paris par defaut). */
+function formaterDateHeure(sec, type) {
+  if (typeof sec !== 'number' || !sec) { return ''; }
+  var tz = String(type || '').indexOf('DateTime:') === 0 ? String(type).slice(9) : 'Europe/Paris';
+  var p = {};
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date(sec * 1000)).forEach(function (x) { p[x.type] = x.value; });
+  } catch (e) {
+    return formaterDate(sec);
+  }
+  return parseInt(p.day, 10) + ' ' + MOIS[parseInt(p.month, 10) - 1] + ' ' + p.year + ', ' + p.hour + ' h ' + p.minute;
+}
+
+/* Une date seule est stockee a minuit UTC : on la lit en UTC pour ne jamais
+   afficher la veille, quel que soit le fuseau du poste. */
+function formaterJour(sec) {
+  if (typeof sec !== 'number') { return ''; }
+  var d = new Date(sec * 1000);
+  return d.getUTCDate() + ' ' + MOIS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
+
+/* Texte d'une valeur selon le type de sa colonne : les dates en clair,
+   jamais en nombre. Les dates d'une colonne de type Any arrivent sous la
+   forme ['d', sec] ou ['D', sec, fuseau]. */
+function texteTypee(v, type) {
+  v = valeurCellule(v);
+  if (Array.isArray(v) && (v[0] === 'd' || v[0] === 'D') && typeof v[1] === 'number') {
+    return v[0] === 'd' ? formaterJour(v[1]) : formaterDateHeure(v[1], 'DateTime:' + (v[2] || 'Europe/Paris'));
+  }
+  if (typeof v === 'number' && type === 'Date') { return formaterJour(v); }
+  if (typeof v === 'number' && /^DateTime/.test(String(type || ''))) { return formaterDateHeure(v, type); }
+  if (Array.isArray(v) && v[0] === 'L') { return v.slice(1).map(function (x) { return texteTypee(x, type); }).filter(Boolean).join(', '); }
+  return texteLisible(v);
+}
+
+/* Texte d'une cellule d'une table liee : une reference montre la colonne
+   affichee de la table cible (et non son numero de ligne). */
+function texteColonneFiche(tid, colId, d, i) {
+  var c = infoColonne(tid, colId);
+  var v = d[colId] ? d[colId][i] : '';
+  if (c && /^Ref(List)?:/.test(c.type)) {
+    var h = c.displayCol ? etat.meta.colParRef[c.displayCol] : null;
+    var vis = c.visibleCol ? etat.meta.colParRef[c.visibleCol] : null;
+    if (h && d[h.colId]) { return texteTypee(d[h.colId][i], vis ? vis.type : ''); }
+    return typeof valeurCellule(v) === 'number' && v > 0 ? 'Ligne ' + v : texteLisible(v);
+  }
+  return texteTypee(v, c ? c.type : '');
+}
+
 function aujourdhui() {
   var d = new Date();
   return d.getDate() + ' ' + MOIS[d.getMonth()] + ' ' + d.getFullYear();
@@ -2740,7 +2790,8 @@ async function chargerMeta() {
     var info = { ref: c.id[j], tableId: tidC, colId: c.colId[j], type: c.type[j] || 'Any', label: c.label ? (c.label[j] || c.colId[j]) : c.colId[j],
       formule: Boolean(c.isFormula[j]) && Boolean(c.formula[j]), formuleVide: Boolean(c.isFormula[j]) && !c.formula[j],
       declencheur: !c.isFormula[j] && Boolean(c.formula[j]), recalcWhen: c.recalcWhen ? c.recalcWhen[j] : 0,
-      recalcDeps: c.recalcDeps ? c.recalcDeps[j] : null, options: opts, pos: c.parentPos ? c.parentPos[j] : j };
+      recalcDeps: c.recalcDeps ? c.recalcDeps[j] : null, options: opts, pos: c.parentPos ? c.parentPos[j] : j,
+      displayCol: c.displayCol ? c.displayCol[j] : 0, visibleCol: c.visibleCol ? c.visibleCol[j] : 0 };
     colParRef[c.id[j]] = info;
     if (!colonnes[tidC]) { colonnes[tidC] = []; }
     colonnes[tidC].push(info);
@@ -3263,7 +3314,7 @@ function texteLigneLiee(tid, ligne, colonne) {
   var f = etat.fiches[tid];
   if (!f || f.parId[ligne] === undefined) { return ''; }
   var col = colonne && f.d[colonne] ? colonne : colonneParDefaut(tid);
-  return texteLisible(f.d[col] ? f.d[col][f.parId[ligne]] : '');
+  return f.d[col] ? texteColonneFiche(tid, col, f.d, f.parId[ligne]) : '';
 }
 
 function ligneLieeExiste(e) {
@@ -5377,8 +5428,7 @@ function blocFicheLiee(e, t) {
     bloc.appendChild(creer('span', { classe: 'w-mention', texte: 'Table ' + libelleTable(tid) }));
     var dl = creer('dl');
     colonnesVisibles(tid).slice(0, 12).forEach(function (c) {
-      var v = texteLisible(f.d[c.colId] ? f.d[c.colId][i] : '');
-      if (/^Date/.test(c.type) && typeof valeurCellule(f.d[c.colId][i]) === 'number') { v = formaterDate(f.d[c.colId][i]); }
+      var v = texteColonneFiche(tid, c.colId, f.d, i);
       if (!v) { return; }
       dl.appendChild(creer('dt', { texte: c.label }));
       dl.appendChild(creer('dd', { texte: v.length > 300 ? v.slice(0, 297) + '…' : v }));

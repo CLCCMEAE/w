@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.15 - 24/11/2026
+  Version : 1.1.16 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -1167,7 +1167,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.15';
+var VERSION_WIDGET = '1.1.16';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -11461,6 +11461,45 @@ function construireChamp(s, q, v, maj, lib) {
         default: return texte('text');
     }
 }
+function texteDateOption(v, type) {
+    if (Array.isArray(v) && (v[0] === 'd' || v[0] === 'D') && typeof v[1] === 'number') {
+        type = v[0] === 'd' ? 'Date' : 'DateTime:' + (v[2] || 'UTC');
+        v = v[1];
+    }
+    if (typeof v !== 'number' || !(type === 'Date' || String(type).indexOf('DateTime') === 0)) {
+        return null;
+    }
+    var d = new Date(v * 1000);
+    if (type === 'Date') {
+        return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear();
+    }
+    var tz = String(type).indexOf('DateTime:') === 0 ? String(type).slice(9) : 'Europe/Paris';
+    try {
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: tz }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+    }
+    catch (e) {
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+}
+function optionsSource(s, q) {
+    var opts = DF.calc.options(q, s.tables, s.graine);
+    if (!q.source || !q.source.table || !q.source.colonneLibelle) {
+        return opts;
+    }
+    var tid = trouverTable(q.source.table);
+    var c = tid && etat.meta.tables[tid] ? etat.meta.tables[tid].colonnes[q.source.colonneLibelle] : null;
+    var type = c ? String(c.type || '') : '';
+    var parId = {};
+    ((s.tables && s.tables[q.source.table]) || []).forEach(function (l) { parId['r' + l.id] = l; });
+    return opts.map(function (o) {
+        var l = parId[o.id];
+        var txt = l ? texteDateOption(l[q.source.colonneLibelle], type) : null;
+        if (txt === null) {
+            return o;
+        }
+        return Object.assign({}, o, { libelle: txt, valeur: q.type === 'reference' ? o.valeur : txt });
+    });
+}
 function optionsDe(s, q) {
     if (q.type === 'ouinon') {
         return [{ valeur: q.libelleOui || 'Oui', libelle: q.libelleOui || 'Oui', id: 'oui' }, { valeur: q.libelleNon || 'Non', libelle: q.libelleNon || 'Non', id: 'non' }];
@@ -11468,7 +11507,7 @@ function optionsDe(s, q) {
     if (q.type === 'territoire') {
         return DF.ref.valeurs(q.referentiel, q.filtreRegion).map(function (x, i) { return { valeur: x, libelle: x, id: 't' + i }; });
     }
-    return DF.calc.options(q, s.tables, s.graine).map(function (o) { return o.attente ? Object.assign({}, o, { libelle: o.libelle + ' (liste d\'attente)' }) : o; });
+    return optionsSource(s, q).map(function (o) { return o.attente ? Object.assign({}, o, { libelle: o.libelle + ' (liste d\'attente)' }) : o; });
 }
 function choixUnique(s, q, v, maj, lib) {
     var id = idChamp(q);
@@ -12209,7 +12248,7 @@ async function verifierLignesChoisies(s) {
             logSecurite('INFO', 'Liste des options non relue', e);
             continue;
         }
-        var opts = DF.calc.options(q, s.tables, s.graine);
+        var opts = optionsSource(s, q);
         (Array.isArray(v) ? v : [v]).forEach(function (x) {
             if (x && typeof x === 'object' && x.autre !== undefined) {
                 return;

@@ -929,7 +929,7 @@ function confirmerAction(titre, msg, libelleOui, opts) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.0.3';
+var VERSION_WIDGET = '1.0.4';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -1133,7 +1133,7 @@ function normalize(v) {
         .replace(/[\s\u00a0\u202f]+/g, ' ')
         .trim();
 }
-function formatDate(val, withTime) {
+function formatDate(val, withTime, fuseau) {
     if (val == null || val === '' || val === 0)
         return '';
     const ts = typeof val === 'number' ? val : parseFloat(val);
@@ -1144,10 +1144,16 @@ function formatDate(val, withTime) {
         if (isNaN(d.getTime()))
             return String(val);
         if (withTime) {
-            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-                ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            var oz = fuseau ? { timeZone: fuseau } : {};
+            try {
+                return d.toLocaleDateString('fr-FR', Object.assign({ day: '2-digit', month: '2-digit', year: 'numeric' }, oz)) +
+                    ' ' + d.toLocaleTimeString('fr-FR', Object.assign({ hour: '2-digit', minute: '2-digit' }, oz));
+            }
+            catch (e) {
+                return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            }
         }
-        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
     }
     catch (_) {
         return String(val);
@@ -1167,11 +1173,14 @@ function displayValue(colId, rawVal) {
         return valStr(rawVal);
     if (Array.isArray(rawVal) && rawVal[0] === 'E')
         return MARQUEUR_ERREUR;
+    const dAny = dateAnyGrist(rawVal);
+    if (dAny)
+        return formatDate(dAny.sec, dAny.col.type !== 'Date', dAny.col.type.slice(9));
     const t = (meta.type || '').toLowerCase();
     if (t === 'date')
         return formatDate(rawVal, false);
     if (t.startsWith('datetime'))
-        return formatDate(rawVal, true);
+        return formatDate(rawVal, true, String(meta.type).indexOf(':') !== -1 ? String(meta.type).slice(9) : '');
     if (t === 'bool') {
         if (rawVal === true)
             return 'Oui';
@@ -1668,10 +1677,12 @@ async function resolveReferences() {
     if (refTables.size === 0)
         return;
     let colIdMap = {};
+    const colTypeMap = {};
     try {
         const cmt = await grist.docApi.fetchTable('_grist_Tables_column');
         for (let i = 0; i < cmt.id.length; i++) {
             colIdMap[cmt.id[i]] = cmt.colId[i];
+            colTypeMap[cmt.id[i]] = cmt.type ? String(cmt.type[i] || '') : '';
         }
     }
     catch (e) {
@@ -1688,7 +1699,7 @@ async function resolveReferences() {
         const cle = m.refTable + '\u0000' + (dc || '');
         S.refCacheParColonne[colId] = cle;
         if (!aCharger.has(cle))
-            aCharger.set(cle, { table: m.refTable, displayCol: dc });
+            aCharger.set(cle, { table: m.refTable, displayCol: dc, type: dc ? colTypeMap[m.visibleCol] : '' });
     }
     for (const [cle, e] of aCharger) {
         const rt = e.table;
@@ -1714,8 +1725,18 @@ async function resolveReferences() {
             if (!displayCol || !rtData[displayCol])
                 continue;
             const cache = {};
+            const tAff = displayCol === e.displayCol ? (e.type || '') : '';
             for (let i = 0; i < rtData.id.length; i++) {
-                cache[rtData.id[i]] = rtData[displayCol][i];
+                const brut = rtData[displayCol][i];
+                const dAny = dateAnyGrist(brut);
+                if (dAny)
+                    cache[rtData.id[i]] = formatDate(dAny.sec, dAny.col.type !== 'Date', dAny.col.type.slice(9));
+                else if (typeof brut === 'number' && tAff === 'Date')
+                    cache[rtData.id[i]] = formatDate(brut, false);
+                else if (typeof brut === 'number' && tAff.indexOf('DateTime') === 0)
+                    cache[rtData.id[i]] = formatDate(brut, true, tAff.slice(9));
+                else
+                    cache[rtData.id[i]] = brut;
             }
             S.refCache[cle] = cache;
             if (!S.refCache[rt])
@@ -4580,6 +4601,18 @@ function viderElement(element) {
     while (element && element.firstChild)
         element.removeChild(element.firstChild);
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurGristEnTexte(valeur, type, colonneMeta) {
     if (valeur === null || valeur === undefined || valeur === '')
         return '';
@@ -4596,6 +4629,9 @@ function valeurGristEnTexte(valeur, type, colonneMeta) {
             return dateHeureDansFuseau(n, t);
         }
     }
+    var dAny = dateAnyGrist(valeur);
+    if (dAny)
+        return valeurGristEnTexte(dAny.sec, dAny.col.type, null);
     if (Array.isArray(valeur)) {
         if (valeur.length > 0 && valeur[0] === 'E')
             return '';

@@ -1046,7 +1046,7 @@ var NOM_WIDGET_ANCIEN = 'import_excel';
 function estLigneDuWidget(valeurWidget) {
     return valeurWidget === NOM_WIDGET || valeurWidget === NOM_WIDGET_ANCIEN;
 }
-var VERSION_WIDGET = '1.1.2';
+var VERSION_WIDGET = '1.1.3';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function descriptifParametrage(nom, nomFichier) {
@@ -5386,20 +5386,33 @@ async function construireCacheReferences() {
                 var rowId = ids[ri];
                 mapParId[rowId] = true;
                 var libelle = '';
+                var variantes = [];
                 if (colAffichage && data[colAffichage] !== undefined) {
                     var valBrute = data[colAffichage][ri];
-                    if (valBrute !== null && valBrute !== undefined)
+                    var typeAff = (etat.typesColonnes[tableCible] && etat.typesColonnes[tableCible][colAffichage]) || '';
+                    var dAny = dateAnyGrist(valBrute);
+                    if (dAny) {
+                        valBrute = dAny.sec;
+                        typeAff = dAny.col.type;
+                    }
+                    if (typeof valBrute === 'number' && (typeAff === 'Date' || typeAff.indexOf('DateTime') === 0)) {
+                        var dRef = new Date(valBrute * 1000);
+                        var p2 = function (x) { return (x < 10 ? '0' : '') + x; };
+                        libelle = p2(dRef.getUTCDate()) + '/' + p2(dRef.getUTCMonth() + 1) + '/' + dRef.getUTCFullYear();
+                        variantes = [dRef.getUTCFullYear() + '-' + p2(dRef.getUTCMonth() + 1) + '-' + p2(dRef.getUTCDate()), formaterJourCourt(dRef, true)];
+                    }
+                    else if (valBrute !== null && valBrute !== undefined)
                         libelle = String(valBrute);
                 }
-                if (libelle) {
-                    var cleLib = normaliserPourRef(libelle);
+                [libelle].concat(variantes).forEach(function (lib, k) {
+                    var cleLib = lib ? normaliserPourRef(lib) : '';
                     if (cleLib) {
                         if (map[cleLib] === undefined)
                             map[cleLib] = rowId;
-                        else
+                        else if (k === 0)
                             ambigus[cleLib] = (ambigus[cleLib] || 1) + 1;
                     }
-                }
+                });
             }
             etat.cacheReferences[cles[ti]] = { colAffichage: colAffichage, map: map, mapParId: mapParId, ambigus: ambigus };
             var nbAmbigus = Object.keys(ambigus).length;
@@ -5990,6 +6003,18 @@ function libelleCibleRef(nomTable, colId, idCible) {
 function estValeurVide(v) {
     return v === null || v === undefined || v === '' || (Array.isArray(v) && v.length <= 1 && v[0] === 'L');
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurLisible(nomTable, colId, v) {
     if (estValeurVide(v))
         return '(vide)';
@@ -5998,6 +6023,9 @@ function valeurLisible(nomTable, colId, v) {
         return formaterJourCourt(new Date(v * 1000), true);
     if (type.indexOf('DateTime') === 0 && typeof v === 'number')
         return formaterInstantCourt(new Date(v * 1000));
+    var dAny = dateAnyGrist(v);
+    if (dAny)
+        return dAny.col.type === 'Date' ? formaterJourCourt(new Date(dAny.sec * 1000), true) : formaterInstantCourt(new Date(dAny.sec * 1000));
     if (type === 'Bool')
         return v ? 'Oui' : 'Non';
     if (type.indexOf('Ref:') === 0)

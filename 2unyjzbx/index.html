@@ -716,7 +716,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.5';
+var VERSION_WIDGET = '1.9.6';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2536,6 +2536,35 @@ async function agir(actions) {
         catch (x) { }
         throw e;
     }
+}
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
+function texteLibelleRef(v, c) {
+    var a = dateAnyGrist(v);
+    if (a) {
+        return a.col.type === 'Date' ? formaterDate(a.sec) : formaterDateHeure(a.sec, a.col.type.slice(9));
+    }
+    var t = c ? String(c.type || '') : '';
+    if (typeof v === 'number' && t === 'Date') {
+        return formaterDate(v);
+    }
+    if (typeof v === 'number' && t.indexOf('DateTime') === 0) {
+        return formaterDateHeure(v, fuseauDe(c));
+    }
+    if (Array.isArray(v)) {
+        return v[0] === 'L' ? v.slice(1).join(', ') : '';
+    }
+    return String(v);
 }
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
@@ -6230,7 +6259,7 @@ async function chargerRefPour(refs, tidCible, colAff) {
     for (var i = 0; i < d.id.length; i++) {
         var v = colAff ? colonneDe(d, colAff, i) : d.id[i];
         m.ids.push(d.id[i]);
-        m.libelles[d.id[i]] = (v === null || v === undefined || v === '') ? ('Ligne ' + d.id[i]) : String(v);
+        m.libelles[d.id[i]] = (v === null || v === undefined || v === '') ? ('Ligne ' + d.id[i]) : texteLibelleRef(v, colAff ? infoColonne(tidCible, colAff) : null);
         var o = colonneDe(d, 'manualSort', i);
         m.ordre[d.id[i]] = typeof o === 'number' ? o : d.id[i];
     }
@@ -6246,6 +6275,10 @@ function texteValeurCol(tid, colId, v, refs) {
     var genre = genreDe(col, null);
     if (v === null || v === undefined || v === '') {
         return '';
+    }
+    var dAny = dateAnyGrist(v);
+    if (dAny) {
+        return dAny.col.type === 'Date' ? formaterDate(dAny.sec) : formaterDateHeure(dAny.sec, dAny.col.type.slice(9));
     }
     if (genre === 'pj') {
         var n = versListe(v).length;

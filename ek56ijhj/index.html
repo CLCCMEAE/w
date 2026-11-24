@@ -1458,7 +1458,7 @@ function confirmerAction(titre, contenu, avertissement, libelleOui, opts) {
 }
 var LABEL_TABLE_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
-var VERSION_WIDGET = '1.0.3';
+var VERSION_WIDGET = '1.0.4';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1760,9 +1760,28 @@ async function saveCustomFields() {
         logSecurite('INFO', 'Sauvegarde customFields impossible', e);
     }
 }
-function texteCelluleRef(valeur) {
+function texteDateGrist(sec, type) {
+    var d = new Date(sec * 1000);
+    if (isNaN(d))
+        return '';
+    if (type === 'Date')
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+    var tz = String(type || '').indexOf('DateTime:') === 0 ? String(type).slice(9) : '';
+    try {
+        var oz = tz ? { timeZone: tz } : {};
+        return d.toLocaleDateString('fr-FR', Object.assign({ day: '2-digit', month: '2-digit', year: 'numeric' }, oz)) + ' ' + d.toLocaleTimeString('fr-FR', Object.assign({ hour: '2-digit', minute: '2-digit' }, oz));
+    }
+    catch (e) {
+        return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+}
+function texteCelluleRef(valeur, type) {
     if (valeur === null || valeur === undefined)
         return '';
+    if (Array.isArray(valeur) && (valeur[0] === 'd' || valeur[0] === 'D') && typeof valeur[1] === 'number')
+        return texteDateGrist(valeur[1], valeur[0] === 'd' ? 'Date' : 'DateTime:' + (valeur[2] || 'UTC'));
+    if (typeof valeur === 'number' && type && (type === 'Date' || String(type).indexOf('DateTime') === 0))
+        return texteDateGrist(valeur, type);
     if (Array.isArray(valeur)) {
         if (valeur.length > 0 && valeur[0] === 'E')
             return '';
@@ -1795,6 +1814,21 @@ async function lireRefTable(tableName, visibleColId, colDesambig, cacheKey) {
             refCaches[cacheKey] = [];
             return [];
         }
+        var typesCols = {};
+        try {
+            var tMeta = await grist.docApi.fetchTable('_grist_Tables');
+            var iT = tMeta.tableId.indexOf(tableName);
+            if (iT !== -1) {
+                var cMeta = await grist.docApi.fetchTable('_grist_Tables_column');
+                for (var q = 0; q < cMeta.id.length; q++) {
+                    if (cMeta.parentId[q] === tMeta.id[iT])
+                        typesCols[cMeta.colId[q]] = String(cMeta.type[q] || '');
+                }
+            }
+        }
+        catch (e) {
+            typesCols = {};
+        }
         var allCols = Object.keys(recs[0]).filter(function (k) { return k !== 'id' && !isMetaCol(k) && k.indexOf('gristHelper_') !== 0; });
         var labelCol = null;
         if (visibleColId && allCols.indexOf(visibleColId) !== -1)
@@ -1818,9 +1852,9 @@ async function lireRefTable(tableName, visibleColId, colDesambig, cacheKey) {
             }
         }
         var items = recs.map(function (r) {
-            var label = labelCol ? texteCelluleRef(r[labelCol]).trim() : '';
+            var label = labelCol ? texteCelluleRef(r[labelCol], typesCols[labelCol]).trim() : '';
             if (!label) {
-                label = allCols.slice(0, 3).map(function (c) { return texteCelluleRef(r[c]).trim(); }).filter(Boolean).join(' - ');
+                label = allCols.slice(0, 3).map(function (c) { return texteCelluleRef(r[c], typesCols[c]).trim(); }).filter(Boolean).join(' - ');
             }
             if (!label)
                 label = 'Ligne ' + r.id + ' (libellé absent)';
@@ -1843,7 +1877,7 @@ async function lireRefTable(tableName, visibleColId, colDesambig, cacheKey) {
                     for (var m = 0; m < items.length; m++) {
                         if (enDoublon.indexOf(items[m].label) === -1)
                             continue;
-                        var cle = items[m].label + '\u0000' + texteCelluleRef(parId[items[m].id][allCols[k]]);
+                        var cle = items[m].label + '\u0000' + texteCelluleRef(parId[items[m].id][allCols[k]], typesCols[allCols[k]]);
                         if (valeurs[cle]) {
                             separe = false;
                             break;
@@ -1871,7 +1905,7 @@ async function lireRefTable(tableName, visibleColId, colDesambig, cacheKey) {
                 items.forEach(function (it) {
                     if (enDoublon.indexOf(it.label) === -1)
                         return;
-                    var suffixe = texteCelluleRef(parId[it.id][colSuffixe]).trim();
+                    var suffixe = texteCelluleRef(parId[it.id][colSuffixe], typesCols[colSuffixe]).trim();
                     if (suffixe)
                         it.label = it.label + ' (' + suffixe + ')';
                 });
@@ -2976,7 +3010,7 @@ function createCellControl(f, val, rowId, colId) {
         spM.style.cssText = 'font-size:.75rem;color:var(--text-mention-grey)';
         if ((f.type === 'Date' || f.type === 'DateTime') && val && typeof val === 'number') {
             var d = new Date(val * 1000);
-            spM.textContent = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + (f.type === 'DateTime' ? ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '');
+            spM.textContent = d.toLocaleDateString('fr-FR', f.type === 'Date' ? { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' } : { day: '2-digit', month: '2-digit', year: 'numeric' }) + (f.type === 'DateTime' ? ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '');
         }
         else {
             var sv = val != null ? String(val) : '';

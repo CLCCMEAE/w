@@ -571,7 +571,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.7.15';
+var VERSION_WIDGET = '1.7.16';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -2403,6 +2403,18 @@ async function agir(actions) {
         throw e;
     }
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
         return '';
@@ -3519,7 +3531,8 @@ function lecteur(tid, colId) {
             f = function (i) { var v = valeurCellule(arr[i]); if (v === null || v === undefined || v === '') {
                 return null;
             } if (Array.isArray(v)) {
-                return null;
+                var dAny = dateAnyGrist(v);
+                return dAny ? formaterDateCol(dAny.sec, dAny.col) : null;
             } return String(v); };
         }
     }

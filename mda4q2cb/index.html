@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitCalendrier
-  Version : 1.1.7 - 24/11/2026
+  Version : 1.1.8 - 24/11/2026
   Description : calendriers et plannings tirés d'une table, avec pages pour les utilisateurs.
 -->
 <head>
@@ -945,7 +945,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.1.7';
+var VERSION_WIDGET = '1.1.8';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -3086,6 +3086,18 @@ function appliquerLectureSeule() {
         etat.tl.racine.scrollTop = sy;
     }
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
         return '';
@@ -5011,6 +5023,10 @@ function texteSimple(v, col) {
     }
     if (typeof v === 'boolean') {
         return v ? 'Oui' : 'Non';
+    }
+    var dAny = dateAnyGrist(v);
+    if (dAny) {
+        return formaterDateCol(dAny.sec, dAny.col);
     }
     if (Array.isArray(v)) {
         return v[0] === 'L' ? v.slice(1).join(', ') : '';

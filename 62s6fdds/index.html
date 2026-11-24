@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitKanban
-  Version : 1.2.6 - 24/11/2026
+  Version : 1.2.7 - 24/11/2026
   Description : tableaux Kanban de suivi, cartes et fiches tirées d'une table.
 -->
 <head>
@@ -887,7 +887,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.2.6';
+var VERSION_WIDGET = '1.2.7';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -2839,6 +2839,35 @@ async function agir(actions) {
         throw e;
     }
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
+function texteLibelleRef(v, c) {
+    var a = dateAnyGrist(v);
+    if (a) {
+        return a.col.type === 'Date' ? formaterDate(a.sec) : formaterDateHeure(a.sec, a.col.type.slice(9));
+    }
+    var t = c ? String(c.type || '') : '';
+    if (typeof v === 'number' && t === 'Date') {
+        return formaterDate(v);
+    }
+    if (typeof v === 'number' && t.indexOf('DateTime') === 0) {
+        return formaterDateHeure(v, fuseauDe(c));
+    }
+    if (Array.isArray(v)) {
+        return v[0] === 'L' ? v.slice(1).join(', ') : '';
+    }
+    return String(v);
+}
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
         return '';
@@ -4004,7 +4033,7 @@ async function chargerRef(tidCible, colAff) {
     for (var i = 0; i < d.id.length; i++) {
         var v = colAff ? colonneDe(d, colAff, i) : d.id[i];
         m.ids.push(d.id[i]);
-        m.libelles[d.id[i]] = (v === null || v === undefined || v === '') ? ('Ligne ' + d.id[i]) : String(v);
+        m.libelles[d.id[i]] = (v === null || v === undefined || v === '') ? ('Ligne ' + d.id[i]) : texteLibelleRef(v, colAff ? infoColonne(tidCible, colAff) : null);
     }
     etat.refs[cle] = m;
     return m;
@@ -4603,6 +4632,10 @@ function texteValeur(colId, v) {
     var genre = genreDe(col, champDe(colId));
     if (v === null || v === undefined || v === '') {
         return '';
+    }
+    var dAny = dateAnyGrist(v);
+    if (dAny) {
+        return dAny.col.type === 'Date' ? formaterDate(dAny.sec) : formaterDateHeure(dAny.sec, dAny.col.type.slice(9));
     }
     if (genre === 'pj') {
         var n = idsPJ(v).length;

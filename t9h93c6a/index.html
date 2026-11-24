@@ -676,7 +676,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '3.6.7';
+var VERSION_WIDGET = '3.6.8';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1532,6 +1532,18 @@ async function agir(actions) {
         }
         throw e;
     }
+}
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
 }
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
@@ -6885,6 +6897,16 @@ function texteCellule(tid, colId, v) {
         return '';
     }
     var col = infoColonne(tid, colId);
+    var dAny = dateAnyGrist(v);
+    if (dAny) {
+        return dAny.col.type === 'Date' ? formaterDate(dAny.sec) : formaterDateHeure(dAny.sec, fuseauDe(dAny.col));
+    }
+    if (typeof v === 'number' && col && col.type === 'Date') {
+        return formaterDate(v);
+    }
+    if (typeof v === 'number' && col && String(col.type).indexOf('DateTime') === 0) {
+        return formaterDateHeure(v, fuseauDe(col));
+    }
     var estRef = col && /^Ref(List)?:/.test(col.type);
     var nomRef = function (id) {
         var cible = tableCibleRef(col.type), cache = etat.donnees && etat.donnees.refs ? etat.donnees.refs[cible] : null;
@@ -6896,7 +6918,7 @@ function texteCellule(tid, colId, v) {
             return '';
         }
         var nm = cible === cfg().equipe ? cf('equipe', 'NOM') : 'NOM', aff = colAffichageRef(col) || (cache[nm] ? nm : null), k = cache.id.indexOf(id);
-        return aff && cache[aff] && k >= 0 ? String(cache[aff][k] || '') : '';
+        return aff && cache[aff] && k >= 0 ? texteCellule(cible, aff, cache[aff][k]) : '';
     };
     if (Array.isArray(v)) {
         if (v[0] !== 'L') {
@@ -8555,7 +8577,7 @@ function valeurResponsable(m, col) {
             var cache = etat.donnees.refs ? etat.donnees.refs[cible] : null, aff = colAffichageRef(col) || (cache && cache.NOM ? 'NOM' : null);
             if (cache && aff && cache[aff]) {
                 for (var k = 0; k < cache.id.length; k++) {
-                    if (correspond(m, String(cache[aff][k] || ''))) {
+                    if (correspond(m, texteCellule(cible, aff, cache[aff][k]))) {
                         id = cache.id[k];
                         break;
                     }
@@ -9982,7 +10004,7 @@ function optionsCible(col) {
     if (!aff || !d[aff]) {
         aff = (colonnesDe(cible).filter(function (c) { return c.type === 'Text' && IDS_META.indexOf(c.colId) === -1 && d[c.colId]; })[0] || {}).colId;
     }
-    return d.id.slice(0, 1000).map(function (id, i) { return { id: id, libelle: String(aff && d[aff] ? valeurCellule(d[aff][i]) || '' : '').trim() || 'Ligne ' + id }; })
+    return d.id.slice(0, 1000).map(function (id, i) { return { id: id, libelle: String(aff && d[aff] ? texteCellule(cible, aff, valeurCellule(d[aff][i])) : '').trim() || 'Ligne ' + id }; })
         .sort(function (a, b) { return a.libelle.localeCompare(b.libelle, 'fr'); });
 }
 function editeurChamp(tid, colId, o) {
@@ -11471,7 +11493,7 @@ function valeursFiltre(b, tid, colId) {
                 var lib = k;
                 if (cible) {
                     var j = lus && lus.id ? lus.id.indexOf(Number(k)) : -1;
-                    lib = j >= 0 && aff && lus[aff] ? String(lus[aff][j] || '') || '#' + k : '#' + k;
+                    lib = j >= 0 && aff && lus[aff] ? texteCellule(cible, aff, lus[aff][j]) || '#' + k : '#' + k;
                 }
                 if (col.type === 'Bool') {
                     lib = k === 'true' ? 'Oui' : 'Non';

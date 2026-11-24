@@ -526,7 +526,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.3';
+var VERSION_WIDGET = '1.0.4';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -723,6 +723,22 @@ function heure(ms) {
 function dateHeure(ms) {
     var d = new Date(ms);
     return d.getDate() + ' ' + MOIS_COURTS[d.getMonth()] + ' ' + d.getFullYear() + ' à ' + heure(ms);
+}
+function dateHeureFuseau(sec, type) {
+    var tz = String(type || '').indexOf('DateTime:') === 0 ? String(type).slice(9) : '';
+    if (!tz) {
+        return dateHeure(sec * 1000);
+    }
+    try {
+        var p = {};
+        new Intl.DateTimeFormat('fr-FR', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date(sec * 1000)).forEach(function (x) {
+            p[x.type] = x.value;
+        });
+        return Number(p.day) + ' ' + MOIS_COURTS[Number(p.month) - 1] + ' ' + p.year + ' à ' + Number(p.hour) + ' h ' + p.minute;
+    }
+    catch (e) {
+        return dateHeure(sec * 1000);
+    }
 }
 function cleJour(ms) {
     var d = new Date(ms);
@@ -1622,7 +1638,7 @@ async function chargerRefs(tid, ct) {
     try {
         var d = await lireColonnes(tid, [ct]);
         for (var i = 0; i < d.id.length; i++) {
-            res[d.id[i]] = ct && d[ct] ? texteBrut(d[ct][i]) : '';
+            res[d.id[i]] = ct && d[ct] ? texteValeur(tid, ct, d[ct][i]) : '';
         }
     }
     catch (e) {
@@ -1638,6 +1654,10 @@ function texteValeur(tid, colId, v) {
     if (v === null || v === undefined || v === '') {
         return '';
     }
+    var dAny = dateAnyGrist(v);
+    if (dAny) {
+        return dAny.col.type === 'Date' ? formaterDateSec(dAny.sec) : dateHeureFuseau(dAny.sec, dAny.col.type);
+    }
     if (g === 'bool') {
         return v ? 'oui' : 'non';
     }
@@ -1645,7 +1665,7 @@ function texteValeur(tid, colId, v) {
         return typeof v === 'number' ? formaterDateSec(v) : String(v);
     }
     if (g === 'dateheure') {
-        return typeof v === 'number' ? dateHeure(v * 1000) : String(v);
+        return typeof v === 'number' ? dateHeureFuseau(v, c.type) : String(v);
     }
     if (g === 'ref' || g === 'refs') {
         var cible = tableCible(c.type);
@@ -4230,6 +4250,18 @@ function estRefusGeneral(e) {
     return /no write access|read.?only|viewer|cannot edit|non accord/i.test(m);
 }
 function attendreAcces() { return Promise.race([_promesseAcces, new Promise(function (ok) { setTimeout(ok, 3000); })]); }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurCellule(v) {
     if (Array.isArray(v) && v[0] === 'E') {
         return '';

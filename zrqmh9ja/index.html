@@ -1426,7 +1426,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.5";
+var VERSION_WIDGET = "1.0.6";
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -2283,6 +2283,18 @@ async function agir(actions) {
     etat.ecrituresEnCours--;
   }
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurCellule(v) {
   return Array.isArray(v) && v[0] === "E" ? "" : v;
 }
@@ -2304,6 +2316,10 @@ function texteLisible(v) {
   }
   if (typeof v === "boolean") {
     return v ? "Oui" : "Non";
+  }
+  var dAny = dateAnyGrist(v);
+  if (dAny) {
+    return dateJJMMAAAA(dAny.sec, dAny.col.type !== "Date");
   }
   if (Array.isArray(v)) {
     return v[0] === "L" ? v.slice(1).map(texteLisible).filter(Boolean).join(", ") : "";
@@ -2353,7 +2369,8 @@ async function chargerMeta() {
       recalcDeps: c.recalcDeps ? c.recalcDeps[j] : null,
       options: opts,
       pos: c.parentPos ? c.parentPos[j] : j,
-      displayCol: c.displayCol ? c.displayCol[j] : 0
+      displayCol: c.displayCol ? c.displayCol[j] : 0,
+      visibleCol: c.visibleCol ? c.visibleCol[j] : 0
     };
     colParRef[c.id[j]] = info;
     if (!colonnes[tidC]) {
@@ -3093,7 +3110,16 @@ function valeurLisible(tid, col, d, i, noms) {
   if (/^Ref(List)?:/.test(type)) {
     var aide2 = colonneAide(tid, col);
     if (aide2 && d[aide2]) {
-      return texteLisible(d[aide2][i]);
+      var hv = d[aide2][i];
+      var vis = col.visibleCol ? etat.meta.colParRef[col.visibleCol] : null;
+      var tv = vis ? String(vis.type || "") : "";
+      if (typeof hv === "number" && /^Date$/.test(tv)) {
+        return dateJJMMAAAA(hv, false);
+      }
+      if (typeof hv === "number" && /^DateTime/.test(tv)) {
+        return dateJJMMAAAA(hv, true);
+      }
+      return texteLisible(hv);
     }
     if (Array.isArray(v)) {
       return v[0] === "L" ? v.slice(1).map(function(x) {

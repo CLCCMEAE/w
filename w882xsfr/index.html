@@ -870,7 +870,7 @@ function brancherSocle() {
 }
 </script>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.2';
+var VERSION_WIDGET = '1.1.3';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function validerNombre(valeur, min, max, defaut) {
@@ -1550,6 +1550,20 @@ function tableCibleDeReference(type) {
 function estColonneReference(type) {
     return !!type && (type.indexOf('Ref:') === 0 || type.indexOf('RefList:') === 0);
 }
+function libelleReferenceLisible(lib, table, colId) {
+    var c = (etat.metadonneesColonnes[table] || []).filter(function (x) { return x.colId === colId; })[0];
+    var t = c ? String(c.type || '') : '';
+    var dAny = dateAnyGrist(lib);
+    if (dAny) {
+        lib = dAny.sec;
+        t = dAny.col.type;
+    }
+    if (typeof lib === 'number' && (t === 'Date' || t.indexOf('DateTime') === 0)) {
+        var txt = valeurGristEnTexte(lib, t, null);
+        return t === 'Date' ? dateIsoLisible(txt) : txt;
+    }
+    return Array.isArray(lib) ? (lib[0] === 'L' ? lib.slice(1).join(', ') : '') : String(lib);
+}
 function colonneAffichageReference(colonneMeta, tableCible) {
     if (colonneMeta && colonneMeta.visibleCol && etat.colonneParRef[colonneMeta.visibleCol]) {
         return etat.colonneParRef[colonneMeta.visibleCol];
@@ -1586,7 +1600,7 @@ async function chargerLibellesReferences(tablesConcernees) {
             for (var r = 0; r < ids.length; r++) {
                 var lib = (e.colAffichage && data[e.colAffichage] !== undefined) ? data[e.colAffichage][r] : null;
                 if (lib !== null && lib !== undefined && lib !== '')
-                    map[ids[r]] = String(lib);
+                    map[ids[r]] = libelleReferenceLisible(lib, e.table, e.colAffichage);
             }
             etat.libellesReferences[cles[i]] = map;
             logSecurite('INFO', 'Libellés de référence chargés pour ' + e.table, { colAffichage: e.colAffichage, entrees: Object.keys(map).length });
@@ -1616,6 +1630,18 @@ function nomsDesPiecesJointes(valeur) {
     var table = etat.nomsPiecesJointes || {};
     return ids.map(function (id) { return table[id] || String(id); }).join(', ');
 }
+function dateAnyGrist(v) {
+    if (!Array.isArray(v) || typeof v[1] !== 'number') {
+        return null;
+    }
+    if (v[0] === 'd') {
+        return { sec: v[1], col: { type: 'Date' } };
+    }
+    if (v[0] === 'D') {
+        return { sec: v[1], col: { type: 'DateTime:' + (typeof v[2] === 'string' && v[2] ? v[2] : 'UTC') } };
+    }
+    return null;
+}
 function valeurGristEnTexte(valeur, type, colonneMeta) {
     if (valeur === null || valeur === undefined || valeur === '')
         return '';
@@ -1635,6 +1661,9 @@ function valeurGristEnTexte(valeur, type, colonneMeta) {
             return dateHeureDansFuseau(n, type);
         }
     }
+    var dAny = dateAnyGrist(valeur);
+    if (dAny)
+        return valeurGristEnTexte(dAny.sec, dAny.col.type, null);
     if (Array.isArray(valeur)) {
         if (valeur.length > 0 && valeur[0] === 'E')
             return '';
