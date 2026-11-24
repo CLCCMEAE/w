@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.4 - 23/11/2026
+  Version : 1.3.5 - 24/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1305,7 +1305,7 @@
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
    repli des jetons DSFR lus par getComputedStyle, et les palettes de catégories ou de
    séries proposées aux utilisateurs. */
-var VERSION_WIDGET = '1.3.4';
+var VERSION_WIDGET = '1.3.5';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diplofusion';
@@ -1975,7 +1975,6 @@ function couleurJeton(jeton, repli) {
     }
     return repli;
 }
-function couleurTeinte(t) { return couleurJeton(t.jeton, t.repli); }
 var _fuseauDoc = null, _docInfoLu = false;
 function fuseauDoc() { return _fuseauDoc || FUSEAU_DEFAUT; }
 function typeAvecFuseau(t) { return typeof t === 'string' && t.indexOf('DateTime:') === 0 ? 'DateTime:' + fuseauDoc() : t; }
@@ -3460,35 +3459,6 @@ function resumeEtapeFu(b, nom) {
 /* Réglages d'affichage du document, rangés dans l'étape « Vos données » :
    écrire avec les champs ou voir le document avec une vraie ligne, choisir
    la ligne affichée et la colonne qui nomme les lignes. */
-/* Le choix de la ligne n'a de sens qu'en « Voir avec les données » ;
-   « Repérer les lignes par » reste visible (il nomme aussi les fichiers). */
-function navLigneFu(b) {
-    var n = navEchantillon();
-    var g = n.classList && n.classList.contains('w-echantillon') ? n : n.querySelector('.w-echantillon');
-    if (g && !b.vueDonnees && !b.avance) {
-        g.hidden = true;
-        var lab = g.previousElementSibling;
-        if (lab && lab.classList.contains('w-afficher__titre')) {
-            lab.hidden = true;
-        }
-        var ch = n.querySelector('#pChercheLigne');
-        var gch = ch ? ch.closest('.fr-input-group, .fr-search-bar') : null;
-        if (gch) {
-            gch.hidden = true;
-        }
-    }
-    return n;
-}
-function ligneAfficheeFu(b) {
-    if (!b.table) {
-        return null;
-    }
-    var donnees = etat.donnees[b.table] && ordreLignes(b.table).length;
-    return creer('section', { classe: 'w-section w-fu-ligne' }, [
-        creer('h3', { classe: 'w-c3__titre', texte: 'Affichage' }),
-        b.avance ? null : basculeVueCourrier(),
-        donnees ? navLigneFu(b) : creer('p', { classe: 'w-mention', texte: 'La table n\'a pas encore de ligne.' })]);
-}
 function colonnesAInsererFu(b) {
     if (!b.table || b.vueDonnees) {
         return null;
@@ -3521,26 +3491,6 @@ function colonnesAInsererFu(b) {
     return creer('section', { classe: 'w-section w-fu-ligne', attrs: { 'aria-labelledby': 'pColInsTitre' } }, l);
 }
 var MIME_CHAMP = 'application/x-wuit-champ';
-/* Étape « Vérifier le document » : le contrôle de toutes les lignes (champs
-   vides, documents de plus d'une page), le changement de type et la liste
-   des éléments. Le texte, lui, s'écrit directement dans le document. */
-function etapeVerifierFu(b) {
-    return creer('div', {}, [
-        creer('section', { classe: 'w-section w-fu-ligne' }, [
-            creer('h3', { classe: 'w-c3__titre', texte: 'Contrôle sur toutes les lignes' }),
-            creer('p', { classe: 'w-mention', texte: 'WuitFusion prépare le document pour chaque ligne de la table et signale les champs vides et les documents de plus d\'une page.' }),
-            creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } })]),
-        creer('section', { classe: 'w-section w-fu-ligne' }, [
-            creer('h3', { classe: 'w-c3__titre', texte: 'Autres actions' }),
-            creer('div', { classe: 'w-liens' }, [
-                bouton(b.avance ? 'Revenir à l\'écriture dans la page' : 'Voir la liste des éléments', 'secondaire', b.avance ? 'edit-line' : 'list-unordered', function () {
-                    b.avance = !b.avance;
-                    b.vueDonnees = false;
-                    redessinerEtape('pAvance');
-                }, { petit: true, id: 'pAvance' }),
-                bouton('Changer de type de document', 'secondaire', 'file-text-line', function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })]),
-            b.avance ? creer('div', { id: 'pBlocsAvance' }, [colonneBlocs()]) : null])]);
-}
 /* Panneau de paramétrage : six étapes, chacune répond à une question.
    Une ligne par réglage ; les aides deviennent des infobulles ; les
    détails (correspondance, droits, numérotation) sont repliés. Les
@@ -3592,7 +3542,6 @@ function picto(type) {
     sp.innerHTML = PICTOS_DONNEES[type] || '';
     return sp;
 }
-function libPicto(type, texte) { return creer('span', { classe: 'w-lib-picto' }, [picto(type), texte]); }
 function sansEmojiTri(t) { return String(t || '').replace(/^[^\p{L}\p{N}]+/u, '').toLowerCase(); }
 /* Filtres façon Airtable : composant commun de la série (structure
    filtres.racine = { conj, items }, groupes sur 3 niveaux, « Se lit : … »).
@@ -4826,15 +4775,6 @@ function centreApercuFu(b) {
     return creer('section', { classe: 'w-fu-centre', attrs: { 'aria-label': 'Aperçu du document' } }, [tete,
         creer('div', { classe: 'w-feuilles w-apercu--redac', attrs: { role: 'region', 'aria-label': 'Les pages du document', tabindex: '0' } }, [creer('div', { classe: 'w-pages', id: 'pApercuB' })])]);
 }
-function redactionPleineFu(b) {
-    var retour = b.etapeAvantTexte && b.etapeAvantTexte !== ETAPE_TEXTE ? b.etapeAvantTexte : 1;
-    var tete = creer('div', { classe: 'w-fu-texte__tete' }, [
-        bouton('Retour au paramétrage', 'secondaire', 'arrow-left-line', function () { return allerEtapeFu(retour); }, { petit: true, id: 'pRetourPanneau' }),
-        creer('h2', { classe: 'w-titre-fluo', id: 'pTitreTexte', texte: 'Le texte du document', attrs: { tabindex: '-1' } }),
-        creer('span', { classe: 'w-pousse' }),
-        creer('p', { classe: 'w-mention w-statut', id: 'aStatut', attrs: { role: 'status' }, texte: b.statut || '' })]);
-    return creer('div', { classe: 'w-assistant w-fu-texte' }, [tete, etapeRediger()]);
-}
 function ouvrirDocumentAccueil(cle) {
     etat.surAccueilFu = false;
     etat.ouvrirParamFu = true;
@@ -4943,19 +4883,6 @@ function vignetteModeleFu(m) {
         logSecurite('AVERTISSEMENT', 'Miniature du modèle', e);
         return vignetteFu(null);
     }
-}
-function vignetteDocumentFu(cfg) {
-    if (!cfg || !cfg.table || !etat.meta.tables[cfg.table]) {
-        return vignetteFu(null);
-    }
-    var c = JSON.parse(JSON.stringify(cfg));
-    try {
-        normaliserConfig(c);
-    }
-    catch (e) {
-        return vignetteFu(null);
-    }
-    return vignetteFu(c, c.table, etat.donnees[c.table] ? ordreLignes(c.table)[0] : undefined);
 }
 async function chargerDonneesAccueilFu() {
     var vues = {};
@@ -5402,20 +5329,6 @@ async function determinerDroits() {
     etat.peutParametrer = etat.peutModifier && !!etat.temoinParam;
 }
 function titreParametrage(nom) { return 'Paramétrages de « ' + (nom || '') + ' »'; }
-function apercuEtape(nomEtape) {
-    if (etat.panneauFu) {
-        return null;
-    }
-    var a = apercuContenu(nomEtape);
-    if (!a) {
-        return null;
-    }
-    return creer('aside', { classe: 'w-apercu', attrs: { 'aria-labelledby': 'aApercuTitre' } }, [
-        creer('h3', { classe: 'w-apercu__titre', id: 'aApercuTitre', texte: 'Aperçu' }),
-        creer('p', { classe: 'w-mention w-apercu__note', id: 'aApercuNote', texte: a.note || 'Avec vos données, rien n\'est enregistré ici.' }),
-        creer('div', { classe: 'w-apercu__corps', id: 'aApercuCorps' }, [a.contenu])
-    ]);
-}
 function majApercu() {
     var z = document.getElementById('aApercuCorps');
     var b = etat.brouillon;
@@ -5431,41 +5344,6 @@ function majApercu() {
             note.textContent = a.note || 'Avec vos données, rien n\'est enregistré ici.';
         }
     }
-}
-function uid() { etat.uidSeq = (etat.uidSeq || 0) + 1; return 'u' + etat.uidSeq; }
-function grilleParam(colonnes, gabarit, pied, apercu) {
-    var remplir = function (div, noeuds) {
-        var cur = null;
-        (noeuds || []).forEach(function (n) {
-            if (!n) {
-                return;
-            }
-            if (n.tagName === 'SECTION') {
-                div.appendChild(n);
-                cur = null;
-                return;
-            }
-            var estTitre = n.nodeType === 1 && n.classList.contains('w-champ-aide') && !!n.querySelector('.w-c3__titre');
-            if (estTitre || !cur) {
-                cur = creer('section', { classe: 'w-section' });
-                div.appendChild(cur);
-            }
-            cur.appendChild(n);
-        });
-        Array.prototype.forEach.call(div.querySelectorAll('section'), function (s) {
-            var h = s.querySelector('.w-c3__titre');
-            if (h && !s.hasAttribute('aria-labelledby')) {
-                h.id = h.id || 'aGrille' + uid();
-                s.setAttribute('aria-labelledby', h.id);
-            }
-        });
-        return div;
-    };
-    var g = creer('div', { classe: 'w-grille w-grille--' + gabarit }, colonnes.map(function (noeuds) { return remplir(creer('div', { classe: 'w-grille__col' }), noeuds); }));
-    if (pied && pied.length) {
-        g.appendChild(remplir(creer('div', { classe: 'w-grille__pied' }), pied));
-    }
-    return apercu ? creer('div', { classe: 'w-param-apercu' }, [g, apercu]) : g;
 }
 var CLE_AIDE = NOM_WIDGET.toLowerCase() + ':aide';
 var ONGLETS_AIDE = [{ cle: 'resume', libelle: 'À quoi ça sert' }, { cle: 'pas', libelle: 'Pas à pas' }, { cle: 'questions', libelle: 'Questions' }];
@@ -7720,17 +7598,6 @@ function etapesDroitsGenerique() {
     etapes.push({ titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un éditeur : il ne voit pas la page Admin, il fait ce que vos règles permettent, rien de plus.' });
     return etapes;
 }
-function blocDroitsGenerique() {
-    var ol = creer('ol', { classe: 's-droits' });
-    etapesDroitsGenerique().forEach(function (x, k) {
-        ol.appendChild(creer('li', { classe: 's-droits__etape' }, [
-            creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(k + 1) }), x.titre]),
-            creer('p', { classe: 's-droits__texte', texte: x.texte }),
-            x.modele || null
-        ]));
-    });
-    return ol;
-}
 function guideDroitsDg(o) {
     o = o || {};
     var lettre = function (k) { return 'abcdefghijklmnop'.charAt(k); };
@@ -8736,35 +8603,6 @@ function champRecherche() {
     g.querySelector('.fr-label').classList.add('fr-sr-only');
     return g;
 }
-function filtreColonne() {
-    var cfg = etat.config;
-    var cols = colonnesDe(cfg.table).filter(function (c) { return ['Choice', 'Bool', 'Text', 'Date'].indexOf(c.type) !== -1 || String(c.type).indexOf('Ref:') === 0; })
-        .filter(function (c) { return IDS_META.indexOf(c.colId) === -1; });
-    var selCol = liste('pFiltreCol', cols.map(function (c) { return { valeur: c.colId, libelle: c.label }; }), etat.filtreCol, { vide: 'Aucun filtre' });
-    var grp = creer('div', { classe: 'w-volet__bloc' }, [groupeChamp('Filtrer par colonne', selCol)]);
-    if (etat.filtreCol) {
-        var vals = Object.create(null);
-        toutesLignes().forEach(function (i) { var t = valeurChemin(cfg.table, i, etat.filtreCol, []).texte; vals[t] = (vals[t] || 0) + 1; });
-        var opts = Object.keys(vals).filter(function (v) { return v !== ''; }).sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); })
-            .map(function (v) { return { valeur: v, libelle: v + ' (' + formaterNombre(vals[v]) + ')' }; });
-        if (vals['']) {
-            opts.push({ valeur: '__VIDE__', libelle: '(vide) (' + formaterNombre(vals['']) + ')' });
-        }
-        var selVal = liste('pFiltreVal', opts, etat.filtreVal, { vide: 'Toutes les valeurs' });
-        selVal.addEventListener('change', function () { etat.filtreVal = selVal.value; majListe(); });
-        grp.appendChild(groupeChamp('Valeur', selVal));
-    }
-    selCol.addEventListener('change', function () {
-        etat.filtreCol = selCol.value;
-        etat.filtreVal = '';
-        remplirVolet(document.getElementById('pVolet'));
-        var f = document.getElementById('pFiltreCol');
-        if (f) {
-            f.focus();
-        }
-    });
-    return grp;
-}
 function changerMode(m) {
     if (etat.mode === m) {
         return;
@@ -9504,55 +9342,6 @@ var ETAPE_MEP = 3;
 var ETAPE_TEXTE = 4;
 var ETAPE_UTILISATEURS = 5;
 var ETAPE_DROITS = 6;
-function titreColonne(texte, id) {
-    return creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: id || null, texte: texte })]);
-}
-function etapeMiseEnPage() {
-    var b = etat.brouillon;
-    var p = b.page;
-    var change = function (cle) { return function (v) { p[cle] = v; marquerTouche(); majApercuBrouillon(); }; };
-    var col1 = [titreColonne('1. Le papier'),
-        groupeRadios('pPapier', 'Format', Object.keys(PAPIERS).map(function (k) { return { valeur: k, libelle: PAPIERS[k].nom, sous: PAPIERS[k].taille }; }), p.size, change('size')),
-        groupeRadios('pOrient', 'Orientation', [{ valeur: 'portrait', libelle: 'Portrait' }, { valeur: 'landscape', libelle: 'Paysage' }], p.orientation, change('orientation')),
-        groupeRadios('pMarges', 'Marges', Object.keys(MARGES).map(function (k) { return { valeur: k, libelle: MARGES[k].nom, sous: MARGES[k].taille }; }), p.margins, change('margins'))];
-    var sp = liste('pPolice', POLICES, p.font || 'sans');
-    sp.addEventListener('change', function () { change('font')(sp.value); });
-    var col2 = [titreColonne('2. L\'allure'), groupeChamp('Police', sp)];
-    if (!ecritDansPage(b.layout)) {
-        var t = creer('div', { classe: 'w-teintes' });
-        var perso = creer('input', { id: 'pCouleurPerso', attrs: { type: 'color', 'aria-label': 'Couleur sur mesure' }, valeur: p.color });
-        TEINTES.forEach(function (x, k) {
-            var id = 'pTeinte' + k;
-            var hex = couleurTeinte(x);
-            var r = creer('input', { id: id, attrs: { type: 'radio', name: 'pTeinte', value: hex, 'aria-label': x.nom }, coche: p.color === hex, change: function () { p.color = hex; perso.value = hex; marquerTouche(); majApercuBrouillon(); annoncer('Couleur du document : ' + x.nom + '.'); } });
-            var pastille = creer('span', { attrs: { 'aria-hidden': 'true' } });
-            pastille.style.background = 'var(' + x.jeton + ', ' + x.repli + ')';
-            t.appendChild(creer('label', { classe: 'w-teinte w-infobulle', attrs: { 'for': id, 'data-infobulle': x.nom } }, [r, pastille]));
-        });
-        perso.addEventListener('input', function () {
-            p.color = couleurValide(perso.value);
-            Array.prototype.forEach.call(document.querySelectorAll('input[name="pTeinte"]'), function (r) { r.checked = r.value === p.color; });
-            marquerTouche();
-            majApercuBrouillon();
-        });
-        t.appendChild(creer('label', { classe: 'w-teinte--perso', attrs: { 'for': 'pCouleurPerso' } }, [perso, 'Sur mesure']));
-        col2.push(creer('fieldset', { classe: 'fr-fieldset w-fs' }, [creer('legend', { classe: 'fr-fieldset__legend w-fs__legende', texte: 'Couleur des titres, traits et cadres' }), t]));
-    }
-    col2.push(groupeRadios('pCadre', 'Cadre de page', [{ valeur: 'none', libelle: 'Aucun' }, { valeur: 'thin', libelle: 'Filet fin' }, { valeur: 'double', libelle: 'Double cadre' }], p.border, change('border')));
-    col2.push(caseACocher('pVcentre', 'Centrer le contenu verticalement sur la page', !!p.vcenter, function (e) { p.vcenter = e.target.checked; marquerTouche(); majApercuBrouillon(); }));
-    var col3 = [titreColonne('3. Les logos'), blocLogo()];
-    if (b.layout === 'letter') {
-        col3.push(titreColonne('4. L\'en-tête et la signature'));
-        col3.push(panneauEnteteCourrier());
-    }
-    return grilleParam([col1, col2, col3], '1-1-1', null, apercuEtape('La mise en page'));
-}
-function etapeUtilisateurs() {
-    var col1 = colonneRetouches().concat([titreColonne('2. Les lignes qui donnent un document'), blocLignesConcernees()]);
-    var col2 = [titreColonne('3. Le nom des fichiers'), champNomFichier()];
-    var col3 = [titreColonne('4. La numérotation automatique'), panneauReference(), titreColonne('5. Le marquage « imprimé »'), blocMarquage()];
-    return grilleParam([col1, col2, col3], '1-1-1');
-}
 /* Retouches des utilisateurs : un document retouché est gardé pour sa ligne */
 var TABLE_RETOUCHES = 'RETOUCHES_DES_DOCUMENTS_';
 function idTableRetouches() {
@@ -9778,27 +9567,6 @@ async function quitterRetouche(sansQuestion) {
     }
     etat.brouillon = null;
     afficherVue('document');
-}
-function colonneRetouches() {
-    var b = etat.brouillon;
-    var idR = idTableRetouches();
-    if (idR) {
-        relayer(assurerTraceRetouches(), 'Colonnes calculées des retouches');
-    }
-    if (idR && libelleTable(idR).indexOf('\u270f') === -1) {
-        relayer(renommerTables([[idR, '\u270f\ufe0f Retouches des documents']]).then(chargerMeta), 'Nom de la table des retouches');
-    }
-    var g = groupeRadios('pRetouches', 'Le document, pour les utilisateurs', [{ valeur: 'non', libelle: 'Lecture seule' }, { valeur: 'oui', libelle: 'Modification autorisée' }],
-        b.retouches ? 'oui' : 'non', function (v) {
-            b.retouches = v === 'oui';
-            marquerTouche();
-            if (b.retouches && !tableRetouchesExiste()) {
-                relayer(assurerTableRetouches().then(function (ok) { if (ok) {
-                    afficherSucces('La table « ✏️ RETOUCHES DES DOCUMENTS ⚡ » est créée : elle garde les modifications des utilisateurs.');
-                } }), 'Création de la table des retouches');
-            }
-        });
-    return [titreColonne('1. Lecture seule ou modification'), g];
 }
 function rendreAssistant(zone) {
     var b = etat.brouillon;
@@ -10389,49 +10157,6 @@ function basculeVueCourrier() {
     });
     return vue;
 }
-function etapeRediger() {
-    var b = etat.brouillon;
-    if (b.vueType) {
-        return etapeChangerType();
-    }
-    var lettre = b.layout === 'letter';
-    b.ouverts = b.ouverts || {};
-    var dansPage = !b.avance;
-    var actions = creer('div', { classe: 'w-texte-actions' }, [
-        bouton(b.avance ? 'Écrire sur la page' : 'Liste des éléments', 'tertiaire', b.avance ? 'edit-line' : 'list-unordered', function () {
-            b.avance = !b.avance;
-            b.vueDonnees = false;
-            redessinerEtape('pAvance');
-            annoncer(b.avance ? 'La liste des éléments, dans le panneau de gauche ; l\'aperçu est à droite.' : 'Écriture sur la page.');
-        }, { petit: true, id: 'pAvance' }),
-        bouton('Changer de type de document', 'tertiaire', 'file-text-line', function () { b.vueType = true; redessinerEtape('pTypesRetour'); }, { petit: true, id: 'pChangerType' })
-    ]);
-    var contenuGauche;
-    if (dansPage) {
-        contenuGauche = [creer('div', { classe: 'w-elem-zone', id: 'pElementZone', attrs: { 'aria-live': 'polite' } }, panneauElement()),
-            creer('section', { classe: 'w-champs-dispo', attrs: { 'aria-labelledby': 'pChampsDispoTitre' } }, [creer('h3', { classe: 'w-c3__titre', id: 'pChampsDispoTitre', texte: 'Colonnes de la liste' })]
-                .concat(listeChampsDisponibles().filter(function (x) { return !(x && x.classList && x.classList.contains('w-indice')); })))];
-    }
-    else {
-        contenuGauche = [creer('div', { classe: 'w-rp-case' }, [caseRepererF()]), creer('div', { id: 'pBlocsAvance' }, [colonneBlocs()])];
-    }
-    var evitement = creer('a', { classe: 'w-evitement', attrs: { href: '#pDocument' }, texte: 'Aller au document' });
-    evitement.addEventListener('click', function (e) { e.preventDefault(); var d = document.getElementById('pDocument'); if (d) {
-        d.focus();
-    } });
-    rpBrancher();
-    var aside = creer('aside', { classe: 'w-reglages', id: 'pReglages', attrs: { 'aria-label': dansPage ? 'Réglages de l\'élément choisi' : 'Liste des éléments' } }, [evitement].concat(contenuGauche));
-    var droite = dansPage ? editeurCourrier() : apercuRedaction();
-    var main = creer('section', { classe: 'w-redac-doc', id: 'pDocument', attrs: { tabindex: '-1', 'aria-label': dansPage ? (lettre ? 'Le courrier, modifiable dans la page' : 'La page, modifiable') : 'Aperçu en direct du document' } }, [alerteImportWord(b), actions, barreAfficher(dansPage),
-        creer('section', { classe: 'w-alertes-verif', id: 'pAlertesVerif', attrs: { 'aria-label': 'Points à vérifier', 'aria-live': 'polite' } }), droite]);
-    return creer('div', { classe: 'w-rediger' }, [aside, main]);
-}
-function apercuRedaction() {
-    return creer('div', { classe: 'w-ec' }, [
-        creer('div', { classe: 'w-apercu-titre' }, [creer('h3', { id: 'pApercuBTitre', texte: 'Aperçu en direct' }), creer('span', { classe: 'w-mention', id: 'pApercuBInfo' })]),
-        creer('div', { classe: 'w-feuilles w-apercu--redac', attrs: { role: 'region', 'aria-labelledby': 'pApercuBTitre', tabindex: '0' } }, [creer('div', { classe: 'w-pages', id: 'pApercuB' })])
-    ]);
-}
 function etapeChangerType() {
     var b = etat.brouillon;
     var bloc = creer('div', { classe: 'w-section' });
@@ -10613,13 +10338,6 @@ function navEchantillon() {
     }
     return outils.length ? creer('div', { classe: 'w-echantillon-bloc' }, [g].concat(outils)) : g;
 }
-function barreAfficher(avecBascule) {
-    return creer('div', { classe: 'w-afficher', id: 'pAfficher', attrs: { role: 'group', 'aria-labelledby': 'pAfficherTitre' } }, [
-        creer('p', { classe: 'w-afficher__titre', id: 'pAfficherTitre', texte: 'Afficher' }),
-        navEchantillon(),
-        avecBascule ? basculeVueCourrier() : null
-    ]);
-}
 function majNavEchantillon() {
     var b = etat.brouillon;
     var pos = document.getElementById('pEchPos');
@@ -10764,30 +10482,6 @@ function groupeRadios(nom, legende, options, valeur, surChange, classe) {
     });
     fs.appendChild(g);
     return fs;
-}
-function blocLignesConcernees() {
-    var b = etat.brouillon;
-    var f = b.filtre || { op: '' };
-    var s = liste('pFiltreDoc', CONDITIONS.map(function (x) { return { valeur: x.op, libelle: x.op ? x.nom.replace('Seulement si', 'Seulement les lignes où') : 'Toutes les lignes' }; }), f.op || '');
-    s.addEventListener('change', function () { if (!s.value) {
-        b.filtre = null;
-    }
-    else {
-        b.filtre = { op: s.value, path: f.path || '', value: f.value || '' };
-    } marquerTouche(); redessinerEtape('pFiltreDoc'); });
-    var l = [creer('legend', { classe: 'fr-fieldset__legend w-fs__legende', texte: 'Lignes concernées' }), groupeChamp('Documents imprimés', s, 'Les listes « Une ligne » et « Plusieurs lignes » ne montrent que les lignes concernées.')];
-    if (f.op) {
-        var ch = selectChamps('pFiltreDocCol', b.table, f.path || '', false, 'Choisir une colonne…');
-        ch.addEventListener('change', function () { b.filtre.path = ch.value; marquerTouche(); majApercuBrouillon(); });
-        var ligne = [groupeChamp('Champ', ch)];
-        if (f.op === 'equals' || f.op === 'differs') {
-            var v = saisie('pFiltreDocVal', f.value || '', { indice: 'Confirmé' });
-            v.addEventListener('input', function () { b.filtre.value = v.value; marquerTouche(); });
-            ligne.push(groupeChamp('Valeur', v));
-        }
-        l.push(creer('div', { classe: 'w-ligne2' }, ligne));
-    }
-    return creer('fieldset', { classe: 'fr-fieldset w-fs', id: 'pLignesConcernees' }, l);
 }
 var POSTES = ['Ambassade de France', 'Consulat général de France', 'Consulat de France'];
 var LIAISONS = ['en', 'au', 'aux', 'à', 'auprès de'];
@@ -11344,286 +11038,6 @@ var RP_SECTIONS = {
     entete: { sel: '.p-lh, .p-sig', nom: 'En-tête et signature' },
     mep: { sel: '.p-page', nom: 'Mise en page', premier: true }
 };
-function rpActif() {
-    try {
-        return window.localStorage.getItem(CLE_REPERER_F) !== 'non';
-    }
-    catch (e) {
-        return true;
-    }
-}
-function caseRepererF() {
-    return caseACocher('pReperer', 'Repérer dans l\'aperçu', rpActif(), function (e) {
-        try {
-            window.localStorage.setItem(CLE_REPERER_F, e.target.checked ? 'oui' : 'non');
-        }
-        catch (er) {
-            logSecurite('INFO', 'Choix du repérage non retenu par le navigateur', er);
-        }
-        rpDessiner(false, false);
-    }, { aide: 'Encadre dans le document la partie que vous réglez ; un clic dans le document ouvre son réglage.' });
-}
-function rpHote() { return document.querySelector('#pDocument .w-feuilles'); }
-function rpSaisieEnCours() {
-    var a = document.activeElement;
-    return !!a && !!a.closest && !!a.closest('#pReglages') && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.nodeName) || a.isContentEditable);
-}
-function rpBlocParId(id) {
-    var b = etat.brouillon;
-    var trouve = null;
-    var chercher = function (l) {
-        (l || []).forEach(function (x) {
-            if (trouve) {
-                return;
-            }
-            if (x.id === id) {
-                trouve = x;
-            }
-            else if (x.type === 'columns') {
-                chercher(x.left);
-                chercher(x.right);
-            }
-            else if (x.type === 'box') {
-                chercher(x.inner);
-            }
-        });
-    };
-    chercher(b ? b.blocks : []);
-    return trouve;
-}
-function rpNomBloc(id) {
-    var t = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"] .w-bloc__type');
-    var bl = rpBlocParId(id);
-    var nom = t ? t.textContent : (bl ? bl.type : 'Bloc');
-    return 'Bloc : ' + nom;
-}
-function rpCible() {
-    var libre = !rpSaisieEnCours();
-    var bloc = libre && _rp.survolBloc ? _rp.survolBloc : (libre && _rp.survolSection ? null : _rp.bloc);
-    var section = libre && _rp.survolSection && !_rp.survolBloc ? _rp.survolSection : (bloc ? null : _rp.section);
-    if (bloc) {
-        var bl = rpBlocParId(bloc);
-        return { sel: bl && bl.type === 'footer' ? '.p-foot' : '[data-rb="' + bloc + '"], [data-bloc="' + bloc + '"]', nom: rpNomBloc(bloc) };
-    }
-    if (section === 'reference') {
-        var r = etat.brouillon && etat.brouillon.page && etat.brouillon.page.reference;
-        var col = r && r.col ? r.col : REF_COL_DEFAUT;
-        return { sel: '[data-champ="' + col + '"], [data-champ^="' + col + '|"]', nom: 'Numéro d\'enregistrement' };
-    }
-    return section && RP_SECTIONS[section] ? RP_SECTIONS[section] : null;
-}
-function rpEffacer(hote) {
-    Array.prototype.forEach.call((hote || document).querySelectorAll('.w-rp-box'), function (x) { x.parentNode.removeChild(x); });
-    Array.prototype.forEach.call(document.querySelectorAll('.w-rp-src'), function (x) { x.classList.remove('w-rp-src'); });
-}
-function rpDessiner(defiler, flash) {
-    var hote = rpHote();
-    rpEffacer(hote);
-    if (!hote || !rpActif()) {
-        return;
-    }
-    var c = rpCible();
-    if (!c) {
-        return;
-    }
-    var source = _rp.bloc && c.sel.indexOf('data-rb') !== -1 ? document.querySelector('#pReglages li.w-bloc[data-id="' + (_rp.survolBloc || _rp.bloc) + '"]') : document.querySelector('#pReglages [data-section="' + (_rp.survolSection || _rp.section) + '"]');
-    if (source) {
-        source.classList.add('w-rp-src');
-    }
-    var els = Array.prototype.filter.call(hote.querySelectorAll(c.sel), function (x) { return !x.closest('.w-rp-box') && x.getClientRects().length; });
-    if (c.premier) {
-        els = els.slice(0, 1);
-    }
-    if (!els.length) {
-        return;
-    }
-    var hr = hote.getBoundingClientRect();
-    var groupes = [];
-    els.forEach(function (x) {
-        var p = x.closest('.p-page') || hote;
-        var g = groupes.filter(function (y) { return y.p === p; })[0];
-        var r = x.getBoundingClientRect();
-        if (!g) {
-            groupes.push({ p: p, l: r.left, t: r.top, r: r.right, b: r.bottom });
-        }
-        else {
-            g.l = Math.min(g.l, r.left);
-            g.t = Math.min(g.t, r.top);
-            g.r = Math.max(g.r, r.right);
-            g.b = Math.max(g.b, r.bottom);
-        }
-    });
-    var premiere = null;
-    groupes.forEach(function (g, k) {
-        var boite = creer('div', { classe: 'w-rp-box' + (flash ? ' w-rp-box--flash' : ''), attrs: { 'aria-hidden': 'true' } }, k ? [] : [creer('span', { classe: 'w-rp-box__etiq', texte: c.nom })]);
-        boite.style.left = (g.l - hr.left + hote.scrollLeft - 4) + 'px';
-        boite.style.top = (g.t - hr.top + hote.scrollTop - 4) + 'px';
-        boite.style.width = Math.max(8, g.r - g.l + 8) + 'px';
-        boite.style.height = Math.max(8, g.b - g.t + 8) + 'px';
-        hote.appendChild(boite);
-        if (!premiere) {
-            premiere = boite;
-        }
-    });
-    if (defiler && premiere) {
-        var t = premiere.offsetTop - 24;
-        if (t < hote.scrollTop || premiere.offsetTop + premiere.offsetHeight > hote.scrollTop + hote.clientHeight) {
-            hote.scrollTop = Math.max(0, t);
-        }
-        annoncer('Dans l\'aperçu : ' + c.nom);
-    }
-}
-function rpPlanifier(flash) {
-    clearTimeout(_rp.minut);
-    _rp.minut = setTimeout(function () { rpDessiner(false, flash); }, 60);
-}
-function rpOuvrirSection(cle, focusSel) {
-    var btn = document.getElementById('pSec' + cle + 'Btn');
-    if (!btn) {
-        return false;
-    }
-    if (btn.getAttribute('aria-expanded') !== 'true') {
-        btn.click();
-    }
-    _rp.section = cle;
-    _rp.bloc = null;
-    var corps = document.getElementById('pSec' + cle);
-    var f = corps ? corps.querySelector(focusSel || 'input, select, textarea, button') : null;
-    (f || btn).focus();
-    btn.scrollIntoView({ block: 'nearest' });
-    rpDessiner(true, false);
-    return true;
-}
-function rpOuvrirBloc(id) {
-    var titre = document.getElementById('pBloc' + id);
-    var b = etat.brouillon;
-    if (titre) {
-        if (!(b.ouverts && b.ouverts[id])) {
-            titre.click();
-        }
-        var li = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"]');
-        var sec = li ? li.closest('[data-section]') : null;
-        var btn = sec ? document.getElementById('pSec' + sec.getAttribute('data-section') + 'Btn') : null;
-        if (btn && btn.getAttribute('aria-expanded') !== 'true') {
-            btn.click();
-        }
-        li = document.querySelector('#pReglages li.w-bloc[data-id="' + id + '"]');
-        var f = li ? li.querySelector('.w-bloc__corps input, .w-bloc__corps textarea, .w-bloc__corps select, .w-bloc__corps [contenteditable="true"]') : null;
-        _rp.bloc = id;
-        _rp.section = null;
-        if (li) {
-            li.scrollIntoView({ block: 'nearest' });
-        }
-        (f || document.getElementById('pBloc' + id)).focus();
-        rpDessiner(true, false);
-        return;
-    }
-    var bl = rpBlocParId(id);
-    if (bl && (bl.type === 'letterhead' || bl.type === 'signature') && rpOuvrirSection('entete')) {
-        return;
-    }
-    if (rpOuvrirSection('avance', '#pAvance')) {
-        _rp.bloc = id;
-        rpDessiner(false, false);
-        annoncer('Ce bloc se règle dans la mise en page avancée : « Afficher les blocs ».');
-    }
-}
-function rpClicDocument(e) {
-    if (!rpActif() || !e.target.closest) {
-        return;
-    }
-    if (e.target.closest('[contenteditable="true"], .w-rp-box, a, button, input, select, textarea')) {
-        return;
-    }
-    var logos = e.target.closest('.p-logos');
-    if (logos && !e.target.closest('.p-lh')) {
-        rpOuvrirSection('logos');
-        return;
-    }
-    var u = e.target.closest('[data-rb]');
-    if (u) {
-        rpOuvrirBloc(u.getAttribute('data-rb'));
-        return;
-    }
-    if (e.target.closest('.p-foot')) {
-        var pied = (etat.brouillon.blocks || []).filter(function (x) { return x.type === 'footer'; })[0];
-        if (pied) {
-            rpOuvrirBloc(pied.id);
-        }
-    }
-}
-function rpBrancher() {
-    if (_rp.branche) {
-        return;
-    }
-    _rp.branche = true;
-    document.addEventListener('focusin', function (e) {
-        var reg = e.target.closest ? e.target.closest('#pReglages') : null;
-        if (!reg || etat.vue !== 'assistant') {
-            return;
-        }
-        var li = e.target.closest('li.w-bloc[data-id]');
-        var sec = e.target.closest('[data-section]');
-        var avant = (_rp.bloc || '') + '|' + (_rp.section || '');
-        _rp.survolBloc = null;
-        _rp.survolSection = null;
-        if (li) {
-            _rp.bloc = li.getAttribute('data-id');
-            _rp.section = null;
-        }
-        else if (sec) {
-            _rp.section = sec.getAttribute('data-section');
-            _rp.bloc = null;
-        }
-        if ((_rp.bloc || '') + '|' + (_rp.section || '') !== avant) {
-            rpDessiner(true, false);
-        }
-    });
-    document.addEventListener('input', function (e) {
-        if (e.target.closest && e.target.closest('#pReglages')) {
-            _rp.saisie = Date.now();
-        }
-    }, true);
-    document.addEventListener('change', function (e) {
-        if (e.target.closest && e.target.closest('#pReglages')) {
-            _rp.saisie = Date.now();
-        }
-    }, true);
-    document.addEventListener('mouseover', function (e) {
-        var reg = e.target.closest ? e.target.closest('#pReglages') : null;
-        if (!reg) {
-            if (_rp.survolBloc || _rp.survolSection) {
-                _rp.survolBloc = null;
-                _rp.survolSection = null;
-                rpPlanifier(false);
-            }
-            return;
-        }
-        var li = e.target.closest('li.w-bloc[data-id]');
-        var sec = e.target.closest('[data-section]');
-        var sb = li ? li.getAttribute('data-id') : null;
-        var ss = !li && sec ? sec.getAttribute('data-section') : null;
-        if (sb !== _rp.survolBloc || ss !== _rp.survolSection) {
-            _rp.survolBloc = sb;
-            _rp.survolSection = ss;
-            rpPlanifier(false);
-        }
-    });
-    document.addEventListener('click', function (e) {
-        if (e.target.closest && e.target.closest('#pDocument .w-feuilles')) {
-            rpClicDocument(e);
-        }
-    });
-    new MutationObserver(function (liste) {
-        var utile = liste.some(function (m) {
-            var tous = Array.prototype.slice.call(m.addedNodes).concat(Array.prototype.slice.call(m.removedNodes));
-            return tous.some(function (n) { return !(n.classList && n.classList.contains('w-rp-box')); });
-        });
-        if (utile && document.getElementById('pDocument')) {
-            rpPlanifier(Date.now() - _rp.saisie < 1500);
-        }
-    }).observe(document.body, { childList: true, subtree: true });
-}
 function blocLogo() {
     var b = etat.brouillon;
     var p = b.page;
@@ -15727,60 +15141,6 @@ function passerEnteteNormalise(b) {
     redessinerEtape();
     annoncer('Mise en page normalisée appliquée.');
 }
-function panneauEnteteCourrier() {
-    var b = etat.brouillon;
-    var lh = (b.blocks || []).filter(function (x) { return x.type === 'letterhead'; })[0];
-    if (lh) {
-        var sigN = null;
-        parcourirBlocs(b.blocks, function (x) { if (!sigN && x.type === 'signature') {
-            sigN = x;
-        } });
-        var ln = editeurEnteteNormalise(lh);
-        if (sigN) {
-            ln.push(champTexteRiche(sigN, 'name', 'Signataire', { multiligne: false }));
-            ln.push(champTexteRiche(sigN, 'caption', 'Fonction du signataire', { multiligne: false }));
-        }
-        return creer('div', { classe: 'w-ec-entete', id: 'pEnteteCourrier' }, [
-            creer('p', { classe: 'w-indice', texte: 'Réglés une fois pour toutes : la personne qui rédige ne voit ensuite que l\'objet et le corps du courrier.' })
-        ].concat(ln));
-    }
-    var e = blocsEnteteCourrier(b.blocks);
-    var l = [];
-    var droite = [];
-    if (e.emetteur || e.lieu) {
-        l.push(creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm fr-mb-2w' }, [
-            creer('p', { texte: 'Ce courrier n\'a pas encore la mise en page normalisée : adresse à la fenêtre d\'une enveloppe DL, lieu et date sous l\'adresse, signature à partir du milieu de la feuille.' }),
-            bouton('Passer à la mise en page normalisée', 'secondaire', 'refresh-line', function () { passerEnteteNormalise(b); }, { petit: true, classe: 'fr-mt-1w' })
-        ]));
-    }
-    if (e.emetteur) {
-        l.push(champTexteRiche(e.emetteur, 'text', 'Expéditeur', { lignes: 4, aide: 'Le service, son adresse et ses coordonnées, une information par ligne. **texte** pour le gras.' }));
-    }
-    if (e.lieu) {
-        var m = MOTIF_LIEU.exec(String(e.lieu.text || ''));
-        if (m) {
-            var ville = saisie('pVilleCourrier', m[1], { indice: VILLE_EXEMPLE });
-            ville.addEventListener('input', function () { e.lieu.text = ville.value.trim() + ', le ' + m[2]; changeBloc(); });
-            droite.push(groupeChamp('Ville', ville, 'Imprimée devant la date du jour.'));
-        }
-        else {
-            droite.push(champTexteRiche(e.lieu, 'text', 'Lieu et date', { lignes: 2 }));
-        }
-    }
-    if (e.signature) {
-        droite.push(champTexteRiche(e.signature, 'name', 'Signataire', { multiligne: false }));
-        droite.push(champTexteRiche(e.signature, 'caption', 'Fonction du signataire', { multiligne: false }));
-    }
-    if (droite.length) {
-        l.push(creer('div', { classe: 'w-editeur__col' }, droite));
-    }
-    if (!e.emetteur && !e.lieu && !e.signature) {
-        l.push(creer('p', { classe: 'w-texte w-mention', texte: 'Ce courrier n\'a ni en-tête ni signature reconnus : réglez-les dans la mise en page avancée.' }));
-    }
-    return creer('div', { classe: 'w-ec-entete', id: 'pEnteteCourrier' }, [
-        creer('p', { classe: 'w-indice', texte: 'Réglés une fois pour toutes : la personne qui rédige ne voit ensuite que l\'objet et le corps du courrier.' })
-    ].concat(l));
-}
 /* Écriture sur la page : chaque élément se choisit, se règle et se déplace sur la page */
 function iconeExtreme(haut) {
     var ico = iconeDispo(haut ? ['skip-up-line', 'arrow-up-double-line', 'arrow-up-line'] : ['skip-down-line', 'arrow-down-double-line', 'arrow-down-line']);
@@ -16978,40 +16338,6 @@ function champNomDocument(id, valeur, surSaisie) {
     var champ = creer('input', { classe: 'fr-input', id: id, valeur: valeur || '', attrs: { type: 'text', maxlength: String(NOM_DOC_MAX), autocomplete: 'off', spellcheck: 'true' } });
     champ.addEventListener('input', function () { surSaisie(champ.value); });
     return groupeChamp('Nom du document', champ, 'Affiché sur l\'onglet. Choisissez un nom qui le distingue des autres documents.', true);
-}
-function champNomFichier() {
-    var b = etat.brouillon;
-    var champ = creer('input', { classe: 'fr-input', id: 'pNomFichier', valeur: b.nomFichier || '', attrs: { type: 'text', maxlength: String(NOM_FICHIER_MAX), spellcheck: 'false', placeholder: (b.name || 'Document') + ' - ' + (b.table ? libelleTable(b.table) : 'ligne') } });
-    var exemple = creer('p', { classe: 'w-indice', id: 'pNomFichierEx', attrs: { 'aria-live': 'polite' } });
-    var memo = { d: champ.value.length, f: champ.value.length };
-    ['keyup', 'mouseup', 'select', 'blur'].forEach(function (ev) { champ.addEventListener(ev, function () { memo.d = champ.selectionStart; memo.f = champ.selectionEnd; }); });
-    var majExemple = function () {
-        var cfg = cfgBrouillon(b);
-        var i = b.sampleId ? indexDe(b.table, b.sampleId) : -1;
-        exemple.textContent = i >= 0 ? 'Pour la ligne affichée : ' + nomFichier(cfg, [i]) + '.pdf' : '';
-    };
-    champ.addEventListener('input', function () { b.nomFichier = champ.value; marquerTouche(); majExemple(); });
-    var options = [];
-    optionsChamps(b.table, false).forEach(function (g) { g.options.forEach(function (o) { options.push({ valeur: o.valeur, libelle: o.libelle }); }); });
-    options.push({ valeur: 'aujourdhui', libelle: 'Date du jour' });
-    var sel = liste('pNomFichierChamp', options, '', { vide: 'Insérer une colonne…' });
-    sel.addEventListener('change', function () {
-        if (!sel.value) {
-            return;
-        }
-        var v = champ.value, jeton = F(sel.value);
-        champ.value = (v.slice(0, memo.d) + jeton + v.slice(memo.f)).slice(0, NOM_FICHIER_MAX);
-        memo.d = memo.f = Math.min(champ.value.length, memo.d + jeton.length);
-        sel.value = '';
-        champ.dispatchEvent(new Event('input'));
-        champ.focus();
-        champ.setSelectionRange(memo.d, memo.d);
-    });
-    setTimeout(majExemple, 0);
-    return creer('div', { classe: 'w-section' }, [
-        groupeChamp('Nom proposé pour les fichiers', champ, 'À l\'impression et pour le PDF. Exemple : Courrier {NOM}. Vide : le nom du document et celui de la ligne.'),
-        groupeChamp('Champ à ajouter au nom', sel), exemple
-    ]);
 }
 async function verifierNomBrouillon() {
     var b = etat.brouillon;
@@ -20166,43 +19492,6 @@ async function importerWord(f, lu) {
     annoncer((lu ? 'Modèle Word lu, mise en page conservée : ' : 'Document Word lu : ') + pluriel(imp.zones.length, 'paragraphe') + (imp.champs.length ? ', ' + pluriel(imp.champs.length, 'champ de fusion', 'champs de fusion') : '') + '.');
     await allerEtape(2);
 }
-function alerteImportWord(b) {
-    if (b && (b.modeleWord || b.modeleWordPerdu)) {
-        return alerteModeleWord(b);
-    }
-    if (!b || !b.importWord || b.layout !== 'libre') {
-        return null;
-    }
-    var imp = b.importWord, l = [];
-    if (b.champsWordManquants && b.champsWordManquants.length) {
-        l.push('Champs de fusion sans colonne du même nom dans ' + libelleTable(b.table) + ' : ' + b.champsWordManquants.map(function (x) { return '«' + x + '»'; }).join(', ') + '. Ils restent écrits tels quels : remplacez-les par un champ.');
-    }
-    if (imp.images) {
-        l.push(pluriel(imp.images, 'image n\'a pas été reprise', 'images n\'ont pas été reprises') + ' : ajoutez vos logos dans la section Logos.');
-    }
-    var tw = b.tableauxWord || { reconnus: [], texte: imp.tableaux || 0, remarques: [] };
-    tw.reconnus.forEach(function (x) {
-        l.push('Tableau de lignes liées repris : ' + sansEmoji(libelleTable(x.table)) + ', ' + pluriel(x.colonnes, 'colonne') + (x.total ? ', avec total' : '') + '.' +
-            (x.egalites ? ' Une autre table liée convenait aussi : écrivez «TABLE.CHAMP» dans le document Word pour choisir.' : ''));
-    });
-    tw.remarques.forEach(function (t) { l.push(t); });
-    if (tw.texte) {
-        l.push(pluriel(tw.texte, 'tableau sans champ de table liée est devenu', 'tableaux sans champ de table liée sont devenus') + ' du texte, une ligne par rangée.');
-    }
-    if (imp.entetes) {
-        l.push('L\'en-tête et le pied de page du document Word ne sont pas repris : utilisez les logos et le bloc « Pied de page » de la mise en page avancée.');
-    }
-    if (imp.notes) {
-        l.push(pluriel(imp.notes, 'note de bas de page n\'a pas été reprise', 'notes de bas de page n\'ont pas été reprises') + '.');
-    }
-    if (imp.coupe) {
-        l.push('Le document est très long : seuls les ' + formaterNombre(WORD_PARAGRAPHES_MAX) + ' premiers paragraphes sont repris.');
-    }
-    if (!l.length) {
-        return null;
-    }
-    return creer('div', { classe: 'fr-alert fr-alert--info fr-alert--sm', id: 'pAlerteWord' }, [creer('h3', { classe: 'fr-alert__title', texte: 'Import de ' + imp.nom }), creer('ul', { classe: 'fr-m-0' }, l.map(function (t) { return creer('li', { texte: t }); }))]);
-}
 var WORD_ENTREES_MAX = 2000;
 var WORD_DECOMPRESSE_MAX = 150 * 1024 * 1024;
 var NS_XML = 'http://www.w3.org/XML/1998/namespace';
@@ -20843,70 +20132,6 @@ async function importerModeleWord(f) {
     }
     await importerWord(f, lu);
 }
-async function remplacerModeleWord(f) {
-    var b = etat.brouillon;
-    if (!b || !verifierFichierModeleWord(f, 'pModeleRemplacer')) {
-        return;
-    }
-    var lu;
-    try {
-        lu = await lireModeleWord(f);
-    }
-    catch (e) {
-        afficherErreur(e && e.pourAgent ? e.pourAgent : 'Le document Word n\'a pas pu être lu.', e);
-        return;
-    }
-    if (etat.brouillon !== b) {
-        return;
-    }
-    b.modeleWord = lu.modele;
-    delete b.modeleWordPerdu;
-    b.importWord = lu.imp;
-    b.layout = 'libre';
-    if (b.table) {
-        var rw = blocsDepuisWord(lu.imp, b.table);
-        b.blocks = rw.blocs;
-        b.champsWordManquants = rw.manquants;
-        b.tableauxWord = rw.tableaux;
-        b.blocsGeneres = JSON.stringify(b.blocks);
-    }
-    marquerTouche();
-    redessinerEtape('pModeleRemplacerBtn');
-    majAttente();
-    annoncer('Modèle Word remplacé : ' + lu.modele.nom + '.');
-}
-async function abandonnerModeleWord() {
-    var b = etat.brouillon;
-    if (!b || !b.modeleWord) {
-        return;
-    }
-    if (!(await confirmerAction('Ne plus utiliser le fichier Word ?', 'Le document devient une page modifiable ici, d\'après l\'aperçu simplifié. La mise en page propre au fichier Word (colonnes, en-têtes, tabulations, styles) n\'est plus reprise et vous imprimez ou enregistrez en PDF comme les autres documents.', 'Ne plus l\'utiliser'))) {
-        return;
-    }
-    if (etat.brouillon !== b) {
-        return;
-    }
-    delete b.modeleWord;
-    marquerTouche();
-    redessinerEtape('pAvance');
-    majAttente();
-    annoncer('Le document n\'utilise plus le fichier Word.');
-}
-function assurerModeleWordBrouillon(b) {
-    var mw = b && b.modeleWord;
-    if (!mw || mw.prep || mw.fichier || mw.chargement || mw.erreur || !mw.id) {
-        return;
-    }
-    mw.chargement = true;
-    relayer(modeleWordDepuisPJ(mw.id).then(function (prep) { mw.prep = prep; }, function (e) { mw.erreur = true; logSecurite('AVERTISSEMENT', 'Modele Word non relu', e); })
-        .then(function () {
-        mw.chargement = false;
-        if (etat.brouillon === b && etat.vue === 'assistant' && !etat.modaleOuverte) {
-            var f = document.activeElement;
-            redessinerEtape(f && f.id ? f.id : undefined);
-        }
-    }), 'Modèle Word');
-}
 async function modeleWordDepuisPJ(id) {
     if (!(typeof id === 'number' && id > 0 && Math.floor(id) === id)) {
         throw erreurAgent('Le modèle Word de ce document est introuvable.');
@@ -20936,67 +20161,6 @@ async function envoyerModeleWord(b) {
     etat.modelesWord[id] = Promise.resolve(mw.prep);
     mw.id = id;
     delete mw.fichier;
-}
-function alerteModeleWord(b) {
-    var mw = b.modeleWord;
-    var l = [];
-    var actions = [];
-    var titre;
-    if (!mw) {
-        titre = 'Fichier Word à choisir de nouveau';
-        l.push('Le fichier « ' + b.modeleWordPerdu + ' » n\'a pas été gardé par ce navigateur. Choisissez-le de nouveau pour garder sa mise en page ; sinon le document reste une page simplifiée.');
-    }
-    else {
-        titre = 'Modèle Word conservé : ' + mw.nom;
-        l.push('Les documents produits sont votre fichier Word, mise en page intacte : un fichier .docx par ligne, réunis dans un .zip quand il y en a plusieurs. L\'aperçu est simplifié et les changements faits ici ne modifient que l\'aperçu : pour changer le texte ou la mise en page, modifiez le fichier dans Word puis remplacez-le.');
-        assurerModeleWordBrouillon(b);
-        if (mw.chargement) {
-            l.push('Lecture du modèle Word…');
-        }
-        else if (mw.erreur) {
-            l.push('Le fichier Word enregistré n\'a pas pu être relu. Remplacez-le pour voir ses champs.');
-        }
-        else if (mw.prep && b.table) {
-            var an;
-            try {
-                an = analyserModeleWord(mw.prep, b.table);
-            }
-            catch (e) {
-                logSecurite('AVERTISSEMENT', 'Analyse du modele Word', e);
-                an = null;
-            }
-            if (an) {
-                var ok = an.champs.filter(function (c) { return c.ok; });
-                l.push(ok.length ? pluriel(ok.length, 'champ de fusion rempli', 'champs de fusion remplis') + ' pour chaque ligne' + (ok.some(function (c) { return c.lieux.some(function (x) { return x !== 'corps' && x !== 'tableau'; }); }) ? ', y compris dans les en-têtes, pieds de page ou notes' : '') + '.'
-                    : 'Aucun champ de fusion n\'est relié à une colonne de ' + libelleTable(b.table) + ' : chaque document sera identique au fichier.');
-                if (an.manquants.length) {
-                    l.push('Champs sans colonne du même nom dans ' + libelleTable(b.table) + ' : ' + an.manquants.map(function (x) { return '«' + x + '»'; }).join(', ') + '. Ils restent écrits tels quels : renommez le champ dans Word ou la colonne.');
-                }
-                an.repetees.forEach(function (t) { l.push('Rangée de tableau répétée pour chaque ligne liée de ' + sansEmoji(libelleTable(t)) + '.'); });
-                if (an.nonTraites.length) {
-                    l.push('Champs Word non pris en charge, laissés tels quels : ' + an.nonTraites.map(function (x) { return CHAMPS_WORD_NON_TRAITES[x] || x; }).join(', ') + '.');
-                }
-            }
-        }
-    }
-    var fichier = creer('input', { id: 'pModeleRemplacer', classe: 'fr-sr-only w-fichier', attrs: { type: 'file', accept: '.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document' } });
-    fichier.addEventListener('change', function () {
-        var f = fichier.files && fichier.files[0];
-        fichier.value = '';
-        if (f) {
-            relayer(remplacerModeleWord(f), 'Modèle Word');
-        }
-    });
-    actions.push(creer('div', { classe: 'w-fichier-groupe' }, [fichier,
-        creer('label', { classe: 'fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-upload-2-line w-fichier__btn', id: 'pModeleRemplacerBtn', attrs: { 'for': 'pModeleRemplacer' } }, [mw ? 'Remplacer le fichier Word' : 'Choisir le fichier Word'])]));
-    if (mw) {
-        actions.push(bouton('Ne plus utiliser le fichier Word', 'tertiaire', 'close-line', abandonnerModeleWord, { petit: true, id: 'pModeleAbandon' }));
-    }
-    return creer('div', { classe: 'fr-alert fr-alert--' + (mw ? 'info' : 'warning') + ' fr-alert--sm', id: 'pAlerteModele' }, [
-        creer('h3', { classe: 'fr-alert__title', texte: titre }),
-        creer('ul', { classe: 'fr-m-0' }, l.map(function (t) { return creer('li', { texte: t }); })),
-        creer('div', { classe: 'w-liens' }, actions)
-    ]);
 }
 async function telechargerWord() {
     var cfg = etat.config;

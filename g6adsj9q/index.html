@@ -929,7 +929,7 @@ function confirmerAction(titre, msg, libelleOui, opts) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.0.2';
+var VERSION_WIDGET = '1.0.3';
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -976,37 +976,6 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
-}
-function colorerSelectChoix(sel, col) {
-    if (!sel || !col || !col.options || !col.options.choiceOptions) {
-        return sel;
-    }
-    Array.prototype.forEach.call(sel.options, function (o) {
-        if (o.value && styleChoixGrist(col, o.value)) {
-            styliserChoix(o, col, o.value);
-        }
-    });
-    var maj = function () {
-        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
-        sel.classList.remove('w-choix-grist');
-        styliserChoix(sel, col, sel.value);
-    };
-    sel.addEventListener('change', maj);
-    maj();
-    return sel;
-}
-function colorerCasesChoix(conteneur, col) {
-    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
-        return conteneur;
-    }
-    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
-        var t = (l.textContent || '').trim();
-        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
-            l.textContent = '';
-            l.appendChild(badgeChoixGrist(col, t));
-        }
-    });
-    return conteneur;
 }
 function valeurAvecCouleurs(col, v, texte) {
     var t = String(col && col.type || '');
@@ -1163,53 +1132,6 @@ function normalize(v) {
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[\s\u00a0\u202f]+/g, ' ')
         .trim();
-}
-function typeCategory(colType) {
-    if (!colType)
-        return 'Non défini';
-    const t = colType.toLowerCase();
-    if (t === 'any')
-        return 'Non défini';
-    if (t === 'text')
-        return 'Texte';
-    if (t === 'numeric')
-        return 'Numérique';
-    if (t === 'int')
-        return 'Entier';
-    if (t === 'bool')
-        return 'Booléen';
-    if (t === 'date')
-        return 'Date';
-    if (t.startsWith('datetime'))
-        return 'Date et Heure';
-    if (t === 'choice')
-        return 'Choix unique';
-    if (t === 'choicelist')
-        return 'Choix multiple';
-    if (t.startsWith('ref:'))
-        return 'Référence';
-    if (t.startsWith('reflist:'))
-        return 'Référence multiple';
-    if (t === 'attachments')
-        return 'Pièce jointe';
-    return 'Non défini';
-}
-function typeCategoryShort(cat) {
-    const m = {
-        'Non défini': '?',
-        'Texte': 'TXT',
-        'Numérique': 'NUM',
-        'Entier': 'INT',
-        'Booléen': 'BOOL',
-        'Date': 'DATE',
-        'Date et Heure': 'DATEH',
-        'Choix unique': 'CHOIX',
-        'Choix multiple': 'MCHOIX',
-        'Référence': 'REF',
-        'Référence multiple': 'REFL',
-        'Pièce jointe': 'FILE'
-    };
-    return m[cat] || '?';
 }
 function formatDate(val, withTime) {
     if (val == null || val === '' || val === 0)
@@ -2038,9 +1960,6 @@ var PICTOS_DONNEES = {
     colonne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="2.5" width="4.5" height="11" fill="currentColor"/></svg>',
     ligne: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="6" width="13" height="3.5" fill="currentColor"/></svg>'
 };
-function htmlPicto(type) {
-    return '<span class="w-picto w-picto--' + type + '" aria-hidden="true">' + (PICTOS_DONNEES[type] || '') + '</span>';
-}
 function picto(type) {
     var sp = document.createElement('span');
     sp.className = 'w-picto w-picto--' + type;

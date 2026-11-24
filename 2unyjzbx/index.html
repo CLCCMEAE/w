@@ -716,7 +716,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.9.4';
+var VERSION_WIDGET = '1.9.5';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -780,19 +780,6 @@ function colorerSelectChoix(sel, col) {
     sel.addEventListener('change', maj);
     maj();
     return sel;
-}
-function colorerCasesChoix(conteneur, col) {
-    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
-        return conteneur;
-    }
-    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
-        var t = (l.textContent || '').trim();
-        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
-            l.textContent = '';
-            l.appendChild(badgeChoixGrist(col, t));
-        }
-    });
-    return conteneur;
 }
 function valeurAvecCouleurs(col, v, texte) {
     var t = String(col && col.type || '');
@@ -1875,13 +1862,6 @@ function relayer(promesse, quoi) {
         promesse.catch(function (e) { logSecurite('AVERTISSEMENT', quoi, e); });
     }
     return promesse;
-}
-function echapperHTML(texte) {
-    if (!texte && texte !== 0)
-        return '';
-    var div = document.createElement('div');
-    div.textContent = String(texte);
-    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
@@ -6920,17 +6900,6 @@ function etapesDroitsGenerique() {
     etapes.push({ titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un éditeur : il ne voit pas la page Admin, il fait ce que vos règles permettent, rien de plus.' });
     return etapes;
 }
-function blocDroitsGenerique() {
-    var ol = creer('ol', { classe: 's-droits' });
-    etapesDroitsGenerique().forEach(function (x, k) {
-        ol.appendChild(creer('li', { classe: 's-droits__etape' }, [
-            creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(k + 1) }), x.titre]),
-            creer('p', { classe: 's-droits__texte', texte: x.texte }),
-            x.modele || null
-        ]));
-    });
-    return ol;
-}
 function guideDroitsDg(o) {
     o = o || {};
     var lettre = function (k) { return 'abcdefghijklmnop'.charAt(k); };
@@ -10939,14 +10908,6 @@ function nombreLignes(tid, id) {
         p.classList.toggle('vl-exemple--alerte', !n);
     }), 'Nombre de lignes');
     return p;
-}
-function textesDroits() {
-    return {
-        usages: 'Les lecteurs consultent la ville. Les éditeurs modifient les fiches et déplacent les ' + mots().des + '. Seuls les propriétaires paramètrent, une fois les règles d\'accès posées.',
-        figer: null,
-        pluriel: 'les villes',
-        complement: 'La modification des fiches suit d\'elle-même les droits de chacun : rôle dans le document et règles d\'accès de la table.'
-    };
 }
 var AIDE = { resume: '', fonctions: [], avant: [], etapes: {}, questions: [] };
 function majAide() {

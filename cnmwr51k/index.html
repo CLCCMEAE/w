@@ -526,7 +526,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.2';
+var VERSION_WIDGET = '1.0.3';
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -572,37 +572,6 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
-}
-function colorerSelectChoix(sel, col) {
-    if (!sel || !col || !col.options || !col.options.choiceOptions) {
-        return sel;
-    }
-    Array.prototype.forEach.call(sel.options, function (o) {
-        if (o.value && styleChoixGrist(col, o.value)) {
-            styliserChoix(o, col, o.value);
-        }
-    });
-    var maj = function () {
-        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
-        sel.classList.remove('w-choix-grist');
-        styliserChoix(sel, col, sel.value);
-    };
-    sel.addEventListener('change', maj);
-    maj();
-    return sel;
-}
-function colorerCasesChoix(conteneur, col) {
-    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
-        return conteneur;
-    }
-    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
-        var t = (l.textContent || '').trim();
-        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
-            l.textContent = '';
-            l.appendChild(badgeChoixGrist(col, t));
-        }
-    });
-    return conteneur;
 }
 function valeurAvecCouleurs(col, v, texte) {
     var t = String(col && col.type || '');
@@ -2288,9 +2257,6 @@ async function lirePlans() {
 function vueDuBadge() {
     return null;
 }
-function estPageGestion() {
-    return false;
-}
 async function creerTableOwner() {
     var tids = await creerTables([{ id: ID_OWNER, garderPage: true, colonnes: [{ id: 'INFO', type: 'Text', label: 'INFO' }] }]);
     await chargerMeta();
@@ -3255,30 +3221,6 @@ function majNouveautes() {
         annoncer(texte + ' ' + depuis + '.');
     }
 }
-function boutonCopier(texte, libelle, id) {
-    return bouton(libelle, 'discret', 'clipboard-line', function () {
-        if (!navigator.clipboard) {
-            afficherErreur('La copie n\'est pas autorisée ici : sélectionnez le texte à la main.');
-            return null;
-        }
-        return navigator.clipboard.writeText(texte).then(function () { afficherSucces('Copié.'); }).catch(function (e) { afficherErreur('La copie n\'est pas autorisée ici : sélectionnez le texte à la main.', e); });
-    }, { petit: true, id: id });
-}
-function marcheManuelle() {
-    var f = formuleNonAutorise();
-    var suivies = ((etat.config && etat.config.tables) || []).filter(function (t) { return !!etat.meta.tables[t]; });
-    return creer('div', { classe: 'w-manuel' }, [
-        creer('p', { classe: 'w-texte', texte: 'Le widget n\'a pas pu poser les règles lui-même. Un propriétaire peut le faire à la main :' }),
-        creer('ol', { classe: 'w-texte w-liste-points' }, [
-            creer('li', { texte: 'Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées ».' }),
-            creer('li', { texte: 'Ajoutez une règle pour la table « ' + LABEL_HISTO + ' » : condition ci-dessous, tous les droits refusés. Ajoutez en dessous une seconde règle, condition « user.Access != OWNER », création, modification et suppression refusées.' }),
-            creer('li', { texte: 'Pour ' + (suivies.length > 1 ? 'chacune des tables suivies (' + suivies.map(libelleTable).join(', ') + ')' : 'la table « ' + suivies.map(libelleTable).join('') + ' »') + ', ajoutez une règle sur la colonne « ' + LIBELLE_JOURNAL + ' » : même condition, lecture refusée.' }),
-            creer('li', { texte: 'Dans chaque règle, écrivez « ' + MEMO_REGLE + ' » en mémo, puis enregistrez.' })
-        ]),
-        creer('p', { classe: 'w-formule' }, [creer('code', { texte: f })]),
-        boutonCopier(f, 'Copier la condition', 'aCopierFormule')
-    ]);
-}
 function csvCellule(v) {
     var s = String(v === null || v === undefined ? '' : v);
     if (/^[=+\-@\t\r]/.test(s)) {
@@ -3541,18 +3483,6 @@ function notesReleve() {
 function libelleConservation(v) {
     var x = CONSERVATIONS.filter(function (c) { return c.valeur === v; })[0];
     return x ? x.libelle : String(v);
-}
-function sectionProtection() {
-    var p = etatProtection();
-    var ok = p.lisible && !p.manque.length && p.aJour;
-    return creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aProtTitre' } }, [
-        creer('h3', { classe: 'w-c3__titre', id: 'aProtTitre', texte: 'Protection du journal' }),
-        alerte(ok ? 'success' : 'warning', null, ok ? 'Les règles d\'accès sont en place : le journal n\'est lisible que par les propriétaires et les personnes autorisées.'
-            : 'Les règles d\'accès du journal ' + (p.manque.length ? 'manquent' : 'ne sont plus à jour') + '.'),
-        ok ? null : bouton('Protéger le journal', 'secondaire', 'lock-line', function () { return protegerMaintenant().then(function () { redessinerParametrage('aProteger'); }); }, { petit: true, id: 'aProteger' }),
-        !ok && etat.protectionEchec ? marcheManuelle() : null,
-        creer('p', { classe: 'w-mention', texte: 'Les règles sont visibles dans « Permissions avancées », rubrique « Outils » du panneau de gauche du document, avec la mention « ' + MEMO_REGLE + ' ».' })
-    ]);
 }
 async function supprimerHistorique() {
     var n = etat.config.tables.length;

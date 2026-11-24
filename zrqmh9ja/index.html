@@ -1426,7 +1426,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.4";
+var VERSION_WIDGET = "1.0.5";
 var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
@@ -1473,53 +1473,6 @@ function styliserChoix(el, col, valeur) {
     }
     el.classList.add('w-choix-grist');
     return el;
-}
-function colorerSelectChoix(sel, col) {
-    if (!sel || !col || !col.options || !col.options.choiceOptions) {
-        return sel;
-    }
-    Array.prototype.forEach.call(sel.options, function (o) {
-        if (o.value && styleChoixGrist(col, o.value)) {
-            styliserChoix(o, col, o.value);
-        }
-    });
-    var maj = function () {
-        ['backgroundColor', 'color', 'fontWeight', 'fontStyle', 'textDecoration'].forEach(function (p) { sel.style[p] = ''; });
-        sel.classList.remove('w-choix-grist');
-        styliserChoix(sel, col, sel.value);
-    };
-    sel.addEventListener('change', maj);
-    maj();
-    return sel;
-}
-function colorerCasesChoix(conteneur, col) {
-    if (!conteneur || !col || !col.options || !col.options.choiceOptions) {
-        return conteneur;
-    }
-    Array.prototype.forEach.call(conteneur.querySelectorAll('label.fr-label'), function (l) {
-        var t = (l.textContent || '').trim();
-        if (t && !l.querySelector('.w-choix-grist') && styleChoixGrist(col, t)) {
-            l.textContent = '';
-            l.appendChild(badgeChoixGrist(col, t));
-        }
-    });
-    return conteneur;
-}
-function valeurAvecCouleurs(col, v, texte) {
-    var t = String(col && col.type || '');
-    if (t === 'Choice' && v !== null && v !== undefined && v !== '' && styleChoixGrist(col, v)) {
-        return badgeChoixGrist(col, v);
-    }
-    if (t === 'ChoiceList' && Array.isArray(v)) {
-        var vals = v[0] === 'L' ? v.slice(1) : v;
-        if (vals.some(function (x) { return styleChoixGrist(col, x); })) {
-            var sp = document.createElement('span');
-            sp.className = 'w-choix-liste';
-            vals.forEach(function (x) { sp.appendChild(badgeChoixGrist(col, x)); });
-            return sp;
-        }
-    }
-    return texte;
 }
 function badgeChoixGrist(col, valeur, classe) {
     var b = document.createElement('span');
@@ -1844,12 +1797,6 @@ function relayer(promesse, quoi) {
   }
   return promesse;
 }
-function echapperHTML(texte) {
-  if (!texte && texte !== 0) return "";
-  var div = document.createElement("div");
-  div.textContent = String(texte);
-  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
 var MOTIF_TABLES_SERVICE = /^(ADMIN_ONLY|OWNER_ONLY|TELECOMMANDE|DIAPOSITIVES|RETOUCHES_DES_DOCUMENTS)(_\d+)?_*$|^(PARTICIPATION|ELEMENTS|LIENS)_DU_TABLEAU_BLANC|^BIBLIOTHEQUE_(CENTRALE|VILLE|KANBAN|DE_CARTES|DE_MATRICES|DE_TABLEAUX_CROISES|DIPLOCALENDRIER|DIPLOPLAN|DIPLOBOARD|DIPLOVERSE|WUITSALLES|DE_FORMULAIRES|DIPLOFUSION)(_\d+)?_*$/;
 function cleTriNom(s) { return String(s || '').replace(/[⚡️]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 function comparerNomsTables(a, b) { return cleTriNom(a).localeCompare(cleTriNom(b), 'fr', { numeric: true }); }
@@ -2168,10 +2115,6 @@ function vider(n) {
     n.removeChild(n.firstChild);
   }
 }
-function uid(prefixe) {
-  etat.idSeq++;
-  return (prefixe || "u") + etat.idSeq;
-}
 function groupeChamp(libelle, champ, aideTexte, obligatoire) {
   var lab = creer("label", { classe: "fr-label", attrs: { "for": champ.id } }, [libelle]);
   if (obligatoire) {
@@ -2272,20 +2215,6 @@ function normaliserTexte(s) {
   return sansAccent(s).toLowerCase().replace(/[’'`]/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
 }
 var MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-function formaterDate(sec) {
-  if (typeof sec !== "number" || !sec) {
-    return "";
-  }
-  var p = {};
-  new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(sec * 1e3)).forEach(function(x) {
-    p[x.type] = x.value;
-  });
-  return parseInt(p.day, 10) + " " + MOIS[parseInt(p.month, 10) - 1] + " " + p.year;
-}
-function aujourdhui() {
-  var d = new Date();
-  return d.getDate() + " " + MOIS[d.getMonth()] + " " + d.getFullYear();
-}
 function pluriel(n, un, plusieurs) {
   return n + " " + (n > 1 ? plusieurs : un);
 }
@@ -2364,19 +2293,9 @@ function texteCellule(d, col, i) {
   var v = cellule(d, col, i);
   return v === null || v === void 0 ? "" : typeof v === "object" ? "" : String(v);
 }
-function refCellule(d, col, i) {
-  var v = cellule(d, col, i);
-  return typeof v === "number" && v > 0 ? v : 0;
-}
 function nombreCellule(d, col, i, defaut) {
   var v = cellule(d, col, i);
   return typeof v === "number" && isFinite(v) ? v : defaut;
-}
-function refsCellule(d, col, i) {
-  var v = cellule(d, col, i);
-  return Array.isArray(v) && v[0] === "L" ? v.slice(1).filter(function(x) {
-    return typeof x === "number";
-  }) : [];
 }
 function texteLisible(v) {
   v = valeurCellule(v);
@@ -2519,15 +2438,6 @@ function tablesUtilisatrice() {
   }).sort(function(a, b) {
     return comparerNomsTables(libelleTable(a), libelleTable(b));
   });
-}
-function colonneParDefaut(tid) {
-  var l = colonnesVisibles(tid);
-  for (var i = 0; i < l.length; i++) {
-    if (/^Text/.test(l[i].type)) {
-      return l[i].colId;
-    }
-  }
-  return l.length ? l[0].colId : "";
 }
 function resoudreTables() {
   var cfg = etat.config && etat.config.tables ? etat.config.tables : {};
@@ -2896,17 +2806,6 @@ function picto(type) {
 }
 function nomTable(t) {
   return creer("span", { classe: "w-nom-table" }, [picto("table"), libelleTable(t)]);
-}
-function listeColonnes(titre, noms) {
-  if (!noms.length) {
-    return null;
-  }
-  return creer("div", { classe: "w-carte-table__bloc" }, [
-    creer("span", { classe: "w-carte-table__sous", texte: titre }),
-    creer("ul", { classe: "w-carte-table__cols" }, noms.map(function(n) {
-      return creer("li", {}, [picto("colonne"), n]);
-    }))
-  ]);
 }
 function badgeValide(v) {
   return typeof v === "string" && /^[a-z0-9]{6,16}$/.test(v) ? v : null;
@@ -3302,13 +3201,6 @@ function dossiers() {
     return [];
   }
   return dossiersDe(r, dn.d, etat.journal);
-}
-function compterDossiers(r, d, journal) {
-  var n = { traiter: 0, bientot: 0, attente: 0 };
-  dossiersDe(r, d, journal).forEach(function(x) {
-    n[x.statut]++;
-  });
-  return n;
 }
 function dossiersDe(r, d, journal) {
   if (!d || problemeFiltres(r)) {
@@ -4716,73 +4608,6 @@ async function executerArchivage(plan) {
   }
   afficherToast(pluriel(faits.length, anon ? "ligne anonymisée" : "ligne supprimée", anon ? "lignes anonymisées" : "lignes supprimées") + ". Archive : " + plan.fichier, null, 1e4);
 }
-function enBlocs(noeuds, deux) {
-  /* Mise en page commune de la serie : des colonnes explicites qui partent
-     toutes du haut. Un tableau dans la liste = plusieurs blocs empiles dans
-     la meme colonne. Un seul groupe : ses rubriques sont rangees dans
-     l ordre, colonne par colonne ; un bloc large prend toute la largeur. */
-  var n = 0;
-  var groupes = [];
-  noeuds.forEach(function (x) {
-    if (!x) { return; }
-    if (Array.isArray(x)) { groupes.push(x.filter(Boolean)); return; }
-    if (x.classList.contains("w-grille-param")) { Array.prototype.slice.call(x.children).forEach(function (c) { groupes.push([c]); }); }
-    else { groupes.push([x]); }
-  });
-  var estTitre = function (ch) { return !!(ch.firstChild && ch.firstChild.classList && ch.firstChild.classList.contains("w-titre-colonne-ligne")); };
-  var nouvelle = function (titreDiv) {
-    var sec = creer("section", { classe: "w-section" });
-    var h = titreDiv ? titreDiv.querySelector(".w-titre-colonne") : null;
-    if (h) {
-      n++;
-      var libelle = h.textContent;
-      h.insertBefore(creer("span", { classe: "w-num", attrs: { "aria-hidden": "true" }, texte: String(n) }), h.firstChild);
-      if (h.id) { sec.setAttribute("aria-labelledby", h.id); }
-      if (/^Supprimer/.test(libelle)) { sec.classList.add("w-section--danger"); }
-      if (/^Aperçu/.test(libelle)) { sec.classList.add("w-section--apercu"); }
-    }
-    return sec;
-  };
-  var large = function (sec) { return !!sec.querySelector(".w-jeux, .w-tableau-simple, .w-conditions"); };
-  var sectionsDe = function (col) {
-    var out = [];
-    var enfants = Array.prototype.slice.call(col.children);
-    var titres = enfants.filter(estTitre);
-    if (titres.length <= 1) { var s1 = nouvelle(titres[0]); s1.appendChild(col); out.push(s1); return out; }
-    var sec = null;
-    enfants.forEach(function (ch) {
-      if (estTitre(ch) || !sec) { sec = nouvelle(estTitre(ch) ? ch : null); out.push(sec); }
-      sec.appendChild(ch);
-    });
-    return out;
-  };
-  var grille = function (cols, gab) {
-    return creer("div", { classe: "w-grille w-grille--" + gab }, cols.map(function (c) { return creer("div", { classe: "w-grille__col" }, c); }));
-  };
-  if (groupes.length > 1) {
-    var cols = groupes.map(function (g) { var l = []; g.forEach(function (c) { l = l.concat(sectionsDe(c)); }); return l; });
-    return grille(cols, cols.length >= 3 ? "1-1-1" : (deux ? "2" : "1-1"));
-  }
-  var secs = [];
-  (groupes[0] || []).forEach(function (c) { secs = secs.concat(sectionsDe(c)); });
-  var bloc = creer("div", { classe: "w-blocs" });
-  var lot = [];
-  var rangerLot = function () {
-    if (!lot.length) { return; }
-    var k = Math.min(lot.length, 3);
-    var par = Math.ceil(lot.length / k);
-    var cs = [];
-    for (var i = 0; i < lot.length; i += par) { cs.push(lot.slice(i, i + par)); }
-    bloc.appendChild(grille(cs, cs.length === 3 ? "1-1-1" : (cs.length === 2 ? "1-1" : "1")));
-    lot = [];
-  };
-  secs.forEach(function (s) {
-    if (large(s)) { rangerLot(); bloc.appendChild(grille([[s]], "1")); }
-    else { lot.push(s); }
-  });
-  rangerLot();
-  return bloc.children.length === 1 ? bloc.firstChild : bloc;
-}
 function marquerInvalide(id, message) {
   var n = document.getElementById(id);
   logSecurite("INFO", "Saisie refusée : " + message);
@@ -4833,22 +4658,6 @@ function refocaliser(id) {
     f.focus();
   }
 }
-function casesColonnes(idBase, cols, choisies, surChange) {
-  var g = creer("div", { classe: "w-cases", attrs: { role: "group" } });
-  cols.forEach(function(col) {
-    g.appendChild(caseACocher(idBase + "_" + (col.idHtml || col.colId), col.label, choisies.indexOf(col.colId) !== -1, function(v) {
-      var k = choisies.indexOf(col.colId);
-      if (v && k === -1) {
-        choisies.push(col.colId);
-      }
-      if (!v && k !== -1) {
-        choisies.splice(k, 1);
-      }
-      surChange();
-    }));
-  });
-  return g;
-}
 function radios(idBase, legende, options, valeur, surChange) {
   var fs = creer("fieldset", { classe: "fr-fieldset w-radios", attrs: { role: "radiogroup" } }, [creer("legend", { classe: "fr-fieldset__legend fr-text--regular", texte: legende })]);
   options.forEach(function(o) {
@@ -4898,20 +4707,6 @@ function valeursDistinctes(c, colId) {
     return a.localeCompare(b, "fr");
   });
   return { valeurs: l.concat(autres.slice(0, MAX_VALEURS)), trop };
-}
-function champDate(id, valeur, surChange) {
-  var s = creer("input", { classe: "fr-input", id, valeur: valeur || "", attrs: { type: "date" } });
-  s.addEventListener("change", function() {
-    surChange(isoValide(s.value) ? s.value : "");
-  });
-  return s;
-}
-function champNombre(id, valeur, surChange) {
-  var s = creer("input", { classe: "fr-input", id, valeur: valeur === null ? "" : String(valeur), attrs: { type: "number", step: "any" } });
-  s.addEventListener("input", function() {
-    surChange(nombreOuNul(s.value));
-  });
-  return s;
 }
 function opDefaut(col) {
   var g = genreColonne(col);
@@ -6283,17 +6078,6 @@ function ouvrirParametrage(etape) {
   refocaliser("titreVue");
   majAideEtape();
 }
-async function quitterParametrage() {
-  etat.param = null;
-  etat.signature = "";
-  try {
-    await chargerDonnees();
-  } catch (e) {
-    logSecurite("AVERTISSEMENT", "Relecture après paramétrage impossible", e);
-  }
-  rendrePrincipal();
-  majAideEtape();
-}
 function statutParam(texte, erreur) {
   if (etat.param) {
     etat.param.statut = texte;
@@ -6429,9 +6213,6 @@ function vueDuBadge(d, badge) {
     }
   }
   return null;
-}
-function estPageGestion() {
-    return false;
 }
 async function creerTableOwner() {
     var tids = await creerTables([{ id: ID_OWNER, garderPage: true, colonnes: [{ id: 'INFO', type: 'Text', label: 'INFO' }] }]);
@@ -6690,17 +6471,6 @@ function etapesDroitsGenerique() {
     etapes.push({ titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un éditeur : il ne voit pas la page Admin, il fait ce que vos règles permettent, rien de plus.' });
     return etapes;
 }
-function blocDroitsGenerique() {
-    var ol = creer('ol', { classe: 's-droits' });
-    etapesDroitsGenerique().forEach(function (x, k) {
-        ol.appendChild(creer('li', { classe: 's-droits__etape' }, [
-            creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num', texte: String(k + 1) }), x.titre]),
-            creer('p', { classe: 's-droits__texte', texte: x.texte }),
-            x.modele || null
-        ]));
-    });
-    return ol;
-}
 function guideDroitsDg(o) {
     o = o || {};
     var lettre = function (k) { return 'abcdefghijklmnop'.charAt(k); };
@@ -6854,24 +6624,6 @@ function rafraichirApresDroits(focusId) {
 function rendreParametrage() {
   etat.vue = "parametrage";
   rendreEditeur(regleCourante(), "p");
-}
-function encartDroits() {
-  var code = function(t) {
-    return creer("code", { texte: t });
-  };
-  return creer("div", { classe: "w-encart-droits" }, [
-    creer("p", { classe: "w-texte", texte: "Par défaut, toute personne qui peut modifier le document peut lancer un archivage et paramétrer les règles. Pour réserver l'un ou l'autre aux propriétaires :" }),
-    creer("ol", {}, [
-      creer("li", { texte: "Dans le panneau de gauche du document, rubrique « Outils », ouvrez « Permissions avancées », puis ajoutez des règles sur la table « " + LABEL_CENTRALE + " »." }),
-      creer("li", {}, ["Pour l'archivage, condition ", code('user.Access != OWNER and rec.WIDGET == "' + NOM_WIDGET + '" and rec.CLE == "' + CLE_ACCES_EDITION + '"'), " : refuser la lecture."]),
-      creer("li", {}, ["Pour le paramétrage, condition ", code('user.Access != OWNER and rec.WIDGET == "' + NOM_WIDGET + '" and rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"'), " : refuser la lecture."]),
-      creer("li", {}, ["Puis, condition ", code('user.Access != OWNER and (rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '")'), " : refuser la création, la modification et la suppression."]),
-      creer("li", { texte: "Si la table a déjà ses propres règles, gardez la règle d'or en deuxième ligne." }),
-      creer("li", { texte: "Dans « Règles spéciales », décochez « Autoriser les Éditeurs à modifier la structure (ex. modifier et supprimer des tables et des colonnes, et modifier les formules, les pages, les vues et les paramètres) » : sinon les éditeurs peuvent contourner ces règles." }),
-      creer("li", { texte: "Ces règles masquent les boutons. Pour interdire aussi la suppression des lignes en dehors du widget, ajoutez une règle sur la table archivée." })
-    ]),
-    creer("p", { classe: "w-mention", texte: etat.temoins.aucun ? "Aucune règle de ce type n'est visible pour vous pour l'instant." : "Vous pouvez paramétrer les règles" + (etat.peutModifier ? " et lancer un archivage." : ".") })
-  ]);
 }
 async function supprimerRegle(r) {
   var ok = await confirmer("Supprimer la règle « " + r.nom + " » ?", "Les données et l'historique ne sont pas touchés.", "Supprimer la règle");
