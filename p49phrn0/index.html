@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBureaux
-  Version : 1.0.8 - 24/11/2026
+  Version : 1.0.9 - 24/11/2026
   Description : réservation de postes de travail par demi-journée, présence et prêt des postes attitrés.
 -->
 <head>
@@ -365,13 +365,6 @@
     .wb-pastilles { display: flex; flex-wrap: wrap; gap: .375rem; }
     .wb-pastille { display: inline-flex; align-items: center; gap: .25rem; padding: 0 .5rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); color: var(--text-default-grey); font-size: .8125rem; line-height: 1.5rem; }
     .wb-pastille--cle { border-color: var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
-    .wb-aujourdhui { border: 1px solid var(--border-default-grey); background: var(--background-alt-blue-france); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-    .wb-aujourdhui__titre { margin: 0; font-size: 1.375rem; line-height: 1.75rem; }
-    .wb-aujourdhui__ligne { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-    .wb-aujourdhui__ligne + .wb-aujourdhui__ligne { border-top: 1px solid var(--border-default-grey); padding-top: 1rem; }
-    .wb-aujourdhui__poste { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-    .wb-aujourdhui__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; max-width: 26rem; }
-    .wb-aujourdhui__actions .fr-alert { margin: 0; }
     .wb-toggle { margin: 0; }
     .wb-toggle .fr-toggle__label { font-size: 1.0625rem; font-weight: 700; }
     .wb-toggle .fr-hint-text { margin: .25rem 0 0; }
@@ -448,8 +441,6 @@
       .wb-disposition { flex-direction: column; }
       .wb-volet { flex: none; width: auto; border-right: 0; border-bottom: 1px solid var(--border-default-grey); padding: 1rem; }
       .wb-principal { padding: 1rem; overflow: visible; }
-      .wb-aujourdhui { padding: 1rem; }
-      .wb-aujourdhui__actions { align-items: flex-start; max-width: none; }
       .wb-panneau--large { width: 100%; }
       .w-bandeau__titre { font-size: 1.5rem; }
       #bandeau-logo { width: 56px; }
@@ -481,11 +472,6 @@
     .wb-legende { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .75rem; color: var(--text-mention-grey); }
     .wb-legende li { display: inline-flex; align-items: center; gap: .375rem; padding: 0; }
     .wb-legende__pastille { display: inline-block; width: .75rem; height: .75rem; border: 1px solid var(--border-default-grey); }
-    .wb-aujourdhui { border-left: .25rem solid var(--border-action-high-blue-france); padding: .75rem 1rem; gap: .5rem; }
-    .wb-aujourdhui__titre { display: inline; font-size: 1rem; line-height: 1.5rem; }
-    .wb-aujourdhui__poste { margin: 0; flex-direction: row; display: block; }
-    .wb-aujourdhui__actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: .5rem 1.25rem; max-width: none; }
-    .wb-aujourdhui__actions .wb-toggle .fr-toggle__label { font-size: 1rem; }
     @media (max-width: 48em) {
       .wb-disposition { flex-direction: column; }
       .wb-disposition > .wb-volet { order: 2; }
@@ -568,6 +554,10 @@
     }
     .wb-regles__limite { display: flex; flex-direction: column; gap: .75rem; padding-left: 2rem; }
     .wb-regles__limite[hidden] { display: none; }
+    .wb-g__liens { display: inline-flex; gap: .5rem; }
+    .wb-g__liens .wb-lien { font-size: .75rem; }
+    .wb-g__alerte { font-size: .75rem; font-weight: 700; color: var(--text-default-warning); }
+    .wb-g__moi .fr-btn--sm { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -610,7 +600,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.8';
+var VERSION_WIDGET = '1.0.9';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBureaux';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -2961,62 +2951,9 @@ function vueUtilisateurs(racine) {
     else if (etat.moi.finMission !== null && etat.moi.finMission < now.jour) {
         main.appendChild(alerte('info', null, 'Votre fin de mission est passée (' + texteJour(etat.moi.finMission, { annee: true, sansJour: true }) + ') : vous ne pouvez plus réserver. Un gestionnaire peut la prolonger.'));
     }
-    var auj = sectionAujourdhui(now);
-    if (auj) {
-        main.appendChild(auj);
-    }
     main.appendChild(sectionSemaine(now));
     disp.appendChild(main);
     racine.appendChild(disp);
-}
-function sectionAujourdhui(now) {
-    var j = now.jour;
-    if (!jourOuvert(j) || !etat.moi) {
-        return null;
-    }
-    var att = posteAttitreDe(etat.moi);
-    var mes = etat.resas.filter(function (r) { return r.personne === etat.moi.id && r.jour === j && estOccupation(r); }).sort(function (a, b) { return CRENEAUX.indexOf(a.creneau) - CRENEAUX.indexOf(b.creneau); });
-    var s = creer('section', { classe: 'wb-aujourdhui', id: 'uAujourdhui', attrs: { 'aria-labelledby': 'uAujTitre' } });
-    var titre = creer('h2', { classe: 'wb-aujourdhui__titre', id: 'uAujTitre', texte: 'Aujourd\'hui, ' + texteJour(j) });
-    if (att && !attitrePrete(att, j) && !posteFerme(att, j)) {
-        s.appendChild(creer('div', { classe: 'wb-aujourdhui__ligne' }, [
-            creer('p', { classe: 'wb-aujourdhui__poste' }, [titre, creer('span', { texte: ' · Votre poste de travail attitré · ' + lieuPoste(att, { long: true }) })]),
-            boutonLien('Je ne viens pas : prêter mon poste de travail', function () { return preterJours([j]); }, { id: 'uPreterAuj' })
-        ]));
-        return s;
-    }
-    if (!mes.length) {
-        var creneau = now.minutes < minutesDe(cfg().midi) ? 'Journée' : 'Après-midi';
-        var ouvert = finCreneau(creneau) > now.minutes && (etat.moi.finMission === null || j <= etat.moi.finMission);
-        var libres = ouvert ? postesLibres(etat.moi, j, creneau, { now: now }) : [];
-        s.appendChild(creer('div', { classe: 'wb-aujourdhui__ligne' }, [
-            creer('p', { classe: 'wb-aujourdhui__poste' }, [titre, creer('span', { texte: ' · Pas de réservation' + (ouvert ? ' · ' + pluriel(libres.length, 'poste de travail libre', 'postes de travail libres') + ' ' + (creneau === 'Journée' ? 'aujourd\'hui' : 'cet après-midi') : '') })])
-        ]));
-        return s;
-    }
-    mes.forEach(function (r, i) { s.appendChild(ligneAujourdhui(r, now, i, i === 0 ? titre : null)); });
-    return s;
-}
-function ligneAujourdhui(r, now, i, titre) {
-    var p = posteParId(r.poste);
-    var expiree = resaExpiree(r, now);
-    var gauche = creer('p', { classe: 'wb-aujourdhui__poste' }, [titre || creer('strong', { texte: texteCreneau(r.creneau) }),
-        creer('span', { texte: (titre ? ' · ' + texteCreneau(r.creneau) : '') + ' · ' + lieuPoste(p, { long: true }) })]);
-    var droite = creer('div', { classe: 'wb-aujourdhui__actions' });
-    if (expiree) {
-        var encoreLibre = p && etatPoste(p, r.jour, r.creneau, { now: now, sauf: r.id }).libre;
-        droite.appendChild(creer('span', { classe: 'w-mention', texte: 'Présence non confirmée à ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + ' : le poste de travail a été proposé à d\'autres.' }));
-        droite.appendChild(encoreLibre ? bouton('Je suis là : reprendre ce poste de travail', 'secondaire', null, function () { return marquerSurPlace(r, true); }, { petit: true, id: 'uReprendre' + i }) : null);
-    }
-    else {
-        droite.appendChild(interrupteur('uSurPlace' + i, 'Je suis sur place', r.statut === STATUTS.surPlace, function (oui, input) {
-            input.disabled = true;
-            return marquerSurPlace(r, oui);
-        }, { aide: r.statut === STATUTS.surPlace ? null : (cfg().liberer && jourCreation(r) !== r.jour ? 'À confirmer avant ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + '.' : null), desactive: !accesComplet() }));
-        droite.appendChild(boutonLien('Libérer le poste de travail', function () { return annulerResa(r, true); }, { id: 'uLiberer' + i }));
-        droite.appendChild(boutonLien('Signaler un problème', function () { ouvrirSignalement(p); }, { id: 'uSignaler' + i }));
-    }
-    return creer('div', { classe: 'wb-aujourdhui__ligne' }, [gauche, droite]);
 }
 function nomCourt(p) {
     if (!p) {
@@ -3093,6 +3030,12 @@ function etatDemi(p, j, d, now) {
             return { type: 'moi', resa: r };
         }
         return { type: 'pris', nom: nomCourt(personneParId(r.personne)) };
+    }
+    if (moi && j === now.jour) {
+        var perdue = etat.resas.filter(function (x) { return x.personne === moi.id && x.poste === p.id && x.jour === j && creneauxSeChevauchent(x.creneau, d) && resaExpiree(x, now); })[0];
+        if (perdue) {
+            return { type: 'expire', resa: perdue };
+        }
     }
     var aide = raisonBloque(p, j, d, now);
     return aide ? { type: 'bloque', aide: aide } : { type: 'libre' };
@@ -3260,6 +3203,9 @@ function caseDemi(p, j, d, e, k) {
         return creer('td', { classe: cl, attrs: { 'aria-label': 'Passé : ' + quand } });
     }
     var id = 'uG' + p.id + '_' + j + '_' + k;
+    if (j === aujourdhui() && (e.type === 'moi' || e.type === 'expire')) {
+        return creer('td', { classe: cl }, [caseDuJour(p, j, d, e, id)]);
+    }
     var moi = e.type === 'moi';
     var desactive = e.type === 'bloque' || (moi && !accesComplet());
     var bt = creer('button', { classe: 'wb-switch', id: id, attrs: { type: 'button', role: 'switch', 'aria-checked': moi ? 'true' : 'false', 'aria-label': (moi ? 'Réservé par vous : ' : 'Réserver le ') + quand + (e.aide ? ' (' + e.aide + ')' : ''), disabled: desactive || null } }, [creer('span', { classe: 'wb-switch__rond', attrs: { 'aria-hidden': 'true' } })]);
@@ -3270,6 +3216,28 @@ function caseDemi(p, j, d, e, k) {
     });
     var inter = e.aide ? creer('span', { classe: 'w-infobulle wb-switch-cadre', attrs: { 'data-infobulle': e.aide } }, [bt]) : bt;
     return creer('td', { classe: cl }, moi ? [creer('span', { classe: 'wb-g__moi' }, [inter, nomMoi()])] : [inter]);
+}
+function caseDuJour(p, j, d, e, id) {
+    var r = e.resa;
+    var c = cfg();
+    var peut = accesComplet();
+    var liens = function (signaler) {
+        return creer('span', { classe: 'wb-g__liens' }, [
+            boutonLien('Libérer', function () { return rendreDemi(p.id, j, d, id + 'L'); }, { id: id + 'L', aria: 'Libérer le poste de travail ' + p.numero + ', ' + texteCreneauMin(d) }),
+            signaler ? boutonLien('Signaler', function () { ouvrirSignalement(p); }, { id: id + 'S', aria: 'Signaler un problème sur le poste de travail ' + p.numero }) : null
+        ]);
+    };
+    if (e.type === 'moi' && r.statut === STATUTS.surPlace) {
+        return creer('span', { classe: 'wb-g__moi' }, [creer('span', { classe: 'wb-g__nom-moi' }, [creer('span', { classe: 'fr-icon-' + iconeCoche() + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: 'Sur place' })]), peut ? liens(true) : null]);
+    }
+    var limite = c.liberer && e.type === 'moi' && jourCreation(r) !== r.jour ? texteHeure(d === 'Après-midi' || r.creneau === 'Après-midi' ? c.confirmeApm : c.confirmeMatin) : '';
+    var etiquette = e.type === 'expire' ? 'Je suis là' : (limite ? 'Je suis là, avant ' + limite : 'Je suis là');
+    var b = bouton(etiquette, e.type === 'expire' ? 'secondaire' : null, null, function () { return confirmerPresence(r, id); }, { petit: true, id: id, desactive: !peut, aria: 'Confirmer ma présence au poste de travail ' + p.numero + ', ' + texteCreneauMin(d) });
+    return creer('span', { classe: 'wb-g__moi' }, [
+        e.type === 'expire' ? creer('span', { classe: 'wb-g__alerte', texte: 'Non confirmé' }) : null,
+        b,
+        e.type === 'moi' && peut ? liens(false) : null
+    ]);
 }
 function iconeCoche() { return iconeDispo(['checkbox-circle-fill', 'check-line']); }
 function nomMoi() {
@@ -3312,15 +3280,15 @@ async function rendreDemi(idPoste, j, d, focus) {
     await executer([['UpdateRecord', etat.t.resas, r.id, ch]], 'Enregistrement…', 'Rendu : ' + texteJour(j) + ', ' + texteCreneauMin(d) + '.');
     dessiner(focus);
 }
-async function marquerSurPlace(r, oui) {
-    if (!oui) {
-        var ok = await confirmerAction('Annuler la confirmation ?', cfg().liberer && partiesMaintenant().minutes > limiteConfirmation(r.creneau) ? 'L\'heure limite est passée : votre poste de travail sera proposé à d\'autres.' : 'Vous devrez confirmer à nouveau votre présence.', 'Annuler la confirmation');
-        if (!ok) {
-            dessiner();
+async function confirmerPresence(r, focus) {
+    if (resaExpiree(r)) {
+        try {
+            await lireDonnees();
+        }
+        catch (err) {
+            afficherErreur('Les réservations n\'ont pas pu être relues. Réessayez.', err);
             return;
         }
-    }
-    if (oui && resaExpiree(r)) {
         var p = posteParId(r.poste);
         if (!p || !etatPoste(p, r.jour, r.creneau, { sauf: r.id }).libre) {
             afficherErreur('Le poste de travail vient d\'être pris par quelqu\'un d\'autre.');
@@ -3328,18 +3296,8 @@ async function marquerSurPlace(r, oui) {
             return;
         }
     }
-    var ch = oui ? { STATUT: STATUTS.surPlace, SUR_PLACE_LE: Date.now() / 1000 } : { STATUT: STATUTS.reservee, SUR_PLACE_LE: null };
-    await executer([['UpdateRecord', etat.t.resas, r.id, ch]], 'Enregistrement…', oui ? 'Présence confirmée. Bonne journée !' : 'Confirmation annulée.');
-    dessiner(oui ? 'uSurPlace0' : null);
-}
-async function annulerResa(r, aujourdHui) {
-    var p = posteParId(r.poste);
-    var ok = await confirmerAction(aujourdHui ? 'Libérer le poste de travail ?' : 'Annuler la réservation ?', texteJour(r.jour, { majuscule: true }) + ', ' + texteCreneauMin(r.creneau) + ' · ' + lieuPoste(p, { long: true }) + '. Le poste de travail est proposé à d\'autres.', aujourdHui ? 'Libérer le poste de travail' : 'Annuler la réservation', { danger: true });
-    if (!ok) {
-        return;
-    }
-    await executer([['UpdateRecord', etat.t.resas, r.id, { STATUT: aujourdHui ? STATUTS.liberee : STATUTS.annulee }]], 'Enregistrement…', aujourdHui ? 'Poste de travail libéré : merci !' : 'Réservation annulée.');
-    dessiner();
+    await executer([['UpdateRecord', etat.t.resas, r.id, { STATUT: STATUTS.surPlace, SUR_PLACE_LE: Date.now() / 1000 }]], 'Enregistrement…', 'Présence confirmée. Bonne journée !');
+    dessiner(focus);
 }
 async function changerFavori(idPoste, focus) {
     if (!etat.moi) {
