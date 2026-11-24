@@ -57,20 +57,6 @@
     flex-direction: column;
     gap: 0.5rem;
   }
-  .w-criteria-empty {
-    padding: 1rem;
-    font-size: .8125rem;
-    color: var(--text-mention-grey);
-    font-style: italic;
-    text-align: center;
-    border: 1px dashed var(--border-default-grey);
-    border-radius: 0;
-    background: var(--background-alt-grey);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
   .w-criterion {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -550,7 +536,6 @@
   .w-grille__etat--supprimee { color: var(--text-default-error); }
   .w-grille__rond { display: inline-block; flex: none; width: .875rem; height: .875rem; margin-right: .375rem; vertical-align: -.125rem; border: 2px solid var(--border-default-grey); border-radius: 50%; box-sizing: border-box; }
   .w-grille__rond--on { border-color: var(--border-action-high-blue-france); background: radial-gradient(var(--background-action-high-blue-france) 40%, transparent 45%); }
-  #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
 </style>
 </head>
 <body>
@@ -737,6 +722,9 @@
   </div>
 </div>
 <script>'use strict';
+var VERSION_WIDGET = '1.0.5';
+var ESSAI_WIDGET = 0;
+var HOMOLOGUE = false;
 function echapperHTML(texte) {
     if (!texte && texte !== 0)
         return '';
@@ -929,8 +917,6 @@ function confirmerAction(titre, msg, libelleOui, opts) {
         document.addEventListener('keydown', _piegeConfirm, true);
     });
 }
-var VERSION_WIDGET = '1.0.4';
-var ESSAI_WIDGET = 0;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
 function couleurChoixSure(v) {
     var x = String(v || '').trim();
@@ -1000,7 +986,6 @@ function badgeChoixGrist(col, valeur, classe) {
     return styliserChoix(b, col, valeur);
 }
 var NOM_WIDGET = 'Diplodoublon';
-var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
     if (el)
@@ -3051,7 +3036,6 @@ function reindex(rm) {
     S.excludedRecords = nE;
     S.duplicateGroups.forEach((_, i) => ensureGroupState(i));
 }
-var _minuteursAlerte = {};
 function showToast(title, detail, type, sectionNum) {
     if (type !== 'error') {
         toast(title + (detail ? ' : ' + detail : ''), { type: type === 'success' ? 'succes' : 'info' });
@@ -3061,22 +3045,11 @@ function showToast(title, detail, type, sectionNum) {
     var container = $(targetId);
     if (!container)
         return;
-    var kind = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
-    if (_minuteursAlerte[targetId]) {
-        clearTimeout(_minuteursAlerte[targetId]);
-        delete _minuteursAlerte[targetId];
-    }
     container.innerHTML =
-        '<div class="fr-alert fr-alert--' + kind + ' fr-alert--sm w-section__alert">' +
+        '<div class="fr-alert fr-alert--error fr-alert--sm w-section__alert" role="alert">' +
             '<p class="fr-alert__title">' + echapperHTML(title) + '</p>' +
             (detail ? '<p>' + echapperHTML(detail) + '</p>' : '') +
             '</div>';
-    if (kind !== 'error') {
-        _minuteursAlerte[targetId] = setTimeout(function () {
-            container.innerHTML = '';
-            delete _minuteursAlerte[targetId];
-        }, 6000);
-    }
 }
 function reinitialiserGroupe(gi) {
     const g = S.duplicateGroups[gi];
@@ -4083,7 +4056,9 @@ function poigneeFiltre(parent, x, ligne, id) {
     ligne.addEventListener('dragstart', function (e) { _glisseFiltre = { parent: parent, x: x }; e.dataTransfer.effectAllowed = 'move'; try {
         e.dataTransfer.setData('text/plain', 'filtre');
     }
-    catch (er) { } e.stopPropagation(); });
+    catch (er) {
+        logSecurite('INFO', 'Glisser : donnée de transfert refusée par le navigateur', er);
+    } e.stopPropagation(); });
     ligne.addEventListener('dragend', function () { ligne.draggable = false; _glisseFiltre = null; });
     ligne.addEventListener('dragover', function (e) { if (_glisseFiltre && _glisseFiltre.parent === parent) {
         e.preventDefault();
