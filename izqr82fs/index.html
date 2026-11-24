@@ -34,8 +34,7 @@
   .w-multi__option input { margin:0; }
   .w-multi__vide { font-size:.8125rem; color:var(--text-mention-grey); margin:.25rem 0; }
   .w-erreur.actif { display:block; }
-  
-  .w-wuit { color: var(--blue-france-main-525); }
+
 </style>
 </head>
 <body>
@@ -65,6 +64,8 @@
   </main>
 </div>
 <script>'use strict';
+var VERSION_WIDGET = '1.3.2';
+var HOMOLOGUE = false;
 function logSecurite(niveau, message, details) {
     var ligne = '[' + new Date().toISOString() + '] [' + niveau + '] ' + message;
     if (niveau === 'ERREUR') {
@@ -278,6 +279,11 @@ grist.ready({
     ],
     requiredAccess: 'read table',
     allowSelectBy: true
+});
+grist.onOptions(function (options, interaction) {
+    if (interaction && interaction.accessLevel === 'none') {
+        afficherErreur('Ce widget a besoin de lire la table liée pour proposer ses valeurs : accordez-lui la lecture de la table dans ses réglages.');
+    }
 });
 grist.onRecords(function (records, mappings) {
     masquerErreur();
@@ -535,8 +541,6 @@ if (selecteur) {
         }
     });
 }
-var VERSION_WIDGET = '1.3.1';
-var HOMOLOGUE = false;
 (function () {
     var el = document.getElementById('bandeauVersion');
     if (el)
@@ -547,31 +551,6 @@ var HOMOLOGUE = false;
 })();
 logSecurite('INFO', 'Widget WuitFiltre v' + VERSION_WIDGET + ' - initialisation terminée');
 
-(function () {
-    var cible = document.querySelector('.w-bandeau__titre');
-    if (!cible || typeof MutationObserver === 'undefined') {
-        return;
-    }
-    var marquer = function () {
-        var marche = document.createTreeWalker(cible, NodeFilter.SHOW_TEXT);
-        var n = marche.nextNode();
-        while (n) {
-            var i = n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('w-wuit') ? -1 : n.nodeValue.search(/Wuit(?=[A-Z])/);
-            if (i !== -1) {
-                var reste = n.splitText(i);
-                reste.nodeValue = reste.nodeValue.slice(4);
-                var s = document.createElement('span');
-                s.className = 'w-wuit';
-                s.textContent = 'Wuit';
-                reste.parentNode.insertBefore(s, reste);
-                return;
-            }
-            n = marche.nextNode();
-        }
-    };
-    marquer();
-    new MutationObserver(marquer).observe(cible, { childList: true, characterData: true, subtree: true });
-})();
 </script>
 </body>
 </html>
