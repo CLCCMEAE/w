@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBureaux
-  Version : 1.0.2 - 24/11/2026
+  Version : 1.0.3 - 24/11/2026
   Description : réservation de postes de travail, attribution automatique, présence et prêt des postes attitrés.
 -->
 <head>
@@ -562,7 +562,7 @@
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre" id="bandeauTitre">🪑 WuitBureaux</h1><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">🖥️ WuitBureaux</h1><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <div class="w-bandeau__aide-bloc"><span class="w-bandeau__version" id="bandeauVersion"></span><button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button></div>
   </div>
@@ -581,14 +581,14 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.2';
+var VERSION_WIDGET = '1.0.3';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBureaux';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var LABEL_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var CLE_CONFIG = 'CONFIG';
-var NOM_PAGE_UTILISATEURS = '🪑 Réserver un poste de travail';
-var TITRE_DEFAUT = '🪑 WuitBureaux';
+var NOM_PAGE_UTILISATEURS = '🖥️ Réserver un poste de travail';
+var TITRE_DEFAUT = '🖥️ WuitBureaux';
 var DELAI_API_MS = 30000;
 var DELAI_ACTUALISATION_MS = 30000;
 var FUSEAU_DEFAUT = 'Europe/Paris';
@@ -619,7 +619,7 @@ var CONFIG_DEFAUT = {
 var DEF_TABLES = {
     personnes: { id: 'PERSONNES_WUITBUREAUX', titre: '👥 PERSONNES WUITBUREAUX ⚡', signature: ['PRENOM', 'NOM', 'EMAIL', 'PROFIL', 'CONNEXION'],
         description: 'Personnes qui réservent un poste de travail avec WuitBureaux. Une ligne par personne, reconnue par son adresse de connexion.' },
-    postes: { id: 'POSTES_WUITBUREAUX', titre: '🪑 POSTES DE TRAVAIL WUITBUREAUX ⚡', signature: ['BATIMENT', 'ETAGE', 'NUMERO', 'EQUIPEMENTS'],
+    postes: { id: 'POSTES_WUITBUREAUX', titre: '🖥️ POSTES DE TRAVAIL WUITBUREAUX ⚡', signature: ['BATIMENT', 'ETAGE', 'NUMERO', 'EQUIPEMENTS'],
         description: 'Postes de travail proposés à la réservation par WuitBureaux. Une ligne par poste de travail.' },
     resas: { id: 'RESERVATIONS_WUITBUREAUX', titre: '📅 RÉSERVATIONS WUITBUREAUX ⚡', signature: ['POSTE', 'PERSONNE', 'JOUR', 'CRENEAU', 'STATUT'],
         description: 'Réservations de postes de travail faites avec WuitBureaux, prêts de postes de travail attitrés compris. Une ligne par jour réservé.' },
@@ -1077,6 +1077,32 @@ async function poserReferences(cles, ids) {
         }
     }
     await chargerMeta();
+}
+async function renommerListes() {
+    if (!accesComplet() || !etat.peutParametrer) {
+        return;
+    }
+    var actions = [];
+    Object.keys(DEF_TABLES).forEach(function (k) {
+        var t = etat.meta.tables[etat.t[k]];
+        if (t && t.rawViewSectionRef && t.libelle !== DEF_TABLES[k].titre) {
+            actions.push(['UpdateRecord', '_grist_Views_section', t.rawViewSectionRef, { title: DEF_TABLES[k].titre }]);
+        }
+    });
+    if (!actions.length) {
+        return;
+    }
+    try {
+        await agir(actions);
+        await chargerMeta();
+        resoudreTables();
+        await ecrireConfig();
+    }
+    catch (e) {
+        logSecurite('INFO', 'Listes non renommées au format actuel', e);
+        await chargerMeta();
+        resoudreTables();
+    }
 }
 async function creerListes() {
     await chargerMeta();
@@ -5149,6 +5175,7 @@ async function chargerTout() {
         return;
     }
     await determinerDroits();
+    await renommerListes();
     await lireDonnees();
     await identifier();
     if (modePage() === 'admin') {
