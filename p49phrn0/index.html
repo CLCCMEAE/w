@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
-  Widget : WuitBureau
-  Version : 1.0.0 - 24/11/2026
+  Widget : WuitBureaux
+  Version : 1.0.1 - 24/11/2026
   Description : réservation de postes de travail, attribution automatique, présence et prêt des postes attitrés.
 -->
 <head>
 <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WuitBureau</title>
+  <title>WuitBureaux</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" integrity="sha256-PoTduNA12Ef0KCwFjv+8sWmCz4NgPhVDfR+3xUpKSIU=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/utility.min.css" integrity="sha256-AtMKjo1PePyobCHKvBH8mkAGxX17BDtX9+yJ44JxWnU=" crossorigin="anonymous">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -177,7 +177,177 @@
     @media (max-width: 48rem) { .w-dialogue--pousse { position: fixed; inset: 0; width: 100%; max-width: none; z-index: 9990; } }
     body.w-lateral-ouvert .w-panneau-aide:not([hidden]) { flex-basis: 18rem; width: 18rem; }
     #bandeauRole.fr-badge { background-color: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
-    .wb-titre-wuit { color: var(--text-action-high-blue-france); opacity: .62; }
+    .w-champ-aide { position: relative; }
+    .w-c3__titre { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-c3__col > .w-opt:first-child { min-height: 1.5rem; }
+    .w-opt { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; }
+    .w-opt .fr-checkbox-group, .w-opt .fr-label { margin-bottom: 0; }
+    .w-section { display: flex; flex-direction: column; gap: .875rem; min-width: 0; padding: 1.25rem 1.5rem 1.5rem;
+      background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); }
+    .w-section > .w-champ-aide:first-child { padding-bottom: .625rem; border-bottom: 1px solid var(--border-default-grey); }
+    .w-section .fr-select-group, .w-section .fr-input-group { margin-bottom: 0; }
+    .w-general { display: flex; flex-direction: column; }
+    .w-pages-liste { list-style: none; margin: 0; padding: 0; }
+    .w-pages-liste__item { display: flex; align-items: flex-start; gap: .25rem; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .w-pages-liste__texte { flex: 1; min-width: 0; overflow-wrap: break-word; display: flex; flex-direction: column; }
+    .w-pages-liste__nom { font-weight: 700; font-size: .875rem; color: var(--text-title-grey); }
+    .s-acl { margin: .5rem 0 .25rem; }
+    .s-acl__titre { margin: 0 0 .375rem; font-size: .8125rem; }
+    .s-acl__tableau { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border-plain-grey); border-radius: 0; font-size: .75rem; }
+    .s-acl__tableau thead th { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .75rem; text-align: left; border-bottom: 1px solid var(--border-plain-grey); color: inherit; }
+    .s-acl__tableau td { padding: .375rem .5rem; vertical-align: middle; }
+    .s-acl__debut td { border-top: 1px solid var(--border-plain-grey); }
+    .s-acl__tableau tbody tr:first-child td { border-top: 0; }
+    .s-acl__cols { width: 22%; text-align: center; font-weight: 700; border-right: 1px solid var(--border-plain-grey); }
+    .s-acl__cond { display: inline-flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+    .s-acl__cond code { font-size: .75rem; color: var(--text-title-grey); background: none; padding: 0; }
+    .s-acl__autres { color: var(--text-mention-grey); font-family: monospace; }
+    .s-acl__note { display: block; color: var(--text-mention-grey); font-style: italic; }
+    .s-acl__droits { display: inline-flex; gap: .25rem; }
+    .s-acl__droit { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; font-size: .75rem; font-weight: 700; border-radius: 0; }
+    .s-acl__droit--oui { background: var(--background-contrast-success); color: var(--text-default-success); }
+    .s-acl__droit--non { background: var(--background-contrast-error); color: var(--text-default-error); text-decoration: line-through; text-decoration-thickness: 2px; }
+    .s-acl__droit--vide { background: var(--background-alt-grey); color: var(--text-disabled-grey); }
+    .s-acl__enregistrer { display: flex; align-items: center; gap: .5rem; margin: .25rem 0 0; font-size: .8125rem; }
+    .s-acl__btn { display: inline-block; padding: .375rem .875rem; border-radius: 0; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-acl__btn--fait { background: var(--background-contrast-grey-active); color: var(--text-inverted-grey); }
+    .s-dg { display: flex; flex-direction: column; gap: 2rem; max-width: 62rem; }
+    .s-dg__entete { align-items: flex-start; }
+    .s-dg__intro { margin: 0; font-size: .875rem; color: var(--text-mention-grey); }
+    .s-dg__bref { padding: 1rem 1.25rem; background: var(--background-alt-blue-france); color: var(--text-default-grey); }
+    .s-dg__btitre { margin: 0 0 .75rem; font-size: 1rem; }
+    .s-dg__cartes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 0; padding: 0 !important; list-style: none !important; }
+    .s-dg__cartes > li { margin: 0; padding: 0 !important; list-style: none !important; }
+    .s-dg__cartes > li::marker, .s-dg__cartes > li::before { content: none !important; display: none !important; }
+    .s-dg__carte { display: flex; align-items: flex-start; gap: .75rem; width: 100%; height: 100%; padding: .75rem; border: 1px solid var(--border-default-grey); background: var(--background-default-grey); font: inherit; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .s-dg__carte:hover { background: var(--background-default-grey-hover); }
+    .s-dg__cnum, .s-dg__pnum { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-weight: 700; font-size: 1rem; }
+    .s-dg__ctexte { display: flex; flex-direction: column; gap: .125rem; }
+    .s-dg__ctitre { display: flex; align-items: center; gap: .375rem; font-weight: 700; font-size: .875rem; color: var(--text-action-high-blue-france); }
+    .s-dg__cdesc { font-size: .8125rem; }
+    .s-dg__alerte { display: flex; align-items: flex-start; gap: .5rem; margin: .75rem 0 0; font-size: .8125rem; font-weight: 700; color: var(--text-default-warning); }
+    .s-dg__partie { display: flex; flex-direction: column; gap: .5rem; }
+    .s-dg__ptete { display: flex; align-items: center; gap: .75rem; padding-bottom: .5rem; border-bottom: 2px solid var(--border-plain-blue-france); }
+    .s-dg__ptitre { margin: 0; font-size: 1rem; }
+    .s-dg__ptitre:focus { outline-offset: 4px; }
+    .s-dg__chapo { margin: 0 0 0 2.75rem; font-size: .875rem; }
+    .s-dg__partie > .s-droits, .s-dg__partie > .s-dg__verif, .s-dg__partie > .s-dg__faq, .s-dg__partie > .s-dg__encart { margin-left: 2.75rem; }
+    .s-dg__partie > .s-roles { margin-left: 2.75rem; width: calc(100% - 2.75rem); }
+    .s-dg__partie > .fr-alert { margin-left: 2.75rem; }
+    .s-droits__num.s-droits__num--lettre { background: transparent; border: 2px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
+    .s-dg__encart { margin: .5rem 0 0; padding: .75rem 1rem; background: var(--background-contrast-grey); color: var(--text-default-grey); font-size: .8125rem; }
+    .s-dg__statut { margin: .25rem 0 .5rem; }
+    .s-droits > li.s-dg__enreg { margin-top: .5rem !important; padding: .75rem 1rem !important; border: 2px solid var(--border-plain-warning); background: var(--background-contrast-warning); color: var(--text-default-grey); }
+    .s-dg__enreg .s-droits__titre { font-size: 1rem; }
+    .s-dg__coches { margin: .25rem 0 .5rem; padding: 0 !important; list-style: none !important; display: flex; flex-direction: column; gap: .25rem; }
+    .s-dg__coches > li { display: flex; align-items: center; gap: .5rem; margin: 0; padding: 0 !important; font-size: .8125rem; list-style: none !important; }
+    .s-dg__coches > li::marker, .s-dg__coches > li::before { content: none; }
+    .s-dg__coches .fr-icon-checkbox-circle-line { color: var(--text-default-success); }
+    .s-dg__q { border-bottom: 1px solid var(--border-default-grey); padding: .5rem 0; }
+    .s-dg__q summary { cursor: pointer; font-weight: 700; font-size: .875rem; }
+    .s-dg__q p { margin: .375rem 0 0 1rem; }
+    @media (max-width: 48em) {
+ .s-dg__cartes { grid-template-columns: minmax(0, 1fr); } .s-dg__partie > * { margin-left: 0 !important; } 
+    }
+    .s-droits__sous-titre { margin: 1.25rem 0 .5rem; font-size: 1rem; }
+    .s-roles { width: 100%; border-collapse: collapse; font-size: .8125rem; }
+    .s-roles th, .s-roles td { padding: .375rem .5rem; border-bottom: 1px solid var(--border-default-grey); text-align: left; vertical-align: top; }
+    .s-roles thead th { background: var(--background-alt-grey); color: inherit; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
+    .s-droits { margin: .5rem 0 0; padding: 0 !important; list-style: none !important; counter-reset: none; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
+    .s-droits > li { list-style: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+    /* !important : surcharge nécessaire d'une règle DSFR ou d'un style posé en ligne, plus spécifique */
+    .s-droits > li::marker, .s-droits > li::before { content: none !important; display: none !important; }
+    .s-droits__entete { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+    #wImprDroits { display: none; }
+    @media print {
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      body.w-impr-droits > *:not(#wImprDroits) { display: none !important; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      body.w-impr-droits #wImprDroits { display: block !important; padding: 0; }
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
+      #wImprDroits .w-section { break-inside: auto; border: 0 !important; box-shadow: none !important; padding: 0 0 1rem !important; }
+      #wImprDroits .s-droits__etape, #wImprDroits .s-acl { break-inside: avoid; }
+      #wImprDroits .s-acl__droit, #wImprDroits .s-acl__btn, #wImprDroits .s-droits__num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .s-impr__titre { font-size: 1rem; margin: 0 0 .5rem; }
+      .s-impr__note { font-weight: 700; margin: 0 0 1rem; }
+    }
+    .s-droits__etape { padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .s-droits__etape--suite { border-top: 0; padding-top: 0; }
+    .s-droits__titre { display: flex; align-items: center; gap: .5rem; margin: 0 0 .25rem; font-weight: 700; font-size: .875rem; }
+    .s-droits__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-size: .75rem; }
+    .s-droits__texte { margin: 0 0 .375rem; font-size: .8125rem; }
+    .s-droits__ligne { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .s-droits__code { padding: .25rem .5rem; background: var(--background-contrast-grey); font-size: .8125rem; overflow-wrap: break-word; color: inherit; }
+    .s-acl__special { display: flex; align-items: flex-start; gap: .5rem; padding: .375rem .5rem; font-size: .75rem; }
+    .s-acl__special--cible { outline: 2px dashed var(--border-plain-success); outline-offset: -2px; }
+    .s-acl__chevron { color: var(--text-mention-grey); }
+    .s-acl__case { flex: none; width: .875rem; height: .875rem; margin-top: .125rem; border: 1px solid var(--border-plain-grey); background: var(--background-default-grey); border-radius: 0; color: inherit; }
+    .s-acl__repere { flex: none; padding: 0 .375rem; background: var(--background-contrast-success); color: var(--text-default-success); font-weight: 700; white-space: nowrap; }
+    .s-acl__barre { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .s-acl__pousse { flex: 1; }
+    .s-acl__fbtn { display: inline-flex; align-items: center; gap: .25rem; padding: .375rem .625rem; border: 1px solid var(--border-action-high-blue-france); color: var(--text-action-high-blue-france); font-size: .75rem; border-radius: 0; }
+    .s-acl__fbtn--gris { border-color: transparent; background: var(--background-action-high-grey); color: var(--text-inverted-grey); }
+    .s-acl__fbtn--cible { box-shadow: 0 0 0 2px var(--border-plain-success); }
+    .s-acl__num { display: inline-flex; align-items: center; justify-content: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--background-flat-success); color: var(--text-inverted-grey); font-size: .75rem; font-weight: 700; }
+    .s-acl__plus { font-weight: 700; color: var(--text-mention-grey); }
+    .s-acl__saisie { padding: .125rem .5rem; border: 1px dashed var(--border-plain-grey); color: var(--text-mention-grey); font-style: italic; }
+    .s-acl__legende { margin: .375rem 0 0; font-size: .75rem; color: var(--text-mention-grey); }
+    :is(.w-section) > .fr-btn { display: flex; width: fit-content; margin-left: auto; }
+    :is(.w-section) > div:not([class]):has(> .fr-btn):not(:has(> :not(.fr-btn))) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+    .w-titre-fluo { align-self: flex-start; margin: 0; padding: 0 .375rem; font-size: 1rem; font-weight: 700; line-height: 2.25rem; color: var(--text-label-yellow-tournesol); background: var(--background-contrast-yellow-tournesol); }
+    .w-acc { display: flex; min-height: 100%; }
+    .w-acc__menu { flex: 0 0 16rem; box-sizing: border-box; padding: 1rem .75rem; border-right: 1px solid var(--border-default-grey); display: flex; flex-direction: column; gap: .25rem; }
+    .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
+    .w-acc__item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .5rem .75rem; border: 0; border-left: 3px solid transparent; background: transparent; font: inherit; text-align: left; cursor: pointer; color: var(--text-default-grey); }
+    .w-acc__item:hover { background: var(--background-default-grey-hover); }
+    .w-acc__item--actif { border-left-color: var(--border-action-high-blue-france); background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; }
+    .w-acc__ico::before { --icon-size: 1.25rem; }
+    .w-acc__creer { margin: .5rem 0 1rem; }
+    .w-acc__creer .fr-btn { margin: 0; width: auto; }
+    .w-acc__creer { align-self: flex-start; }
+    .w-acc__groupe { margin: .5rem 0 0; padding: 0 .75rem; font-size: .875rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-acc__scene { flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 1rem 1.5rem; background: var(--background-alt-grey); display: flex; flex-direction: column; gap: 1rem; color: inherit; }
+    .w-acc__menu > .w-titre-fluo { margin-bottom: .75rem; }
+    .w-acc__menu { flex: 1 0 15.5rem; max-width: 15.5rem; padding: 1rem .75rem; gap: .25rem; }
+    .w-acc__groupe { margin: 0; padding: 1rem .75rem .375rem; font-size: .8125rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-acc__item { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 2.75rem; padding: 0 .75rem; border: 0; background: transparent; color: var(--text-default-grey); font: inherit; font-size: .9rem; text-align: left; cursor: pointer; font-weight: 400; }
+    .w-acc__item:hover { background: var(--background-alt-grey); }
+    .w-acc__item[aria-current="page"] { background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); font-weight: 700; box-shadow: inset 3px 0 0 var(--border-action-high-blue-france); }
+    .w-acc__ico { flex: none; width: 1.75rem; text-align: center; }
+    .w-acc__scene { padding: 1rem 1.5rem 1.5rem; }
+    .w-acc { align-items: stretch; }
+    .w-acc__scene > .w-titre-fluo { margin-bottom: .25rem; }
+    .w-acc__item .s-acc-nb { margin-left: auto; }
+    .s-acc-etape { position: relative; }
+    .s-acc-etape .s-acc-num { flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 1px solid var(--border-action-high-blue-france); display: inline-flex; align-items: center; justify-content: center; font-size: .8125rem; color: var(--text-action-high-blue-france); background: var(--background-default-grey); position: relative; z-index: 1; }
+    .s-acc-etape[aria-current="page"] .s-acc-num { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+    .s-acc-etape:not(.s-acc-etape--derniere)::before { content: ""; position: absolute; left: calc(.75rem + .75rem - .5px); top: 2rem; bottom: -.75rem; border-left: 1px solid var(--border-action-high-blue-france); }
+    .s-acc-ajout { padding: .5rem .75rem .25rem; }
+    .w-acc__menu .w-acc__item.s-acc-salle { position: relative; min-height: 2.25rem; padding-left: 1rem; font-size: .8125rem; flex-wrap: wrap; row-gap: .125rem; }
+    .w-acc__menu .w-acc__item.s-acc-salle .s-acc-nom { flex: 1 1 auto; overflow-wrap: break-word; }
+    .w-acc__menu .w-acc__item.s-acc-salle .s-acc-statut { flex: none; font-size: .625rem; line-height: 1rem; min-height: 1rem; padding: 0 .25rem; }
+    .w-acc__menu .w-acc__item.s-acc-salle[data-nom]::after { content: attr(data-nom); position: absolute; z-index: 40; left: 0; bottom: calc(100% + .25rem); box-sizing: border-box; max-width: 100%; width: max-content; padding: .25rem .5rem; font-size: .75rem; line-height: 1.4; font-weight: 400; color: var(--text-default-grey); background: var(--background-default-grey); border: 1px solid var(--border-plain-grey); pointer-events: none; opacity: 0; visibility: hidden; }
+    .w-acc__menu .w-acc__item.s-acc-salle[data-nom]:hover::after, .w-acc__menu .w-acc__item.s-acc-salle[data-nom]:focus-visible::after { opacity: 1; visibility: visible; }
+    .w-acc__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .w-acc__ligne { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); color: inherit; }
+    .w-acc__ligne .fr-btn { margin: 0; }
+    .w-acc__ligne .fr-badge { flex: none; }
+    .w-acc__ligne--clic { cursor: pointer; }
+    .w-acc__ligne--clic:hover { background: var(--background-default-grey-hover); }
+    .s-acc-ajout .fr-btn { margin: 0; }
+    .w-acc__scene .w-assistant { gap: 1rem; }
+    .w-acc__scene .w-general > p.w-texte { margin: 0 0 1rem; max-width: 60rem; }
+    .w-assistant { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
+    .s-depart { align-items: center; padding: 1.5rem 0; }
+    .s-depart__carte { max-width: 40rem; margin: 0 auto; border: 1px solid var(--border-default-grey); padding: 2rem; display: flex; flex-direction: column; gap: .75rem; align-items: flex-start; }
+    .s-depart__icone { color: var(--text-action-high-blue-france); }
+    .s-depart__titre { margin: 0; font-size: 1rem; }
+    .s-depart__points { margin: 0; padding-left: 1.25rem; }
+    .s-depart__bouton { margin-top: .5rem; font-size: 1rem; padding: .75rem 1.5rem; }
+    .s-depart__carte > .fr-btn { align-self: flex-end; }
     .wb-disposition { gap: 0; align-items: stretch; }
     .w-contenu:has(.wb-disposition) { padding: 0; overflow: hidden; display: flex; }
     .wb-disposition { flex: 1; min-height: 0; }
@@ -249,10 +419,6 @@
     .wb-cell-barre > span:last-child { margin-left: .5rem; }
     .wb-barre { display: inline-block; vertical-align: middle; width: 8rem; height: .625rem; background: var(--background-contrast-grey); }
     .wb-barre__plein { display: block; height: 100%; background: var(--background-action-high-blue-france); }
-    .wb-titre-vue { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .wb-titre-vue h2 { margin: 0; font-size: 1.5rem; line-height: 2rem; }
-    .wb-titre-vue h2:focus { outline: none; }
-    .wb-titre-vue__actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
     .wb-tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .75rem; }
     .wb-tuile { border: 1px solid var(--border-default-grey); padding: .875rem 1rem; background: var(--background-default-grey); }
     .wb-tuile__libelle { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
@@ -262,21 +428,6 @@
     .wb-barres li { display: grid; grid-template-columns: minmax(6rem, 12rem) 1fr 3rem; gap: .5rem; align-items: center; padding: 0; font-size: .875rem; }
     .wb-barres .wb-barre { width: 100%; height: .875rem; }
     .wb-barres__val { text-align: right; font-weight: 700; }
-    .wb-nav { gap: .5rem; }
-    .wb-nav__voir { justify-content: center; margin-bottom: .5rem; }
-    .wb-nav__liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
-    .wb-nav__liste li { padding: 0; }
-    .wb-nav__item { width: 100%; display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: none; border: 0; font: inherit; font-size: .9375rem; color: var(--text-default-grey); text-align: left; cursor: pointer; }
-    .wb-nav__item:hover { background: var(--background-default-grey-hover); }
-    .wb-nav__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
-    .wb-nav__item--actif, .wb-nav__item--actif:hover { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-weight: 700; }
-    .wb-nav__item--n1 { padding-left: 1.75rem; }
-    .wb-nav__texte { flex: 1; }
-    .wb-nav__compte { font-size: .75rem; font-weight: 700; padding: 0 .375rem; background: var(--background-contrast-grey); color: var(--text-default-grey); }
-    .wb-nav__compte--alerte { background: var(--background-flat-error); color: var(--text-inverted-error); }
-    .wb-nav__groupe { margin: .75rem 0 0; align-self: flex-start; padding: .125rem .625rem; font-size: .875rem; font-weight: 700; background: var(--background-contrast-yellow-tournesol); }
-    .wb-nav__bat-nom { display: flex; justify-content: space-between; gap: .5rem; padding: .5rem .75rem .25rem; font-weight: 700; font-size: .9375rem; }
-    .wb-nav__bas { margin-top: .75rem; border-top: 1px solid var(--border-default-grey); padding-top: .5rem; }
     .wb-barre-outils { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .wb-barre-outils .fr-input { max-width: 18rem; }
     .wb-filtres { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -344,18 +495,12 @@
     .wb-champ-liste { display: flex; flex-direction: column; }
     .wb-enclair { margin: 0; padding: .875rem 1rem; background: var(--background-alt-blue-france); border-left: .25rem solid var(--border-action-high-blue-france); font-size: .9375rem; line-height: 1.55; }
     .wb-pied-form { display: flex; justify-content: flex-end; }
-    .wb-code { display: block; padding: .5rem .75rem; background: var(--background-alt-grey); font-size: .8125rem; overflow-wrap: anywhere; }
-    .wb-installation { max-width: 44rem; display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
-    .wb-installation h2 { margin: 0; }
-    .wb-installation__etapes { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
-    .wb-apercu { margin: 0; }
     @media (max-width: 62em) {
       .wb-jours { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
     }
     @media (max-width: 48em) {
       .wb-disposition { flex-direction: column; }
       .wb-volet { flex: none; width: auto; border-right: 0; border-bottom: 1px solid var(--border-default-grey); padding: 1rem; }
-      .wb-nav { max-height: none; }
       .wb-principal { padding: 1rem; overflow: visible; }
       .wb-jours { grid-template-columns: 1fr; }
       .wb-jour { min-height: 0; }
@@ -375,10 +520,23 @@
       .w-corps, .w-contenu, .wb-principal { overflow: visible; display: block; }
       .wb-jours { grid-template-columns: repeat(var(--wb-nb, 5), 1fr); }
     }
-    .wb-pile { display: flex; flex-direction: column; gap: 1rem; }
     .wb-principal { container-type: inline-size; }
     @container (max-width: 52rem) { .wb-jours { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); } }
     @media (max-width: 110em) { body.w-lateral-ouvert .wb-volet { display: none; } }
+
+    .wb-barre-vue { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .wb-barre-vue:empty { display: none; }
+    .wb-barre-vue__texte { margin: 0; font-size: 1rem; font-weight: 700; }
+    .wb-barre-vue__actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-left: auto; }
+    .w-acc__scene > .w-titre-fluo:focus { outline: none; }
+    .w-acc__scene .wb-bloc { background: var(--background-default-grey); }
+    .w-acc__scene > .wb-enclair, .w-acc__scene .wb-enclair { background: var(--background-default-grey); }
+    .wb-ligne-texte { flex: 1; display: flex; flex-direction: column; gap: .125rem; min-width: 0; }
+    .w-acc__menu .s-acc-salle .s-acc-statut { margin-left: auto; }
+    @media (max-width: 48em) {
+      .w-acc { flex-direction: column; }
+      .w-acc__menu { max-width: none; flex: none; border-right: 0; border-bottom: 1px solid var(--border-default-grey); }
+    }
   </style>
 </head>
 <body>
@@ -402,7 +560,7 @@
     <div class="w-bandeau__marque">
       <div id="bandeau-logo"></div>
       <div class="w-bandeau__sep"></div>
-      <h1 class="w-bandeau__titre" id="bandeauTitre"><span class="wb-titre-wuit">Wuit</span>Bureau</h1><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
+      <h1 class="w-bandeau__titre" id="bandeauTitre">🪑 WuitBureaux</h1><span class="fr-badge fr-badge--sm fr-badge--no-icon w-bandeau__role" id="bandeauRole" hidden></span><span class="fr-badge fr-badge--success fr-badge--sm w-bandeau__homologue" id="bandeauHomologue" hidden><span class="fr-sr-only">Version homologuée</span></span>
     </div>
     <div class="w-bandeau__aide-bloc"><span class="w-bandeau__version" id="bandeauVersion"></span><button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-icon-question-line fr-btn--icon-left w-bandeau__aide" id="bandeauAide" aria-expanded="false" aria-controls="wPanneauAide">Aide</button></div>
   </div>
@@ -421,17 +579,19 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.0.1';
 var HOMOLOGUE = false;
-var NOM_WIDGET = 'WuitBureau';
+var NOM_WIDGET = 'WuitBureaux';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var LABEL_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var CLE_CONFIG = 'CONFIG';
+var NOM_PAGE_UTILISATEURS = '🪑 Réserver un poste de travail';
+var TITRE_DEFAUT = '🪑 WuitBureaux';
 var DELAI_API_MS = 30000;
 var DELAI_ACTUALISATION_MS = 30000;
 var FUSEAU_DEFAUT = 'Europe/Paris';
 var ID_OWNER = 'ADMIN_ONLY', ID_OWNER_ANCIEN = 'OWNER_ONLY', TITRE_OWNER = '❌ ADMIN ONLY ⚡';
-var CLE_AIDE = 'wuitbureau:aide';
+var CLE_AIDE = 'wuitbureaux:aide';
 var CRENEAUX = ['Journée', 'Matin', 'Après-midi'];
 var STATUTS = { reservee: 'Réservée', surPlace: 'Sur place', liberee: 'Libérée', annulee: 'Annulée', pretee: 'Prêtée', reprise: 'Reprise' };
 var PROFILS = ['Prestataire', 'Agent', 'Gestionnaire'];
@@ -448,21 +608,21 @@ var CONFIG_DEFAUT = {
     jours: [1, 2, 3, 4, 5],
     limite: 3, limiteSur: 'cle', avance: 14, derniereMinute: '16:00',
     recurrence: true, attitresProposes: true,
-    equipements: ['Eole', 'Double écran', 'Poste adapté'], equipementCle: 'Eole',
+    equipements: ['Eole', 'Double écran', 'Poste de travail adapté'], equipementCle: 'Eole',
     equipes: [], societes: [],
     domaineAgents: '', saufAgents: '-ext@',
     montrerAutres: true,
     tables: {}
 };
 var DEF_TABLES = {
-    personnes: { id: 'PERSONNES_WUITBUREAU', titre: '👥 PERSONNES WUITBUREAU ⚡', signature: ['PRENOM', 'NOM', 'EMAIL', 'PROFIL', 'CONNEXION'],
-        description: 'Personnes qui réservent un poste avec WuitBureau. Une ligne par personne, reconnue par son adresse de connexion.' },
-    postes: { id: 'POSTES_WUITBUREAU', titre: '🪑 POSTES WUITBUREAU ⚡', signature: ['BATIMENT', 'ETAGE', 'NUMERO', 'EQUIPEMENTS'],
-        description: 'Postes de travail proposés à la réservation par WuitBureau. Une ligne par poste.' },
-    resas: { id: 'RESERVATIONS_WUITBUREAU', titre: '📅 RÉSERVATIONS WUITBUREAU ⚡', signature: ['POSTE', 'PERSONNE', 'JOUR', 'CRENEAU', 'STATUT'],
-        description: 'Réservations de postes faites avec WuitBureau, prêts de postes attitrés compris. Une ligne par jour réservé.' },
-    signalements: { id: 'SIGNALEMENTS_WUITBUREAU', titre: '🔧 SIGNALEMENTS WUITBUREAU ⚡', signature: ['POSTE', 'PROBLEME', 'STATUT'],
-        description: 'Problèmes signalés sur un poste (matériel en panne, poste inutilisable).' }
+    personnes: { id: 'PERSONNES_WUITBUREAUX', titre: '👥 PERSONNES WUITBUREAUX ⚡', signature: ['PRENOM', 'NOM', 'EMAIL', 'PROFIL', 'CONNEXION'],
+        description: 'Personnes qui réservent un poste de travail avec WuitBureaux. Une ligne par personne, reconnue par son adresse de connexion.' },
+    postes: { id: 'POSTES_WUITBUREAUX', titre: '🪑 POSTES DE TRAVAIL WUITBUREAUX ⚡', signature: ['BATIMENT', 'ETAGE', 'NUMERO', 'EQUIPEMENTS'],
+        description: 'Postes de travail proposés à la réservation par WuitBureaux. Une ligne par poste de travail.' },
+    resas: { id: 'RESERVATIONS_WUITBUREAUX', titre: '📅 RÉSERVATIONS WUITBUREAUX ⚡', signature: ['POSTE', 'PERSONNE', 'JOUR', 'CRENEAU', 'STATUT'],
+        description: 'Réservations de postes de travail faites avec WuitBureaux, prêts de postes de travail attitrés compris. Une ligne par jour réservé.' },
+    signalements: { id: 'SIGNALEMENTS_WUITBUREAUX', titre: '🔧 SIGNALEMENTS WUITBUREAUX ⚡', signature: ['POSTE', 'PROBLEME', 'STATUT'],
+        description: 'Problèmes signalés sur un poste de travail (matériel en panne, poste de travail inutilisable).' }
 };
 function colonnesTables(ids) {
     return {
@@ -470,43 +630,43 @@ function colonnesTables(ids) {
             { id: 'PRENOM', type: 'Text', label: 'PRÉNOM', description: 'Prénom de la personne.' },
             { id: 'NOM', type: 'Text', label: 'NOM', description: 'Nom de famille de la personne.' },
             { id: 'EMAIL', type: 'Text', label: 'ADRESSE', description: 'Adresse avec laquelle la personne se connecte au document.' },
-            { id: 'PROFIL', type: 'Choice', label: 'PROFIL', widgetOptions: { choices: PROFILS }, description: 'Prestataire, agent ou gestionnaire des postes.' },
+            { id: 'PROFIL', type: 'Choice', label: 'PROFIL', widgetOptions: { choices: PROFILS }, description: 'Prestataire, agent ou gestionnaire des postes de travail.' },
             { id: 'SOCIETE', type: 'Text', label: 'SOCIÉTÉ', description: 'Société du prestataire.' },
-            { id: 'EQUIPE', type: 'Text', label: 'ÉQUIPE', description: 'Équipe de la personne : elle ouvre les postes réservés à cette équipe.' },
+            { id: 'EQUIPE', type: 'Text', label: 'ÉQUIPE', description: 'Équipe de la personne : elle ouvre les postes de travail réservés à cette équipe.' },
             { id: 'LIMITE', type: 'Int', label: 'JOURS PAR SEMAINE', description: 'Nombre de jours que la personne peut réserver par semaine. Vide : la règle commune.' },
             { id: 'POUR_EQUIPE', type: 'Bool', label: 'RÉSERVE POUR SON ÉQUIPE', description: 'Coché : la personne peut réserver pour les personnes de son équipe.' },
             { id: 'FIN_MISSION', type: 'Date', label: 'FIN DE MISSION', description: 'Après cette date, la personne ne peut plus réserver.' },
-            { id: 'EPINGLE', type: 'Ref:' + ids.postes, label: 'POSTE ÉPINGLÉ', description: 'Poste attribué en priorité quand il est libre.' },
+            { id: 'EPINGLE', type: 'Ref:' + ids.postes, label: 'POSTE DE TRAVAIL ÉPINGLÉ', description: 'Poste de travail attribué en priorité quand il est libre.' },
             { id: 'SUIT', type: 'RefList:' + ids.personnes, label: 'PERSONNES SUIVIES', description: 'Personnes dont on voit les réservations.' },
-            { id: 'PRET_JOURS', type: 'ChoiceList', label: 'POSTE PRÊTÉ CHAQUE', widgetOptions: { choices: JOURS_PRET.slice(0, 5) }, description: 'Jours où le poste attitré de la personne est proposé aux autres.' },
+            { id: 'PRET_JOURS', type: 'ChoiceList', label: 'POSTE PRÊTÉ CHAQUE', widgetOptions: { choices: JOURS_PRET.slice(0, 5) }, description: 'Jours où le poste de travail attitré de la personne est proposé aux autres.' },
             { id: 'CONNEXION', type: 'Text', label: 'CONNEXION', description: 'Identifiant technique de connexion, rempli par le widget. Ne pas modifier.' }
         ],
         postes: [
-            { id: 'BATIMENT', type: 'Text', label: 'BÂTIMENT', description: 'Bâtiment du poste.' },
-            { id: 'ETAGE', type: 'Text', label: 'ÉTAGE', description: 'Étage du poste.' },
-            { id: 'NUMERO', type: 'Text', label: 'NUMÉRO', description: 'Numéro du poste, affiché aux personnes.' },
+            { id: 'BATIMENT', type: 'Text', label: 'BÂTIMENT', description: 'Bâtiment du poste de travail.' },
+            { id: 'ETAGE', type: 'Text', label: 'ÉTAGE', description: 'Étage du poste de travail.' },
+            { id: 'NUMERO', type: 'Text', label: 'NUMÉRO', description: 'Numéro du poste de travail, affiché aux personnes.' },
             { id: 'TYPE', type: 'Choice', label: 'TYPE', widgetOptions: { choices: TYPES_POSTE }, description: 'Open space ou bureau fermé.' },
-            { id: 'EQUIPEMENTS', type: 'ChoiceList', label: 'ÉQUIPEMENTS', description: 'Équipements du poste.' },
-            { id: 'EQUIPE', type: 'Text', label: 'RÉSERVÉ À', description: 'Équipe à qui le poste est réservé. Vide : tout le monde.' },
-            { id: 'ORDRE', type: 'Int', label: 'ORDRE DE REMPLISSAGE', description: 'Les postes de l\'ordre 1 sont attribués en premier, puis ceux de l\'ordre 2, et ainsi de suite.' },
-            { id: 'ATTITRE', type: 'Ref:' + ids.personnes, label: 'ATTITRÉ À', description: 'Personne à qui le poste est attitré.' },
-            { id: 'FERME_DU', type: 'Date', label: 'FERMÉ DU', description: 'Début de la fermeture du poste.' },
+            { id: 'EQUIPEMENTS', type: 'ChoiceList', label: 'ÉQUIPEMENTS', description: 'Équipements du poste de travail.' },
+            { id: 'EQUIPE', type: 'Text', label: 'RÉSERVÉ À', description: 'Équipe à qui le poste de travail est réservé. Vide : tout le monde.' },
+            { id: 'ORDRE', type: 'Int', label: 'ORDRE DE REMPLISSAGE', description: 'Les postes de travail de l\'ordre 1 sont attribués en premier, puis ceux de l\'ordre 2, et ainsi de suite.' },
+            { id: 'ATTITRE', type: 'Ref:' + ids.personnes, label: 'ATTITRÉ À', description: 'Personne à qui le poste de travail est attitré.' },
+            { id: 'FERME_DU', type: 'Date', label: 'FERMÉ DU', description: 'Début de la fermeture du poste de travail.' },
             { id: 'FERME_AU', type: 'Date', label: 'FERMÉ AU', description: 'Fin de la fermeture. Vide : jusqu\'à nouvel ordre.' },
             { id: 'RAISON', type: 'Text', label: 'RAISON', description: 'Raison de la fermeture.' },
-            { id: 'ACTIF', type: 'Bool', label: 'ACTIF', description: 'Décoché : le poste n\'est plus proposé.' }
+            { id: 'ACTIF', type: 'Bool', label: 'ACTIF', description: 'Décoché : le poste de travail n\'est plus proposé.' }
         ],
         resas: [
-            { id: 'POSTE', type: 'Ref:' + ids.postes, label: 'POSTE', description: 'Poste réservé.' },
-            { id: 'PERSONNE', type: 'Ref:' + ids.personnes, label: 'PERSONNE', description: 'Personne qui occupe le poste.' },
+            { id: 'POSTE', type: 'Ref:' + ids.postes, label: 'POSTE DE TRAVAIL', description: 'Poste de travail réservé.' },
+            { id: 'PERSONNE', type: 'Ref:' + ids.personnes, label: 'PERSONNE', description: 'Personne qui occupe le poste de travail.' },
             { id: 'JOUR', type: 'Date', label: 'JOUR', description: 'Jour réservé.' },
             { id: 'CRENEAU', type: 'Choice', label: 'CRÉNEAU', widgetOptions: { choices: CRENEAUX }, description: 'Journée, matin ou après-midi.' },
             { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: { choices: [STATUTS.reservee, STATUTS.surPlace, STATUTS.liberee, STATUTS.annulee, STATUTS.pretee, STATUTS.reprise] },
-                description: 'Réservée, Sur place, Libérée, Annulée ; Prêtée et Reprise pour un poste attitré.' },
+                description: 'Réservée, Sur place, Libérée, Annulée ; Prêtée et Reprise pour un poste de travail attitré.' },
             { id: 'SUR_PLACE_LE', type: 'DateTime', label: 'SUR PLACE LE', description: 'Moment où la personne a confirmé sa présence.' },
             { id: 'DERNIERE_MINUTE', type: 'Bool', label: 'DERNIÈRE MINUTE', description: 'Réservation de dernière minute : elle ne compte pas dans la limite.' }
         ],
         signalements: [
-            { id: 'POSTE', type: 'Ref:' + ids.postes, label: 'POSTE', description: 'Poste concerné.' },
+            { id: 'POSTE', type: 'Ref:' + ids.postes, label: 'POSTE DE TRAVAIL', description: 'Poste de travail concerné.' },
             { id: 'PROBLEME', type: 'Text', label: 'PROBLÈME', description: 'Description du problème.' },
             { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: { choices: ['À traiter', 'Réglé'] }, description: 'À traiter ou Réglé.' }
         ]
@@ -516,9 +676,9 @@ var etat = {
     niveauAcces: null, meta: null, biblio: null, biblioCentrale: true,
     cfg: null, cleLigne: null, temoinParam: false, temoinsTentes: false, peutParametrer: false, optionsWidget: {}, modaleOuverte: false,
     t: {}, personnes: [], postes: [], resas: [], signalements: [],
-    moi: null, identiteTentee: false, page: null, vue: 'chargement', apercuUtilisateurs: false, gestion: false,
+    moi: null, identiteTentee: false, page: null, vue: 'chargement',
     lundi: null, admin: 'occupation', etage: null, jourOccupation: null, filtrePersonnes: 'tous', recherchePersonnes: '',
-    panneau: null, initEnCours: false, empreinte: '', nomDoc: ''
+    panneau: null, pagePubliee: null, pageProtegee: null, initEnCours: false, empreinte: '', nomDoc: ''
 };
 
 function partiesMaintenant() {
@@ -572,7 +732,7 @@ function texteHorodatage(sec) {
         return texteJour(Math.floor(sec / 86400), { court: true, annee: true, sansJour: true });
     }
 }
-var MOTS_INVARIABLES = ['de', 'du', 'des', 'à', 'au', 'sur', 'par', 'avec', 'sans', 'le', 'la', 'les', 'déjà'];
+var MOTS_INVARIABLES = ['travail', 'de', 'du', 'des', 'à', 'au', 'sur', 'par', 'avec', 'sans', 'le', 'la', 'les', 'déjà'];
 function pluriel(n, un, des) {
     if (n <= 1) {
         return n + ' ' + un;
@@ -688,7 +848,7 @@ async function determinerDroits() {
         etat.temoinsTentes = true;
         try {
             await gristAvecTimeout(grist.docApi.applyUserActions([['AddRecord', etat.biblio, null, { WIDGET: NOM_WIDGET, CLE: CLE_ACCES_PARAMETRAGE,
-                VALEUR: 'Ligne témoin : les personnes qui ne lisent pas cette ligne ne changent pas les règles communes de WuitBureau. Ne pas modifier.', VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]]), DELAI_API_MS);
+                VALEUR: 'Ligne témoin : les personnes qui ne lisent pas cette ligne ne changent pas les règles communes de WuitBureaux. Ne pas modifier.', VERSION_CREATION: VERSION_WIDGET, VERSION_MODIF: VERSION_WIDGET }]]), DELAI_API_MS);
             await lireBibliotheque();
         }
         catch (e) {
@@ -776,7 +936,7 @@ function nomPersonne(p) {
 }
 function lieuPoste(p, o) {
     if (!p) {
-        return 'Poste retiré';
+        return 'Poste de travail retiré';
     }
     o = o || {};
     var l = [p.batiment, p.etage].filter(Boolean);
@@ -806,7 +966,7 @@ function nomDepuisAdresse(email) {
     }
     return { prenom: '', nom: local ? maj(local).toUpperCase() : '' };
 }
-function cleStockage() { return 'wuitbureau:moi:' + (etat.nomDoc || 'document'); }
+function cleStockage() { return 'wuitbureaux:moi:' + (etat.nomDoc || 'document'); }
 async function idConnexion() {
     try {
         var j = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: true }), 10000);
@@ -1187,14 +1347,14 @@ function choisirPoste(personne, j, creneau, o, pris) {
     if (o.ou !== 'pres' && o.ou !== 'indifferent' && personne.favori) {
         var fav = libres.filter(function (p) { return p.id === personne.favori; })[0];
         if (fav) {
-            return { poste: fav, pourquoi: 'votre poste épinglé' };
+            return { poste: fav, pourquoi: 'votre poste de travail épinglé' };
         }
     }
     var besoinCle = (o.equipements || []).indexOf(cfg().equipementCle) !== -1;
     var choix = classerPostes(libres, o.ou === 'indifferent' ? null : ref, besoinCle)[0];
     var pourquoi = '';
     if (ref && o.ou !== 'indifferent') {
-        var pres = o.ou === 'pres' ? 'près de ' + nomPersonne(personneParId(o.pres)) : (personne.favori ? 'votre poste épinglé est pris' : 'près de votre dernier poste');
+        var pres = o.ou === 'pres' ? 'près de ' + nomPersonne(personneParId(o.pres)) : (personne.favori ? 'votre poste de travail épinglé est pris' : 'près de votre dernier poste de travail');
         pourquoi = pres + (proximite(choix, ref) === 0 ? ', même étage' : (proximite(choix, ref) === 1 ? ', même bâtiment' : ', autre bâtiment'));
     }
     return { poste: choix, pourquoi: pourquoi };
@@ -1219,7 +1379,7 @@ function preparerReservations(personne, demande) {
         }
         var att = posteAttitreDe(personne);
         if (att && !attitrePrete(att, j) && !posteFerme(att, j)) {
-            l.probleme = 'Votre poste attitré vous attend';
+            l.probleme = 'Votre poste de travail attitré vous attend';
             lignes.push(l);
             return;
         }
@@ -1228,7 +1388,7 @@ function preparerReservations(personne, demande) {
             l.probleme = 'Complet';
             var sans = choisirPoste(personne, j, demande.creneau, Object.assign({}, demande, { equipements: [], type: '' }), prevues);
             if (sans.poste) {
-                l.alternatives.push({ poste: sans.poste, texte: 'Prendre un autre poste libre : ' + lieuPoste(sans.poste, { long: true }) });
+                l.alternatives.push({ poste: sans.poste, texte: 'Prendre un autre poste de travail libre : ' + lieuPoste(sans.poste, { long: true }) });
             }
             lignes.push(l);
             return;
@@ -1243,7 +1403,7 @@ function preparerReservations(personne, demande) {
                 var autres = postesLibres(personne, j, demande.creneau, {}).filter(function (p) { return !aPosteCle(p) && !prevues.some(function (x) { return x.poste === p.id && x.jour === j; }); });
                 var alt = classerPostes(autres, posteReference(personne, j, demande), false)[0];
                 if (alt) {
-                    l.alternatives.push({ poste: alt, texte: 'Prendre un poste sans ' + cfg().equipementCle + ' : ' + lieuPoste(alt, { long: true }) });
+                    l.alternatives.push({ poste: alt, texte: 'Prendre un poste de travail sans ' + cfg().equipementCle + ' : ' + lieuPoste(alt, { long: true }) });
                 }
             }
             lignes.push(l);
@@ -1392,15 +1552,15 @@ function texteIcs(resas) {
     var echap = function (t) { return String(t).replace(/[\\;,]/g, function (x) { return '\\' + x; }).replace(/\n/g, '\\n'); };
     var date = function (j, hhmm) { return dateSaisie(j).replace(/-/g, '') + 'T' + hhmm.replace(':', '') + '00'; };
     var tz = fuseauDoc();
-    var l = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WuitBureau//FR', 'CALSCALE:GREGORIAN'];
+    var l = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WuitBureaux//FR', 'CALSCALE:GREGORIAN'];
     var horo = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
     resas.forEach(function (r) {
         var p = posteParId(r.poste);
         var debut = r.creneau === 'Après-midi' ? c.midi : c.matin;
         var fin = r.creneau === 'Matin' ? c.midi : c.soir;
-        l.push('BEGIN:VEVENT', 'UID:wuitbureau-' + r.id + '-' + r.jour + '@wuitbureau', 'DTSTAMP:' + horo,
+        l.push('BEGIN:VEVENT', 'UID:wuitbureaux-' + r.id + '-' + r.jour + '@wuitbureaux', 'DTSTAMP:' + horo,
             'DTSTART;TZID=' + tz + ':' + date(r.jour, debut), 'DTEND;TZID=' + tz + ':' + date(r.jour, fin),
-            'SUMMARY:' + echap('Poste ' + (p ? p.numero : '')), 'LOCATION:' + echap(lieuPoste(p, { long: true })), 'END:VEVENT');
+            'SUMMARY:' + echap('Poste de travail ' + (p ? p.numero : '')), 'LOCATION:' + echap(lieuPoste(p, { long: true })), 'END:VEVENT');
     });
     l.push('END:VCALENDAR');
     return l.join('\r\n');
@@ -2554,7 +2714,7 @@ function badge(texte, type, o) {
     return creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (cl || '') + (o.classe ? ' ' + o.classe : ''), texte: texte, id: o.id });
 }
 var ICONES_EQUIPEMENTS = [
-    { mots: ['eole', 'pc', 'ordinateur', 'poste'], icone: 'computer-line' },
+    { mots: ['eole', 'pc', 'ordinateur'], icone: 'computer-line' },
     { mots: ['ecran', 'écran', 'double'], icone: 'tv-2-line' },
     { mots: ['adapte', 'adapté', 'pmr', 'handicap'], icone: 'wheelchair-line' },
     { mots: ['tel', 'téléphone', 'phone'], icone: 'phone-line' },
@@ -2764,7 +2924,7 @@ function texteStatutResa(r, now) {
         return { texte: r.jour < now.jour ? 'Présent' : 'Sur place', type: 'succes' };
     }
     if (resaExpiree(r, now)) {
-        return { texte: 'Non confirmé : poste libéré', type: 'neutre' };
+        return { texte: 'Non confirmé : poste de travail libéré', type: 'neutre' };
     }
     if (r.jour === now.jour) {
         return cfg().liberer ? { texte: 'À confirmer avant ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin), type: 'avertissement' } : { texte: 'Réservé', type: 'info' };
@@ -2779,12 +2939,8 @@ function vueUtilisateurs(racine) {
     var disp = creer('div', { classe: 'w-disposition wb-disposition' });
     disp.appendChild(voletUtilisateur(now));
     var main = creer('div', { classe: 'w-principal wb-principal' });
-    if (etat.apercuUtilisateurs) {
-        main.appendChild(alerte('info', null, null, { classe: 'wb-apercu', enfants: [creer('p', {}, ['Vous voyez la page des utilisateurs, avec vos réservations. ',
-            boutonLien('Revenir à la gestion', function () { etat.apercuUtilisateurs = false; dessiner(); }, { id: 'uRetourGestion' })])] }));
-    }
     if (!etat.moi) {
-        main.appendChild(alerte('warning', 'Vous ne pouvez pas réserver depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de réserver : demandez à un gestionnaire de vous inviter avec le rôle Éditeur.' : 'Votre adresse de connexion n\'a pas pu être lue. Rechargez la page ; si le problème continue, prévenez un gestionnaire.') : 'Le widget n\'a pas l\'accès complet au document : vous voyez les postes libres sans pouvoir réserver.', { role: 'status' }));
+        main.appendChild(alerte('warning', 'Vous ne pouvez pas réserver depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de réserver : demandez à un gestionnaire de vous inviter avec le rôle Éditeur.' : 'Votre adresse de connexion n\'a pas pu être lue. Rechargez la page ; si le problème continue, prévenez un gestionnaire.') : 'Le widget n\'a pas l\'accès complet au document : vous voyez les postes de travail libres sans pouvoir réserver.', { role: 'status' }));
     }
     else if (etat.moi.finMission !== null && etat.moi.finMission < now.jour) {
         main.appendChild(alerte('info', null, 'Votre fin de mission est passée (' + texteJour(etat.moi.finMission, { annee: true, sansJour: true }) + ') : vous ne pouvez plus réserver. Un gestionnaire peut la prolonger.'));
@@ -2800,21 +2956,21 @@ function vueUtilisateurs(racine) {
 function voletUtilisateur(now) {
     var v = creer('aside', { classe: 'wb-volet', attrs: { 'aria-label': 'Mes raccourcis' } });
     var peut = !!etat.moi && accesComplet();
-    v.appendChild(bouton('Réserver un poste', null, 'add-line', function () { ouvrirReservation({}); }, { id: 'uReserver', classe: 'wb-bouton-large', desactive: !peut }));
+    v.appendChild(bouton('Réserver un poste de travail', null, 'add-line', function () { ouvrirReservation({}); }, { id: 'uReserver', classe: 'wb-bouton-large', desactive: !peut }));
     var att = posteAttitreDe(etat.moi);
     if (att) {
-        v.appendChild(carte('Mon poste attitré', [
+        v.appendChild(carte('Mon poste de travail attitré', [
             creer('p', { classe: 'wb-texte-fort' }, [lieuNoeud(att, { fort: true })]), pastillesPoste(att),
             etat.moi.pretJours.length ? creer('p', { classe: 'w-mention', texte: 'Prêté chaque ' + etat.moi.pretJours.map(function (x) { return JOURS_LONGS[(JOURS_PRET.indexOf(x) + 1) % 7]; }).join(', ') + '.' }) : null,
-            bouton('Prêter mon poste', 'secondaire', null, function () { ouvrirPret(); }, { petit: true, id: 'uPreter', desactive: !peut })
+            bouton('Prêter mon poste de travail', 'secondaire', null, function () { ouvrirPret(); }, { petit: true, id: 'uPreter', desactive: !peut })
         ], { id: 'uAttitre' }));
     }
     var fav = etat.moi && etat.moi.favori ? posteParId(etat.moi.favori) : null;
-    v.appendChild(carte('Mon poste épinglé', fav ? [
+    v.appendChild(carte('Mon poste de travail épinglé', fav ? [
         creer('p', { classe: 'wb-texte-fort wb-favori' }, [creer('span', { classe: 'fr-icon-' + iconeDispo(['pushpin-fill', 'pushpin-2-fill', 'star-fill']) + ' fr-icon--sm wb-etoile', attrs: { 'aria-hidden': 'true' } }), creer('strong', { texte: lieuPoste(fav, { long: true }) })]),
         pastillesPoste(fav),
         creer('p', { classe: 'w-mention', texte: 'Il vous est attribué en premier quand il est libre.' })
-    ] : [creer('p', { classe: 'w-mention', texte: 'Aucun. Touchez la punaise d\'une de vos réservations pour épingler ce poste : il vous sera attribué en premier quand il est libre.' })], { id: 'uFavori' }));
+    ] : [creer('p', { classe: 'w-mention', texte: 'Aucun. Touchez la punaise d\'une de vos réservations pour épingler ce poste de travail : il vous sera attribué en premier quand il est libre.' })], { id: 'uFavori' }));
     if (cfg().montrerAutres) {
         var suivis = etat.moi ? etat.moi.suit.map(personneParId).filter(Boolean) : [];
         var ul = creer('ul', { classe: 'wb-suivis' }, suivis.map(function (p) {
@@ -2830,9 +2986,6 @@ function voletUtilisateur(now) {
         boutonIcone('Imprimer ma semaine', 'printer-line', function () { window.print(); }, { id: 'uImprimer', petit: false }),
         boutonIcone('Ajouter mes réservations à mon agenda', 'calendar-line', exporterIcs, { id: 'uAgenda', petit: false, desactive: !etat.moi })
     ]);
-    if (estGestionnaire() && !etat.apercuUtilisateurs) {
-        outils.appendChild(bouton('Gérer les postes', 'secondaire', 'settings-5-line', function () { etat.gestion = true; etat.admin = 'occupation'; dessiner(); }, { id: 'uGerer', petit: true }));
-    }
     v.appendChild(outils);
     return v;
 }
@@ -2845,7 +2998,7 @@ function prochainePresence(p, now) {
         return (r.jour === now.jour ? 'Aujourd\'hui' : texteJourCourt(r.jour)) + (r.creneau !== 'Journée' ? ' ' + texteCreneauMin(r.creneau) : '') + ' · ' + lieuPoste(pp, { sansNumero: true });
     }
     if (att) {
-        return 'Poste attitré · ' + lieuPoste(att, { sansNumero: true });
+        return 'Poste de travail attitré · ' + lieuPoste(att, { sansNumero: true });
     }
     return 'Pas de réservation à venir';
 }
@@ -2858,15 +3011,15 @@ function sectionAujourdhui(now) {
         return s;
     }
     if (!etat.moi) {
-        s.appendChild(creer('p', { classe: 'w-texte', texte: pluriel(nbPostesLibresCle(j, 'Journée', null), 'poste' + libelleCle() + ' libre') + ' aujourd\'hui.' }));
+        s.appendChild(creer('p', { classe: 'w-texte', texte: pluriel(nbPostesLibresCle(j, 'Journée', null), 'poste de travail' + libelleCle() + ' libre') + ' aujourd\'hui.' }));
         return s;
     }
     var att = posteAttitreDe(etat.moi);
     var mes = etat.resas.filter(function (r) { return r.personne === etat.moi.id && r.jour === j && estOccupation(r); }).sort(function (a, b) { return CRENEAUX.indexOf(a.creneau) - CRENEAUX.indexOf(b.creneau); });
     if (att && !attitrePrete(att, j) && !posteFerme(att, j)) {
         s.appendChild(creer('div', { classe: 'wb-aujourdhui__ligne' }, [
-            creer('div', { classe: 'wb-aujourdhui__poste' }, [creer('p', { classe: 'wb-texte-fort' }, ['Votre poste attitré · ', lieuNoeud(att, { fort: true })]), pastillesPoste(att)]),
-            creer('div', { classe: 'wb-aujourdhui__actions' }, [boutonLien('Je ne viens pas : prêter mon poste aujourd\'hui', function () { return preterJours([j]); }, { id: 'uPreterAuj' })])
+            creer('div', { classe: 'wb-aujourdhui__poste' }, [creer('p', { classe: 'wb-texte-fort' }, ['Votre poste de travail attitré · ', lieuNoeud(att, { fort: true })]), pastillesPoste(att)]),
+            creer('div', { classe: 'wb-aujourdhui__actions' }, [boutonLien('Je ne viens pas : prêter mon poste de travail aujourd\'hui', function () { return preterJours([j]); }, { id: 'uPreterAuj' })])
         ]));
     }
     mes.forEach(function (r, i) { s.appendChild(ligneAujourdhui(r, now, i)); });
@@ -2885,12 +3038,12 @@ function ligneAujourdhui(r, now, i) {
     var droite = creer('div', { classe: 'wb-aujourdhui__actions' });
     if (expiree) {
         var encoreLibre = p && etatPoste(p, r.jour, r.creneau, { now: now, sauf: r.id }).libre;
-        droite.appendChild(alerte('info', null, 'Présence non confirmée à ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + ' : votre poste a été proposé à d\'autres.'));
+        droite.appendChild(alerte('info', null, 'Présence non confirmée à ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + ' : votre poste de travail a été proposé à d\'autres.'));
         if (encoreLibre) {
-            droite.appendChild(bouton('Je suis là : reprendre ce poste', null, 'check-line', function () { return marquerSurPlace(r, true); }, { id: 'uReprendre' + i }));
+            droite.appendChild(bouton('Je suis là : reprendre ce poste de travail', null, 'check-line', function () { return marquerSurPlace(r, true); }, { id: 'uReprendre' + i }));
         }
         else {
-            droite.appendChild(bouton('Trouver un autre poste', 'secondaire', null, function () { ouvrirReservation({ jours: [r.jour] }); }, { id: 'uAutre' + i }));
+            droite.appendChild(bouton('Trouver un autre poste de travail', 'secondaire', null, function () { ouvrirReservation({ jours: [r.jour] }); }, { id: 'uAutre' + i }));
         }
     }
     else {
@@ -2898,10 +3051,10 @@ function ligneAujourdhui(r, now, i) {
             input.disabled = true;
             return marquerSurPlace(r, oui);
         }, { aide: r.statut === STATUTS.surPlace ? 'Présence confirmée' + (typeof r.surPlaceLe === 'number' ? ' à ' + new Date(r.surPlaceLe * 1000).toLocaleTimeString('fr-FR', { timeZone: fuseauDoc(), hour: '2-digit', minute: '2-digit' }) : '') + '.'
-                : (cfg().liberer && jourCreation(r) !== r.jour ? 'Sans confirmation avant ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + ', le poste est proposé à d\'autres.' : 'Confirmez votre présence en arrivant.'),
+                : (cfg().liberer && jourCreation(r) !== r.jour ? 'Sans confirmation avant ' + texteHeure(r.creneau === 'Après-midi' ? cfg().confirmeApm : cfg().confirmeMatin) + ', le poste de travail est proposé à d\'autres.' : 'Confirmez votre présence en arrivant.'),
             desactive: !accesComplet() }));
         droite.appendChild(creer('div', { classe: 'wb-liens' }, [
-            boutonLien('Je ne viens pas : libérer le poste', function () { return annulerResa(r, true); }, { id: 'uLiberer' + i }),
+            boutonLien('Je ne viens pas : libérer le poste de travail', function () { return annulerResa(r, true); }, { id: 'uLiberer' + i }),
             boutonLien('Signaler un problème', function () { ouvrirSignalement(p); }, { id: 'uSignaler' + i })
         ]));
     }
@@ -2925,23 +3078,23 @@ function postesLiberes(now) {
     var libres = classerPostes(postesLibres(etat.moi, j, creneau, { now: now }), posteReference(etat.moi, j, { ou: 'favori' }), true)
         .sort(function (a, b) { return (aPosteCle(b) ? 1 : 0) - (aPosteCle(a) ? 1 : 0); });
     var bloc = creer('div', { classe: 'wb-liberes', id: 'uLiberes' });
-    bloc.appendChild(creer('p', { classe: 'w-texte', texte: 'Pas de poste réservé aujourd\'hui.' }));
+    bloc.appendChild(creer('p', { classe: 'w-texte', texte: 'Pas de poste de travail réservé aujourd\'hui.' }));
     if (finCreneau(creneau) <= now.minutes || (etat.moi.finMission !== null && j > etat.moi.finMission)) {
         return bloc;
     }
     if (!libres.length) {
-        bloc.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun poste libre pour le moment.' }));
+        bloc.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun poste de travail libre pour le moment.' }));
         return bloc;
     }
     var nbCle = libres.filter(aPosteCle).length;
-    bloc.appendChild(creer('h3', { classe: 'wb-sous-titre', texte: (cle ? pluriel(nbCle, 'poste ' + cle + ' libre') : pluriel(libres.length, 'poste libre')) + ' ' + (creneau === 'Journée' ? 'aujourd\'hui' : 'cet après-midi') }));
+    bloc.appendChild(creer('h3', { classe: 'wb-sous-titre', texte: (cle ? pluriel(nbCle, 'poste ' + cle + ' libre') : pluriel(libres.length, 'poste de travail libre')) + ' ' + (creneau === 'Journée' ? 'aujourd\'hui' : 'cet après-midi') }));
     bloc.appendChild(creer('p', { classe: 'w-mention', texte: 'Réservés le jour même, ils ne comptent pas dans votre limite.' }));
     var ul = creer('ul', { classe: 'wb-liste-postes' });
     var montrer = etat.tousLiberes ? libres : libres.slice(0, 3);
     montrer.forEach(function (p, i) {
         ul.appendChild(creer('li', { classe: 'wb-poste-libre' }, [
             creer('div', {}, [lieuNoeud(p, { fort: true }), pastillesPoste(p)]),
-            bouton('Prendre ce poste ' + (creneau === 'Journée' ? 'aujourd\'hui' : 'cet après-midi'), 'secondaire', null, function () { return prendrePoste(p, j, creneau); }, { petit: true, id: 'uPrendre' + i, desactive: !accesComplet() })
+            bouton('Prendre ce poste de travail ' + (creneau === 'Journée' ? 'aujourd\'hui' : 'cet après-midi'), 'secondaire', null, function () { return prendrePoste(p, j, creneau); }, { petit: true, id: 'uPrendre' + i, desactive: !accesComplet() })
         ]));
     });
     bloc.appendChild(ul);
@@ -2983,7 +3136,7 @@ function carteJour(j, now) {
     li.appendChild(creer('h3', { classe: 'wb-jour__titre' }, [JOURS_LONGS[jourSemaine(j)].replace(/^./, function (c) { return c.toUpperCase(); }) + ' ', creer('span', { classe: 'wb-jour__date', texte: texteJour(j, { sansJour: true, court: true }) }), auj ? badge('Aujourd\'hui', 'info', { classe: 'wb-jour__auj' }) : null]));
     if (!etat.moi) {
         if (!passe) {
-            li.appendChild(creer('p', { classe: 'w-texte', texte: pluriel(nbPostesLibresCle(j, 'Journée', null), 'poste' + libelleCle() + ' libre') }));
+            li.appendChild(creer('p', { classe: 'w-texte', texte: pluriel(nbPostesLibresCle(j, 'Journée', null), 'poste de travail' + libelleCle() + ' libre') }));
         }
         return li;
     }
@@ -2992,10 +3145,10 @@ function carteJour(j, now) {
     if (att && !posteFerme(att, j)) {
         if (attitrePrete(att, j)) {
             var occ = resasDuPoste(att.id, j, 'Journée', now);
-            li.appendChild(creer('p', { classe: 'w-texte' }, [badge('Poste prêté', 'neutre'), occ.length ? ' à ' + nomPersonne(personneParId(occ[0].personne)) : '']));
+            li.appendChild(creer('p', { classe: 'w-texte' }, [badge('Poste de travail prêté', 'neutre'), occ.length ? ' à ' + nomPersonne(personneParId(occ[0].personne)) : '']));
         }
         else {
-            li.appendChild(creer('p', { classe: 'w-texte' }, [creer('strong', { texte: 'Mon poste attitré' })]));
+            li.appendChild(creer('p', { classe: 'w-texte' }, [creer('strong', { texte: 'Mon poste de travail attitré' })]));
             li.appendChild(creer('p', { classe: 'w-texte', texte: lieuPoste(att) }));
         }
     }
@@ -3024,10 +3177,10 @@ function carteJour(j, now) {
             var cle = cfg().equipementCle;
             if (!nb && cle) {
                 li.appendChild(badge('Complet', 'erreur'));
-                li.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun poste ' + cle + ' libre.' }));
+                li.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucun poste de travail ' + cle + ' libre.' }));
             }
             else {
-                li.appendChild(creer('p', { classe: 'w-texte wb-jour__libres', texte: pluriel(nb, 'poste' + (cle ? ' ' + cle : '') + ' libre') + (mes.length ? ' l\'' + texteCreneauMin(creneau) : '') }));
+                li.appendChild(creer('p', { classe: 'w-texte wb-jour__libres', texte: pluriel(nb, 'poste de travail' + (cle ? ' ' + cle : '') + ' libre') + (mes.length ? ' l\'' + texteCreneauMin(creneau) : '') }));
             }
             var limite = !sansLimite(etat.moi) && !estDerniereMinute(j, now) && joursDansLimite(etat.moi, lundiDe(j)) >= limiteDe(etat.moi) && !mes.length;
             if (limite) {
@@ -3075,8 +3228,8 @@ function sectionProchaines(now) {
         var p = posteParId(r.poste);
         var fav = p && etat.moi.favori === p.id;
         var etoile = creer('button', { classe: 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-only w-infobulle ' + 'fr-icon-' + (fav ? iconeDispo(['pushpin-fill', 'pushpin-2-fill', 'star-fill']) : iconeDispo(['pushpin-line', 'pushpin-2-line', 'star-line'])) + ' wb-etoile', id: 'uFav' + i,
-            attrs: { 'aria-pressed': fav ? 'true' : 'false', 'aria-label': fav ? 'Poste épinglé : ' + lieuPoste(p) : 'Épingler le poste ' + lieuPoste(p), 'data-infobulle': fav ? 'Désépingler' : 'Épingler ce poste', disabled: !accesComplet() || !p || null } });
-        etoile.addEventListener('click', function () { relayer(changerFavori(fav ? 0 : p.id, 'uFav' + i), 'Poste épinglé'); });
+            attrs: { 'aria-pressed': fav ? 'true' : 'false', 'aria-label': fav ? 'Poste de travail épinglé : ' + lieuPoste(p) : 'Épingler le poste de travail ' + lieuPoste(p), 'data-infobulle': fav ? 'Désépingler' : 'Épingler ce poste de travail', disabled: !accesComplet() || !p || null } });
+        etoile.addEventListener('click', function () { relayer(changerFavori(fav ? 0 : p.id, 'uFav' + i), 'Poste de travail épinglé'); });
         return ligneTableau([
             { noeuds: [creer('strong', { texte: texteJour(r.jour, { majuscule: true }) })] },
             texteCreneau(r.creneau),
@@ -3085,12 +3238,12 @@ function sectionProchaines(now) {
             { classe: 'wb-actions', noeuds: [etoile, boutonIcone('Annuler la réservation du ' + texteJour(r.jour), 'delete-line', function () { return annulerResa(r); }, { id: 'uAnnuler' + i, variante: 'tertiaire', desactive: !accesComplet() })] }
         ]);
     });
-    s.appendChild(tableau(['Jour', 'Créneau', 'Poste', 'Équipement', { texte: '', sr: 'Actions' }], lignes, { legende: 'Mes prochaines réservations', id: 'uTableProch' }));
+    s.appendChild(tableau(['Jour', 'Créneau', 'Poste de travail', 'Équipement', { texte: '', sr: 'Actions' }], lignes, { legende: 'Mes prochaines réservations', id: 'uTableProch' }));
     return s;
 }
 async function marquerSurPlace(r, oui) {
     if (!oui) {
-        var ok = await confirmerAction('Annuler la confirmation ?', cfg().liberer && partiesMaintenant().minutes > limiteConfirmation(r.creneau) ? 'L\'heure limite est passée : votre poste sera proposé à d\'autres.' : 'Vous devrez confirmer à nouveau votre présence.', 'Annuler la confirmation');
+        var ok = await confirmerAction('Annuler la confirmation ?', cfg().liberer && partiesMaintenant().minutes > limiteConfirmation(r.creneau) ? 'L\'heure limite est passée : votre poste de travail sera proposé à d\'autres.' : 'Vous devrez confirmer à nouveau votre présence.', 'Annuler la confirmation');
         if (!ok) {
             dessiner();
             return;
@@ -3099,7 +3252,7 @@ async function marquerSurPlace(r, oui) {
     if (oui && resaExpiree(r)) {
         var p = posteParId(r.poste);
         if (!p || !etatPoste(p, r.jour, r.creneau, { sauf: r.id }).libre) {
-            afficherErreur('Le poste vient d\'être pris par quelqu\'un d\'autre.');
+            afficherErreur('Le poste de travail vient d\'être pris par quelqu\'un d\'autre.');
             dessiner();
             return;
         }
@@ -3110,18 +3263,18 @@ async function marquerSurPlace(r, oui) {
 }
 async function annulerResa(r, aujourdHui) {
     var p = posteParId(r.poste);
-    var ok = await confirmerAction(aujourdHui ? 'Libérer le poste ?' : 'Annuler la réservation ?', texteJour(r.jour, { majuscule: true }) + ', ' + texteCreneauMin(r.creneau) + ' · ' + lieuPoste(p, { long: true }) + '. Le poste est proposé à d\'autres.', aujourdHui ? 'Libérer le poste' : 'Annuler la réservation', { danger: true });
+    var ok = await confirmerAction(aujourdHui ? 'Libérer le poste de travail ?' : 'Annuler la réservation ?', texteJour(r.jour, { majuscule: true }) + ', ' + texteCreneauMin(r.creneau) + ' · ' + lieuPoste(p, { long: true }) + '. Le poste de travail est proposé à d\'autres.', aujourdHui ? 'Libérer le poste de travail' : 'Annuler la réservation', { danger: true });
     if (!ok) {
         return;
     }
-    await executer([['UpdateRecord', etat.t.resas, r.id, { STATUT: aujourdHui ? STATUTS.liberee : STATUTS.annulee }]], 'Enregistrement…', aujourdHui ? 'Poste libéré : merci !' : 'Réservation annulée.');
+    await executer([['UpdateRecord', etat.t.resas, r.id, { STATUT: aujourdHui ? STATUTS.liberee : STATUTS.annulee }]], 'Enregistrement…', aujourdHui ? 'Poste de travail libéré : merci !' : 'Réservation annulée.');
     dessiner('uReserver');
 }
 async function changerFavori(idPoste, focus) {
     if (!etat.moi) {
         return;
     }
-    await executer([['UpdateRecord', etat.t.personnes, etat.moi.id, { EPINGLE: idPoste || 0 }]], 'Enregistrement…', idPoste ? 'Poste épinglé : il vous sera attribué en premier quand il est libre.' : 'Poste désépinglé.');
+    await executer([['UpdateRecord', etat.t.personnes, etat.moi.id, { EPINGLE: idPoste || 0 }]], 'Enregistrement…', idPoste ? 'Poste de travail épinglé : il vous sera attribué en premier quand il est libre.' : 'Poste de travail désépinglé.');
     rafraichirMoi();
     dessiner(focus);
 }
@@ -3134,7 +3287,7 @@ async function prendrePoste(p, j, creneau) {
     await lireDonnees();
     rafraichirMoi();
     if (!etatPoste(p, j, creneau).libre) {
-        afficherErreur('Ce poste vient d\'être pris. Choisissez-en un autre.');
+        afficherErreur('Ce poste de travail vient d\'être pris. Choisissez-en un autre.');
         dessiner();
         return;
     }
@@ -3334,19 +3487,19 @@ function etapeJours(focus) {
             r.checked = true;
         } });
     }
-    var optsOu = [{ valeur: 'favori', libelle: fav ? 'Mon poste épinglé s\'il est libre, sinon le plus proche' : 'Près de mon dernier poste', aide: fav ? lieuPoste(fav, { long: true }) : null }];
+    var optsOu = [{ valeur: 'favori', libelle: fav ? 'Mon poste de travail épinglé s\'il est libre, sinon le plus proche' : 'Près de mon dernier poste de travail', aide: fav ? lieuPoste(fav, { long: true }) : null }];
     if (selPres) {
         optsOu.push({ valeur: 'pres', libelle: 'Près de', apres: selPres });
     }
     optsOu.push({ valeur: 'indifferent', libelle: 'Peu importe' });
     corps.push(groupeRadios('Où ?', 'rOu', optsOu, dem.ou, function (v) { dem.ou = v; }, {}));
-    ouvrirPanneau({ titre: 'Réserver un poste', sousTitre: qui !== etat.moi ? 'Pour ' + nomPersonne(qui) : null, cle: 'reserver', large: true, focus: focus,
+    ouvrirPanneau({ titre: 'Réserver un poste de travail', sousTitre: qui !== etat.moi ? 'Pour ' + nomPersonne(qui) : null, cle: 'reserver', large: true, focus: focus,
         corps: corps,
         pied: [bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'rAnnuler' }),
-            bouton('Trouver ' + (dem.jours.length > 1 || dem.recurrence ? 'mes postes' : 'mon poste'), null, 'search-line', trouverPostes, { id: 'rTrouver', classe: 'w-pousse' })] });
+            bouton('Trouver ' + (dem.jours.length > 1 || dem.recurrence ? 'mes postes de travail' : 'mon poste de travail'), null, 'search-line', trouverPostes, { id: 'rTrouver', classe: 'w-pousse' })] });
 }
 function etapesNoeud(n) {
-    return creer('ol', { classe: 'wb-etapes', attrs: { 'aria-label': 'Étapes' } }, ['Les jours et le besoin', 'Les postes attribués'].map(function (t, i) {
+    return creer('ol', { classe: 'wb-etapes', attrs: { 'aria-label': 'Étapes' } }, ['Les jours et le besoin', 'Les postes de travail attribués'].map(function (t, i) {
         return creer('li', { classe: 'wb-etapes__item' + (i + 1 === n ? ' wb-etapes__item--en-cours' : '') + (i + 1 < n ? ' wb-etapes__item--faite' : ''), attrs: { 'aria-current': i + 1 === n ? 'step' : null } }, [
             creer('span', { classe: 'wb-etapes__num', texte: String(i + 1), attrs: { 'aria-hidden': 'true' } }), t]);
     }));
@@ -3357,7 +3510,7 @@ function caseJour(j, qui, now) {
     var deja = !raison && resaDuJour(qui.id, j, dem.creneau).length > 0;
     var nb = !raison && !deja ? postesLibres(qui, j, dem.creneau, { equipements: dem.equipements, type: dem.type }).length : 0;
     var choisi = dem.jours.indexOf(j) !== -1;
-    var etatTexte = raison || (deja ? 'Déjà réservé' : (nb ? pluriel(nb, 'poste libre') : 'Complet'));
+    var etatTexte = raison || (deja ? 'Déjà réservé' : (nb ? pluriel(nb, 'poste de travail libre') : 'Complet'));
     var possible = !raison && !deja;
     var b = creer('button', { classe: 'wb-cal__jour' + (choisi ? ' wb-cal__jour--choisi' : '') + (!possible ? ' wb-cal__jour--off' : '') + (!nb && possible ? ' wb-cal__jour--complet' : ''), id: 'rJ' + j,
         attrs: { 'aria-pressed': choisi ? 'true' : 'false', 'aria-disabled': possible ? null : 'true', 'aria-label': texteJour(j) + ', ' + etatTexte } }, [
@@ -3396,7 +3549,7 @@ function etapePostes(focus, message) {
     var l = etat.propositions;
     var corps = [etapesNoeud(2)];
     var resume = [dem.pour === etat.moi.id ? 'Pour moi' : 'Pour ' + nomPersonne(qui)].concat(dem.equipements, dem.type ? [dem.type] : [],
-        [dem.ou === 'pres' ? 'près de ' + nomPersonne(personneParId(dem.pres)) : (dem.ou === 'favori' ? (qui.favori ? 'près de mon poste épinglé' : 'près de mon dernier poste') : 'où il y a de la place')]);
+        [dem.ou === 'pres' ? 'près de ' + nomPersonne(personneParId(dem.pres)) : (dem.ou === 'favori' ? (qui.favori ? 'près de mon poste de travail épinglé' : 'près de mon dernier poste de travail') : 'où il y a de la place')]);
     corps.push(creer('p', { classe: 'w-mention', id: 'rTitreRes', attrs: { tabindex: '-1' }, texte: resume.join(' · ') }));
     if (message) {
         corps.push(alerte('warning', null, message, { role: 'alert' }));
@@ -3405,15 +3558,15 @@ function etapePostes(focus, message) {
     l.forEach(function (x, i) { ul.appendChild(ligneProposition(x, i, qui)); });
     corps.push(ul);
     var ok = l.filter(function (x) { return x.poste; }).length;
-    ouvrirPanneau({ titre: 'Réserver un poste', sousTitre: qui !== etat.moi ? 'Pour ' + nomPersonne(qui) : null, cle: 'reserver', large: true, focus: focus, corps: corps,
+    ouvrirPanneau({ titre: 'Réserver un poste de travail', sousTitre: qui !== etat.moi ? 'Pour ' + nomPersonne(qui) : null, cle: 'reserver', large: true, focus: focus, corps: corps,
         pied: [bouton('Retour', 'secondaire', 'arrow-left-line', function () { etapeJours('rTrouver'); }, { id: 'rRetour' }),
-            bouton(ok ? 'Confirmer ' + (ok > 1 ? 'mes ' + ok + ' réservations' : 'ma réservation') : 'Aucun poste à réserver', null, 'check-line', confirmerPropositions, { id: 'rConfirmer', classe: 'w-pousse', desactive: !ok })] });
+            bouton(ok ? 'Confirmer ' + (ok > 1 ? 'mes ' + ok + ' réservations' : 'ma réservation') : 'Aucun poste de travail à réserver', null, 'check-line', confirmerPropositions, { id: 'rConfirmer', classe: 'w-pousse', desactive: !ok })] });
 }
 function ligneProposition(x, i, qui) {
     var li = creer('li', { classe: 'wb-proposition' + (x.probleme && !x.poste ? ' wb-proposition--pb' : ''), id: 'rProp' + i });
     li.appendChild(creer('div', { classe: 'wb-proposition__tete' }, [
         creer('h3', { classe: 'wb-proposition__jour', texte: texteJour(x.jour, { majuscule: true }) + ' · ' + texteCreneau(x.creneau) }),
-        x.poste ? badge('Poste trouvé', 'succes') : badge(x.probleme, x.probleme === 'Limite atteinte' || x.probleme === 'Complet' ? 'avertissement' : 'neutre'),
+        x.poste ? badge('Poste de travail trouvé', 'succes') : badge(x.probleme, x.probleme === 'Limite atteinte' || x.probleme === 'Complet' ? 'avertissement' : 'neutre'),
         x.poste && x.derniereMinute ? badge('Dernière minute', 'info') : null
     ]));
     if (x.poste) {
@@ -3421,8 +3574,8 @@ function ligneProposition(x, i, qui) {
         li.appendChild(pastillesPoste(x.poste));
         var autres = postesLibres(qui, x.jour, x.creneau, {}).filter(function (p) { return p.id !== x.poste.id && !etat.propositions.some(function (y) { return y !== x && y.poste && y.poste.id === p.id && y.jour === x.jour; }); });
         if (autres.length) {
-            var sel = liste('rAutre' + i, classerPostes(autres, x.poste, true).map(function (p) { return { valeur: p.id, libelle: lieuPoste(p) + (p.equipements.length ? ' (' + p.equipements.join(', ') + ')' : '') }; }), '', { vide: 'Un autre poste…' });
-            sel.setAttribute('aria-label', 'Choisir un autre poste pour le ' + texteJour(x.jour));
+            var sel = liste('rAutre' + i, classerPostes(autres, x.poste, true).map(function (p) { return { valeur: p.id, libelle: lieuPoste(p) + (p.equipements.length ? ' (' + p.equipements.join(', ') + ')' : '') }; }), '', { vide: 'Un autre poste de travail…' });
+            sel.setAttribute('aria-label', 'Choisir un autre poste de travail pour le ' + texteJour(x.jour));
             sel.addEventListener('change', function () {
                 var p = posteParId(Number(sel.value));
                 if (!p) {
@@ -3431,7 +3584,7 @@ function ligneProposition(x, i, qui) {
                 if (!x.derniereMinute && compteDansLimite(p) && !compteDansLimite(x.poste) && !sansLimite(qui)) {
                     var prevues = etat.propositions.filter(function (y) { return y !== x && y.poste; }).map(function (y) { return { poste: y.poste.id, jour: y.jour }; });
                     if (joursDansLimite(qui, lundiDe(x.jour), prevues) >= limiteDe(qui)) {
-                        toast('Ce poste dépasserait la limite de ' + texteLimite(qui) + libelleCle() + ' par semaine.', { type: 'avertissement' });
+                        toast('Ce poste de travail dépasserait la limite de ' + texteLimite(qui) + libelleCle() + ' par semaine.', { type: 'avertissement' });
                         sel.value = '';
                         return;
                     }
@@ -3449,9 +3602,9 @@ function ligneProposition(x, i, qui) {
     }
     var texte = {
         'Limite atteinte': 'Vous avez droit à ' + texteLimite(qui) + libelleCle() + ' par semaine, et cette semaine les compte déjà.',
-        'Complet': 'Aucun poste ne répond à votre besoin ce jour-là.',
+        'Complet': 'Aucun poste de travail ne répond à votre besoin ce jour-là.',
         'Déjà réservé': 'Il y a déjà une réservation ce jour-là.',
-        'Votre poste attitré vous attend': 'Ce jour-là, votre poste attitré n\'est pas prêté.',
+        'Votre poste de travail attitré vous attend': 'Ce jour-là, votre poste de travail attitré n\'est pas prêté.',
         'Jour fermé': 'Les réservations ne sont pas ouvertes ce jour de la semaine.',
         'Passé': 'Ce créneau est passé.',
         'Pas encore ouvert': 'Il est trop tôt pour réserver ce jour.',
@@ -3473,7 +3626,7 @@ function ligneProposition(x, i, qui) {
         }));
     }
     if (x.probleme === 'Limite atteinte' && x.jour > aujourdhui() + 1) {
-        li.appendChild(creer('p', { classe: 'w-mention', texte: 'Ou revenez ' + texteJour(x.jour - 1) + ' à partir de ' + texteHeure(cfg().derniereMinute) + ' : les postes encore libres seront ouverts à tous, sans limite.' }));
+        li.appendChild(creer('p', { classe: 'w-mention', texte: 'Ou revenez ' + texteJour(x.jour - 1) + ' à partir de ' + texteHeure(cfg().derniereMinute) + ' : les postes de travail encore libres seront ouverts à tous, sans limite.' }));
     }
     return li;
 }
@@ -3491,7 +3644,7 @@ async function confirmerPropositions() {
     if (!l.length) {
         return;
     }
-    afficherLoader('Vérification des postes…');
+    afficherLoader('Vérification des postes de travail…');
     try {
         await lireDonnees();
     }
@@ -3513,7 +3666,7 @@ async function confirmerPropositions() {
             var k = pris.indexOf(x);
             return k === -1 ? x : refait.filter(function (y) { return y.jour === x.jour; })[0] || x;
         });
-        etapePostes('rTitreRes', pluriel(pris.length, 'poste vient', 'postes viennent') + ' d\'être pris pendant que vous choisissiez : ' + (pris.length > 1 ? 'd\'autres vous sont proposés' : 'un autre vous est proposé') + '. Vérifiez puis confirmez.');
+        etapePostes('rTitreRes', pluriel(pris.length, 'poste de travail vient', 'postes de travail viennent') + ' d\'être pris pendant que vous choisissiez : ' + (pris.length > 1 ? 'd\'autres vous sont proposés' : 'un autre vous est proposé') + '. Vérifiez puis confirmez.');
         return;
     }
     var donnees = { POSTE: [], PERSONNE: [], JOUR: [], CRENEAU: [], STATUT: [], DERNIERE_MINUTE: [] };
@@ -3544,14 +3697,14 @@ function ouvrirPret(focus) {
     }
     var lundi = etat.lundiPret;
     var corps = [];
-    corps.push(creer('div', { classe: 'wb-carte' }, [creer('p', { classe: 'wb-carte__titre', texte: 'Mon poste attitré' }), creer('p', { classe: 'wb-texte-fort' }, [lieuNoeud(att, { fort: true })]), pastillesPoste(att)]));
-    var habitudes = creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne', id: 'pHabitudes' }, [creer('legend', { classe: 'fr-fieldset__legend' }, ['Prêter sans y penser', creer('span', { classe: 'fr-hint-text', texte: 'Vos jours de télétravail habituels : le poste est proposé aux autres chaque semaine.' })])]);
+    corps.push(creer('div', { classe: 'wb-carte' }, [creer('p', { classe: 'wb-carte__titre', texte: 'Mon poste de travail attitré' }), creer('p', { classe: 'wb-texte-fort' }, [lieuNoeud(att, { fort: true })]), pastillesPoste(att)]));
+    var habitudes = creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne', id: 'pHabitudes' }, [creer('legend', { classe: 'fr-fieldset__legend' }, ['Prêter sans y penser', creer('span', { classe: 'fr-hint-text', texte: 'Vos jours de télétravail habituels : le poste de travail est proposé aux autres chaque semaine.' })])]);
     cfg().jours.slice().sort(function (a, b) { return ((a + 6) % 7) - ((b + 6) % 7); }).forEach(function (d) {
         var code = JOURS_PRET[(d + 6) % 7];
         habitudes.appendChild(caseACocher('pHab' + code, 'Chaque ' + JOURS_LONGS[d], etat.moi.pretJours.indexOf(code) !== -1, { change: function (e) {
             var l = e.target.checked ? etat.moi.pretJours.concat([code]) : etat.moi.pretJours.filter(function (x) { return x !== code; });
             relayer((async function () {
-                var ok = await executer([['UpdateRecord', etat.t.personnes, etat.moi.id, { PRET_JOURS: ['L'].concat(l) }]], 'Enregistrement…', e.target.checked ? 'Votre poste est prêté chaque ' + JOURS_LONGS[d] + '.' : 'Votre poste n\'est plus prêté le ' + JOURS_LONGS[d] + '.');
+                var ok = await executer([['UpdateRecord', etat.t.personnes, etat.moi.id, { PRET_JOURS: ['L'].concat(l) }]], 'Enregistrement…', e.target.checked ? 'Votre poste de travail est prêté chaque ' + JOURS_LONGS[d] + '.' : 'Votre poste de travail n\'est plus prêté le ' + JOURS_LONGS[d] + '.');
                 if (ok) {
                     rafraichirMoi();
                 }
@@ -3562,12 +3715,12 @@ function ouvrirPret(focus) {
     });
     corps.push(habitudes);
     var sem = creer('section', { classe: 'wb-pret-semaine', attrs: { 'aria-labelledby': 'pSemTitre' } }, [
-        creer('div', { classe: 'wb-semaine__tete' }, [creer('h3', { id: 'pSemTitre', texte: 'Mon poste, semaine du ' + texteJour(lundi, { sansJour: true }) }),
+        creer('div', { classe: 'wb-semaine__tete' }, [creer('h3', { id: 'pSemTitre', texte: 'Mon poste de travail, semaine du ' + texteJour(lundi, { sansJour: true }) }),
             creer('div', { classe: 'wb-semaine__nav' }, [
                 boutonIcone('Semaine précédente', 'arrow-left-s-line', function () { etat.lundiPret -= 7; ouvrirPret('pPrec'); }, { id: 'pPrec', desactive: lundi <= lundiDe(now.jour) }),
                 boutonIcone('Semaine suivante', 'arrow-right-s-line', function () { etat.lundiPret += 7; ouvrirPret('pSuiv'); }, { id: 'pSuiv', desactive: lundi >= lundiDe(now.jour) + 7 * (MAX_SEMAINES_RESA - 1) })
             ])]),
-        creer('p', { classe: 'w-mention', texte: 'Les jours où vous n\'êtes pas là, votre poste est proposé aux autres. Décochez « Je suis là » pour le prêter.' })
+        creer('p', { classe: 'w-mention', texte: 'Les jours où vous n\'êtes pas là, votre poste de travail est proposé aux autres. Décochez « Je suis là » pour le prêter.' })
     ]);
     var ul = creer('ul', { classe: 'wb-pret-jours' });
     joursOuvertsSemaine(lundi).forEach(function (j) {
@@ -3587,7 +3740,7 @@ function ouvrirPret(focus) {
                 input.disabled = true;
                 return oui ? reprendreJour(att, j, 'pLa' + j) : preterJours([j], 'pLa' + j);
             }, { desactive: passe || (prete && occ.length > 0) || !accesComplet() }),
-            prete ? badge('Poste prêté', 'info') : null
+            prete ? badge('Poste de travail prêté', 'info') : null
         ].concat(detail)));
     });
     sem.appendChild(ul);
@@ -3610,16 +3763,16 @@ function ouvrirPret(focus) {
                 }
             }
             if (!l.length) {
-                toast('Votre poste est déjà prêté sur cette période.');
+                toast('Votre poste de travail est déjà prêté sur cette période.');
                 return;
             }
             return preterJours(l, 'pPrecPret');
         }, { id: 'pPrecPret', petit: true })
     ]));
     if (etat.moi.pretJours.length) {
-        corps.push(creer('p', { classe: 'w-mention', texte: 'Votre poste est prêté chaque ' + etat.moi.pretJours.map(function (x) { return JOURS_LONGS[(JOURS_PRET.indexOf(x) + 1) % 7]; }).join(', ') + ' : ' + (etat.moi.pretJours.length > 1 ? 'des postes' : 'un poste') + ' de plus pour les autres.' }));
+        corps.push(creer('p', { classe: 'w-mention', texte: 'Votre poste de travail est prêté chaque ' + etat.moi.pretJours.map(function (x) { return JOURS_LONGS[(JOURS_PRET.indexOf(x) + 1) % 7]; }).join(', ') + ' : ' + (etat.moi.pretJours.length > 1 ? 'des postes de travail' : 'un poste de travail') + ' de plus pour les autres.' }));
     }
-    ouvrirPanneau({ titre: 'Prêter mon poste', cle: 'pret', large: true, focus: focus || 'pHabitudes', corps: corps,
+    ouvrirPanneau({ titre: 'Prêter mon poste de travail', cle: 'pret', large: true, focus: focus || 'pHabitudes', corps: corps,
         pied: [bouton('Fermer', 'secondaire', null, fermerPanneau, { id: 'pFermer' })] });
 }
 async function preterJours(jours, focus) {
@@ -3642,7 +3795,7 @@ async function preterJours(jours, focus) {
     if (!actions.length) {
         return;
     }
-    await executer(actions, 'Enregistrement…', jours.length > 1 ? 'Votre poste est prêté ' + pluriel(jours.length, 'jour') + '.' : 'Votre poste est prêté le ' + texteJour(jours[0]) + '. Merci !');
+    await executer(actions, 'Enregistrement…', jours.length > 1 ? 'Votre poste de travail est prêté ' + pluriel(jours.length, 'jour') + '.' : 'Votre poste de travail est prêté le ' + texteJour(jours[0]) + '. Merci !');
     etat.aRedessiner = true;
     if (etat.panneau === 'pret') {
         ouvrirPret(focus);
@@ -3654,7 +3807,7 @@ async function preterJours(jours, focus) {
 async function reprendreJour(att, j, focus) {
     var occ = resasDuPoste(att.id, j, 'Journée');
     if (occ.length) {
-        afficherErreur('Ce jour-là, votre poste est déjà réservé par ' + nomPersonne(personneParId(occ[0].personne)) + '.');
+        afficherErreur('Ce jour-là, votre poste de travail est déjà réservé par ' + nomPersonne(personneParId(occ[0].personne)) + '.');
         ouvrirPret(focus);
         return;
     }
@@ -3667,7 +3820,7 @@ async function reprendreJour(att, j, focus) {
         actions.push(['AddRecord', etat.t.resas, null, { POSTE: att.id, PERSONNE: etat.moi.id, JOUR: secDeJour(j), CRENEAU: 'Journée', STATUT: STATUTS.reprise }]);
     }
     if (actions.length) {
-        await executer(actions, 'Enregistrement…', 'Votre poste vous est gardé le ' + texteJour(j) + '.');
+        await executer(actions, 'Enregistrement…', 'Votre poste de travail vous est gardé le ' + texteJour(j) + '.');
     }
     etat.aRedessiner = true;
     ouvrirPret(focus);
@@ -3693,93 +3846,147 @@ function postesEtage(bat, et) {
     return etat.postes.filter(function (p) { return (p.batiment || 'Sans bâtiment') === bat && (p.etage || 'Sans étage') === et; }).sort(function (a, b) { return comparerTexte(a.numero, b.numero); });
 }
 function aTraiter() { return etat.signalements.filter(function (s) { return s.statut === 'À traiter'; }); }
-function vueAdmin(racine) {
-    var disp = creer('div', { classe: 'w-disposition wb-disposition' });
-    disp.appendChild(navAdmin());
-    var main = creer('div', { classe: 'w-principal wb-principal', id: 'aPrincipal' });
+var TITRES_ADMIN = { traiter: 'À traiter', occupation: 'Occupation', stats: 'Statistiques', personnes: 'Les personnes', postes: 'Les postes de travail', regles: 'Règles communes', publier: 'Publier', droits: 'Les droits' };
+function titreScene() {
     var a = etat.admin || 'occupation';
+    return a.indexOf('etage:') === 0 ? a.slice(6).split('\u0000').join(' · ') : TITRES_ADMIN[a] || TITRES_ADMIN.occupation;
+}
+function vueAdmin(racine) {
+    var a = etat.admin || 'occupation';
+    if (a.indexOf('etage:') !== 0 && !TITRES_ADMIN[a]) {
+        a = etat.admin = 'occupation';
+    }
+    var corps = creer('div', { classe: 'wb-scene-corps' });
     if (a === 'traiter') {
-        vueTraiter(main);
+        vueTraiter(corps);
     }
     else if (a === 'stats') {
-        vueStats(main);
+        vueStats(corps);
     }
     else if (a === 'personnes') {
-        vuePersonnes(main);
+        vuePersonnes(corps);
     }
     else if (a === 'regles') {
-        vueRegles(main);
+        vueRegles(corps);
     }
-    else if (a === 'pages') {
-        vuePages(main);
+    else if (a === 'publier') {
+        vuePublier(corps);
+    }
+    else if (a === 'droits') {
+        vueDroits(corps);
+    }
+    else if (a === 'postes') {
+        vuePostes(corps);
     }
     else if (a.indexOf('etage:') === 0) {
         var x = a.slice(6).split('\u0000');
-        vueEtage(main, x[0], x[1]);
+        vueEtage(corps, x[0], x[1]);
     }
     else {
-        vueOccupation(main);
+        vueOccupation(corps);
     }
-    disp.appendChild(main);
-    racine.appendChild(disp);
+    var scene = creer('div', { classe: 'w-acc__scene', id: 'aPrincipal' }, [creer('h2', { classe: 'w-titre-fluo', id: 'aTitre', texte: titreScene(), attrs: { tabindex: '-1' } })]);
+    mettreEnSections(corps, scene);
+    racine.appendChild(creer('div', { classe: 'w-acc' }, [menuAdmin(), scene]));
 }
-function navAdmin() {
-    var nav = creer('nav', { classe: 'wb-volet wb-nav', attrs: { 'aria-label': 'Gestion' } });
-    nav.appendChild(bouton('Voir la page des utilisateurs', 'secondaire', 'eye-line', function () {
-        if (etat.gestion) {
-            etat.gestion = false;
+function mettreEnSections(corps, scene) {
+    var courante = null;
+    Array.prototype.slice.call(corps.childNodes).forEach(function (n) {
+        var cl = n.classList || { contains: function () { return false; } };
+        if (cl.contains('w-section') || cl.contains('wb-barre-vue') || cl.contains('w-general') || cl.contains('wb-hors-section') || n.tagName === 'FORM') {
+            scene.appendChild(n);
+            courante = null;
+            return;
         }
-        else {
-            etat.apercuUtilisateurs = true;
+        if (n.tagName === 'H3' && cl.contains('wb-sous-titre')) {
+            n.className = 'w-c3__titre';
+            courante = creer('section', { classe: 'w-section' }, [n]);
+            scene.appendChild(courante);
+            return;
         }
-        dessiner('uReserver');
-    }, { id: 'aVoirUtilisateurs', petit: true, classe: 'wb-nav__voir' }));
-    var item = function (cle, texte, o) {
-        o = o || {};
-        var actif = etat.admin === cle;
-        var b = creer('button', { classe: 'wb-nav__item' + (actif ? ' wb-nav__item--actif' : '') + (o.niveau ? ' wb-nav__item--n' + o.niveau : ''), id: 'aNav_' + (o.id || cle), attrs: { 'aria-current': actif ? 'page' : null } }, [
-            o.icone ? creer('span', { classe: 'fr-icon-' + o.icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }) : null,
-            creer('span', { classe: 'wb-nav__texte', texte: texte }),
-            o.compte !== undefined ? creer('span', { classe: 'wb-nav__compte' + (o.alerte ? ' wb-nav__compte--alerte' : ''), texte: String(o.compte) }) : null
-        ]);
-        b.addEventListener('click', function () {
-            etat.admin = cle;
-            dessiner('aNav_' + (o.id || cle));
-            var t = document.getElementById('aTitre');
-            if (t) {
-                t.focus();
-            }
-        });
-        return creer('li', {}, [b]);
-    };
-    var nb = aTraiter().length;
-    nav.appendChild(creer('ul', { classe: 'wb-nav__liste' }, [
-        item('traiter', 'À traiter', { icone: 'notification-3-line', compte: nb, alerte: nb > 0 }),
-        item('occupation', 'Occupation', { icone: 'dashboard-3-line' }),
-        item('stats', 'Statistiques', { icone: 'bar-chart-box-line' }),
-        item('personnes', 'Les personnes', { icone: 'team-line', compte: etat.personnes.length })
-    ]));
-    nav.appendChild(creer('p', { classe: 'wb-nav__groupe', id: 'aNavPostes', texte: 'Les postes' }));
-    var ul = creer('ul', { classe: 'wb-nav__liste', attrs: { 'aria-labelledby': 'aNavPostes' } });
-    var bats = batiments();
-    bats.forEach(function (b, ib) {
-        ul.appendChild(creer('li', { classe: 'wb-nav__bat' }, [creer('span', { classe: 'wb-nav__bat-nom' }, [creer('span', { texte: b.nom }), creer('span', { classe: 'wb-nav__compte', texte: pluriel(b.n, 'poste') })])]));
-        b.etages.forEach(function (e, ie) { ul.appendChild(item(cleEtage(b.nom, e.nom), e.nom, { niveau: 1, compte: e.n, id: 'et' + ib + '_' + ie })); });
+        if (!courante) {
+            courante = creer('section', { classe: 'w-section' });
+            scene.appendChild(courante);
+        }
+        courante.appendChild(n);
     });
-    if (!bats.length) {
-        ul.appendChild(creer('li', { classe: 'w-mention', texte: 'Aucun poste pour le moment.' }));
+}
+function allerA(cle) {
+    etat.admin = cle;
+    dessiner();
+    var t = document.getElementById('aTitre');
+    if (t) {
+        t.focus();
     }
-    nav.appendChild(ul);
-    nav.appendChild(bouton('Ajouter des postes', null, 'add-line', function () { ouvrirAjoutPostes(); }, { id: 'aAjouterPostes', petit: true, desactive: !accesComplet() }));
-    nav.appendChild(creer('ul', { classe: 'wb-nav__liste wb-nav__bas' }, [
-        item('regles', 'Règles communes', { icone: 'settings-5-line' }),
-        item('pages', 'Pages et droits', { icone: 'lock-line' })
-    ]));
-    return nav;
+}
+function menuAdmin() {
+    var menu = creer('nav', { classe: 'w-acc__menu', attrs: { 'aria-label': 'Paramétrage' } }, [creer('p', { classe: 'w-titre-fluo', texte: 'Paramétrage' })]);
+    var item = function (id, texte, icone, cle, extra, pastille, classe) {
+        var actif = etat.admin === cle;
+        var bt = creer('button', { classe: 'w-acc__item' + (classe ? ' ' + classe : ''), id: id, attrs: { 'aria-current': actif ? 'page' : null } }, [
+            pastille || (icone ? creer('span', { classe: 'w-acc__ico fr-icon-' + icone, attrs: { 'aria-hidden': 'true' } }) : null), creer('span', { classe: 's-acc-nom', texte: texte }), extra || null]);
+        bt.addEventListener('click', function () { allerA(cle); });
+        menu.appendChild(bt);
+        return bt;
+    };
+    item('aNav_postes', 'Les postes de travail', 'building-line', 'postes', null, null, 's-acc-salles');
+    batiments().forEach(function (b, ib) {
+        b.etages.forEach(function (e, ie) {
+            var bt = item('aNav_et' + ib + '_' + ie, b.nom + ' · ' + e.nom, null, cleEtage(b.nom, e.nom), creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon s-acc-statut', texte: String(e.n) }), null, 's-acc-salle');
+            bt.setAttribute('data-nom', b.nom + ' · ' + e.nom + ' : ' + pluriel(e.n, 'poste de travail'));
+        });
+    });
+    menu.appendChild(creer('div', { classe: 's-acc-ajout' }, [bouton('Ajouter des postes de travail', 'secondaire', 'add-line', function () { ouvrirAjoutPostes(); }, { petit: true, id: 'aAjouterPostes', desactive: !accesComplet() })]));
+    var nb = aTraiter().length;
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Au quotidien' }));
+    item('aNav_traiter', 'À traiter', 'checkbox-circle-line', 'traiter', nb ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new s-acc-nb', texte: String(nb) }) : null);
+    item('aNav_occupation', 'Occupation', 'calendar-2-line', 'occupation');
+    item('aNav_stats', 'Statistiques', 'bar-chart-box-line', 'stats');
+    item('aNav_personnes', 'Les personnes', 'team-line', 'personnes');
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Pour tous les postes de travail' }));
+    [['regles', 'Règles communes'], ['publier', 'Publier']].forEach(function (d, k, t) {
+        var bt = item('aNav_' + d[0], d[1], null, d[0], null, creer('span', { classe: 's-acc-num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }), 's-acc-etape' + (k === t.length - 1 ? ' s-acc-etape--derniere' : ''));
+        bt.setAttribute('aria-label', 'Étape ' + (k + 1) + ' : ' + d[1]);
+    });
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Réglages' }));
+    item('aNav_droits', 'Les droits', 'lock-line', 'droits');
+    return menu;
+}
+function vuePostes(main) {
+    var bats = batiments();
+    if (!bats.length) {
+        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun poste de travail pour le moment. Ajoutez une série de postes de travail numérotés, étage par étage : par exemple 20 postes de travail de 3.01 à 3.20, avec ' + (cfg().equipementCle || 'leur équipement') + '.' }));
+        main.appendChild(creer('div', {}, [bouton('Ajouter des postes de travail', null, 'add-line', function () { ouvrirAjoutPostes(); }, { id: 'aAjouterPostesVue', petit: true, desactive: !accesComplet() })]));
+        return;
+    }
+    var cle = cfg().equipementCle;
+    var ul = creer('ul', { classe: 'w-acc__liste wb-hors-section', id: 'aListeEtages' });
+    var k = 0;
+    bats.forEach(function (b) {
+        b.etages.forEach(function (e) {
+            var l = postesEtage(b.nom, e.nom);
+            var fermes = l.filter(function (p) { return posteFerme(p, aujourdhui()); }).length;
+            var details = [pluriel(l.length, 'poste de travail')];
+            if (cle) {
+                details.push(l.filter(aPosteCle).length + ' avec ' + cle);
+            }
+            var att = l.filter(function (p) { return p.attitre; }).length;
+            if (att) {
+                details.push(pluriel(att, 'attitré'));
+            }
+            ul.appendChild(creer('li', { classe: 'w-acc__ligne' }, [
+                creer('div', { classe: 'wb-ligne-texte' }, [creer('strong', { texte: b.nom + ' · ' + e.nom }), creer('span', { classe: 'w-mention', texte: details.join(' · ') })]),
+                fermes ? badge(pluriel(fermes, 'fermé'), 'erreur') : null,
+                bouton('Modifier', 'secondaire', null, function () { allerA(cleEtage(b.nom, e.nom)); }, { petit: true, id: 'aVoirEt' + (k++), aria: 'Modifier ' + b.nom + ' · ' + e.nom })
+            ]));
+        });
+    });
+    main.appendChild(ul);
 }
 function titreVue(texte, o) {
     o = o || {};
-    return creer('div', { classe: 'wb-titre-vue' }, [creer('h2', { id: 'aTitre', texte: texte, attrs: { tabindex: '-1' } }), o.droite ? creer('div', { classe: 'wb-titre-vue__actions' }, o.droite) : null]);
+    var gauche = texte && texte !== titreScene() ? creer('p', { classe: 'wb-barre-vue__texte', texte: texte }) : null;
+    return creer('div', { classe: 'wb-barre-vue' }, [gauche, o.droite ? creer('div', { classe: 'wb-barre-vue__actions' }, o.droite) : null]);
 }
 function vueTraiter(main) {
     var l = aTraiter();
@@ -3808,9 +4015,9 @@ function listeSignalements(l, prefixe) {
         var ferme = p && posteFerme(p, aujourdhui());
         return creer('li', { classe: 'wb-signalement' }, [
             creer('div', {}, [creer('p', { classe: 'wb-texte-fort' }, [creer('span', { classe: 'fr-icon-alert-line fr-icon--sm wb-alerte-ico', attrs: { 'aria-hidden': 'true' } }), ' ', creer('strong', { texte: lieuPoste(p, { long: true }) }), ' · ' + s.probleme]),
-                creer('p', { classe: 'w-mention', texte: 'Signalé le ' + texteHorodatage(s.creeLe) + ' par ' + auteur(s.creePar) + (ferme ? ' · poste fermé' : '') })]),
+                creer('p', { classe: 'w-mention', texte: 'Signalé le ' + texteHorodatage(s.creeLe) + ' par ' + auteur(s.creePar) + (ferme ? ' · poste de travail fermé' : '') })]),
             creer('div', { classe: 'wb-signalement__actions' }, [
-                p && !ferme ? bouton('Fermer le poste', 'secondaire', null, function () { return fermerPosteSignale(p, s); }, { petit: true, id: prefixe + 'Fermer' + i }) : null,
+                p && !ferme ? bouton('Fermer le poste de travail', 'secondaire', null, function () { return fermerPosteSignale(p, s); }, { petit: true, id: prefixe + 'Fermer' + i }) : null,
                 bouton('Réglé', null, 'check-line', function () { return reglerSignalement(s, p); }, { petit: true, id: prefixe + 'Regle' + i })
             ])
         ]);
@@ -3818,14 +4025,14 @@ function listeSignalements(l, prefixe) {
 }
 async function fermerPosteSignale(p, s) {
     var futures = resasFutures([p.id], aujourdhui(), null);
-    var ok = await confirmerAction('Fermer le poste ' + p.numero + ' ?', 'Il n\'est plus proposé jusqu\'à ce que le problème soit réglé.' + (futures.length ? ' ' + pluriel(futures.length, 'réservation') + ' à venir : leurs titulaires reçoivent un autre poste du même étage quand il y en a un.' : ''), 'Fermer le poste');
+    var ok = await confirmerAction('Fermer le poste de travail ' + p.numero + ' ?', 'Il n\'est plus proposé jusqu\'à ce que le problème soit réglé.' + (futures.length ? ' ' + pluriel(futures.length, 'réservation') + ' à venir : leurs titulaires reçoivent un autre poste de travail du même étage quand il y en a un.' : ''), 'Fermer le poste de travail');
     if (!ok) {
         return;
     }
-    var r = await executer([['UpdateRecord', etat.t.postes, p.id, { FERME_DU: secDeJour(aujourdhui()), FERME_AU: null, RAISON: texteBorne(s.probleme, 200) }]], 'Fermeture du poste…');
+    var r = await executer([['UpdateRecord', etat.t.postes, p.id, { FERME_DU: secDeJour(aujourdhui()), FERME_AU: null, RAISON: texteBorne(s.probleme, 200) }]], 'Fermeture du poste de travail…');
     if (r) {
         var bilan = await reattribuer(futures);
-        afficherSucces('Poste fermé.' + texteBilan(bilan));
+        afficherSucces('Poste de travail fermé.' + texteBilan(bilan));
     }
     dessiner('aNav_traiter');
 }
@@ -3835,7 +4042,7 @@ async function reglerSignalement(s, p) {
     if (rouvrir) {
         actions.push(['UpdateRecord', etat.t.postes, p.id, { FERME_DU: null, FERME_AU: null, RAISON: '' }]);
     }
-    await executer(actions, 'Enregistrement…', rouvrir ? 'Problème réglé : le poste ' + p.numero + ' est rouvert.' : 'Problème réglé.');
+    await executer(actions, 'Enregistrement…', rouvrir ? 'Problème réglé : le poste de travail ' + p.numero + ' est rouvert.' : 'Problème réglé.');
     dessiner('aNav_traiter');
 }
 function resasFutures(idsPostes, du, au) {
@@ -3867,16 +4074,16 @@ async function reattribuer(resas) {
             bilan.annulees++;
         }
     });
-    await executer(actions, 'Nouveaux postes pour les réservations…');
+    await executer(actions, 'Nouveaux postes de travail pour les réservations…');
     return bilan;
 }
 function texteBilan(b) {
     var t = [];
     if (b.deplacees) {
-        t.push(pluriel(b.deplacees, 'réservation déplacée', 'réservations déplacées') + ' sur un autre poste');
+        t.push(pluriel(b.deplacees, 'réservation déplacée', 'réservations déplacées') + ' sur un autre poste de travail');
     }
     if (b.annulees) {
-        t.push(pluriel(b.annulees, 'réservation annulée', 'réservations annulées') + ' faute de poste libre');
+        t.push(pluriel(b.annulees, 'réservation annulée', 'réservations annulées') + ' faute de poste de travail libre');
     }
     return t.length ? ' ' + t.join(', ') + '.' : '';
 }
@@ -3887,7 +4094,7 @@ function vueOccupation(main) {
     }
     var j = etat.jourOccupation;
     var cle = cfg().equipementCle;
-    main.appendChild(titreVue('Occupation · ' + texteJour(j), { droite: [
+    main.appendChild(titreVue(texteJour(j, { majuscule: true }), { droite: [
         boutonIcone('Jour précédent', 'arrow-left-s-line', function () { etat.jourOccupation--; dessiner('aJourPrec'); }, { id: 'aJourPrec', petit: false }),
         j !== now.jour ? bouton('Aujourd\'hui', 'tertiaire', null, function () { etat.jourOccupation = now.jour; dessiner('aJourAuj'); }, { id: 'aJourAuj', petit: true }) : null,
         boutonIcone('Jour suivant', 'arrow-right-s-line', function () { etat.jourOccupation++; dessiner('aJourSuiv'); }, { id: 'aJourSuiv', petit: false }),
@@ -3900,12 +4107,12 @@ function vueOccupation(main) {
     if (!jourOuvert(j)) {
         main.appendChild(creer('p', { classe: 'w-mention', texte: 'Ce jour de la semaine n\'est pas ouvert à la réservation.' }));
     }
-    main.appendChild(creer('p', { classe: 'w-mention', texte: cle ? 'Postes ' + cle + ' ouverts ce jour-là.' : 'Postes ouverts ce jour-là.' }));
+    main.appendChild(creer('p', { classe: 'w-mention', texte: cle ? 'Postes de travail ' + cle + ' ouverts ce jour-là.' : 'Postes de travail ouverts ce jour-là.' }));
     main.appendChild(creer('div', { classe: 'wb-tuiles' }, [
-        tuile('Postes réservés', t.reserves + ' / ' + t.postes),
+        tuile('Postes de travail réservés', t.reserves + ' / ' + t.postes),
         tuile('Présences confirmées', String(t.surPlace)),
         tuile(j === now.jour && cfg().liberer ? 'À confirmer avant ' + texteHeure(cfg().confirmeMatin) : 'À confirmer', String(t.aConfirmer)),
-        tuile('Postes attitrés prêtés', String(t.pretes))
+        tuile('Postes de travail attitrés prêtés', String(t.pretes))
     ]));
     if (o.groupes.length) {
         main.appendChild(tableau(['Étage', 'Réservés', 'Sur place', 'À confirmer', 'Prêtés', 'Libres'], o.groupes.map(function (g) {
@@ -3917,17 +4124,20 @@ function vueOccupation(main) {
         }), { legende: 'Occupation par étage', id: 'aTableOcc' }));
     }
     else {
-        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun poste ouvert ce jour-là. Ajoutez des postes depuis le volet.' }));
+        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun poste de travail ouvert ce jour-là. Ajoutez des postes de travail depuis le volet.' }));
     }
     var resas = etat.resas.filter(function (r) { return r.jour === j && estOccupation(r); }).map(function (r) { return { r: r, p: posteParId(r.poste), qui: personneParId(r.personne) }; })
         .sort(function (a, b) { return comparerTexte(lieuPoste(a.p), lieuPoste(b.p)) || CRENEAUX.indexOf(a.r.creneau) - CRENEAUX.indexOf(b.r.creneau); });
     main.appendChild(creer('h3', { classe: 'wb-sous-titre', texte: 'Les réservations du jour (' + resas.length + ')' }));
     if (resas.length) {
-        main.appendChild(tableau(['Poste', 'Personne', 'Société', 'Créneau', 'État', { texte: '', sr: 'Actions' }], resas.map(function (x, i) {
+        main.appendChild(tableau(['Poste de travail', 'Personne', 'Société', 'Créneau', 'État', { texte: '', sr: 'Actions' }], resas.map(function (x, i) {
             var st = texteStatutResa(x.r, now);
             return ligneTableau([lieuPoste(x.p), nomPersonne(x.qui), x.qui ? x.qui.societe || '' : '', texteCreneau(x.r.creneau), badge(st.texte, st.type),
                 { classe: 'wb-actions', noeuds: [x.r.jour >= now.jour ? boutonIcone('Annuler la réservation de ' + nomPersonne(x.qui), 'delete-line', function () { return annulerResaGestion(x.r); }, { id: 'aAnnulerResa' + i, variante: 'tertiaire', desactive: !accesComplet() }) : null] }]);
         }), { legende: 'Réservations du ' + texteJour(j), id: 'aTableResas' }));
+    }
+    else {
+        main.appendChild(creer('p', { classe: 'w-mention', texte: 'Aucune réservation ce jour-là.' }));
     }
     var l = aTraiter();
     if (l.length) {
@@ -3949,13 +4159,13 @@ function vueStats(main) {
     sel.setAttribute('aria-label', 'Période');
     sel.addEventListener('change', function () { etat.semainesStats = Number(sel.value) || 4; dessiner('aPeriode'); });
     var cle = cfg().equipementCle;
-    main.appendChild(titreVue('Statistiques' + (cle ? ' · postes ' + cle : ''), { droite: [sel] }));
+    main.appendChild(titreVue(cle ? 'Postes de travail avec ' + cle : '', { droite: [sel] }));
     var s = statistiques(nbSem);
     main.appendChild(creer('div', { classe: 'wb-tuiles' }, [
         tuile('Occupation moyenne', s.occupation + ' %'),
         tuile('Jours complets', s.complets + ' sur ' + s.ouverts),
         tuile('Présences non confirmées', s.nonConfirmees + ' %'),
-        tuile('Jours de postes attitrés prêtés', String(s.pretes))
+        tuile('Jours de postes de travail attitrés prêtés', String(s.pretes))
     ]));
     var g = creer('div', { classe: 'wb-deux' });
     g.appendChild(carte('Occupation par jour de la semaine', [creer('ul', { classe: 'wb-barres' }, s.parJour.map(function (x) {
@@ -3968,7 +4178,7 @@ function vueStats(main) {
     main.appendChild(g);
     main.appendChild(creer('h3', { classe: 'wb-sous-titre', texte: 'Présences non confirmées le plus souvent' }));
     if (s.absents.length) {
-        main.appendChild(tableau(['Personne', 'Société', 'Poste libéré sans confirmation'], s.absents.map(function (x) {
+        main.appendChild(tableau(['Personne', 'Société', 'Poste de travail libéré sans confirmation'], s.absents.map(function (x) {
             return ligneTableau([nomPersonne(x.personne), x.personne.societe || '', pluriel(x.n, 'fois', 'fois')]);
         }), { legende: 'Présences non confirmées', id: 'aTableAbs' }));
     }
@@ -4005,7 +4215,7 @@ function remplirPersonnes(corps) {
         return;
     }
     var cle = libelleCle();
-    corps.appendChild(tableau(['Nom', 'Prénom', 'Profil', 'Société', 'Équipe', 'Poste attitré', 'Jours' + cle + ' par semaine', 'Fin de mission'], l.map(function (p) {
+    corps.appendChild(tableau(['Nom', 'Prénom', 'Profil', 'Société', 'Équipe', 'Poste de travail attitré', 'Jours' + cle + ' par semaine', 'Fin de mission'], l.map(function (p) {
         var b = creer('button', { classe: 'wb-lien wb-lien--fort', id: 'aPers' + p.id, texte: p.nom || p.email || 'Sans nom', attrs: { 'aria-label': 'Modifier ' + nomPersonne(p) } });
         b.addEventListener('click', function () { ouvrirPersonne(p); });
         var att = posteAttitreDe(p);
@@ -4050,8 +4260,8 @@ function ouvrirPersonne(p) {
     var corps = [
         creer('div', { classe: 'wb-deux-champs' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]),
         champ('Adresse de connexion', f.email, { aide: 'Celle avec laquelle la personne se connecte au document.' }),
-        groupeRadios('Profil', 'fProfil', PROFILS.map(function (x) { return { valeur: x, libelle: x, aide: x === 'Gestionnaire' ? 'Gère les postes, les personnes et les signalements.' : null }; }), profil, function (v) { profil = v; }, { enLigne: true }),
-        creer('div', { classe: 'wb-deux-champs' }, [champ('Société', f.societe), champ('Équipe', f.equipe, { aide: 'Ouvre les postes réservés à cette équipe.' })]),
+        groupeRadios('Profil', 'fProfil', PROFILS.map(function (x) { return { valeur: x, libelle: x, aide: x === 'Gestionnaire' ? 'Gère les postes de travail, les personnes et les signalements.' : null }; }), profil, function (v) { profil = v; }, { enLigne: true }),
+        creer('div', { classe: 'wb-deux-champs' }, [champ('Société', f.societe), champ('Équipe', f.equipe, { aide: 'Ouvre les postes de travail réservés à cette équipe.' })]),
         listeSuggestions('fSocietes', valeursConnues('societes', 'societe', etat.personnes)),
         listeSuggestions('fEquipes', valeursConnues('equipes', 'equipe', etat.personnes.concat(etat.postes))),
         champ('Jours' + libelleCle() + ' par semaine', f.limite),
@@ -4092,7 +4302,7 @@ async function retirerPersonne(p) {
     var now = partiesMaintenant();
     var futures = etat.resas.filter(function (r) { return r.personne === p.id && r.jour >= now.jour && estOccupation(r); });
     var att = etat.postes.filter(function (x) { return x.attitre === p.id; });
-    var ok = await confirmerAction('Retirer ' + nomPersonne(p) + ' ?', 'La personne disparaît de la liste' + (futures.length ? ', ses ' + pluriel(futures.length, 'réservation') + ' à venir sont annulées' : '') + (att.length ? ', son poste attitré devient libre' : '') + '. Si elle revient sur le document, elle sera ajoutée de nouveau.', 'Retirer', { danger: true });
+    var ok = await confirmerAction('Retirer ' + nomPersonne(p) + ' ?', 'La personne disparaît de la liste' + (futures.length ? ', ses ' + pluriel(futures.length, 'réservation') + ' à venir sont annulées' : '') + (att.length ? ', son poste de travail attitré devient libre' : '') + '. Si elle revient sur le document, elle sera ajoutée de nouveau.', 'Retirer', { danger: true });
     if (!ok) {
         return;
     }
@@ -4155,22 +4365,22 @@ function vueEtage(main, bat, et) {
     var now = partiesMaintenant();
     main.appendChild(titreVue(bat + ' · ' + et, { droite: [
         bouton('Fermer l\'étage pour une période', 'secondaire', 'lock-line', function () { ouvrirFermetureEtage(bat, et); }, { id: 'aFermerEtage', petit: true, desactive: !l.length || !accesComplet() }),
-        bouton('Ajouter des postes', null, 'add-line', function () { ouvrirAjoutPostes(bat, et); }, { id: 'aAjouterIci', petit: true, desactive: !accesComplet() })
+        bouton('Ajouter des postes de travail', null, 'add-line', function () { ouvrirAjoutPostes(bat, et); }, { id: 'aAjouterIci', petit: true, desactive: !accesComplet() })
     ] }));
     if (!l.length) {
-        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun poste à cet étage.' }));
+        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun poste de travail à cet étage.' }));
         return;
     }
     var nbCle = l.filter(aPosteCle).length;
-    main.appendChild(tableau(['Poste', 'Type', 'Équipement', 'Réservé à', 'Ordre de remplissage', 'Attitré à', 'État'], l.map(function (p) {
-        var b = creer('button', { classe: 'wb-lien wb-lien--fort', id: 'aPoste' + p.id, texte: p.numero, attrs: { 'aria-label': 'Modifier le poste ' + p.numero } });
+    main.appendChild(tableau(['Poste de travail', 'Type', 'Équipement', 'Réservé à', 'Ordre de remplissage', 'Attitré à', 'État'], l.map(function (p) {
+        var b = creer('button', { classe: 'wb-lien wb-lien--fort', id: 'aPoste' + p.id, texte: p.numero, attrs: { 'aria-label': 'Modifier le poste de travail ' + p.numero } });
         b.addEventListener('click', function () { ouvrirPoste(p); });
         var ferme = posteFerme(p, now.jour);
         var futurFerme = !ferme && p.fermeDu !== null && p.fermeDu > now.jour;
         return ligneTableau([b, p.type, pastillesPoste(p, { sansType: true, vide: 'Aucun' }), p.equipe || 'Tous', String(p.ordre), p.attitre ? nomPersonne(personneParId(p.attitre)) : 'Personne',
             !p.actif ? badge('Retiré', 'neutre') : (ferme ? badge('Fermé' + (p.fermeAu !== null ? ' au ' + texteJour(p.fermeAu, { sansJour: true, court: true }) : ''), 'erreur') : (futurFerme ? badge('Fermé à partir du ' + texteJour(p.fermeDu, { sansJour: true, court: true }), 'avertissement') : badge('Ouvert', 'succes')))]);
-    }), { legende: 'Postes de ' + bat + ' · ' + et, id: 'aTablePostes' }));
-    main.appendChild(creer('p', { classe: 'w-mention', texte: pluriel(l.length, 'poste') + (cfg().equipementCle ? ', dont ' + nbCle + ' avec ' + cfg().equipementCle : '') + '. Les postes de l\'ordre 1 sont attribués en premier, puis ceux de l\'ordre 2, et ainsi de suite.' }));
+    }), { legende: 'Postes de travail de ' + bat + ' · ' + et, id: 'aTablePostes' }));
+    main.appendChild(creer('p', { classe: 'w-mention', texte: pluriel(l.length, 'poste de travail') + (cfg().equipementCle ? ', dont ' + nbCle + ' avec ' + cfg().equipementCle : '') + '. Les postes de travail de l\'ordre 1 sont attribués en premier, puis ceux de l\'ordre 2, et ainsi de suite.' }));
 }
 function equipementsCoches(prefixe, choisis) {
     var fs = creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne', id: prefixe + 'Eqs' }, [creer('legend', { classe: 'fr-fieldset__legend', texte: 'Équipement' })]);
@@ -4215,16 +4425,16 @@ function ouvrirPoste(p) {
         groupeRadios('Type', 'pType', TYPES_POSTE.map(function (x) { return { valeur: x, libelle: x }; }), type, function (v) { type = v; }, { enLigne: true }),
         equipementsCoches('p', p.equipements),
         champ('Réservé à une équipe', f.equipe),
-        champ('Ordre de remplissage', f.ordre, { aide: 'Les postes de l\'ordre 1 sont attribués en premier.' }),
-        champ('Attitré à', f.attitre, { aide: 'Le poste est proposé aux autres les jours où son titulaire le prête.' }),
+        champ('Ordre de remplissage', f.ordre, { aide: 'Les postes de travail de l\'ordre 1 sont attribués en premier.' }),
+        champ('Attitré à', f.attitre, { aide: 'Le poste de travail est proposé aux autres les jours où son titulaire le prête.' }),
         creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne', id: 'pFermeture' }, [creer('legend', { classe: 'fr-fieldset__legend', texte: 'Fermeture' }), champ('Fermé du', f.du), champ('au', f.au, { aide: 'Vide : jusqu\'à nouvel ordre' })]),
         champ('Raison', f.raison),
-        futures.length ? creer('p', { classe: 'w-mention', texte: pluriel(futures.length, 'réservation') + ' à venir sur ce poste : si vous le fermez, leurs titulaires reçoivent un autre poste du même étage quand il y en a un.' }) : null
+        futures.length ? creer('p', { classe: 'w-mention', texte: pluriel(futures.length, 'réservation') + ' à venir sur ce poste de travail : si vous le fermez, leurs titulaires reçoivent un autre poste de travail du même étage quand il y en a un.' }) : null
     ];
     var zone = creer('div', { classe: 'wb-zone-danger' });
     if (ferme || !p.actif) {
-        zone.appendChild(bouton('Rouvrir le poste', 'secondaire', 'lock-unlock-line', async function () {
-            var r = await executer([['UpdateRecord', etat.t.postes, p.id, { FERME_DU: null, FERME_AU: null, RAISON: '', ACTIF: true }]], 'Enregistrement…', 'Poste ' + p.numero + ' rouvert.');
+        zone.appendChild(bouton('Rouvrir le poste de travail', 'secondaire', 'lock-unlock-line', async function () {
+            var r = await executer([['UpdateRecord', etat.t.postes, p.id, { FERME_DU: null, FERME_AU: null, RAISON: '', ACTIF: true }]], 'Enregistrement…', 'Poste de travail ' + p.numero + ' rouvert.');
             if (r) {
                 fermerPanneau();
                 dessiner('aPoste' + p.id);
@@ -4232,13 +4442,13 @@ function ouvrirPoste(p) {
         }, { id: 'pRouvrir', petit: true }));
     }
     if (p.actif) {
-        zone.appendChild(bouton('Supprimer le poste ' + p.numero, 'tertiaire', 'delete-line', function () { return supprimerPoste(p); }, { id: 'pSupprimer', classe: 'w-btn-danger', petit: true }));
+        zone.appendChild(bouton('Supprimer le poste de travail ' + p.numero, 'tertiaire', 'delete-line', function () { return supprimerPoste(p); }, { id: 'pSupprimer', classe: 'w-btn-danger', petit: true }));
     }
     corps.push(zone);
     var enregistrer = async function () {
         var num = texteBorne(f.numero.value, 40);
         if (!num) {
-            toast('Le poste doit avoir un numéro.', { type: 'avertissement' });
+            toast('Le poste de travail doit avoir un numéro.', { type: 'avertissement' });
             f.numero.focus();
             return;
         }
@@ -4258,33 +4468,33 @@ function ouvrirPoste(p) {
         if (ch.ATTITRE) {
             touchees = touchees.concat(resasFutures([p.id], now.jour, null).filter(function (r) { return touchees.indexOf(r) === -1 && r.personne !== ch.ATTITRE && !attitrePrete(Object.assign({}, p, { attitre: ch.ATTITRE }), r.jour); }));
         }
-        if (touchees.length && !await confirmerAction('Déplacer ' + pluriel(touchees.length, 'réservation') + ' ?', 'Le poste ne sera plus libre pour ' + (touchees.length > 1 ? 'ces réservations : leurs titulaires reçoivent' : 'cette réservation : son titulaire reçoit') + ' un autre poste du même étage quand il y en a un, sinon la réservation est annulée.', 'Enregistrer et déplacer')) {
+        if (touchees.length && !await confirmerAction('Déplacer ' + pluriel(touchees.length, 'réservation') + ' ?', 'Le poste de travail ne sera plus libre pour ' + (touchees.length > 1 ? 'ces réservations : leurs titulaires reçoivent' : 'cette réservation : son titulaire reçoit') + ' un autre poste de travail du même étage quand il y en a un, sinon la réservation est annulée.', 'Enregistrer et déplacer')) {
             return;
         }
         var r = await executer([['UpdateRecord', etat.t.postes, p.id, ch]], 'Enregistrement…');
         if (r) {
             var bilan = await reattribuer(touchees.map(function (x) { return etat.resas.filter(function (y) { return y.id === x.id; })[0]; }).filter(Boolean));
-            afficherSucces('Poste ' + num + ' enregistré.' + texteBilan(bilan));
+            afficherSucces('Poste de travail ' + num + ' enregistré.' + texteBilan(bilan));
             fermerPanneau();
             etat.admin = cleEtage(ch.BATIMENT || 'Sans bâtiment', ch.ETAGE || 'Sans étage');
             dessiner('aPoste' + p.id);
         }
     };
-    ouvrirPanneau({ titre: 'Poste ' + p.numero, sousTitre: lieuPoste(p, { sansNumero: true }), cle: 'poste', focus: 'pNumero', corps: corps,
+    ouvrirPanneau({ titre: 'Poste de travail ' + p.numero, sousTitre: lieuPoste(p, { sansNumero: true }), cle: 'poste de travail', focus: 'pNumero', corps: corps,
         pied: [bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'pAnnuler' }), bouton('Enregistrer', null, 'check-line', enregistrer, { id: 'pEnregistrer', classe: 'w-pousse', desactive: !accesComplet() })] });
 }
 async function supprimerPoste(p) {
     var now = partiesMaintenant();
     var historique = etat.resas.some(function (r) { return r.poste === p.id; }) || etat.signalements.some(function (s) { return s.poste === p.id; }) || etat.personnes.some(function (x) { return x.favori === p.id; });
     var futures = resasFutures([p.id], now.jour, null);
-    var ok = await confirmerAction('Supprimer le poste ' + p.numero + ' ?', (historique ? 'Le poste a un historique : il est retiré des postes proposés, mais gardé pour les statistiques.' : 'Le poste est supprimé.') + (futures.length ? ' ' + pluriel(futures.length, 'réservation') + ' à venir : leurs titulaires reçoivent un autre poste quand il y en a un.' : ''), 'Supprimer', { danger: true });
+    var ok = await confirmerAction('Supprimer le poste de travail ' + p.numero + ' ?', (historique ? 'Le poste de travail a un historique : il est retiré des postes de travail proposés, mais gardé pour les statistiques.' : 'Le poste de travail est supprimé.') + (futures.length ? ' ' + pluriel(futures.length, 'réservation') + ' à venir : leurs titulaires reçoivent un autre poste de travail quand il y en a un.' : ''), 'Supprimer', { danger: true });
     if (!ok) {
         return;
     }
     var r = await executer([historique ? ['UpdateRecord', etat.t.postes, p.id, { ACTIF: false, ATTITRE: 0 }] : ['RemoveRecord', etat.t.postes, p.id]], 'Suppression…');
     if (r) {
         var bilan = await reattribuer(futures.map(function (x) { return etat.resas.filter(function (y) { return y.id === x.id; })[0]; }).filter(Boolean));
-        afficherSucces('Poste ' + p.numero + ' supprimé.' + texteBilan(bilan));
+        afficherSucces('Poste de travail ' + p.numero + ' supprimé.' + texteBilan(bilan));
         fermerPanneau();
         dessiner('aAjouterPostes');
     }
@@ -4342,17 +4552,17 @@ function ouvrirAjoutPostes(bat, et) {
             d.ORDRE.push(entierBorne(f.ordre.value, 1, 99, 1));
             d.ACTIF.push(true);
         });
-        var r = await executer([['BulkAddRecord', etat.t.postes, nums.map(function () { return null; }), d]], 'Ajout des postes…', pluriel(nums.length, 'poste ajouté', 'postes ajoutés') + ' : ' + nums[0] + (nums.length > 1 ? ' à ' + nums[nums.length - 1] : '') + (deja.length ? ' (' + pluriel(deja.length, 'numéro existait', 'numéros existaient') + ' déjà)' : '') + '.');
+        var r = await executer([['BulkAddRecord', etat.t.postes, nums.map(function () { return null; }), d]], 'Ajout des postes de travail…', pluriel(nums.length, 'poste de travail ajouté', 'postes de travail ajoutés') + ' : ' + nums[0] + (nums.length > 1 ? ' à ' + nums[nums.length - 1] : '') + (deja.length ? ' (' + pluriel(deja.length, 'numéro existait', 'numéros existaient') + ' déjà)' : '') + '.');
         if (r) {
             fermerPanneau();
             etat.admin = cleEtage(b, e);
             dessiner('aAjouterIci');
         }
     };
-    ouvrirPanneau({ titre: 'Ajouter des postes', cle: 'ajoutPostes', focus: bat ? 'nNombre' : 'nBatiment', corps: [
+    ouvrirPanneau({ titre: 'Ajouter des postes de travail', cle: 'ajoutPostes', focus: bat ? 'nNombre' : 'nBatiment', corps: [
         creer('div', { classe: 'wb-deux-champs' }, [champ('Bâtiment', f.batiment), champ('Étage', f.etage)]),
         listeSuggestions('nBatiments', batiments().map(function (x) { return x.nom; })),
-        creer('div', { classe: 'wb-deux-champs' }, [champ('Nombre de postes', f.nombre), champ('Numérotés à partir de', f.depart, { aide: 'Par exemple 3.01 : les suivants seront 3.02, 3.03…' })]),
+        creer('div', { classe: 'wb-deux-champs' }, [champ('Nombre de postes de travail', f.nombre), champ('Numérotés à partir de', f.depart, { aide: 'Par exemple 3.01 : les suivants seront 3.02, 3.03…' })]),
         groupeRadios('Type', 'nType', TYPES_POSTE.map(function (x) { return { valeur: x, libelle: x }; }), type, function (v) { type = v; }, { enLigne: true }),
         equipementsCoches('n', cle ? [cle] : []),
         champ('Ordre de remplissage', f.ordre)
@@ -4377,7 +4587,7 @@ function ouvrirFermetureEtage(bat, et) {
             return;
         }
         var futures = resasFutures(l.map(function (p) { return p.id; }), a, b);
-        if (futures.length && !await confirmerAction('Déplacer ' + pluriel(futures.length, 'réservation') + ' ?', 'Leurs titulaires reçoivent un autre poste, le plus proche possible, quand il y en a un ; sinon la réservation est annulée.', 'Fermer et déplacer')) {
+        if (futures.length && !await confirmerAction('Déplacer ' + pluriel(futures.length, 'réservation') + ' ?', 'Leurs titulaires reçoivent un autre poste de travail, le plus proche possible, quand il y en a un ; sinon la réservation est annulée.', 'Fermer et déplacer')) {
             return;
         }
         var ids = l.map(function (p) { return p.id; });
@@ -4389,10 +4599,10 @@ function ouvrirFermetureEtage(bat, et) {
             dessiner('aFermerEtage');
         }
     };
-    ouvrirPanneau({ titre: 'Fermer l\'étage', sousTitre: bat + ' · ' + et + ' · ' + pluriel(l.length, 'poste'), cle: 'fermerEtage', focus: 'eDu', corps: [
+    ouvrirPanneau({ titre: 'Fermer l\'étage', sousTitre: bat + ' · ' + et + ' · ' + pluriel(l.length, 'poste de travail'), cle: 'fermerEtage', focus: 'eDu', corps: [
         creer('div', { classe: 'wb-deux-champs' }, [champ('Du', du), champ('Au', au, { aide: 'Vide : jusqu\'à nouvel ordre' })]),
         champ('Raison', raison),
-        creer('p', { classe: 'w-mention', texte: 'Pour rouvrir un poste, ouvrez sa fiche. Les réservations déjà faites sur la période reçoivent un autre poste.' })
+        creer('p', { classe: 'w-mention', texte: 'Pour rouvrir un poste de travail, ouvrez sa fiche. Les réservations déjà faites sur la période reçoivent un autre poste de travail.' })
     ], pied: [bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'eAnnuler' }), bouton('Fermer l\'étage', null, 'lock-line', fermer, { id: 'eFermer', classe: 'w-pousse' })] });
 }
 
@@ -4403,17 +4613,16 @@ function texteEnClair(c) {
     var cle = c.limiteSur === 'cle' && c.equipementCle ? ' avec ' + c.equipementCle : '';
     var t = tj.charAt(0).toUpperCase() + tj.slice(1) + ', chacun réserve ' + (c.limite >= 7 ? 'sans limite de jours' : 'au plus ' + pluriel(c.limite, 'jour') + cle + ' par semaine') + ', au plus tôt ' + pluriel(c.avance, 'jour') + ' avant.';
     if (c.liberer) {
-        t += ' Il confirme sa présence avant ' + texteHeure(c.confirmeMatin) + ' (' + texteHeure(c.confirmeApm) + ' l\'après-midi), sinon le poste est proposé à d\'autres.';
+        t += ' Il confirme sa présence avant ' + texteHeure(c.confirmeMatin) + ' (' + texteHeure(c.confirmeApm) + ' l\'après-midi), sinon le poste de travail est proposé à d\'autres.';
     }
     if (c.limite < 7) {
-        t += ' La veille à ' + texteHeure(c.derniereMinute) + ', les postes' + cle + ' encore libres sont ouverts à tous.';
+        t += ' La veille à ' + texteHeure(c.derniereMinute) + ', les postes de travail' + cle + ' encore libres sont ouverts à tous.';
     }
     return t;
 }
 function vueRegles(main) {
     var c = JSON.parse(JSON.stringify(cfg()));
     var lecture = !etat.peutParametrer;
-    main.appendChild(titreVue('Règles communes'));
     if (lecture) {
         main.appendChild(alerte('info', null, 'Seuls les propriétaires du document changent ces règles. Vous pouvez les consulter.', { role: 'status' }));
     }
@@ -4445,7 +4654,7 @@ function vueRegles(main) {
     var b1 = bloc(1, 'Les créneaux et la présence', [
         creer('div', { classe: 'wb-ligne-champs' }, [champ('Le matin commence à', heure('gMatin', 'matin')), champ('L\'après-midi commence à', heure('gMidi', 'midi')), champ('La journée finit à', heure('gSoir', 'soir'))]),
         creer('div', { classe: 'wb-ligne-champs' }, [champ('Confirmer sa présence avant, le matin', heure('gConfMatin', 'confirmeMatin')), champ('l\'après-midi', heure('gConfApm', 'confirmeApm'))]),
-        coche('gLiberer', 'Sans confirmation, proposer le poste à d\'autres', 'liberer', 'Le poste redevient libre pour le reste du créneau.'),
+        coche('gLiberer', 'Sans confirmation, proposer le poste de travail à d\'autres', 'liberer', 'Le poste de travail redevient libre pour le reste du créneau.'),
         jours
     ]);
     var limite = liste('gLimite', [1, 2, 3, 4, 5, 6].map(function (n) { return { valeur: n, libelle: pluriel(n, 'jour') }; }).concat([{ valeur: 7, libelle: 'Sans limite' }]), c.limite);
@@ -4454,12 +4663,12 @@ function vueRegles(main) {
     eqCle.addEventListener('change', function () { c.equipementCle = eqCle.value; maj(); });
     var b2 = bloc(2, 'L\'équité', [
         creer('div', { classe: 'wb-ligne-champs' }, [champ('Jours par personne et par semaine', limite, { aide: 'Une autre limite peut être donnée à une personne, dans « Les personnes ».' }),
-            groupeRadios('La limite compte', 'gSur', [{ valeur: 'cle', libelle: 'les postes avec l\'équipement choisi' }, { valeur: 'tous', libelle: 'tous les postes' }], c.limiteSur, function (v) { c.limiteSur = v; maj(); })]),
-        champ('Équipement rare, compté dans la limite', eqCle, { aide: 'Les postes sans cet équipement sont attribués d\'abord à ceux qui n\'en ont pas besoin.' }),
+            groupeRadios('La limite compte', 'gSur', [{ valeur: 'cle', libelle: 'les postes de travail avec l\'équipement choisi' }, { valeur: 'tous', libelle: 'tous les postes de travail' }], c.limiteSur, function (v) { c.limiteSur = v; maj(); })]),
+        champ('Équipement rare, compté dans la limite', eqCle, { aide: 'Les postes de travail sans cet équipement sont attribués d\'abord à ceux qui n\'en ont pas besoin.' }),
         creer('div', { classe: 'wb-ligne-champs' }, [champ('On réserve au plus tôt, en jours avant', nombre('gAvance', 'avance', 1, 7 * MAX_SEMAINES_RESA)),
-            champ('Dernière minute : la veille à partir de', heure('gDerniere', 'derniereMinute'), { aide: 'Les postes encore libres sont ouverts à tous, sans limite. Ceux libérés le jour même aussi.' })]),
+            champ('Dernière minute : la veille à partir de', heure('gDerniere', 'derniereMinute'), { aide: 'Les postes de travail encore libres sont ouverts à tous, sans limite. Ceux libérés le jour même aussi.' })]),
         coche('gRecurrence', 'Réservations répétées chaque semaine, dans la limite', 'recurrence', 'Jusqu\'à ' + MAX_SEMAINES_RESA + ' semaines à l\'avance.'),
-        coche('gAttitres', 'Un poste attitré prêté par son titulaire est proposé aux autres', 'attitresProposes'),
+        coche('gAttitres', 'Un poste de travail attitré prêté par son titulaire est proposé aux autres', 'attitresProposes'),
         coche('gAutres', 'Chacun voit où sont les autres : suivre une personne, réserver près d\'elle', 'montrerAutres')
     ]);
     var listeEq = creer('ul', { classe: 'wb-tags', id: 'gEqListe' });
@@ -4530,12 +4739,6 @@ function vueRegles(main) {
     if (!lecture) {
         main.appendChild(creer('div', { classe: 'wb-pied-form' }, [bouton('Enregistrer les règles', null, 'check-line', function () { return enregistrerRegles(c); }, { id: 'gEnregistrer' })]));
     }
-    main.appendChild(carte('Réserver le paramétrage aux propriétaires', [
-        creer('p', { classe: 'w-texte', texte: 'Les gestionnaires gèrent les postes, les personnes et les signalements ; seuls les propriétaires du document changent ces règles.' }),
-        creer('p', { classe: 'w-texte', texte: 'Pour cela, dans les règles d\'accès du document, sur la table ' + LABEL_CENTRALE + ', ajoutez une condition : si la ligne est celle de WuitBureau dont la clé vaut « ' + CLE_ACCES_PARAMETRAGE + ' » et que la personne n\'est pas propriétaire, refuser la lecture.' }),
-        creer('code', { classe: 'wb-code', texte: 'rec.WIDGET == "' + NOM_WIDGET + '" and rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '" and user.Access != OWNER' }),
-        creer('p', { classe: 'w-mention', texte: 'Le widget le constate et n\'affiche plus ces règles qu\'en lecture.' })
-    ], { id: 'gDroits' }));
 }
 async function enregistrerRegles(c) {
     var v = configValide(c);
@@ -4556,7 +4759,8 @@ async function enregistrerRegles(c) {
         await ecrireConfig();
         await poserChoix();
         masquerLoader();
-        afficherSucces('Règles enregistrées.');
+        logSecurite('INFO', 'Règles enregistrées');
+        toast('Règles enregistrées.', { type: 'succes', action: etat.pagePubliee ? null : { libelle: 'Étape suivante : Publier', icone: 'arrow-right-line', fn: function () { allerA('publier'); }, id: 'gSuite' } });
     }
     catch (e) {
         etat.cfg = avant;
@@ -4627,45 +4831,63 @@ async function lirePages() {
     var admin = vueDeCetteConsole(d);
     return { utilisateurs: u, admin: admin, nomAdmin: admin ? noms[admin] || '' : '', adminCachee: admin ? vueProtegee(d, admin) : false };
 }
-function vuePages(main) {
-    main.appendChild(titreVue('Pages et droits'));
-    var zone = creer('div', { classe: 'wb-pile', id: 'gPagesZone', attrs: { 'aria-live': 'polite' } }, [creer('p', { classe: 'w-mention', texte: 'Lecture des pages…' })]);
+function vuePublier(main) {
+    main.appendChild(creer('p', { classe: 'w-texte wb-hors-section', texte: 'Publier crée une page dans le document : « ' + NOM_PAGE_UTILISATEURS + ' », pour les personnes qui réservent. Elles y voient leurs réservations et les postes de travail libres, sans la gestion.' }));
+    var zone = creer('section', { classe: 'w-section', id: 'gPagesZone', attrs: { 'aria-labelledby': 'aSecConsult', 'aria-live': 'polite' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecConsult', texte: 'Page des utilisateurs' })]),
+        creer('p', { classe: 'w-mention', texte: 'Lecture des pages…' })]);
     main.appendChild(zone);
-    main.appendChild(carte('Les droits à donner', [
-        creer('ul', { classe: 'w-texte wb-liste-simple' }, [
-            creer('li', { texte: 'Les personnes qui réservent sont invitées sur le document avec le rôle Éditeur : réserver, c\'est écrire dans le document.' }),
-            creer('li', { texte: 'Le widget doit avoir l\'accès complet au document, sur cette page et sur la page des utilisateurs.' }),
-            creer('li', { texte: 'Une personne invitée est ajoutée à la liste à sa première visite. Pour qu\'elle ne voie que la page des utilisateurs, cachez cette page de gestion.' })
-        ])
-    ], { id: 'gDroitsPages' }));
-    relayer(remplirPages(zone), 'Lecture des pages');
+    relayer(remplirPublier(zone), 'Lecture des pages');
 }
-async function remplirPages(zone) {
+async function remplirPublier(zone) {
     var info;
     try {
         info = await lirePages();
     }
     catch (e) {
-        vider(zone);
-        zone.appendChild(alerte('error', null, 'Les pages du document n\'ont pas pu être lues.'));
         logSecurite('AVERTISSEMENT', 'Pages non lues', e);
+        info = null;
+    }
+    var titre = zone.firstChild;
+    vider(zone);
+    zone.appendChild(titre);
+    if (!info) {
+        zone.appendChild(alerte('error', null, 'Les pages du document n\'ont pas pu être lues.'));
         return;
     }
-    vider(zone);
-    var u = info.utilisateurs;
-    zone.appendChild(carte('La page des utilisateurs', u.length ? [
-        creer('p', { classe: 'w-texte' }, ['Publiée : ', creer('strong', { texte: u[0].nom || 'page sans nom' }), '. Chacun y réserve son poste, confirme sa présence et suit ses collègues.']),
-        creer('p', { classe: 'w-mention', texte: 'Pour la retirer, supprimez la page dans la liste des pages du document.' })
-    ] : [
-        creer('p', { classe: 'w-texte', texte: 'Une page à part, sans la gestion : chacun y réserve son poste, confirme sa présence et suit ses collègues. Elle s\'affiche bien sur un téléphone.' }),
-        accesComplet() ? bouton('Publier la page des utilisateurs', null, 'send-plane-line', function () { return publierPageUtilisateurs(zone); }, { id: 'gPublier' }) : null
-    ], { id: 'gPageUtil' }));
-    zone.appendChild(carte('Cette page de gestion', info.admin ? [
-        creer('p', { classe: 'w-texte' }, [creer('strong', { texte: info.nomAdmin || 'Cette page' }), ' ', info.adminCachee ? badge('Réservée aux administrateurs', 'succes') : badge('Visible de tous', 'avertissement')]),
-        info.adminCachee ? creer('p', { classe: 'w-mention', texte: 'Elle est cachée par la table ' + titreOwner() + ' : seules les personnes qui peuvent lire cette table la voient. Réglez qui peut la lire dans les règles d\'accès.' })
-            : creer('p', { classe: 'w-texte', texte: 'Les gestionnaires y accèdent aussi depuis la page des utilisateurs, par le bouton « Gérer les postes ». Cachez-la pour que les autres ne voient que la page des utilisateurs.' }),
-        !info.adminCachee && accesComplet() ? bouton('Cacher cette page aux autres', 'secondaire', 'eye-off-line', function () { return cacherPageGestion(info.admin, zone); }, { id: 'gCacher' }) : null
-    ] : [creer('p', { classe: 'w-mention', texte: 'La page de gestion n\'a pas été reconnue : le widget y est peut-être deux fois.' })], { id: 'gPageAdmin' }));
+    etat.pagePubliee = info.utilisateurs.length > 0;
+    etat.pageProtegee = info.adminCachee;
+    if (info.utilisateurs.length) {
+        var lst = creer('ul', { classe: 'w-pages-liste' });
+        info.utilisateurs.forEach(function (x, k) {
+            lst.appendChild(creer('li', { classe: 'w-pages-liste__item' }, [
+                creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: x.nom || 'Page sans nom' }), creer('span', { classe: 'w-mention', texte: 'Pour les personnes : réserver un poste de travail' })]),
+                boutonIcone('Supprimer « ' + (x.nom || 'la page') + ' »', 'delete-line', function () { return supprimerPageUtilisateurs(x, zone); }, { variante: 'discret', id: 'aPageSuppr' + k, classe: 'w-infobulle--dessus', desactive: !accesComplet() })
+            ]));
+        });
+        zone.appendChild(lst);
+    }
+    else if (accesComplet()) {
+        zone.appendChild(bouton('Publier la page « ' + NOM_PAGE_UTILISATEURS + ' »', null, 'send-plane-line', function () { return publierPageUtilisateurs(zone); }, { petit: true, id: 'aPageAgents' }));
+    }
+    zone.appendChild(creer('p', { classe: 'w-mention fr-mt-2w', texte: 'Qui voit chaque page se règle dans les droits du document.' }));
+}
+async function supprimerPageUtilisateurs(x, zone) {
+    var ok = await confirmerAction('Supprimer la page « ' + (x.nom || 'la page') + ' » ?', 'La page disparaît du document. Les postes de travail, les personnes et les réservations ne sont pas touchés : vous pourrez la publier de nouveau.', 'Supprimer la page', { danger: true });
+    if (!ok) {
+        return;
+    }
+    try {
+        afficherLoader('Suppression de la page…');
+        await agir([['RemoveRecord', '_grist_Views', x.vue]]);
+        masquerLoader();
+        afficherSucces('La page est supprimée.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée. Réessayez.', e);
+    }
+    await remplirPublier(zone);
 }
 async function publierPageUtilisateurs(zone) {
     afficherLoader('Création de la page…');
@@ -4683,10 +4905,10 @@ async function publierPageUtilisateurs(zone) {
             throw new Error('Page non créée');
         }
         vue = res.viewRef;
-        await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: '🪑 Réserver un poste' }],
-            ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Réserver un poste', options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
+        await agir([['UpdateRecord', '_grist_Views', res.viewRef, { name: NOM_PAGE_UTILISATEURS }],
+            ['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: NOM_PAGE_UTILISATEURS.replace(/^\S+\s/, ''), options: JSON.stringify({ customView: JSON.stringify(cv) }) }]]);
         masquerLoader();
-        afficherSucces('La page « Réserver un poste » est publiée : elle apparaît dans la liste des pages du document.');
+        afficherSucces('La page « ' + NOM_PAGE_UTILISATEURS + ' » est publiée : elle apparaît dans la liste des pages du document.');
     }
     catch (e) {
         masquerLoader();
@@ -4695,12 +4917,21 @@ async function publierPageUtilisateurs(zone) {
         }
         afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'La page n\'a pas été créée. Réessayez.', e);
     }
-    await remplirPages(zone);
-    var f = document.getElementById('gPageUtil');
-    if (f) {
-        f.setAttribute('tabindex', '-1');
-        f.focus();
+    await remplirPublier(zone);
+    var t = document.getElementById('aSecConsult');
+    if (t) {
+        t.setAttribute('tabindex', '-1');
+        t.focus();
     }
+}
+function vueDroits(main) {
+    var cachee = etat.pageProtegee === true;
+    main.appendChild(creer('section', { classe: 'w-section', id: 'gPageAdmin', attrs: { 'aria-labelledby': 'aSecAdmin' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecAdmin', texte: 'Cette page de paramétrage' })]),
+        creer('p', { classe: 'w-texte', texte: cachee ? 'Elle est cachée : seules les personnes qui peuvent lire la table ' + titreOwner() + ' la voient.' : 'Elle est visible par tous les membres du document.' }),
+        cachee || !accesComplet() ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPageGestion, { petit: true, id: 'aReserverPage' })
+    ]));
+    main.appendChild(etapeDroits());
 }
 async function referenceWidget() {
     var ici = location.origin + location.pathname;
@@ -4722,44 +4953,46 @@ async function referenceWidget() {
     }
     return { mode: 'url', url: ici, widgetDef: null, pluginId: '', sectionId: '', renderAfterReady: false };
 }
-async function cacherPageGestion(vue, zone) {
-    var ok = await confirmerAction('Cacher cette page ?', 'Seules les personnes qui peuvent lire la table ' + TITRE_OWNER + ' la verront. Les gestionnaires y accèdent toujours depuis la page des utilisateurs. Pensez à régler les droits de cette table.', 'Cacher la page');
+async function cacherPageGestion() {
+    var ok = await confirmerAction('Cacher cette page ?', 'Seules les personnes qui peuvent lire la table ' + TITRE_OWNER + ' la verront. La règle d\'accès à poser sur cette table est décrite plus bas, dans « Poser les règles d\'accès ».', 'Cacher la page');
     if (!ok) {
         return;
     }
     afficherLoader('Protection de la page…');
     try {
+        var vue = vueDeCetteConsole(await lireTable('_grist_Views_section'));
+        if (!vue) {
+            throw new Error('Page de gestion non reconnue');
+        }
         await protegerVue(vue);
         await chargerMeta();
+        etat.pageProtegee = true;
         masquerLoader();
         afficherSucces('La page est cachée aux personnes qui ne lisent pas la table ' + titreOwner() + '.');
     }
     catch (e) {
         masquerLoader();
-        afficherErreur('La page n\'a pas pu être cachée.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de cacher cette page.' : 'La page n\'a pas pu être cachée. Réessayez.', e);
     }
-    await remplirPages(zone);
+    dessiner('aSecAdmin');
 }
 function vueInstallation(racine) {
-    var s = creer('section', { classe: 'wb-installation', attrs: { 'aria-labelledby': 'iTitre' } }, [
-        creer('h2', { id: 'iTitre', texte: 'Bienvenue dans WuitBureau', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-texte', texte: 'WuitBureau réserve des postes de travail : les personnes choisissent leurs jours, un poste leur est attribué, elles confirment leur présence en arrivant.' }),
-        creer('ol', { classe: 'wb-installation__etapes' }, [
-            creer('li', { texte: 'Installer : le widget crée ses quatre listes (les personnes, les postes, les réservations, les signalements) et ses réglages.' }),
-            creer('li', { texte: 'Régler les règles communes, puis ajouter les postes, étage par étage.' }),
-            creer('li', { texte: 'Publier la page des utilisateurs. Les personnes invitées sur le document sont ajoutées à leur première visite.' })
-        ])
+    var carteD = creer('div', { classe: 's-depart__carte' }, [
+        creer('span', { classe: 'fr-icon-building-line fr-icon--lg s-depart__icone', attrs: { 'aria-hidden': 'true' } }),
+        creer('h2', { classe: 's-depart__titre', id: 'iTitre', texte: 'Vos postes de travail, prêts en quelques minutes', attrs: { tabindex: '-1' } }),
+        creer('p', { classe: 'w-texte', texte: 'WuitBureaux crée la liste des personnes, la liste des postes de travail, la liste des réservations et la liste des signalements. Vous ajoutez ensuite vos postes de travail et réglez les règles communes dans le paramétrage.' }),
+        creer('ul', { classe: 's-depart__points' }, ['Les règles communes : créneaux, présence, limite de jours par semaine', 'Vos postes de travail, étage par étage', 'Une page « ' + NOM_PAGE_UTILISATEURS + ' » pour les personnes'].map(function (x) { return creer('li', { texte: x }); }))
     ]);
     if (accesComplet()) {
-        s.appendChild(bouton('Installer WuitBureau', null, 'download-line', installer, { id: 'iInstaller' }));
+        carteD.appendChild(bouton('Commencer : créer mes postes de travail', null, 'arrow-right-line', installer, { id: 'iInstaller', iconeDroite: true, classe: 's-depart__bouton' }));
     }
     else {
-        s.appendChild(alerte('warning', 'Le widget n\'a pas l\'accès complet', 'Dans le panneau de droite de Grist, donnez au widget l\'accès complet au document, puis rechargez la page.', { role: 'status' }));
+        carteD.appendChild(alerte('warning', null, 'Le widget n\'a pas l\'accès complet au document : donnez-le-lui dans le panneau de droite, puis rechargez la page.', { role: 'status' }));
     }
-    racine.appendChild(s);
+    racine.appendChild(creer('div', { classe: 'w-assistant s-depart' }, [carteD]));
 }
 async function installer() {
-    afficherLoader('Installation de WuitBureau…');
+    afficherLoader('Installation de WuitBureaux…');
     try {
         await creerListes();
         await lireDonnees();
@@ -4776,10 +5009,11 @@ async function installer() {
             rafraichirMoi();
         }
         masquerLoader();
+        etat.pagePubliee = false;
         etat.vue = 'admin';
         etat.admin = 'regles';
         dessiner();
-        afficherSucces('WuitBureau est installé. Vérifiez les règles communes, puis ajoutez des postes.');
+        afficherSucces('Les listes sont créées. Vérifiez les règles communes, puis ajoutez vos postes de travail.');
         var t = document.getElementById('aTitre');
         if (t) {
             t.focus();
@@ -4787,59 +5021,74 @@ async function installer() {
     }
     catch (e) {
         masquerLoader();
-        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas d\'installer WuitBureau dans ce document.' : 'L\'installation n\'a pas abouti. Réessayez.', e);
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas d\'installer WuitBureaux dans ce document.' : 'L\'installation n\'a pas abouti. Réessayez.', e);
     }
 }
 
 var AIDE = {
-    resume: 'WuitBureau réserve des postes de travail. Vous choisissez vos jours et votre besoin, un poste vous est attribué, vous confirmez votre présence en arrivant.',
+    resume: 'WuitBureaux réserve des postes de travail. Vous choisissez vos jours et votre besoin, un poste de travail vous est attribué, vous confirmez votre présence en arrivant.',
     fonctions: [
         'Réserver un ou plusieurs jours, à la journée, le matin ou l\'après-midi, et répéter chaque semaine.',
-        'Recevoir votre poste épinglé s\'il est libre, sinon le plus proche, ou un poste près d\'un collègue.',
-        'Confirmer votre présence en arrivant, ou libérer le poste si vous ne venez pas.',
-        'Prendre un poste libéré le jour même, sans compter dans votre limite.',
-        'Prêter votre poste attitré les jours où vous n\'êtes pas là.',
-        'Suivre des collègues, signaler un problème sur un poste, ajouter vos réservations à votre agenda.'
+        'Recevoir votre poste de travail épinglé s\'il est libre, sinon le plus proche, ou un poste de travail près d\'un collègue.',
+        'Confirmer votre présence en arrivant, ou libérer le poste de travail si vous ne venez pas.',
+        'Prendre un poste de travail libéré le jour même, sans compter dans votre limite.',
+        'Prêter votre poste de travail attitré les jours où vous n\'êtes pas là.',
+        'Suivre des collègues, signaler un problème sur un poste de travail, ajouter vos réservations à votre agenda.'
     ],
     avant: [
         'Le widget a besoin de l\'accès complet au document.',
         'Vous êtes reconnu par l\'adresse avec laquelle vous vous connectez : rien à remplir.'
     ],
     etapes: {
-        'Choisir les jours': { titre: 'Réserver un poste', points: ['Touchez les jours voulus : chaque case indique le nombre de postes libres.', 'Choisissez le créneau, l\'équipement et où vous voulez être.'] },
-        'Vérifier les postes': { titre: 'les postes attribués', points: ['Un poste est proposé pour chaque jour. « Un autre poste » permet d\'en choisir un autre.', 'Si votre limite est atteinte, prenez un poste sans l\'équipement rare ou revenez la veille à l\'heure de la dernière minute.'] },
-        'Confirmer sa présence': { titre: 'le jour même', points: ['En arrivant, activez « Je suis sur place ».', 'Sans confirmation à l\'heure limite, le poste est proposé à d\'autres.'] },
+        'Choisir les jours': { titre: 'Réserver un poste de travail', points: ['Touchez les jours voulus : chaque case indique le nombre de postes de travail libres.', 'Choisissez le créneau, l\'équipement et où vous voulez être.'] },
+        'Vérifier les postes de travail': { titre: 'les postes de travail attribués', points: ['Un poste de travail est proposé pour chaque jour. « Un autre poste de travail » permet d\'en choisir un autre.', 'Si votre limite est atteinte, prenez un poste de travail sans l\'équipement rare ou revenez la veille à l\'heure de la dernière minute.'] },
+        'Confirmer sa présence': { titre: 'le jour même', points: ['En arrivant, activez « Je suis sur place ».', 'Sans confirmation à l\'heure limite, le poste de travail est proposé à d\'autres.'] },
         'Installer': { titre: 'les listes et les réglages', points: ['Le widget crée ses quatre listes et ses réglages dans le document.'] },
         'Régler': { titre: 'les règles communes', points: ['Créneaux, heure limite de confirmation, limite de jours par semaine, délai de réservation.'] },
-        'Ajouter les postes': { titre: 'étage par étage', points: ['« Ajouter des postes » crée une série de postes numérotés.', 'Ouvrez un poste pour le réserver à une équipe, l\'attitrer ou le fermer.'] },
+        'Ajouter les postes de travail': { titre: 'étage par étage', points: ['« Ajouter des postes de travail » crée une série de postes de travail numérotés.', 'Ouvrez un poste de travail pour le réserver à une équipe, l\'attitrer ou le fermer.'] },
         'Publier': { titre: 'la page des utilisateurs', points: ['Dans « Pages et droits », publiez la page des utilisateurs et cachez la page de gestion.'] }
     },
     questions: [
         { q: 'Comment le widget sait-il qui je suis ?', r: 'À votre première visite, il note l\'adresse avec laquelle vous êtes connecté au document. Vous êtes agent ou prestataire selon cette adresse ; un gestionnaire peut corriger votre profil.' },
-        { q: 'Pourquoi mon poste a-t-il été proposé à d\'autres ?', r: 'Votre présence n\'a pas été confirmée à l\'heure limite. Si le poste est encore libre, « Je suis là : reprendre ce poste » vous le rend.' },
-        { q: 'Que veut dire « dernière minute » ?', r: 'La veille, à partir de l\'heure fixée par les gestionnaires, les postes encore libres sont ouverts à tous : ces réservations ne comptent pas dans votre limite de jours.' },
+        { q: 'Pourquoi mon poste de travail a-t-il été proposé à d\'autres ?', r: 'Votre présence n\'a pas été confirmée à l\'heure limite. Si le poste de travail est encore libre, « Je suis là : reprendre ce poste de travail » vous le rend.' },
+        { q: 'Que veut dire « dernière minute » ?', r: 'La veille, à partir de l\'heure fixée par les gestionnaires, les postes de travail encore libres sont ouverts à tous : ces réservations ne comptent pas dans votre limite de jours.' },
         { q: 'Qui voit mes réservations ?', r: 'Les gestionnaires, et les personnes qui vous suivent, si les règles communes le permettent.' },
         { q: 'Comment ajouter mes réservations à mon agenda ?', r: 'Le bouton agenda du volet télécharge un fichier à ouvrir : votre messagerie ajoute les réservations à votre agenda.' }
     ]
 };
 function contexteAide() {
     if (etat.vue === 'installation') {
-        return { etapes: ['Installer', 'Régler', 'Ajouter les postes', 'Publier'], courante: 0, repere: null };
+        return { etapes: ['Installer', 'Régler', 'Ajouter les postes de travail', 'Publier'], courante: 0, repere: null };
     }
-    if (etat.vue === 'admin' && !etat.apercuUtilisateurs) {
-        var c = etat.admin === 'regles' ? 1 : (etat.admin.indexOf('etage:') === 0 ? 2 : (etat.admin === 'pages' ? 3 : -1));
-        return { etapes: ['Installer', 'Régler', 'Ajouter les postes', 'Publier'], courante: c, repere: 'Tout se gère dans le volet de gauche.' };
+    if (etat.vue === 'admin') {
+        var c = { regles: 1, postes: 2, publier: 3 }[etat.admin];
+        c = c === undefined ? (etat.admin.indexOf('etage:') === 0 ? 2 : -1) : c;
+        return { etapes: ['Installer', 'Régler', 'Ajouter les postes de travail', 'Publier'], courante: c, repere: 'Tout se gère dans le volet de gauche.' };
     }
     var c2 = etat.panneau === 'reserver' ? (document.getElementById('rConfirmer') ? 1 : 0) : -1;
-    return { etapes: ['Choisir les jours', 'Vérifier les postes', 'Confirmer sa présence'], courante: c2, repere: null };
+    return { etapes: ['Choisir les jours', 'Vérifier les postes de travail', 'Confirmer sa présence'], courante: c2, repere: null };
 }
 function ongletAide(ctx) { return _aide.onglet || (ctx.courante >= 0 ? 'pas' : 'resume'); }
 function majBandeau() {
     var r = document.getElementById('bandeauRole');
-    var admin = etat.vue === 'admin' && !etat.apercuUtilisateurs;
+    var admin = etat.vue === 'admin';
+    var pageUtil = modePage() === 'utilisateurs';
     if (r) {
         r.hidden = !admin;
         r.textContent = admin ? (etat.peutParametrer ? 'Admin' : 'Gestion') : '';
+    }
+    var h1 = document.getElementById('bandeauTitre');
+    if (h1) {
+        h1.textContent = pageUtil ? NOM_PAGE_UTILISATEURS : TITRE_DEFAUT;
+    }
+    document.title = pageUtil ? NOM_PAGE_UTILISATEURS.replace(/^\S+\s/, '') : 'WuitBureaux';
+    var aideB = document.getElementById('bandeauAide');
+    if (aideB) {
+        aideB.hidden = pageUtil;
+    }
+    if (pageUtil && _aide.ouvert) {
+        _aide.ouvert = false;
+        panneauAide();
     }
 }
 function dessiner(focusId) {
@@ -4860,15 +5109,12 @@ function dessiner(focusId) {
         vueInstallation(racine);
     }
     else if (etat.vue === 'absent') {
-        racine.appendChild(alerte('info', 'WuitBureau n\'est pas encore installé', 'Une personne qui gère ce document doit d\'abord l\'installer depuis sa page de gestion.', { role: 'status' }));
+        racine.appendChild(alerte('info', 'WuitBureaux n\'est pas encore installé', 'Une personne qui gère ce document doit d\'abord l\'installer depuis sa page de gestion.', { role: 'status' }));
     }
-    else if (etat.vue === 'admin' && !etat.apercuUtilisateurs) {
+    else if (etat.vue === 'admin') {
         vueAdmin(racine);
     }
-    else if (etat.vue === 'utilisateurs' && etat.gestion && estGestionnaire()) {
-        vueAdmin(racine);
-    }
-    else if (etat.vue === 'utilisateurs' || etat.vue === 'admin') {
+    else if (etat.vue === 'utilisateurs') {
         vueUtilisateurs(racine);
     }
     majBandeau();
@@ -4904,6 +5150,15 @@ async function chargerTout() {
     await lireDonnees();
     await identifier();
     if (modePage() === 'admin') {
+        try {
+            var pg = await lirePages();
+            etat.pagePubliee = pg.utilisateurs.length > 0;
+            etat.pageProtegee = pg.adminCachee;
+        }
+        catch (e) {
+            etat.pagePubliee = null;
+            logSecurite('INFO', 'Publication de la page des utilisateurs non vérifiée', e);
+        }
         etat.vue = etat.peutParametrer || estGestionnaire() ? 'admin' : 'utilisateurs';
     }
     else {
@@ -4916,7 +5171,7 @@ async function initialiser() {
         return;
     }
     etat.initEnCours = true;
-    afficherLoader('Ouverture de WuitBureau…');
+    afficherLoader('Ouverture de WuitBureaux…');
     try {
         await attendreAcces();
         if (accesRefuse()) {
@@ -5018,6 +5273,254 @@ grist.onOptions(function (options, interaction) {
     }
 });
 relayer(initialiser(), 'Démarrage');
+
+function modeleAcl(titre, blocs, prefixe) {
+    var lettres = [['R', 'Lecture'], ['U', 'Modification'], ['C', 'Création'], ['D', 'Suppression']];
+    var droits = function (d, colonne) {
+        var l = colonne ? lettres.slice(0, 2) : lettres;
+        return creer('span', { classe: 's-acl__droits' }, l.map(function (x) {
+            var v = d ? d[x[0]] : undefined;
+            var cls = v === true ? ' s-acl__droit--oui' : v === false ? ' s-acl__droit--non' : ' s-acl__droit--vide';
+            return creer('span', { classe: 's-acl__droit' + cls, texte: x[0], attrs: { title: x[1] + (v === true ? ' : autorisée (vert)' : v === false ? ' : refusée (rouge, barrée)' : ' : non réglée') } });
+        }));
+    };
+    var k = 0;
+    var tableau = creer('table', { classe: 's-acl__tableau' }, [
+        creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Colonnes' }), creer('th', { texte: 'Condition' }), creer('th', { texte: 'Droits' })])]),
+        creer('tbody', {}, blocs.map(function (b) {
+            return b.regles.map(function (r, i) {
+                var cond = r.condition ? creer('span', { classe: 's-acl__cond' }, [creer('code', { texte: r.condition }),
+                    bouton('Copier', 'discret', iconeDispo(['file-copy-line', 'clipboard-line', 'file-copy-2-line', 'file-text-line']), function () { return copierTexte(r.condition, null, 'Condition copiée : collez-la dans la ligne de la règle.'); }, { petit: true, id: prefixe + 'C' + (k++), aria: 'Copier la condition ' + r.condition })])
+                    : creer('span', { classe: 's-acl__autres', texte: 'Tous les autres' });
+                return creer('tr', { classe: i === 0 ? 's-acl__debut' : '' }, [
+                    i === 0 ? creer('td', { classe: 's-acl__cols', attrs: { rowspan: String(b.regles.length) }, texte: b.colonnes }) : null,
+                    creer('td', {}, [cond, r.note ? creer('span', { classe: 's-acl__note', texte: r.note }) : null]),
+                    creer('td', {}, [droits(r.droits, b.colonnes !== 'Toutes')])
+                ]);
+            });
+        }).reduce(function (a, x) { return a.concat(x); }, []))
+    ]);
+    return creer('div', { classe: 's-acl' }, [creer('p', { classe: 's-acl__titre' }, ['Règles pour la table ', creer('strong', { texte: titre })]), tableau]);
+}
+function modeleReglesSpeciales() {
+    var ligne = function (txt, marque) {
+        return creer('div', { classe: 's-acl__special' + (marque ? ' s-acl__special--cible' : '') }, [creer('span', { classe: 's-acl__chevron', texte: '›', attrs: { 'aria-hidden': 'true' } }), creer('span', { classe: 's-acl__case', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: txt }),
+            marque ? creer('span', { classe: 's-acl__repere', texte: 'doit rester décochée' }) : null]);
+    };
+    return creer('div', { classe: 's-acl', attrs: { role: 'img', 'aria-label': 'Reproduction de la rubrique Règles spéciales : la case Autoriser les Éditeurs à modifier la structure doit rester décochée.' } }, [
+        creer('p', { classe: 's-acl__titre' }, [creer('strong', { texte: 'Règles spéciales' }), ' (développez chaque règle pour personnaliser à qui elle s\'applique.)']),
+        ligne('Autoriser les Éditeurs à modifier la structure (ex. modifier et supprimer des tables et des colonnes, et modifier les formules, les pages, les vues et les paramètres). Important : si cette option est cochée, les Éditeurs peuvent contourner les Permissions Avancées sur les tables et les colonnes, et lire et modifier toutes les données !', true),
+        ligne('Autoriser tout le monde à voir les permissions avancées.', false)
+    ]);
+}
+function modeleBarreAcl(table) {
+    var btn = function (txt, cls, num) { return creer('span', { classe: 's-acl__fbtn' + (cls ? ' ' + cls : '') }, [num ? creer('span', { classe: 's-acl__num', texte: num }) : null, txt]); };
+    return creer('div', { classe: 's-acl', attrs: { role: 'img', 'aria-label': 'Reproduction du haut de la page des Permissions avancées et d\'un nouveau bloc de règles.' } }, [
+        creer('div', { classe: 's-acl__barre' }, [btn('Enregistrer', 's-acl__fbtn--gris', '5'), creer('span', { classe: 's-acl__pousse' }), btn('Ajouter des règles pour la table ⌄', 's-acl__fbtn--cible', '1'), btn('Ajouter des propriétés d\'utilisateur'), btn('Voir en tant que ⌄', null, '6')]),
+        creer('p', { classe: 's-acl__titre' }, ['Règles pour la table ', creer('strong', { texte: table || 'choisie' })]),
+        creer('table', { classe: 's-acl__tableau' }, [
+            creer('thead', {}, [creer('tr', {}, [creer('th', { texte: 'Colonnes' }), creer('th', { texte: 'Condition' }), creer('th', { texte: 'Droits' })])]),
+            creer('tbody', {}, [creer('tr', {}, [creer('td', { classe: 's-acl__cols', texte: 'Toutes' }),
+                creer('td', {}, [creer('span', { classe: 's-acl__cond' }, [creer('span', { classe: 's-acl__num', texte: '2' }), creer('span', { classe: 's-acl__plus', texte: '+' }), creer('span', { classe: 's-acl__num', texte: '3' }), creer('span', { classe: 's-acl__saisie', texte: 'coller la condition ici' })])]),
+                creer('td', {}, [creer('span', { classe: 's-acl__droits' }, [creer('span', { classe: 's-acl__num', texte: '4' })].concat(['R', 'U', 'C', 'D'].map(function (l) { return creer('span', { classe: 's-acl__droit s-acl__droit--vide', texte: l }); })))])])])
+        ]),
+        creer('p', { classe: 's-acl__legende', texte: '1 : choisir la table. 2 : ajouter une ligne. 3 : coller la condition. 4 : cliquer les lettres (vert = autorisé, rouge barré = refusé). 5 : Enregistrer. 6 : vérifier.' })
+    ]);
+}
+function imprimerDroits() {
+    var ancien = document.getElementById('wImprDroits');
+    if (ancien) {
+        ancien.remove();
+    }
+    var src = document.querySelector('.w-general');
+    if (!src) {
+        return;
+    }
+    var copie = src.cloneNode(true);
+    Array.prototype.forEach.call(copie.querySelectorAll('button, .fr-alert, input'), function (n) { n.remove(); });
+    Array.prototype.forEach.call(copie.querySelectorAll('details'), function (n) { n.open = true; });
+    var z = creer('div', { id: 'wImprDroits' }, [creer('h1', { classe: 's-impr__titre', texte: 'Droits du document : inviter les personnes et poser les règles d\'accès' }),
+        creer('p', { classe: 's-impr__note', texte: 'Rappel : dans les Permissions avancées, cliquez sur « Enregistrer » avant de quitter la page, sinon les règles posées sont perdues.' }), copie]);
+    document.body.appendChild(z);
+    document.body.classList.add('w-impr-droits');
+    var fin = function () {
+        document.body.classList.remove('w-impr-droits');
+        z.remove();
+        window.removeEventListener('afterprint', fin);
+    };
+    window.addEventListener('afterprint', fin);
+    setTimeout(function () { window.print(); setTimeout(function () { if (document.getElementById('wImprDroits')) {
+        fin();
+    } }, 1000); }, 50);
+}
+function guideDroitsDg(o) {
+    o = o || {};
+    var lettre = function (k) { return 'abcdefghijklmnop'.charAt(k); };
+    var badgeDg = function (e) {
+        if (e === undefined || e === null) {
+            return null;
+        }
+        var na = typeof e === 'object' && e.nonApplicable;
+        var ok = typeof e === 'object' ? !!e.ok : !!e;
+        return creer('span', { classe: 'fr-badge fr-badge--sm ' + (na ? 'fr-badge--no-icon' : (ok ? 'fr-badge--success' : 'fr-badge--warning')), texte: na ? 'Sans objet' : (ok ? 'En place' : 'À faire') });
+    };
+    var owner = o.owner || '❌ ADMIN ONLY ⚡';
+    var nInv = o.sansInviter ? 0 : 1;
+    var nRol = nInv + 1, nReg = nInv + 2, nVer = nInv + 3, nPb = nInv + 4;
+    var sousEtape = function (x, k, cls) {
+        return creer('li', { classe: 's-droits__etape' + (cls ? ' ' + cls : '') }, [
+            creer('p', { classe: 's-droits__titre' }, [creer('span', { classe: 's-droits__num s-droits__num--lettre', texte: lettre(k), attrs: { 'aria-hidden': 'true' } }), creer('span', { classe: 'fr-sr-only', texte: 'Étape ' + lettre(k) + ' : ' }), x.titre,
+                badgeDg(x.etat)]),
+            x.texte ? creer('p', { classe: 's-droits__texte', texte: x.texte }) : null,
+            x.action ? creer('div', { classe: 's-droits__ligne s-dg__statut' }, [x.action]) : null
+        ].concat(x.extra || []).concat([x.modele || null]));
+    };
+    var partie = function (num, id, titre, chapo, corps) {
+        return creer('section', { classe: 's-dg__partie', attrs: { 'aria-labelledby': id } }, [
+            creer('div', { classe: 's-dg__ptete' }, [creer('span', { classe: 's-dg__pnum', texte: String(num), attrs: { 'aria-hidden': 'true' } }),
+                creer('h3', { classe: 's-dg__ptitre', id: id, texte: titre, attrs: { tabindex: '-1' } })]),
+            chapo ? creer('p', { classe: 's-dg__chapo', texte: chapo }) : null
+        ].concat(corps));
+    };
+    var aller = function (id) {
+        var h = document.getElementById(id);
+        if (h) {
+            h.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            h.focus({ preventScroll: true });
+        }
+    };
+    var carte = function (num, id, titre, texte, icone) {
+        var b = creer('button', { classe: 's-dg__carte', attrs: { type: 'button' } }, [
+            creer('span', { classe: 's-dg__cnum', texte: String(num), attrs: { 'aria-hidden': 'true' } }),
+            creer('span', { classe: 's-dg__ctexte' }, [creer('span', { classe: 's-dg__ctitre' }, [creer('span', { classe: 'fr-icon-' + icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), titre]), creer('span', { classe: 's-dg__cdesc', texte: texte })])
+        ]);
+        b.addEventListener('click', function () { aller(id); });
+        return creer('li', {}, [b]);
+    };
+    var bref = creer('section', { classe: 's-dg__bref', attrs: { 'aria-labelledby': 'aSecBref' } }, [
+        creer('h3', { classe: 's-dg__btitre', id: 'aSecBref', texte: o.sansInviter ? 'En bref : deux choses à faire, dans cet ordre' : 'En bref : trois choses à faire, dans cet ordre' }),
+        creer('ol', { classe: 's-dg__cartes' }, [
+            o.sansInviter ? null : carte(1, 'aSecInviter', 'Inviter', o.carte1 || 'Qui entre dans le document.', 'user-add-line'),
+            carte(nRol, 'aSecRoles', 'Donner un rôle', 'Ce que chacun peut y faire.', 'team-line'),
+            carte(nReg, 'aSecRegles', 'Poser les règles d\'accès', o.carte3 || 'Qui voit la page Admin et le paramétrage.', 'lock-line')
+        ]),
+        creer('p', { classe: 's-dg__alerte' }, [creer('span', { classe: 'fr-icon-error-warning-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), (o.alerteBref || 'Sans les règles d\'accès, un éditeur peut tout modifier et voir la page Admin.') + ' Finissez toujours par vérifier (partie ' + nVer + ').'])
+    ]);
+    var inviter = creer('ol', { classe: 's-droits' }, [
+        { titre: 'Ouvrir le partage', texte: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs ».' },
+        { titre: 'Ajouter les personnes', texte: 'Saisissez le courriel de chaque personne (adresse du ministère), une par une ou plusieurs à la suite.' },
+        { titre: 'Choisir le rôle', texte: 'À côté de chaque personne, choisissez Propriétaire, Éditeur ou Lecteur (voir la partie ' + nRol + ').' },
+        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer » : chaque personne reçoit un courriel avec le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
+        { titre: 'Garder l\'accès public désactivé', texte: 'Dans la même fenêtre, l\'accès public doit rester désactivé : seules les personnes invitées entrent dans le document.' }
+    ].map(function (x, k) { return sousEtape(x, k); }));
+    var roles = creer('table', { classe: 's-roles' }, [
+        creer('thead', {}, [creer('tr', {}, [creer('th', { attrs: { scope: 'col' }, texte: 'Rôle à donner' }), creer('th', { attrs: { scope: 'col' }, texte: 'Pour qui' }), creer('th', { attrs: { scope: 'col' }, texte: 'Ce que la personne peut faire' })])]),
+        creer('tbody', {}, (o.roles || [
+            ['Propriétaire', 'Les administrateurs du widget', 'Tout : paramétrer, voir la page Admin, inviter et gérer les droits.'],
+            ['Éditeur', 'Les personnes qui saisissent', 'Ajouter et modifier des données, dans les limites des règles de la partie ' + nReg + '.'],
+            ['Lecteur', 'Les personnes qui consultent', 'Consulter, sans rien modifier.']
+        ]).map(function (r) { return creer('tr', {}, [creer('th', { attrs: { scope: 'row' }, texte: r[0] }), creer('td', { texte: r[1] }), creer('td', { texte: r[2] })]); }))
+    ]);
+    var quiAdmin = o.quiAdmin === false ? null : creer('p', { classe: 's-dg__encart', id: 'aQuiAdmin' }, [creer('strong', { texte: 'Qui est « Admin » ? ' }), o.quiAdmin || 'Toute personne qui peut créer des pages, des tables et des colonnes : elle voit l\'étiquette « Admin » et le paramétrage. Seuls les propriétaires peuvent inviter de nouvelles personnes.']);
+    var etapes = o.etapes || [];
+    var regles = [];
+    etapes.forEach(function (x) {
+        if (x.titre === 'Vérifier') {
+            return;
+        }
+        if (x.titre === 'Cacher la page Admin' && !x.action && o.statutAdmin) {
+            x = Object.assign({}, x, { extra: [o.statutAdmin()] });
+        }
+        regles.push(x);
+    });
+    var olRegles = creer('ol', { classe: 's-droits' }, regles.map(function (x, k) { return sousEtape(x, k, x.titre === 'Enregistrer' ? 's-dg__enreg' : ''); }));
+    var verifier = creer('div', { classe: 's-dg__verif' }, [
+        o.verifAvant ? creer('p', { classe: 's-droits__texte', texte: o.verifAvant }) : null,
+        creer('p', { classe: 's-droits__texte', texte: 'Dans les Permissions avancées, bouton « Voir en tant que », en haut à droite : choisissez le courriel d\'un éditeur. Le document s\'affiche comme il le voit. Contrôlez :' }),
+        creer('ul', { classe: 's-dg__coches' }, (o.coches || [
+            'Il ne voit pas la page Admin.',
+            'Il ne voit ni l\'étiquette « Admin » ni le paramétrage du widget.',
+            'Il saisit là où vous l\'avez prévu, et seulement là.'
+        ]).map(function (t) { return creer('li', {}, [creer('span', { classe: 'fr-icon-checkbox-circle-line fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), t]); })),
+        o.verifApres ? creer('p', { classe: 's-droits__texte', texte: o.verifApres }) : null,
+        creer('p', { classe: 'w-mention', texte: 'Pour revenir à votre propre vue, cliquez sur le bandeau en haut de l\'écran.' })
+    ]);
+    var faq = creer('div', { classe: 's-dg__faq' }, (o.faq || []).concat([
+        ['Un éditeur voit encore la page Admin', 'Vérifiez que vous avez cliqué sur « Enregistrer » (étape « Enregistrer » de la partie ' + nReg + '), puis que la ligne « Tous les autres » de la table ' + owner + ' est entièrement en rouge barré.'],
+        ['Un éditeur ne peut plus saisir', 'Une ligne « Tous les autres » refuse trop. Sur les tables de données, laissez « Tous les autres » sans réglage, sauf si vous voulez la lecture seule.'],
+        ['J\'ai quitté les Permissions avancées sans enregistrer', 'Les règles posées sont perdues. Reprenez la partie ' + nReg + ', puis cliquez sur « Enregistrer » avant de quitter la page.'],
+        o.sansInviter ? null : ['Une personne invitée n\'a pas reçu le courriel', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Vous pouvez aussi lui envoyer directement le lien du document.']
+    ]).filter(Boolean).map(function (q) { return creer('details', { classe: 's-dg__q' }, [creer('summary', { texte: q[0] }), creer('p', { classe: 's-droits__texte', texte: q[1] })]); }));
+    return creer('div', { classe: 'w-general s-droits-page s-dg' + (o.classe ? ' ' + o.classe : '') }, [
+        creer('div', { classe: 's-droits__entete s-dg__entete' }, [creer('p', { classe: 's-dg__intro', texte: 'Marche à suivre pour ouvrir le document aux bonnes personnes, avec les bons droits.' }),
+            bouton('Imprimer la marche à suivre', 'secondaire', 'printer-line', imprimerDroits, { petit: true, id: 'aImprimerDroits' })]),
+        bref,
+        o.sansInviter ? null : partie(1, 'aSecInviter', 'Inviter les personnes', null, [inviter]),
+        partie(nRol, 'aSecRoles', 'Choisir le bon rôle', o.chapoRoles || null, [roles, quiAdmin].concat(o.encarts || [])),
+        partie(nReg, 'aSecRegles', o.titreRegles || 'Protéger le paramétrage', o.chapoRegles || 'Les règles d\'accès décident qui voit la page Admin et qui peut changer les réglages du widget. Elles se posent dans « Permissions avancées ».', [
+            alerte('warning', null, 'Rien n\'est gardé tant que vous n\'avez pas cliqué sur « Enregistrer », en haut à gauche des Permissions avancées. Quitter la page avant efface toutes les règles posées.'),
+        ].concat(o.avantRegles || []).concat([olRegles]).concat(o.apresRegles || [])),
+        partie(nVer, 'aSecVerifier', 'Vérifier', 'Une minute pour être sûr que les règles font ce que vous attendez.', [verifier]),
+        partie(nPb, 'aSecProblemes', 'En cas de problème', null, [faq])
+    ]);
+}
+async function copierTexte(t, champ, message) {
+    try {
+        await navigator.clipboard.writeText(t);
+        afficherSucces(message || 'Lien copié.');
+    }
+    catch (e) {
+        if (champ) {
+            champ.focus();
+            champ.select();
+        }
+        toast(champ ? 'Le texte est sélectionné : copiez-le avec Ctrl+C (ou Cmd+C).' : 'La copie a été refusée par le navigateur : sélectionnez le texte et copiez-le avec Ctrl+C (ou Cmd+C).', { type: 'avertissement' });
+    }
+}
+function blocDroits() {
+    var biblio = LABEL_CENTRALE;
+    var duW = ' and rec.WIDGET == "' + NOM_WIDGET + '"';
+    var proprio = { condition: 'user.Access in [OWNER]', droits: { R: true, U: true, C: true, D: true } };
+    var tout = function (v) { return { R: v, U: v, C: v, D: v }; };
+    var nomT = function (k, defaut) { return etat.t[k] ? libelleTable(etat.t[k]) : defaut; };
+    return [
+        { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les personnes contournent toutes les règles. Si votre document a une règle commune en tête de chaque table (personnes inactives, par exemple), gardez-la en première ligne de chaque table ci-dessous.', modele: modeleReglesSpeciales() },
+        { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.', modele: modeleBarreAcl(titreOwner()) },
+        { titre: 'Cacher la page Admin', texte: 'Cette table n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre table.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
+        { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
+            { condition: 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW, droits: tout(false) },
+            { condition: 'rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"', droits: { R: true, U: false, C: false, D: false } },
+            { note: 'laisser sans réglage' }] }], 'aAclB') },
+        { titre: 'Les personnes', texte: 'Chacun s\'ajoute à la liste à sa première visite et modifie sa propre fiche (poste de travail épinglé, personnes suivies, jours de prêt) ; tout le monde voit les noms, pour suivre un collègue ; seuls les propriétaires modifient les autres fiches.', modele: modeleAcl(nomT('personnes', 'des personnes'), [{ colonnes: 'Toutes', regles: [proprio,
+            { condition: 'rec.CREE_PAR == user.Email or rec.EMAIL == user.Email', droits: { R: true, U: true, C: true, D: true } },
+            { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclP') },
+        { titre: 'Les postes de travail', texte: 'Tout le monde voit les postes de travail ; seuls les propriétaires les modifient.', modele: modeleAcl(nomT('postes', 'des postes de travail'), [{ colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclS') },
+        { titre: 'Les réservations', texte: 'Chacun crée ses réservations, confirme sa présence et annule les siennes, y compris celles faites pour lui par un collègue ; tout le monde voit les réservations des autres, pour savoir qui est là, sans pouvoir les modifier ; personne ne supprime (on annule).', modele: modeleAcl(nomT('resas', 'des réservations'), [{ colonnes: 'Toutes', regles: [proprio,
+            { condition: 'rec.CREE_PAR == user.Email or rec.PERSONNE.EMAIL == user.Email', droits: { R: true, U: true, C: true, D: false } },
+            { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclR') },
+        { titre: 'Les signalements', texte: 'Tout le monde peut signaler un problème ; seuls les propriétaires les traitent.', modele: modeleAcl(nomT('signalements', 'des signalements'), [{ colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclG') },
+        { titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues, sans avertissement.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('span', { classe: 's-acl__btn', texte: 'Enregistrer' }), ' devient ', creer('span', { classe: 's-acl__btn s-acl__btn--fait', texte: 'Enregistré' })]) },
+        { titre: 'Vérifier' }
+    ];
+}
+function etapeDroits() {
+    return guideDroitsDg({
+        etapes: blocDroits(),
+        owner: titreOwner(),
+        statutAdmin: function () {
+            return creer('p', { classe: 's-droits__ligne s-dg__statut' }, [
+                creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (etat.pageProtegee ? 'fr-badge--success' : 'fr-badge--warning'), texte: etat.pageProtegee ? 'Page Admin prête' : 'Page Admin pas encore cachée' }),
+                etat.pageProtegee || !accesComplet() ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPageGestion, { petit: true, id: 'aReserverPage2' })]);
+        },
+        roles: [['Propriétaire', 'Les gestionnaires des postes de travail', 'Tout : régler, gérer les postes de travail et les personnes, voir l\'occupation et les statistiques, gérer les droits.'],
+            ['Éditeur', 'Les personnes qui réservent', 'Réserver, confirmer leur présence, prêter leur poste de travail attitré, une fois les règles posées.'],
+            ['Lecteur', 'Les personnes qui consultent', 'Voir les postes de travail libres, sans pouvoir réserver.']],
+        confirmerPlus: 'Envoyez-lui aussi le lien de la page « ' + NOM_PAGE_UTILISATEURS + ' ».',
+        carte3: 'Qui voit la page Admin et qui touche aux réservations des autres.',
+        alerteBref: 'Sans les règles d\'accès, une personne peut modifier les réservations des autres et voir la page Admin.',
+        coches: ['Elle ne voit pas la page Admin.', 'Elle réserve, confirme sa présence et annule ses propres réservations.', 'Elle ne modifie pas les réservations des autres.']
+    });
+}
 </script>
 </body>
 </html>
