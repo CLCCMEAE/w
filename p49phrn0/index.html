@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBureaux
-  Version : 1.0.6 - 24/11/2026
+  Version : 1.0.7 - 24/11/2026
   Description : réservation de postes de travail par demi-journée, présence et prêt des postes attitrés.
 -->
 <head>
@@ -562,6 +562,8 @@
       .wb-g--autre { display: table-cell !important; }
       .wb-g-cadre { overflow: visible; }
     }
+    .wb-regles__limite { display: flex; flex-direction: column; gap: .75rem; padding-left: 2rem; }
+    .wb-regles__limite[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -604,7 +606,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.6';
+var VERSION_WIDGET = '1.0.7';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBureaux';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -631,7 +633,7 @@ var CONFIG_DEFAUT = {
     matin: '08:30', midi: '13:00', soir: '19:00',
     confirmeMatin: '10:00', confirmeApm: '14:30', liberer: true,
     jours: [1, 2, 3, 4, 5],
-    limite: 3, limiteSur: 'cle', avance: 14, derniereMinute: '16:00',
+    limiter: false, limite: 3, limiteSur: 'cle', avance: 14, derniereMinute: '16:00',
     recurrence: true, attitresProposes: true,
     equipements: ['Eole', 'Double écran', 'Poste de travail adapté'], equipementCle: 'Eole',
     equipes: [], societes: [],
@@ -792,6 +794,7 @@ function configValide(o) {
         confirmeMatin: heureValide(o.confirmeMatin, d.confirmeMatin), confirmeApm: heureValide(o.confirmeApm, d.confirmeApm),
         liberer: o.liberer === undefined ? d.liberer : !!o.liberer,
         jours: Array.isArray(o.jours) ? o.jours.map(Number).filter(function (x, i, t) { return x >= 0 && x <= 6 && t.indexOf(x) === i; }).sort() : d.jours.slice(),
+        limiter: o.limiter === true,
         limite: entierBorne(o.limite, 1, 7, d.limite),
         limiteSur: o.limiteSur === 'tous' ? 'tous' : 'cle',
         avance: entierBorne(o.avance, 1, 7 * MAX_SEMAINES_RESA, d.avance),
@@ -1314,7 +1317,7 @@ function joursDansLimite(personne, lundi, ajouts) {
     (ajouts || []).forEach(compter);
     return n;
 }
-function limiteDe(personne) { return personne && personne.limite !== null ? personne.limite : cfg().limite; }
+function limiteDe(personne) { return personne && personne.limite !== null ? personne.limite : (cfg().limiter ? cfg().limite : 7); }
 function sansLimite(personne) { return limiteDe(personne) >= 7; }
 function estDerniereMinute(j, now) {
     now = now || partiesMaintenant();
@@ -4504,11 +4507,12 @@ function texteEnClair(c) {
     var suite = jours.length > 1 && jours.every(function (d, i) { return i === 0 || ((d + 6) % 7) === ((jours[i - 1] + 6) % 7) + 1; });
     var tj = suite ? 'du ' + JOURS_LONGS[jours[0]] + ' au ' + JOURS_LONGS[jours[jours.length - 1]] : jours.map(function (d) { return JOURS_LONGS[d]; }).join(', ');
     var cle = c.limiteSur === 'cle' && c.equipementCle ? ' avec ' + c.equipementCle : '';
-    var t = tj.charAt(0).toUpperCase() + tj.slice(1) + ', chacun réserve ' + (c.limite >= 7 ? 'sans limite de jours' : 'au plus ' + pluriel(c.limite, 'jour') + cle + ' par semaine') + ', au plus tôt ' + pluriel(c.avance, 'jour') + ' avant.';
+    var lim = c.limiter ? c.limite : 7;
+    var t = tj.charAt(0).toUpperCase() + tj.slice(1) + ', chacun réserve ' + (lim >= 7 ? 'sans limite de jours' : 'au plus ' + pluriel(c.limite, 'jour') + cle + ' par semaine') + ', au plus tôt ' + pluriel(c.avance, 'jour') + ' avant.';
     if (c.liberer) {
         t += ' Il confirme sa présence avant ' + texteHeure(c.confirmeMatin) + ' (' + texteHeure(c.confirmeApm) + ' l\'après-midi), sinon le poste de travail est proposé à d\'autres.';
     }
-    if (c.limite < 7) {
+    if (lim < 7) {
         t += ' La veille à ' + texteHeure(c.derniereMinute) + ', les postes de travail' + cle + ' encore libres sont ouverts à tous.';
     }
     return t;
@@ -4554,13 +4558,18 @@ function vueRegles(main) {
     limite.addEventListener('change', function () { c.limite = Number(limite.value); maj(); });
     var eqCle = liste('gEqCle', c.equipements.map(function (e) { return { valeur: e, libelle: e }; }), c.equipementCle, { vide: 'Aucun' });
     eqCle.addEventListener('change', function () { c.equipementCle = eqCle.value; maj(); });
-    var b2 = bloc(2, 'L\'équité', [
+    var champsLimite = creer('div', { classe: 'wb-regles__limite', id: 'gChampsLimite' }, [
         creer('div', { classe: 'wb-ligne-champs' }, [champ('Jours par personne et par semaine', limite, { aide: 'Une autre limite peut être donnée à une personne, dans « Les personnes ».' }),
             groupeRadios('La limite compte', 'gSur', [{ valeur: 'cle', libelle: 'les postes de travail avec l\'équipement choisi' }, { valeur: 'tous', libelle: 'tous les postes de travail' }], c.limiteSur, function (v) { c.limiteSur = v; maj(); })]),
         champ('Équipement rare, compté dans la limite', eqCle, { aide: 'Les postes de travail sans cet équipement sont attribués d\'abord à ceux qui n\'en ont pas besoin.' }),
-        creer('div', { classe: 'wb-ligne-champs' }, [champ('On réserve au plus tôt, en jours avant', nombre('gAvance', 'avance', 1, 7 * MAX_SEMAINES_RESA)),
-            champ('Dernière minute : la veille à partir de', heure('gDerniere', 'derniereMinute'), { aide: 'Les postes de travail encore libres sont ouverts à tous, sans limite. Ceux libérés le jour même aussi.' })]),
-        coche('gRecurrence', 'Réservations répétées chaque semaine, dans la limite', 'recurrence', 'Jusqu\'à ' + MAX_SEMAINES_RESA + ' semaines à l\'avance.'),
+        champ('Dernière minute : la veille à partir de', heure('gDerniere', 'derniereMinute'), { aide: 'Les postes de travail encore libres sont ouverts à tous, sans limite. Ceux libérés le jour même aussi.' })
+    ]);
+    champsLimite.hidden = !c.limiter;
+    var b2 = bloc(2, 'L\'équité', [
+        caseACocher('gLimiter', 'Limiter le nombre de jours par personne et par semaine', c.limiter, { aide: 'Sans limite, chacun réserve autant de jours qu\'il veut.', change: function (e) { c.limiter = e.target.checked; champsLimite.hidden = !c.limiter; maj(); } }),
+        champsLimite,
+        champ('On réserve au plus tôt, en jours avant', nombre('gAvance', 'avance', 1, 7 * MAX_SEMAINES_RESA)),
+        coche('gRecurrence', 'Réservations répétées chaque semaine', 'recurrence', 'Jusqu\'à ' + MAX_SEMAINES_RESA + ' semaines à l\'avance.'),
         coche('gAttitres', 'Un poste de travail attitré prêté par son titulaire est proposé aux autres', 'attitresProposes')
     ]);
     var listeEq = creer('ul', { classe: 'wb-tags', id: 'gEqListe' });
