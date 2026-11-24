@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFormulaire
-  Version : 1.1.13 - 24/11/2026
+  Version : 1.1.14 - 24/11/2026
   Description : formulaires avec logique conditionnelle, réponses et instruction de dossiers.
 -->
 <head>
@@ -264,6 +264,10 @@
     .w-palette__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 1px; }
     .w-ecran > [class*="fr-icon-"], .w-onglet-btn > [class*="fr-icon-"] { margin-right: .375rem; }
     .w-carte-q__meta [class*="fr-icon-"], .w-faux-champ > [class*="fr-icon-"], .w-fichiers [class*="fr-icon-"] { margin-right: .25rem; }
+    .w-palette__calculs { display: flex; flex-direction: column; align-items: flex-start; gap: .375rem; margin: 0 0 1rem; padding: .75rem; border: 2px solid var(--border-action-high-blue-france); background: var(--background-alt-blue-france); }
+    .w-palette__calculs p { margin: 0; }
+    .w-palette__calculs-titre { display: flex; align-items: center; gap: .375rem; font-weight: 700; color: var(--text-action-high-blue-france); }
+    .w-reglages__tete-calc { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
     .w-palette__icone { width: 1.25rem; text-align: center; color: var(--text-action-high-blue-france); }
     .w-editeur__centre { overflow-y: auto; padding: 1rem 1.25rem; background: var(--background-alt-grey); color: var(--text-default-grey); }
     .w-pages-gauche { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
@@ -1159,7 +1163,7 @@ DF.outils = (function () {
 })();
 var echapperHTML = DF.outils.echapperHTML;
 var logSecurite = DF.outils.logSecurite;
-var VERSION_WIDGET = '1.1.13';
+var VERSION_WIDGET = '1.1.14';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'Diploformulaire';
@@ -9497,6 +9501,12 @@ function blocChampsTable(def) {
 }
 function palette(def) {
     var nav = creer('nav', { classe: 'w-palette', attrs: { 'aria-label': 'Types de question' } });
+    var nbC = (def.calculs || []).length;
+    nav.appendChild(creer('div', { classe: 'w-palette__calculs' }, [
+        creer('p', { classe: 'w-palette__calculs-titre' }, [icoFo(['calculator-line', 'equalizer-line', 'hashtag']), 'Calculs']),
+        creer('p', { classe: 'w-mention', texte: 'Totaux, montants, scores, durées : calculés à partir des réponses.' }),
+        bouton(nbC ? 'Gérer les calculs (' + nbC + ')' : 'Ajouter un calcul', 'secondaire', null, function () { ouvrirCalculs(def, null, !nbC); }, { petit: true, id: 'cCalculs' })
+    ]));
     nav.appendChild(creer('p', { classe: 'w-mention w-palette__aide', texte: 'Cliquez pour ajouter sous la question choisie, ou glissez dans la page.' }));
     var champs = blocChampsTable(def);
     var cible = nav;
@@ -9549,12 +9559,11 @@ function barrePages(def) {
                 attrs: { 'aria-current': cour ? 'page' : null, 'data-infobulle': nomP.length > 28 ? nomP : null }, clic: function () { etat.conc.page = p.id; etat.conc.question = ''; redessinerEditeur('cPg_' + p.id); } }, [creer('span', { classe: 'w-page-puce__nom', texte: nomP })])]));
     });
     ol.appendChild(creer('li', {}, [lienAction('+ Page', function () { menuNouvellePage(def); }, { id: 'cPlusPage' })]));
-    var calc = lienAction('Calculs (' + (def.calculs || []).length + ')', function () { ouvrirCalculs(def); }, { id: 'cCalculs' });
     var tete = creer('p', { classe: 'w-pages-titre', id: 'cPagesTitre' }, ['Pages du formulaire ',
         creer('span', { classe: 'w-mention', texte: 'dans l\'ordre où la personne les voit : cliquez une page pour la modifier' })]);
     ol.setAttribute('aria-labelledby', 'cPagesTitre');
     ol.removeAttribute('aria-label');
-    return creer('div', { classe: 'w-pages-barre' }, [creer('div', { classe: 'w-pages-gauche' }, [tete, ol]), calc]);
+    return creer('div', { classe: 'w-pages-barre' }, [creer('div', { classe: 'w-pages-gauche' }, [tete, ol])]);
 }
 function menuNouvellePage(def) {
     var choix = [{ type: 'page', libelle: 'Page de questions' }, { type: 'fin', libelle: 'Page de fin (une autre issue)' }];
@@ -9700,7 +9709,7 @@ function carteQuestion(def, p, q, i, liste) {
     li.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', 'move:' + q.id); e.dataTransfer.effectAllowed = 'move'; });
     brancherDepot(li, def, liste, i);
     var tete = creer('button', { classe: 'w-carte-q__corps', id: 'cQ_' + q.id, attrs: { 'aria-pressed': choisie ? 'true' : 'false', 'aria-label': 'Régler : ' + (q.libelle || t.libelle) } }, contenuCarte(def, q));
-    tete.addEventListener('click', function () { etat.conc.question = q.id; marquerChoisie(q.id); var r = document.getElementById('cReglages'); vider(r); r.appendChild(panneauReglages(def)); });
+    tete.addEventListener('click', function () { etat.conc.question = q.id; etat.conc.calculs = false; marquerChoisie(q.id); var r = document.getElementById('cReglages'); vider(r); r.appendChild(panneauReglages(def)); });
     var outils = creer('div', { classe: 'w-carte-q__outils' }, [
         boutonIcone('Monter : ' + q.libelle, 'arrow-up-line', function () { deplacerQuestion(def, liste, q, -1); }, { id: 'cMonter_' + q.id, variante: 'discret', desactive: i === 0 }),
         boutonIcone('Descendre : ' + q.libelle, 'arrow-down-line', function () { deplacerQuestion(def, liste, q, 1); }, { id: 'cDescendre_' + q.id, variante: 'discret', desactive: i === liste.length - 1 }),
@@ -9895,6 +9904,9 @@ async function supprimerQuestion(def, liste, q) {
     annoncer('Question retirée du formulaire');
 }
 function panneauReglages(def) {
+    if (etat.conc.calculs) {
+        return panneauCalculs(def);
+    }
     var q = questionChoisie(def);
     var box = creer('div', { classe: 'w-reglages' });
     if (!q) {
@@ -10675,8 +10687,35 @@ function panneauCalculQuestion(def, q, maj) {
     dessiner();
     return z;
 }
-function ouvrirCalculs(def, idOuvert) {
+function ouvrirCalculs(def, idOuvert, creerUn) {
     def.calculs = def.calculs || [];
+    if (creerUn) {
+        nouveauCalcul(def);
+    }
+    etat.conc.calculs = true;
+    if (etat.vue !== 'concevoir') {
+        afficherVue('concevoir');
+    }
+    var r = document.getElementById('cReglages');
+    if (r) {
+        vider(r);
+        r.appendChild(panneauReglages(def));
+    }
+    var t = document.getElementById(creerUn ? 'cCalcNom' + (def.calculs.length - 1) : 'cCalcTitre');
+    if (t) {
+        t.focus();
+    }
+}
+function nouveauCalcul(def) {
+    def.calculs.push({ id: DF.outils.nouvelId('c'), nom: 'Calcul ' + (def.calculs.length + 1), type: 'nombre', decimales: 'auto', initial: { fixe: 0 }, regles: [] });
+    modifie();
+}
+function panneauCalculs(def) {
+    def.calculs = def.calculs || [];
+    var box = creer('div', { classe: 'w-reglages w-reglages--calculs' });
+    box.appendChild(creer('div', { classe: 'w-reglages__tete-calc' }, [creer('h3', { classe: 'w-reglages__titre', id: 'cCalcTitre', texte: 'Calculs du formulaire', attrs: { tabindex: '-1' } }),
+        bouton('Fermer', 'tertiaire', 'close-line', function () { etat.conc.calculs = false; redessinerEditeur('cCalculs'); }, { petit: true, id: 'cCalcFermer' })]));
+    box.appendChild(creer('p', { classe: 'w-mention', texte: 'Utilisables dans les conditions, la question « Calcul » et les textes (@).' }));
     var corps = creer('div', { classe: 'w-pile', id: 'cCalcCorps' });
     function dessiner(focus) {
         vider(corps);
@@ -10694,12 +10733,9 @@ function ouvrirCalculs(def, idOuvert) {
         }
     }
     dessiner();
-    ouvrirModale({ titre: 'Calculs du formulaire', sousTitre: 'Utilisables dans les conditions, la question « Calcul » et les textes (@).', large: true, corps: [corps],
-        pied: [lienAction('+ Calcul', function () { def.calculs.push({ id: DF.outils.nouvelId('c'), nom: 'Calcul ' + (def.calculs.length + 1), type: 'nombre', decimales: 'auto', initial: { fixe: 0 }, regles: [] }); modifie(); dessiner('cCalcNom' + (def.calculs.length - 1)); }, { id: 'cCalcAjout' }),
-            creer('span', { classe: 'w-pousse' }), bouton('Fermer', null, null, fermerModale, { id: 'cCalcFermer' })],
-        surFermeture: function () { if (etat.vue === 'concevoir') {
-            redessinerEditeur();
-        } } });
+    box.appendChild(corps);
+    box.appendChild(lienAction('+ Calcul', function () { nouveauCalcul(def); dessiner('cCalcNom' + (def.calculs.length - 1)); }, { id: 'cCalcAjout' }));
+    return box;
 }
 function rendreLogique(zone, def) {
     var pages = def.pages;
