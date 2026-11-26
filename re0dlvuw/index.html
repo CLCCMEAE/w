@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.9 - 26/11/2026
+  Version : 1.0.10 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -657,7 +657,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.9';
+var VERSION_WIDGET = '1.0.10';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -4863,26 +4863,12 @@ function roleChoisi(nom, defaut) {
     var c = document.querySelector('input[name="' + nom + '"]:checked');
     return c ? c.value : defaut;
 }
-async function finirInvitation(adresses, inviter) {
-    if (!inviter || !adresses.length) {
-        return '';
-    }
-    try {
-        await inviterAuDocument(adresses);
-        return adresses.length > 1 ? ' Les personnes sont invitées au document.' : ' La personne est invitée au document : elle reçoit un courriel.';
-    }
-    catch (e) {
-        logSecurite('AVERTISSEMENT', 'Invitation par le widget impossible', e);
-        etat.aInviter = adresses;
-        return null;
-    }
-}
-function messageInvitationManuelle(adresses) {
-    return 'L\'invitation n\'a pas pu être envoyée par le widget (seul un propriétaire du document peut inviter). Dans « Partager », « Gérer les utilisateurs », ajoutez : ' + adresses.join(', ') + ', avec le rôle Éditeur.';
+function rappelPartage(adresses, quoi) {
+    toast(quoi + ' Pour ' + (adresses.length > 1 ? 'leur' : 'lui') + ' ouvrir le document, ajoutez ' + (adresses.length > 1 ? 'ces adresses' : 'son adresse') + ' dans « Partager », « Gérer les utilisateurs », avec le rôle Éditeur, puis prévenez ' + (adresses.length > 1 ? 'ces personnes' : 'la personne') + ' vous-même : Diplotable n\'envoie aucun message.',
+        { type: 'info', duree: 20000, action: { libelle: adresses.length > 1 ? 'Copier les adresses' : 'Copier l\'adresse', icone: 'file-copy-line', id: 'wCopierAdr', fn: function () { return copierTexte(adresses.join(', '), null, adresses.length > 1 ? 'Adresses copiées.' : 'Adresse copiée.'); } } });
 }
 function ouvrirAcces(a) {
     var srv = liste('acService', optionsServices(a.service), a.service, { vide: 'Choisir' });
-    var inviter = caseACocher('acInviter', 'Inviter au document à l\'acceptation', true);
     var existe = etat.personnes.filter(function (p) { return p.email === a.email; })[0];
     var accepter = async function () {
         var service = srv.value;
@@ -4907,23 +4893,17 @@ function ouvrirAcces(a) {
         if (!r) {
             return;
         }
-        var m = await finirInvitation([a.email], inviter.querySelector('input').checked);
         fermerPanneau();
         dessiner();
-        if (m === null) {
-            toast(messageInvitationManuelle([a.email]), { type: 'avertissement', duree: 15000 });
-        }
-        else {
-            afficherSucces(nomPersonne(a) + ' est ajoutée à la liste.' + m);
-        }
+        rappelPartage([a.email], nomPersonne(a) + ' est ajoutée à la liste.');
     };
     ouvrirPanneau({ titre: nomListe(a), sousTitre: 'Demande d\'accès' + (texteHorodatage(a.creeLe) ? ' du ' + texteHorodatage(a.creeLe) : ''), cle: 'acces', focus: 'acService',
         corps: [creer('p', { classe: 'w-texte', texte: a.email }),
             a.precisions ? creer('p', { classe: 'w-mention', texte: '« ' + a.precisions + ' »' }) : null,
             existe ? alerte('info', null, 'Cette adresse est déjà dans la liste : sa fiche sera mise à jour.') : null,
-            champ('Service', srv), radiosRole('acRole', 'Agent'), inviter,
-            creer('p', { classe: 'w-mention', texte: 'Le prénom et le nom sont repris de l\'adresse. Après l\'invitation, la personne reçoit un courriel ; à sa première ouverture de « ' + NOM_PAGE_UTILISATEURS + ' », elle complète son profil voyageur, nécessaire pour faire une demande.' })],
-        pied: [creer('span', { classe: 'w-pousse' }), bouton('Refuser', 'secondaire', null, function () { refuserAcces(a); }, { id: 'acRefuser' }), bouton('Accepter et inviter', null, null, accepter, { id: 'acAccepter', desactive: !accesComplet() })] });
+            champ('Service', srv), radiosRole('acRole', 'Agent'),
+            creer('p', { classe: 'w-mention', texte: 'Le prénom et le nom sont repris de l\'adresse. Ensuite, ajoutez la personne dans « Partager » et prévenez-la vous-même ; à sa première ouverture de « ' + NOM_PAGE_UTILISATEURS + ' », elle complète son profil voyageur, nécessaire pour faire une demande.' })],
+        pied: [creer('span', { classe: 'w-pousse' }), bouton('Refuser', 'secondaire', null, function () { refuserAcces(a); }, { id: 'acRefuser' }), bouton('Accepter', null, null, accepter, { id: 'acAccepter', desactive: !accesComplet() })] });
 }
 function refuserAcces(a) {
     var zone = saisie('acMotif', '', { multiligne: true, lignes: 3 });
@@ -4938,7 +4918,6 @@ function refuserAcces(a) {
 function ouvrirAjoutPersonne() {
     var f = { prenom: saisie('npPrenom', ''), nom: saisie('npNom', ''), email: saisie('npEmail', '', { type: 'email' }), fonction: saisie('npFonction', ''),
         srv: liste('npService', optionsServices(''), '', { vide: 'Choisir' }), liste: saisie('npListe', '', { multiligne: true, lignes: 4, indice: 'prenom.nom@exemple.fr' }) };
-    var inviter = caseACocher('npInviter', 'Inviter au document', true);
     var plusieurs = false;
     var ajouter = async function () {
         var role = roleChoisi('npRole', 'Agent');
@@ -4983,15 +4962,9 @@ function ouvrirAjoutPersonne() {
         if (!r) {
             return;
         }
-        var m = await finirInvitation(adresses, inviter.querySelector('input').checked);
         fermerPanneau();
         dessiner();
-        if (m === null) {
-            toast(messageInvitationManuelle(adresses), { type: 'avertissement', duree: 15000 });
-        }
-        else {
-            afficherSucces((adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.' + m);
-        }
+        rappelPartage(adresses, (adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.');
     };
     var rendre = function () {
         var corps = [groupeRadios('Ajouter', 'npMode', [{ valeur: 'une', libelle: 'Une personne' }, { valeur: 'liste', libelle: 'Une liste d\'adresses' }], plusieurs ? 'liste' : 'une', function (v) { plusieurs = v === 'liste'; rendre(); }, { enLigne: true })];
@@ -5001,8 +4974,8 @@ function ouvrirAjoutPersonne() {
         else {
             corps.push(creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]), champ('Adresse professionnelle', f.email), champ('Fonction', f.fonction));
         }
-        corps.push(champ('Service', f.srv), radiosRole('npRole', 'Agent'), inviter);
-        remplirPanneau({ corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'npNon' }), bouton('Ajouter et inviter', null, null, ajouter, { id: 'npOui' })] });
+        corps.push(champ('Service', f.srv), radiosRole('npRole', 'Agent'));
+        remplirPanneau({ corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'npNon' }), bouton('Ajouter', null, null, ajouter, { id: 'npOui' })] });
     };
     ouvrirPanneau({ titre: 'Ajouter une personne', sousTitre: 'Sans passer par le formulaire d\'accès', cle: 'ajout', focus: 'npPrenom', corps: [], pied: [] });
     rendre();
@@ -5475,7 +5448,7 @@ async function remplirPublier(zone) {
             'Cliquez sur « Partager » (à côté de « Publier »), puis « Copier le lien ».',
             'Donnez ce lien aux agents du poste : courriel, intranet, affichage.'
         ].map(function (t) { return creer('li', { texte: t }); })));
-        s1.appendChild(alerte('info', null, 'Le formulaire ne donne accès à rien d\'autre : la personne envoie sa demande, vous l\'acceptez et l\'invitez au document.'));
+        s1.appendChild(alerte('info', null, 'Le formulaire ne donne accès à rien d\'autre : la personne envoie sa demande, vous l\'acceptez, l\'ajoutez dans « Partager » et la prévenez vous-même.'));
     }
     else if (accesComplet()) {
         s1.appendChild(bouton('Créer le formulaire « ' + NOM_PAGE_FORMULAIRE + ' »', null, 'file-add-line', function () { return creerFormulaire(zone); }, { petit: true, id: 'aCreerForm' }));
@@ -5572,7 +5545,7 @@ async function creerFormulaire(zone) {
         vue = res.viewRef;
         var act = await actionsChampsFormulaire(res.sectionRef);
         act.push(['UpdateRecord', '_grist_Views', res.viewRef, { name: NOM_PAGE_FORMULAIRE }]);
-        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitBillets', layoutSpec: '', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Vous recevrez un courriel d\'invitation dès qu\'elle sera acceptée.', formAnotherResponse: false }) }]);
+        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitBillets', layoutSpec: '', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Le service des billets vous préviendra quand elle sera acceptée.', formAnotherResponse: false }) }]);
         await agir(act);
         relayer(miseEnPageFormulaire(res.sectionRef), 'Mise en page du formulaire');
         masquerLoader();
@@ -5602,7 +5575,7 @@ async function miseEnPageFormulaire(section) {
     var boite = function (o) { o.id = 'w' + (n++); return o; };
     var spec = boite({ type: 'Layout', children: [
         boite({ type: 'Paragraph', text: '## **Demande d\'accès à WuitBillets**', alignment: 'center' }),
-        boite({ type: 'Paragraph', text: 'Pour faire vos demandes de déplacement, demandez d\'abord votre accès. Le service des billets vous invitera au document.', alignment: 'center' }),
+        boite({ type: 'Paragraph', text: 'Pour faire vos demandes de déplacement, demandez d\'abord votre accès. Le service des billets vous ouvrira le document et vous préviendra.', alignment: 'center' }),
         boite({ type: 'Section', children: champs.map(function (c) { return boite({ type: 'Field', leaf: c.id }); }) })
     ] });
     await agir([['UpdateRecord', '_grist_Views_section', section, { layoutSpec: JSON.stringify(spec) }]]);
@@ -5751,7 +5724,7 @@ var AIDE = {
     avant: [
         'Le widget a besoin de l\'accès complet au document.',
         'Vous êtes reconnu par l\'adresse avec laquelle vous vous connectez.',
-        'Les agents demandent leur accès par le formulaire ; le service des billets l\'accepte et les invite.'
+        'Les agents demandent leur accès par le formulaire ; le service des billets l\'accepte, leur ouvre le document dans « Partager » et les prévient lui-même.'
     ],
     etapes: {
         'Remplir son profil': { titre: 'une seule fois', points: ['À la première ouverture, le widget propose trois étapes : moi, mes cartes, mes ayants droit.', 'Tout se modifie ensuite avec « Mon profil voyageur ».'] },
@@ -5767,7 +5740,7 @@ var AIDE = {
         { q: 'Ma demande est « à compléter » : que faire ?', r: 'Ouvrez-la : le motif indique ce qui manque. « Compléter » rouvre la demande ; une fois renvoyée, elle reprend le circuit là où elle s\'était arrêtée.' },
         { q: 'Puis-je annuler une demande ?', r: 'Oui, avec un motif, tant que les billets ne sont pas émis. Après, contactez directement le service des billets.' },
         { q: 'Qui voit mes données ?', r: 'Votre date de naissance, vos cartes et vos ayants droit ne sont vus que par vous et le service des billets. Votre chef de service voit les demandes de son service, une fois les droits du document réglés.' },
-        { q: 'Je ne trouve pas la page des demandes', r: 'Demandez votre accès avec le formulaire que vous a transmis le service des billets. Une fois accepté, vous recevez un courriel d\'invitation au document.' }
+        { q: 'Je ne trouve pas la page des demandes', r: 'Demandez votre accès avec le formulaire que vous a transmis le service des billets. Une fois votre demande acceptée, le service des billets vous ouvre le document et vous prévient lui-même.' }
     ]
 };
 var ETAPES_ADMIN = ['Installer', 'Types de déplacement', 'Circuit et règles', 'Publier'];
@@ -6136,9 +6109,9 @@ function guideDroitsDg(o) {
     ]);
     var inviter = creer('ol', { classe: 's-droits' }, [
         { titre: 'Ouvrir le partage', texte: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs ».' },
-        { titre: 'Ajouter les personnes', texte: 'Saisissez le courriel de chaque personne (adresse du ministère), une par une ou plusieurs à la suite.' },
+        { titre: 'Ajouter les personnes', texte: 'Saisissez l\'adresse e-mail professionnelle de chaque personne, une par une ou plusieurs à la suite.' },
         { titre: 'Choisir le rôle', texte: 'À côté de chaque personne, choisissez Propriétaire, Éditeur ou Lecteur (voir la partie ' + nRol + ').' },
-        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer » : chaque personne reçoit un courriel avec le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
+        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer ». Diplotable n\'envoie aucun message : prévenez vous-même chaque personne et donnez-lui le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
         { titre: 'Garder l\'accès public désactivé', texte: 'Dans la même fenêtre, l\'accès public doit rester désactivé : seules les personnes invitées entrent dans le document.' }
     ].map(function (x, k) { return sousEtape(x, k); }));
     var roles = creer('table', { classe: 's-roles' }, [
@@ -6177,7 +6150,7 @@ function guideDroitsDg(o) {
         ['Un éditeur voit encore la page Admin', 'Vérifiez que vous avez cliqué sur « Enregistrer » (étape « Enregistrer » de la partie ' + nReg + '), puis que la ligne « Tous les autres » de la table ' + owner + ' est entièrement en rouge barré.'],
         ['Un éditeur ne peut plus saisir', 'Une ligne « Tous les autres » refuse trop. Sur les tables de données, laissez « Tous les autres » sans réglage, sauf si vous voulez la lecture seule.'],
         ['J\'ai quitté les Permissions avancées sans enregistrer', 'Les règles posées sont perdues. Reprenez la partie ' + nReg + ', puis cliquez sur « Enregistrer » avant de quitter la page.'],
-        o.sansInviter ? null : ['Une personne invitée n\'a pas reçu le courriel', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Vous pouvez aussi lui envoyer directement le lien du document.']
+        o.sansInviter ? null : ['Une personne ajoutée n\'arrive pas à ouvrir le document', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Diplotable ne la prévient pas : envoyez-lui vous-même le lien du document.']
     ]).filter(Boolean).map(function (q) { return creer('details', { classe: 's-dg__q' }, [creer('summary', { texte: q[0] }), creer('p', { classe: 's-droits__texte', texte: q[1] })]); }));
     return creer('div', { classe: 'w-general s-droits-page s-dg' + (o.classe ? ' ' + o.classe : '') }, [
         creer('div', { classe: 's-droits__entete s-dg__entete' }, [creer('p', { classe: 's-dg__intro', texte: 'Marche à suivre pour ouvrir le document aux bonnes personnes, avec les bons droits.' }),
@@ -6250,11 +6223,11 @@ function etapeDroits() {
                 creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (etat.pageProtegee ? 'fr-badge--success' : 'fr-badge--warning'), texte: etat.pageProtegee ? 'Page de gestion prête' : 'Page de gestion pas encore cachée' }),
                 etat.pageProtegee || !accesComplet() ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPageGestion, { petit: true, id: 'aReserverPage2' })]);
         },
-        carte1: 'Les personnes acceptées : le widget les invite, sinon vous le faites.',
-        roles: [['Propriétaire', 'Le service des billets', 'Tout : traiter les demandes, chiffrer, déposer les billets, gérer les personnes, inviter, régler le circuit et les droits.'],
+        carte1: 'Les personnes acceptées : vous les ajoutez dans « Partager ».',
+        roles: [['Propriétaire', 'Le service des billets', 'Tout : traiter les demandes, chiffrer, déposer les billets, gérer les personnes, ouvrir le document, régler le circuit et les droits.'],
             ['Éditeur', 'Les agents et les valideurs', 'Remplir leur profil voyageur, faire leurs demandes, les suivre ; les valideurs valident celles de leur service.'],
             ['Lecteur', 'Personne', 'Ce rôle ne permet pas de faire une demande : ne le donnez pas.']],
-        quiAdmin: 'Le rôle dans WuitBillets (Agent, Valideur, Gestionnaire billets) se règle dans « Les personnes » ; le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires billets doivent être propriétaires : seuls les propriétaires invitent au document.',
+        quiAdmin: 'Le rôle dans WuitBillets (Agent, Valideur, Gestionnaire billets) se règle dans « Les personnes » ; le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires billets doivent être propriétaires : seuls les propriétaires ouvrent le document à de nouvelles personnes.',
         confirmerPlus: 'Envoyez-lui aussi le lien de la page « ' + NOM_PAGE_UTILISATEURS + ' ».',
         carte3: 'Qui voit quelles demandes, et qui voit les données personnelles.',
         alerteBref: 'Sans les règles d\'accès, chaque agent voit les demandes, les dates de naissance et les cartes de tous les autres.',
@@ -6341,18 +6314,6 @@ function listePieces(ids, prefixe, defaut) {
         var nom = nomPiece(id, defaut);
         return creer('li', {}, [boutonLien(nom, function () { return telechargerPiece(id, nom); }, { id: prefixe + k, classe: 'bi-piece', aria: 'Télécharger ' + nom })]);
     }));
-}
-async function inviterAuDocument(adresses) {
-    var j = await jeton(true);
-    var users = {};
-    adresses.forEach(function (a) { users[a] = 'editors'; });
-    var rep = await fetchDelai(j.baseUrl + '/access?auth=' + encodeURIComponent(j.token), {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ delta: { users: users } })
-    }, DELAI_API_MS);
-    if (!rep.ok) {
-        throw new Error('Réponse ' + rep.status);
-    }
-    return true;
 }
 async function lienVoirEnTantQue(email) {
     var j = await jeton(false);
