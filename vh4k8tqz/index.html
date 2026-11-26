@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitVéhicules
-  Version : 1.1.0 - 26/11/2026
+  Version : 1.1.1 - 26/11/2026
   Description : trajets en voiture de service du poste : demande, affectation d'un chauffeur et d'un véhicule, suivi de course, planning et parc.
 -->
 <head>
@@ -736,7 +736,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.0';
+var VERSION_WIDGET = '1.1.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitVéhicules';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -1141,7 +1141,7 @@ function lirePersonnes(d) {
     return (d.id || []).map(function (id, i) {
         var role = colonneDe(d, 'ROLE_VEHICULES', i);
         return { id: id, prenom: ligneBornee(colonneDe(d, 'PRENOM', i), 80), nom: ligneBornee(colonneDe(d, 'NOM', i), 80), email: ligneBornee(colonneDe(d, 'EMAIL', i), 200).toLowerCase(),
-            service: ligneBornee(colonneDe(d, 'SERVICE', i), 80), role: ROLES.indexOf(role) !== -1 ? role : 'Agent',
+            service: ligneBornee(colonneDe(d, 'SERVICE', i), 80), role: ROLES.indexOf(role) !== -1 ? role : 'Agent', ancienChauffeur: colonneDe(d, 'CHAUFFEUR', i) === true,
             fonction: ligneBornee(colonneDe(d, 'FONCTION', i), 120), telephone: ligneBornee(colonneDe(d, 'TELEPHONE', i), 40),
             actif: colonneDe(d, 'INACTIF', i) !== true, connexion: ligneBornee(colonneDe(d, 'CONNEXION', i), 60),
             creePar: ligneBornee(colonneDe(d, 'CREE_PAR', i), 200).toLowerCase(), creeLe: colonneDe(d, 'CREE_LE', i),
@@ -1252,6 +1252,8 @@ async function lireDonnees() {
     }
     etat.empreinte = JSON.stringify(lus.map(function (x) { return [x.id, x.MODIFIE_LE || null, x.STATUT || null, x.SUIVI || null]; }));
 }
+function estPersonneChauffeur(p) { return !!p && (p.ancienChauffeur || etat.chauffeurs.some(function (c) { return c.email && c.email === p.email; })); }
+function passagers() { return etat.personnes.filter(function (p) { return !estPersonneChauffeur(p); }); }
 function chauffeurParId(id) { return id ? etat.chauffeurs.filter(function (c) { return c.id === id; })[0] || null : null; }
 function personneParId(id) { return etat.personnes.filter(function (p) { return p.id === id; })[0] || null; }
 function trajetParId(id) { return etat.trajets.filter(function (d) { return d.id === id; })[0] || null; }
@@ -4152,7 +4154,7 @@ function etapeQui() {
     var remplir = function () {
         vider(res);
         var q = normaliser(rech.value);
-        etat.personnes.filter(function (p) { return p.actif && (!q || (choisi && rech.value === nomListe(choisi)) || normaliser(nomListe(p) + ' ' + p.prenom + ' ' + p.email + ' ' + p.service).indexOf(q) !== -1); })
+        passagers().filter(function (p) { return p.actif && (!q || (choisi && rech.value === nomListe(choisi)) || normaliser(nomListe(p) + ' ' + p.prenom + ' ' + p.email + ' ' + p.service).indexOf(q) !== -1); })
             .sort(function (a, c) { return comparerTexte(nomListe(a), nomListe(c)); }).slice(0, 20).forEach(function (p, k) {
             var li = creer('li', { classe: 'bi-combo__opt', id: 'dOpt' + k, attrs: { role: 'option', tabindex: '-1', 'aria-selected': p.id === b.beneficiaire ? 'true' : 'false' } }, [creer('span', { texte: nomListe(p) }), creer('span', { classe: 'w-mention', texte: p.service || '' })]);
             li.addEventListener('mousedown', function (e) { e.preventDefault(); });
@@ -4312,7 +4314,7 @@ function rafraichirMoi() {
 }
 
 var TITRES_ADMIN = { traiter: 'À traiter', planning: 'Planning', trajets: 'Tous les trajets', echeances: 'Échéances à surveiller', stats: 'Statistiques', vehicules: 'Les véhicules', chauffeurs: 'Les chauffeurs',
-    personnes: 'Les personnes', demande: 'La demande', parc: 'Le parc et le suivi', publier: 'Publier', droits: 'Les droits' };
+    personnes: 'Les passagers', demande: 'La demande', parc: 'Le parc et le suivi', publier: 'Publier', droits: 'Les droits' };
 function titreScene() { return TITRES_ADMIN[etat.admin] || TITRES_ADMIN.traiter; }
 function accesATraiter() { return etat.acces.filter(function (a) { return a.statut === 'À traiter'; }); }
 function vueAdmin(racine) {
@@ -4374,10 +4376,10 @@ function menuAdmin() {
     item('Tous les trajets', 'list-unordered', 'trajets');
     item('Échéances à surveiller', iconeDispo(['alarm-warning-line', 'error-warning-line']), 'echeances', compte(echeances().length));
     item('Statistiques', 'bar-chart-box-line', 'stats');
-    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Le parc et les personnes' }));
+    menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Le parc et les passagers' }));
     item('Les véhicules', iconeDispo(['car-line', 'roadster-line']), 'vehicules');
     item('Les chauffeurs', iconeDispo(['steering-2-line', 'user-star-line', 'user-line']), 'chauffeurs');
-    item('Les personnes', 'team-line', 'personnes', compte(accesATraiter().length));
+    item('Les passagers', 'team-line', 'personnes', compte(accesATraiter().length));
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Pour tout le poste' }));
     [['demande', 'La demande'], ['parc', 'Le parc et le suivi'], ['publier', 'Publier']].forEach(function (d, k, t) {
         var bt = item(d[1], null, d[0], null, creer('span', { classe: 's-acc-num', texte: String(k + 1), attrs: { 'aria-hidden': 'true' } }), 's-acc-etape' + (k === t.length - 1 ? ' s-acc-etape--derniere' : ''));
@@ -4804,13 +4806,19 @@ function vueChauffeurs(main) {
         return;
     }
     var j = aujourdhui();
-    main.appendChild(tableau(['Chauffeur', 'Téléphone', 'Langues', 'Aujourd\'hui', 'À venir', 'Indisponibilité', ''], l.map(function (p, k) {
+    main.appendChild(creer('ul', { classe: 'bi-lignes' }, l.map(function (p, k) {
         var ind = indisposDe('chauffeur', p.id).filter(function (x) { return x.fin > maintenant(); }).sort(function (a, b) { return a.debut - b.debut; })[0];
         var avenir = etat.trajets.filter(function (t) { return t.CHAUFFEUR === p.id && estActif(t) && !estPasse(t); }).length;
-        return ligneTableau([{ noeuds: [boutonLien(nomListe(p), function () { ouvrirChauffeur(p); }, { id: 'aCh' + k }), p.habiliteBlinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: 'Habilité blindé' }) : null] }, p.telephone, p.langues.join(', '),
-            String(trajetsDuJour('CHAUFFEUR', p.id, j)), String(avenir),
-            ind ? (ind.motif || 'Indisponible') + ' · ' + texteIndispo(ind) : '', { noeuds: [boutonLien('Indisponibilités', function () { ouvrirIndispos('chauffeur', p.id); }, { id: 'aChI' + k, aria: 'Indisponibilités de ' + nomPersonne(p) })] }]);
-    }), { legende: 'Chauffeurs' }));
+        var auj = trajetsDuJour('CHAUFFEUR', p.id, j);
+        var vh = vehiculeParId(p.vehiculeHabituel);
+        return creer('li', { classe: 'bi-ligne' }, [
+            creer('div', { classe: 'bi-ligne__trajet' }, [creer('strong', {}, [nomPersonne(p), p.habiliteBlinde ? ' ' : '', p.habiliteBlinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: 'Habilité blindé' }) : null]),
+                creer('span', { classe: 'w-mention', texte: [p.telephone, p.langues.join(', '), vh ? 'roule en ' + vh.nom : ''].filter(Boolean).join(' · ') })]),
+            creer('div', { classe: 'bi-ligne__etat' }, [ind ? creer('span', { classe: 'bi-st ve-st--attente', texte: (ind.motif || 'Indisponible') + (ind.debut <= maintenant() ? ' jusqu\'au ' + texteJour(partiesDe(ind.fin).jour, { sansJour: true, court: true }) : ' à partir du ' + texteJour(partiesDe(ind.debut).jour, { sansJour: true, court: true })) }) : null]),
+            creer('div', { classe: 'bi-ligne__dates', texte: [auj ? pluriel(auj, 'course') + ' aujourd\'hui' : '', avenir ? pluriel(avenir, 'course') + ' à venir' : ''].filter(Boolean).join(' · ') }),
+            creer('div', { classe: 'bi-ligne__actions' }, [boutonLien('Indisponibilités', function () { ouvrirIndispos('chauffeur', p.id); }, { id: 'aChI' + k, aria: 'Indisponibilités de ' + nomPersonne(p) }), boutonLien('Fiche', function () { ouvrirChauffeur(p); }, { id: 'aCh' + k, classe: 'wb-lien--fort', aria: 'Fiche de ' + nomPersonne(p) })])
+        ]);
+    })));
 }
 function rappelPartage(adresses, quoi) {
     toast(quoi + ' Pour ' + (adresses.length > 1 ? 'leur' : 'lui') + ' ouvrir le document, ajoutez ' + (adresses.length > 1 ? 'ces adresses' : 'son adresse') + ' dans « Partager », « Gérer les utilisateurs », avec le rôle Éditeur, puis prévenez ' + (adresses.length > 1 ? 'ces personnes' : 'la personne') + ' vous-même : Diplotable n\'envoie aucun message.',
@@ -4933,15 +4941,15 @@ function adressesEnDouble() {
 }
 function vuePersonnes(main) {
     var nAcc = accesATraiter().length;
-    var onglets = [['toutes', 'Toutes (' + etat.personnes.filter(function (p) { return p.actif; }).length + ')'], ['acces', 'Demandes d\'accès (' + nAcc + ')'], ['inactives', 'Inactives (' + etat.personnes.filter(function (p) { return !p.actif; }).length + ')']];
-    var nav = creer('div', { classe: 'bi-onglets', attrs: { role: 'tablist', 'aria-label': 'Personnes' } }, onglets.map(function (o) {
+    var onglets = [['toutes', 'Actifs (' + passagers().filter(function (p) { return p.actif; }).length + ')'], ['acces', 'Demandes d\'accès (' + nAcc + ')'], ['inactives', 'Inactifs (' + passagers().filter(function (p) { return !p.actif; }).length + ')']];
+    var nav = creer('div', { classe: 'bi-onglets', attrs: { role: 'tablist', 'aria-label': 'Passagers' } }, onglets.map(function (o) {
         var on = etat.ongletPersonnes === o[0];
         var b = creer('button', { classe: 'bi-onglet' + (on ? ' bi-onglet--on' : ''), id: 'aPO_' + o[0], attrs: { role: 'tab', 'aria-selected': on ? 'true' : 'false' } }, [o[1]]);
         b.addEventListener('click', function () { etat.ongletPersonnes = o[0]; dessiner('aPO_' + o[0]); });
         return b;
     }));
     main.appendChild(titreVue(null, { droite: [bouton('Gérer les services', 'tertiaire', 'settings-5-line', ouvrirServices, { petit: true, id: 'aServices', desactive: !accesComplet() }),
-        bouton('Ajouter une personne', null, 'user-add-line', function () { ouvrirAjoutPersonne(); }, { petit: true, id: 'aAjoutPers', desactive: !accesComplet() })] }));
+        bouton('Ajouter un passager', null, 'user-add-line', function () { ouvrirAjoutPersonne(); }, { petit: true, id: 'aAjoutPers', desactive: !accesComplet() })] }));
     main.appendChild(creer('div', { classe: 'wb-hors-section' }, [nav]));
     if (etat.ongletPersonnes === 'acces') {
         var acc = accesATraiter().sort(function (a, b) { return (a.creeLe || 0) - (b.creeLe || 0); });
@@ -4966,17 +4974,17 @@ function remplirPersonnes(corps) {
     vider(corps);
     var q = normaliser(etat.recherchePersonnes);
     var dbl = adressesEnDouble();
-    var l = etat.personnes.filter(function (p) { return (etat.ongletPersonnes === 'inactives') === !p.actif; })
+    var l = passagers().filter(function (p) { return (etat.ongletPersonnes === 'inactives') === !p.actif; })
         .filter(function (p) { return !q || normaliser([p.prenom, p.nom, p.email, p.service, p.role].join(' ')).indexOf(q) !== -1; })
         .sort(function (a, b) { return comparerTexte(nomListe(a), nomListe(b)); });
     if (!l.length) {
-        corps.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune personne.' }));
+        corps.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun passager.' }));
         return;
     }
     corps.appendChild(tableau(['Nom', 'Adresse e-mail', 'Service', 'Rôle'], l.map(function (p, k) {
         return ligneTableau([{ noeuds: [boutonLien(nomListe(p), function () { ouvrirFiche(p); }, { id: 'aP' + k })] },
             dbl[p.email] ? { noeuds: [creer('span', { classe: 'bi-alerte-texte', texte: p.email + ' · en double' })] } : p.email, p.service || '', p.role]);
-    }), { legende: 'Personnes du poste' }));
+    }), { legende: 'Passagers' }));
 }
 function optionsServices(courant) {
     var l = cfg().services.slice();
@@ -5047,6 +5055,12 @@ function ouvrirAjoutPersonne() {
         if (plusieurs) {
             adresses = f.liste.value.split(/[\s,;]+/).map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean).filter(function (x, i, t) { return t.indexOf(x) === i; });
             var mauvaises = adresses.filter(function (x) { return !adresseValide(x); });
+            var deChauffeurs = adresses.filter(function (x) { return etat.chauffeurs.some(function (c) { return c.email === x; }); });
+            if (deChauffeurs.length) {
+                afficherErreur('Adresses de chauffeurs, à retirer de la liste : ' + deChauffeurs.join(', ') + '.');
+                f.liste.focus();
+                return;
+            }
             if (!adresses.length || mauvaises.length) {
                 afficherErreur(mauvaises.length ? 'Adresses non valides : ' + mauvaises.join(', ') + '.' : 'Collez au moins une adresse.');
                 f.liste.focus();
@@ -5070,6 +5084,11 @@ function ouvrirAjoutPersonne() {
                 (ligneBornee(f.prenom.value, 80) ? (ligneBornee(f.nom.value, 80) ? f.email : f.nom) : f.prenom).focus();
                 return;
             }
+            if (etat.chauffeurs.some(function (c) { return c.email === email; })) {
+                afficherErreur('Cette adresse est celle d\'un chauffeur : les chauffeurs restent dans « Les chauffeurs ».');
+                f.email.focus();
+                return;
+            }
             if (etat.personnes.some(function (p) { return p.email === email; })) {
                 afficherErreur('Cette adresse est déjà dans la liste.');
                 f.email.focus();
@@ -5087,7 +5106,7 @@ function ouvrirAjoutPersonne() {
         rappelPartage(adresses, (adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.');
     };
     var rendre = function () {
-        var corps = [groupeRadios('Ajouter', 'npMode', [{ valeur: 'une', libelle: 'Une personne' }, { valeur: 'liste', libelle: 'Une liste d\'adresses' }], plusieurs ? 'liste' : 'une', function (v) { plusieurs = v === 'liste'; rendre(); }, { enLigne: true })];
+        var corps = [groupeRadios('Ajouter', 'npMode', [{ valeur: 'une', libelle: 'Un passager' }, { valeur: 'liste', libelle: 'Une liste d\'adresses' }], plusieurs ? 'liste' : 'une', function (v) { plusieurs = v === 'liste'; rendre(); }, { enLigne: true })];
         if (plusieurs) {
             corps.push(champ('Adresses', f.liste, { aide: 'Une par ligne. Le prénom et le nom sont repris de l\'adresse.' }));
         }
@@ -5097,7 +5116,7 @@ function ouvrirAjoutPersonne() {
         corps.push(champ('Service', f.srv), radiosRole('npRole', 'Agent'));
         remplirPanneau({ corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'npNon' }), bouton('Ajouter', null, null, ajouter, { id: 'npOui' })] });
     };
-    ouvrirPanneau({ titre: 'Ajouter une personne', sousTitre: 'Sans passer par le formulaire d\'accès', cle: 'ajout', focus: 'npPrenom', corps: [], pied: [] });
+    ouvrirPanneau({ titre: 'Ajouter un passager', sousTitre: 'Sans passer par le formulaire d\'accès', cle: 'ajout', focus: 'npPrenom', corps: [], pied: [] });
     rendre();
     var n = document.getElementById('npPrenom');
     if (n) {
@@ -5699,7 +5718,7 @@ async function remplirPublier(zone) {
     etat.pagePubliee = info.utilisateurs.length > 0;
     etat.pageProtegee = info.adminCachee;
     var s1 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecForm' } }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecForm', texte: '1. Le formulaire de demande d\'accès', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-mention', texte: 'L\'adresse professionnelle seulement, et le service si vous le demandez. Les réponses arrivent dans « Les personnes », onglet « Demandes d\'accès ».' }),
+        creer('p', { classe: 'w-mention', texte: 'L\'adresse professionnelle seulement, et le service si vous le demandez. Les réponses arrivent dans « Les passagers », onglet « Demandes d\'accès ».' }),
         caseACocher('aFormService', 'Demander le service dans le formulaire', cfg().serviceFormulaire, { aide: 'Facultatif pour la personne. Vous le choisissez de toute façon à l\'acceptation.', change: function (e) {
             var c = copieConfig();
             c.serviceFormulaire = e.target.checked;
@@ -6502,15 +6521,15 @@ function etapeDroits() {
                 etat.pageProtegee || !accesComplet() ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPageGestion, { petit: true, id: 'aReserverPage2' })]);
         },
         carte1: 'Les personnes acceptées et les chauffeurs : vous les ajoutez dans « Partager ».',
-        roles: [['Propriétaire', 'Les gestionnaires trajets', 'Tout : affecter, valider, refuser, gérer le parc, les chauffeurs et les personnes, inviter, régler les droits.'],
+        roles: [['Propriétaire', 'Les gestionnaires trajets', 'Tout : affecter, valider, refuser, gérer le parc, les chauffeurs et les passagers, ouvrir le document, régler les droits.'],
             ['Éditeur', 'Les agents, les chauffeurs et les chefs de service', 'Demander leurs trajets et les suivre ; les chauffeurs suivent leurs courses et se dépannent ; les chefs de service voient ceux de leur service.'],
             ['Lecteur', 'Personne', 'Ce rôle ne permet pas de demander un trajet : ne le donnez pas.']],
-        quiAdmin: 'Le rôle dans WuitVéhicules (Agent, Chef de service, Gestionnaire trajets) se règle dans « Les personnes », et les chauffeurs ont leur liste à part dans « Les chauffeurs ». Le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires trajets doivent être propriétaires : seuls les propriétaires ouvrent le document à de nouvelles personnes.',
+        quiAdmin: 'Le rôle dans WuitVéhicules (Agent, Chef de service, Gestionnaire trajets) se règle dans « Les passagers », et les chauffeurs ont leur liste à part dans « Les chauffeurs ». Le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires trajets doivent être propriétaires : seuls les propriétaires ouvrent le document à de nouvelles personnes.',
         confirmerPlus: 'Envoyez-lui aussi le lien de la page « ' + NOM_PAGE_UTILISATEURS + ' ».',
         carte3: 'Qui voit quels trajets, et qui voit les indisponibilités.',
         alerteBref: 'Sans les règles d\'accès, chaque agent voit les trajets de tous et les motifs d\'absence des chauffeurs.',
         coches: ['Un agent ne voit que ses trajets et ceux de son service.', 'Un chauffeur voit ses courses, les trajets à reprendre et les absences de ses collègues, sans leur détail.', 'Un agent ne voit pas la case « blindé » ni les échéances des véhicules.', 'Personne d\'autre que vous ne voit la page de gestion ni les demandes d\'accès.'],
-        verifAvant: 'Testez avec un agent puis avec un chauffeur. Le lien « Voir en tant que », dans la fiche de chaque personne (« Les personnes ») et de chaque chauffeur (« Les chauffeurs »), ouvre le document comme il le voit.'
+        verifAvant: 'Testez avec un agent puis avec un chauffeur. Le lien « Voir en tant que », dans la fiche de chaque passager (« Les passagers ») et de chaque chauffeur (« Les chauffeurs »), ouvre le document comme il le voit.'
     });
 }
 
