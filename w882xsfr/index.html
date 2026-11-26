@@ -869,7 +869,7 @@ function brancherSocle() {
 }
 </script>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.4';
+var VERSION_WIDGET = '1.1.5';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 function validerNombre(valeur, min, max, defaut) {
@@ -1350,8 +1350,8 @@ const OPERATEURS_PAR_GROUPE = {
     ],
     choix_liste: [
         { code: 'contient_un_de', libelle: "contient l'une de", necessiteValeur: true },
-        { code: 'contient', libelle: 'contient', necessiteValeur: true },
-        { code: 'ne_contient_pas', libelle: 'ne contient pas', necessiteValeur: true },
+        { code: 'contient_tous', libelle: 'contient toutes', necessiteValeur: true },
+        { code: 'ne_contient_aucun', libelle: "ne contient aucune de", necessiteValeur: true },
         { code: 'vide', libelle: 'est vide', necessiteValeur: false },
         { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
     ],
@@ -1360,15 +1360,15 @@ const OPERATEURS_PAR_GROUPE = {
         { code: 'non_vide', libelle: 'avec pièce jointe', necessiteValeur: false }
     ],
     reference: [
-        { code: 'contient', libelle: 'contient', necessiteValeur: true },
-        { code: 'egal', libelle: 'est', necessiteValeur: true },
-        { code: 'ne_contient_pas', libelle: 'ne contient pas', necessiteValeur: true },
+        { code: 'parmi', libelle: "est l'une de", necessiteValeur: true },
+        { code: 'pas_parmi', libelle: "n'est aucune de", necessiteValeur: true },
         { code: 'vide', libelle: 'est vide', necessiteValeur: false },
         { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
     ],
     reference_liste: [
-        { code: 'contient', libelle: 'contient', necessiteValeur: true },
-        { code: 'ne_contient_pas', libelle: 'ne contient pas', necessiteValeur: true },
+        { code: 'contient_un_de', libelle: "contient l'une de", necessiteValeur: true },
+        { code: 'contient_tous', libelle: 'contient toutes', necessiteValeur: true },
+        { code: 'ne_contient_aucun', libelle: "ne contient aucune de", necessiteValeur: true },
         { code: 'vide', libelle: 'est vide', necessiteValeur: false },
         { code: 'non_vide', libelle: "n'est pas vide", necessiteValeur: false }
     ]
@@ -2724,7 +2724,7 @@ function construireConditionLigne(parent, cond, prefixe) {
             conteneurVal.appendChild(selP);
             return;
         }
-        if (cond.operateur === 'parmi' || cond.operateur === 'pas_parmi' || cond.operateur === 'contient_un_de') {
+        if (cond.operateur === 'parmi' || cond.operateur === 'pas_parmi' || cond.operateur === 'contient_un_de' || cond.operateur === 'contient_tous' || cond.operateur === 'ne_contient_aucun') {
             labelVal.textContent = 'Valeurs';
             labelVal.setAttribute('for', 'cond-val-' + cond.id);
             if (!Array.isArray(cond.valeurs))
@@ -2937,7 +2937,7 @@ function obtenirValeursColonne(col, lignes) {
         if (Array.isArray(v)) {
             var debut = (v.length > 0 && v[0] === 'L') ? 1 : 0;
             for (var j = debut; j < v.length; j++) {
-                var s = String(v[j]);
+                var s = texteElementFiltre(v[j], col.type, col);
                 if (s)
                     set.add(s);
                 if (set.size >= MAX_VALEURS_DETECTEES)
@@ -3007,6 +3007,15 @@ function libellePlageDates(du, au) {
         return 'jusqu’au ' + dateIsoLisible(au);
     return 'entre deux dates (bornes à saisir)';
 }
+function elementsEnTexte(valeur, type, colInfo) {
+    if (valeur === null || valeur === undefined || valeur === '')
+        return [];
+    var ids = Array.isArray(valeur) ? (valeur.length > 0 && valeur[0] === 'L' ? valeur.slice(1) : (valeur[0] === 'E' ? [] : valeur)) : [valeur];
+    return ids.map(function (x) { return texteElementFiltre(x, type, colInfo).toLowerCase(); }).filter(Boolean);
+}
+function texteElementFiltre(x, type, colInfo) {
+    return estColonneReference(type) ? libellesDeReference(x, colInfo && colInfo.type ? colInfo : { type: type, visibleCol: 0 }) : String(x);
+}
 function listeContientValeur(valeurListe, cible) {
     if (!Array.isArray(valeurListe)) {
         if (valeurListe === null || valeurListe === undefined || valeurListe === '')
@@ -3068,7 +3077,20 @@ function evaluerCondition(cond, ligne, colonnesMap) {
             var vl = valeursCond(cond);
             if (!vl.length)
                 return true;
-            return vl.some(function (x) { return listeContientValeur(valBrute, x); });
+            var el1 = elementsEnTexte(valBrute, type, colInfo);
+            return vl.some(function (x) { return el1.indexOf(String(x).toLowerCase()) !== -1; });
+        }
+        case 'contient_tous': {
+            var vt = valeursCond(cond);
+            if (!vt.length)
+                return true;
+            var el2 = elementsEnTexte(valBrute, type, colInfo);
+            return vt.every(function (x) { return el2.indexOf(String(x).toLowerCase()) !== -1; });
+        }
+        case 'ne_contient_aucun': {
+            var va = valeursCond(cond);
+            var el3 = elementsEnTexte(valBrute, type, colInfo);
+            return !va.some(function (x) { return el3.indexOf(String(x).toLowerCase()) !== -1; });
         }
         case 'entre': {
             var du = cond.valeur || '', au = cond.valeur2 || '';
@@ -4294,9 +4316,9 @@ function libelleCondition(cond, col) {
     if (cond.operateur === 'periode') {
         return nom + ' : ' + libellePeriode(cond.valeur);
     }
-    if (cond.operateur === 'parmi' || cond.operateur === 'pas_parmi' || cond.operateur === 'contient_un_de') {
+    if (cond.operateur === 'parmi' || cond.operateur === 'pas_parmi' || cond.operateur === 'contient_un_de' || cond.operateur === 'contient_tous' || cond.operateur === 'ne_contient_aucun') {
         var v = valeursCond(cond);
-        return nom + ' ' + (opTag ? opTag.libelle : cond.operateur) + ' ' + (v.length ? v.map(function (z) { return '« ' + z + ' »'; }).join(cond.operateur === 'pas_parmi' ? ' ni ' : ' ou ') : '…');
+        return nom + ' ' + (opTag ? opTag.libelle : cond.operateur) + ' ' + (v.length ? v.map(function (z) { return '« ' + z + ' »'; }).join(cond.operateur === 'pas_parmi' || cond.operateur === 'ne_contient_aucun' ? ' ni ' : (cond.operateur === 'contient_tous' ? ' et ' : ' ou ')) : '…');
     }
     var libelle = nom + ' ' + (opTag ? opTag.libelle : cond.operateur);
     if (cond.valeur) {
