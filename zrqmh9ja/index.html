@@ -1116,7 +1116,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
 
 <script>
 "use strict";
-var VERSION_WIDGET = "1.0.7";
+var VERSION_WIDGET = "1.0.8";
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* Couleurs des choix définies dans Grist (fond, texte, gras, italique, souligné, barré) */
@@ -3443,6 +3443,7 @@ function jourIso() {
 var OPS = {
   date: [["plusde", "date de plus de"], ["entre", "est entre le"], ["avant", "est avant le"], ["apres", "est après le"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   choix: [["parmi", "est l'une de"], ["horsde", "n'est aucune de"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
+  liste: [["parmi", "contient l'une de"], ["tous", "contient toutes"], ["horsde", "ne contient aucune de"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   texte: [["parmi", "est l'une de"], ["horsde", "n'est aucune de"], ["contient", "contient"], ["necontientpas", "ne contient pas"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   nombre: [["egal", "est égal à"], ["inf", "est inférieur à"], ["sup", "est supérieur à"], ["entre", "est entre"], ["vide", "est vide"], ["nonvide", "n'est pas vide"]],
   bool: [["coche", "est coché"], ["noncoche", "n'est pas coché"]]
@@ -3474,8 +3475,11 @@ function colonnesFiltrables(tid) {
     return genreColonne(c);
   });
 }
+function estListeColonne(col) {
+  return !!col && /^(ChoiceList|RefList:)/.test(String(col.type));
+}
 function opsDe(col) {
-  return OPS[genreColonne(col)] || [];
+  return estListeColonne(col) ? OPS.liste : OPS[genreColonne(col)] || [];
 }
 function isoValide(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
@@ -3587,7 +3591,7 @@ function problemeCondition(tid, k) {
     return "indiquez la durée";
   }
   var g = genreColonne(col);
-  if ((k.op === "parmi" || k.op === "horsde") && !k.valeurs.length) {
+  if ((k.op === "parmi" || k.op === "horsde" || k.op === "tous") && !k.valeurs.length) {
     return "cochez au moins une valeur";
   }
   if (g === "date" && k.op === "entre" && (!k.du || !k.au)) {
@@ -3729,6 +3733,11 @@ function evaluerCondition(r, k, d, i, maintenant) {
           return k.valeurs.indexOf(x) !== -1;
         });
       }
+      if (k.op === "tous") {
+        return k.valeurs.every(function(x) {
+          return textes.indexOf(x) !== -1;
+        });
+      }
       var tout = normaliserTexte(textes.join(" "));
       var cherche = normaliserTexte(k.texte);
       if (k.op === "contient") {
@@ -3811,8 +3820,13 @@ function libelleCondition(tid, k) {
     case "nonvide":
       return nom + " n'est pas vide";
     case "parmi":
-      return nom + " est " + (k.valeurs.length ? guillemets(k.valeurs).join(" ou ") : "…");
+      return nom + (estListeColonne(col) ? " contient " : " est ") + (k.valeurs.length ? guillemets(k.valeurs).join(" ou ") : "…");
+    case "tous":
+      return nom + " contient " + (k.valeurs.length ? guillemets(k.valeurs).join(" et ") : "…");
     case "horsde":
+      if (estListeColonne(col)) {
+        return nom + (k.valeurs.length ? " ne contient ni " + guillemets(k.valeurs).join(" ni ") : " ne contient pas …");
+      }
       return nom + (k.valeurs.length ? k.valeurs.length > 1 ? " n'est ni " + guillemets(k.valeurs).join(" ni ") : " n'est pas " + guillemets(k.valeurs)[0] : " n'est pas …");
     case "contient":
       return nom + " contient « " + (k.texte || "…") + " »";
@@ -4510,7 +4524,7 @@ function valeurFiltre(c, k, id, col, maj) {
   if (!col) {
     return cell;
   }
-  if (k.op === "parmi" || k.op === "horsde") {
+  if (k.op === "parmi" || k.op === "horsde" || k.op === "tous") {
     var vd = valeursDistinctes(c, k.colonne);
     k.valeurs.forEach(function(v) {
       if (vd.valeurs.indexOf(v) === -1) {
