@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.3 - 26/11/2026
+  Version : 1.0.4 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -663,7 +663,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.3';
+var VERSION_WIDGET = '1.0.4';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -2818,7 +2818,7 @@ function champJour(id, libelle, jour, o) {
         var dehors = final || document.activeElement !== inp;
         var b = bornes(dehors);
         var j = jourSaisi(inp.value);
-        lettres.textContent = j !== null ? texteJour(j, { annee: true }) : '';
+        lettres.textContent = j !== null ? texteJour(j, { annee: true, sansJour: !o.jourSemaine }) : '';
         var m = '';
         if (final || j !== null) {
             if ((inp.value && j === null) || (!inp.value && inp.validity && inp.validity.badInput)) {
@@ -4073,7 +4073,7 @@ function etapeTrajet() {
     var msgRetour = function (aller) { return function (j) { return aller() !== null && j < aller() ? 'Le retour ne peut pas être avant l\'aller.' : 'Cette date est déjà passée.'; }; };
     var allerPrincipal = function () { return b.aller.date; };
     l.push(creer('div', { classe: 'bi-bloc' }, [creer('h3', { classe: 'bi-sous-titre', texte: 'Aller' }),
-        creer('div', { classe: 'bi-deux' }, [champDate('dAllerDate', 'Date', 'aller.date', { min: auj, messageMin: 'La date aller ne peut pas être passée.', apres: majTrajet }), champTexte('dAllerContr', 'Contraintes horaires', 'aller.contraintes')]),
+        creer('div', { classe: 'bi-deux' }, [champDate('dAllerDate', 'Date', 'aller.date', { jourSemaine: true, min: auj, messageMin: 'La date aller ne peut pas être passée.', apres: majTrajet }), champTexte('dAllerContr', 'Contraintes horaires', 'aller.contraintes')]),
         zoneAvert,
         creer('div', { classe: 'bi-deux' }, [
             champTexte('dAllerDep', 'Départ', 'aller.depart', { sortie: function () { if (!b.retour.arrivee) {
@@ -4092,7 +4092,7 @@ function etapeTrajet() {
             } } })])]));
     if (b.trajet === 'Aller-retour') {
         l.push(creer('div', { classe: 'bi-bloc' }, [creer('h3', { classe: 'bi-sous-titre', texte: 'Retour' }),
-            creer('div', { classe: 'bi-deux' }, [(function () { var g = champDate('dRetourDate', 'Date', 'retour.date', { min: minRetour(allerPrincipal), messageMin: msgRetour(allerPrincipal), apres: majTrajet }); champsRetour.push(g); return g; })(), champTexte('dRetourContr', 'Contraintes horaires', 'retour.contraintes')]),
+            creer('div', { classe: 'bi-deux' }, [(function () { var g = champDate('dRetourDate', 'Date', 'retour.date', { jourSemaine: true, min: minRetour(allerPrincipal), messageMin: msgRetour(allerPrincipal), apres: majTrajet }); champsRetour.push(g); return g; })(), champTexte('dRetourContr', 'Contraintes horaires', 'retour.contraintes')]),
             creer('div', { classe: 'bi-deux' }, [champTexte('dRetourDep', 'Départ', 'retour.depart'), champTexte('dRetourArr', 'Arrivée', 'retour.arrivee')])]));
     }
     if (b.autres.length && !b.memesDates) {
@@ -4105,8 +4105,8 @@ function etapeTrajet() {
                 a.retour = b.retour.date;
             }
             var allerDe = function () { return a.aller; };
-            var dr = b.trajet === 'Aller-retour' ? champJour('dDr' + k, 'Retour', a.retour, { verifierTout: true, min: minRetour(allerDe), messageMin: msgRetour(allerDe), change: function (j) { a.retour = j; } }) : null;
-            var da = champJour('dDa' + k, 'Aller', a.aller, { verifierTout: true, min: auj, messageMin: 'La date aller ne peut pas être passée.', change: function (j) { a.aller = j; if (dr) {
+            var dr = b.trajet === 'Aller-retour' ? champJour('dDr' + k, 'Retour', a.retour, { jourSemaine: true, verifierTout: true, min: minRetour(allerDe), messageMin: msgRetour(allerDe), change: function (j) { a.retour = j; } }) : null;
+            var da = champJour('dDa' + k, 'Aller', a.aller, { jourSemaine: true, verifierTout: true, min: auj, messageMin: 'La date aller ne peut pas être passée.', change: function (j) { a.aller = j; if (dr) {
                 dr.verifier();
             } } });
             bloc.appendChild(creer('div', { classe: 'bi-repete' }, [creer('p', { classe: 'bi-repete__nom', texte: [a.prenom, String(a.nom || '').toUpperCase()].filter(Boolean).join(' ') || 'Voyageur ' + (k + 1) }), da, dr]));
@@ -4164,9 +4164,9 @@ function etapeSurPlace() {
             var nb = creer('input', { classe: 'fr-input bi-nombre', id: 'dHebNb', valeur: b.heb.personnes === null ? '' : String(b.heb.personnes), attrs: { type: 'number', min: 1, max: 50 } });
             nb.addEventListener('input', function () { b.heb.personnes = nb.value ? entierBorne(nb.value, 1, 50, 1) : null; });
             bloc.appendChild(creer('div', { classe: 'bi-deux' }, [champTexte('dHebVille', 'Ville', 'heb.ville'), champ('Personnes', nb)]));
-            bloc.appendChild(creer('div', { classe: 'bi-deux' }, [champDate('dHebArr', 'Arrivée', 'heb.arrivee', { min: auj, messageMin: 'Cette date est déjà passée.', apres: function () { var g = document.getElementById('dHebDep'); if (g && g.parentNode.verifier) {
+            bloc.appendChild(creer('div', { classe: 'bi-deux' }, [champDate('dHebArr', 'Arrivée', 'heb.arrivee', { jourSemaine: true, min: auj, messageMin: 'Cette date est déjà passée.', apres: function () { var g = document.getElementById('dHebDep'); if (g && g.parentNode.verifier) {
                 g.parentNode.verifier();
-            } } }), champDate('dHebDep', 'Départ', 'heb.depart', { min: function () { return b.heb.arrivee !== null && b.heb.arrivee > auj ? b.heb.arrivee : auj; }, messageMin: function (j) { return b.heb.arrivee !== null && j < b.heb.arrivee ? 'Le départ ne peut pas être avant l\'arrivée.' : 'Cette date est déjà passée.'; } })]));
+            } } }), champDate('dHebDep', 'Départ', 'heb.depart', { jourSemaine: true, min: function () { return b.heb.arrivee !== null && b.heb.arrivee > auj ? b.heb.arrivee : auj; }, messageMin: function (j) { return b.heb.arrivee !== null && j < b.heb.arrivee ? 'Le départ ne peut pas être avant l\'arrivée.' : 'Cette date est déjà passée.'; } })]));
             bloc.appendChild(champTexte('dHebPrec', 'Précisions', 'heb.precisions', { indice: 'Quartier, type de chambre' }));
         }
         l.push(bloc);
