@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.7 - 26/11/2026
+  Version : 1.0.8 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -657,13 +657,14 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.7';
+var VERSION_WIDGET = '1.0.8';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
 var LABEL_CENTRALE = '📦 BIBLIOTHÈQUE CENTRALE ⚡';
 var CLE_CONFIG = 'CONFIG';
-var NOM_PAGE_UTILISATEURS = '✈️ Mes déplacements';
+var NOM_PAGE_UTILISATEURS = '✈️ Mes voyages';
+var NOMS_PAGE_ANCIENS = ['Mes déplacements'];
 var NOM_PAGE_FORMULAIRE = '📝 Demande d\'accès à WuitBillets';
 var TITRE_DEFAUT = '✈️ WuitBillets';
 var DELAI_API_MS = 30000;
@@ -5860,6 +5861,7 @@ async function chargerTout() {
             etat.pagePubliee = pg.utilisateurs.length > 0;
             etat.formulaireCree = pg.formulaires.length > 0;
             etat.pageProtegee = pg.adminCachee;
+            await renommerPagesAnciennes(pg.utilisateurs);
         }
         catch (e) {
             etat.pagePubliee = null;
@@ -5871,6 +5873,22 @@ async function chargerTout() {
         etat.vue = 'utilisateurs';
     }
     dessiner();
+}
+async function renommerPagesAnciennes(pages) {
+    var act = pages.filter(function (x) { return NOMS_PAGE_ANCIENS.some(function (n) { return x.nom.indexOf(n) !== -1; }); }).map(function (x) {
+        var nom = x.nom;
+        NOMS_PAGE_ANCIENS.forEach(function (n) { nom = nom.split(n).join(NOM_PAGE_UTILISATEURS.replace(/^\S+\s/, '')); });
+        return ['UpdateRecord', '_grist_Views', x.vue, { name: nom }];
+    });
+    if (!act.length || !accesComplet() || !etat.peutParametrer) {
+        return;
+    }
+    try {
+        await agir(act);
+    }
+    catch (e) {
+        logSecurite('INFO', 'Page des demandeurs non renommée', e);
+    }
 }
 async function initialiser() {
     if (etat.initEnCours) {
