@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitSalles
-  Version : 1.1.8 - 26/11/2026
+  Version : 1.1.9 - 26/11/2026
   Description : réservation de salles, règles, validation et pages des agents.
 -->
 <head>
@@ -1191,7 +1191,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.8';
+var VERSION_WIDGET = '1.1.9';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -10424,9 +10424,9 @@ function guideDroitsDg(o) {
     ]);
     var inviter = creer('ol', { classe: 's-droits' }, [
         { titre: 'Ouvrir le partage', texte: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs ».' },
-        { titre: 'Ajouter les personnes', texte: 'Saisissez le courriel de chaque personne (adresse du ministère), une par une ou plusieurs à la suite.' },
+        { titre: 'Ajouter les personnes', texte: 'Saisissez l\'adresse e-mail professionnelle de chaque personne, une par une ou plusieurs à la suite.' },
         { titre: 'Choisir le rôle', texte: 'À côté de chaque personne, choisissez Propriétaire, Éditeur ou Lecteur (voir la partie ' + nRol + ').' },
-        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer » : chaque personne reçoit un courriel avec le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
+        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer ». Diplotable n\'envoie aucun message : prévenez vous-même chaque personne et donnez-lui le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
         { titre: 'Garder l\'accès public désactivé', texte: 'Dans la même fenêtre, l\'accès public doit rester désactivé : seules les personnes invitées entrent dans le document.' }
     ].map(function (x, k) { return sousEtape(x, k); }));
     var roles = creer('table', { classe: 's-roles' }, [
@@ -10465,7 +10465,7 @@ function guideDroitsDg(o) {
         ['Un éditeur voit encore la page Admin', 'Vérifiez que vous avez cliqué sur « Enregistrer » (étape « Enregistrer » de la partie ' + nReg + '), puis que la ligne « Tous les autres » de la table ' + owner + ' est entièrement en rouge barré.'],
         ['Un éditeur ne peut plus saisir', 'Une ligne « Tous les autres » refuse trop. Sur les tables de données, laissez « Tous les autres » sans réglage, sauf si vous voulez la lecture seule.'],
         ['J\'ai quitté les Permissions avancées sans enregistrer', 'Les règles posées sont perdues. Reprenez la partie ' + nReg + ', puis cliquez sur « Enregistrer » avant de quitter la page.'],
-        o.sansInviter ? null : ['Une personne invitée n\'a pas reçu le courriel', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Vous pouvez aussi lui envoyer directement le lien du document.']
+        o.sansInviter ? null : ['Une personne ajoutée n\'arrive pas à ouvrir le document', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Diplotable ne la prévient pas : envoyez-lui vous-même le lien du document.']
     ]).filter(Boolean).map(function (q) { return creer('details', { classe: 's-dg__q' }, [creer('summary', { texte: q[0] }), creer('p', { classe: 's-droits__texte', texte: q[1] })]); }));
     return creer('div', { classe: 'w-general s-droits-page s-dg' + (o.classe ? ' ' + o.classe : '') }, [
         creer('div', { classe: 's-droits__entete s-dg__entete' }, [creer('p', { classe: 's-dg__intro', texte: 'Marche à suivre pour ouvrir le document aux bonnes personnes, avec les bons droits.' }),
@@ -15322,17 +15322,6 @@ function majBadgeAcces() {
     }
 }
 function accesSallesATraiter() { return (etat.accesSalles || []).filter(function (a) { return a.statut === 'À traiter'; }); }
-async function inviterSalles(adresse) {
-    var j = await obtenirJeton(true);
-    var users = {};
-    users[adresse] = 'editors';
-    var rep = await fetchDelai(j.baseUrl + '/access?auth=' + encodeURIComponent(j.token), {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ delta: { users: users } })
-    }, DELAI_API_MS);
-    if (!rep.ok) {
-        throw new Error('Réponse ' + rep.status);
-    }
-}
 function ouvrirAccesSalles(focus) {
     var l = accesSallesATraiter().sort(function (a, b) { return (a.recue || 0) - (b.recue || 0); });
     var corps = [];
@@ -15343,13 +15332,13 @@ function ouvrirAccesSalles(focus) {
         corps.push(creer('p', { classe: 'w-texte', texte: 'Aucune demande en attente. Le lien du formulaire se trouve dans « Publier ».' }));
     }
     else {
-        corps.push(creer('p', { classe: 'w-mention', texte: 'Accepter invite la personne au document avec le rôle Éditeur : elle reçoit un courriel et peut réserver depuis la page des agents.' }));
+        corps.push(creer('p', { classe: 'w-mention', texte: 'Après l\'acceptation, ajoutez la personne dans « Partager » avec le rôle Éditeur et prévenez-la vous-même : Diplotable n\'envoie aucun message. Elle réserve ensuite depuis la page des agents.' }));
         corps.push(creer('ul', { classe: 's-acces' }, l.map(function (a, k) {
             return creer('li', { classe: 's-acces__item' }, [
                 creer('div', { classe: 's-acces__texte' }, [creer('strong', { texte: a.email }), a.recue !== null ? creer('span', { classe: 'w-mention', texte: 'Reçue le ' + texteMur(a.recue, true) }) : null]),
                 creer('div', { classe: 's-acces__actions' }, [
                     bouton('Refuser', 'tertiaire', null, function () { return traiterAccesSalles(a, false, k); }, { petit: true, id: 'sAccNon' + k, aria: 'Refuser la demande de ' + a.email }),
-                    bouton('Accepter et inviter', null, null, function () { return traiterAccesSalles(a, true, k); }, { petit: true, id: 'sAccOui' + k, aria: 'Accepter et inviter ' + a.email })])
+                    bouton('Accepter', null, null, function () { return traiterAccesSalles(a, true, k); }, { petit: true, id: 'sAccOui' + k, aria: 'Accepter la demande de ' + a.email })])
             ]);
         })));
     }
@@ -15358,38 +15347,26 @@ function ouvrirAccesSalles(focus) {
 }
 async function traiterAccesSalles(a, accepter, k) {
     if (!adresseAccesValide(a.email) && accepter) {
-        afficherErreur('Cette adresse n\'est pas valide : invitez la personne vous-même dans « Partager ».');
+        afficherErreur('Cette adresse n\'est pas valide : ajoutez la personne vous-même dans « Partager », avec la bonne adresse.');
         return;
     }
     if (!accepter) {
-        var ok = await confirmerAction('Refuser la demande de ' + a.email + ' ?', 'La personne ne sera pas invitée. Elle pourra refaire une demande avec le formulaire.', 'Refuser', { danger: true });
+        var ok = await confirmerAction('Refuser la demande de ' + a.email + ' ?', 'La personne n\'aura pas accès. Elle pourra refaire une demande avec le formulaire.', 'Refuser', { danger: true });
         if (!ok) {
             return;
         }
     }
-    afficherLoader(accepter ? 'Invitation…' : 'Enregistrement…');
-    var invite = true;
+    afficherLoader('Enregistrement…');
     try {
         await agir([['UpdateRecord', tableAccesSalles(), a.id, { STATUT: accepter ? 'Acceptée' : 'Refusée' }]]);
-        if (accepter) {
-            try {
-                await inviterSalles(a.email);
-            }
-            catch (eI) {
-                invite = false;
-                logSecurite('AVERTISSEMENT', 'Invitation par le widget impossible', eI);
-            }
-        }
         await lireAccesSalles();
         masquerLoader();
         if (!accepter) {
             afficherSucces('Demande refusée.');
         }
-        else if (invite) {
-            afficherSucces(a.email + ' est invitée au document : elle reçoit un courriel.');
-        }
         else {
-            toast('Demande acceptée, mais l\'invitation n\'a pas pu être envoyée par le widget (seul un propriétaire du document peut inviter). Dans « Partager », « Gérer les utilisateurs », ajoutez ' + a.email + ' avec le rôle Éditeur.', { type: 'avertissement', duree: 0 });
+            toast('Demande acceptée. Pour lui ouvrir le document, ajoutez son adresse dans « Partager », « Gérer les utilisateurs », avec le rôle Éditeur, puis prévenez la personne vous-même : Diplotable n\'envoie aucun message.',
+                { type: 'info', duree: 20000, action: { libelle: 'Copier l\'adresse', icone: 'file-copy-line', id: 'wCopierAdr', fn: function () { return copierTexte(a.email, null, 'Adresse copiée.'); } } });
         }
         ouvrirAccesSalles(document.getElementById('sAccOui' + k) ? 'sAccOui' + k : 'sAccFermer');
         relayer(majClocheSalles(), 'Cloche dans le nom des pages');
@@ -15500,13 +15477,13 @@ async function creerFormulaireAcces(zone) {
             act.push(['AddRecord', '_grist_Views_section_field', null, { parentId: res.sectionRef, colRef: email.ref, parentPos: 1, widgetOptions: wo }]);
         }
         act.push(['UpdateRecord', '_grist_Views', res.viewRef, { name: ACCES_SALLES.page }]);
-        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitSalles', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Vous recevrez un courriel d\'invitation dès qu\'elle sera acceptée.', formAnotherResponse: false }) }]);
+        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitSalles', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. La personne qui gère les salles vous préviendra quand elle sera acceptée.', formAnotherResponse: false }) }]);
         var ret = await agir(act);
         var champ = garde !== null ? garde : (ret && ret.retValues ? ret.retValues.filter(function (x) { return typeof x === 'number'; })[0] : null);
         if (champ) {
             var spec = { type: 'Layout', id: 'w1', children: [
                 { type: 'Paragraph', id: 'w2', text: '## **Demande d\'accès à WuitSalles**', alignment: 'center' },
-                { type: 'Paragraph', id: 'w3', text: 'Pour réserver des salles, demandez d\'abord votre accès. Vous recevrez un courriel d\'invitation au document.', alignment: 'center' },
+                { type: 'Paragraph', id: 'w3', text: 'Pour réserver des salles, demandez d\'abord votre accès. La personne qui gère les salles vous ouvrira le document et vous préviendra.', alignment: 'center' },
                 { type: 'Section', id: 'w4', children: [{ type: 'Field', id: 'w5', leaf: champ }] }] };
             await agir([['UpdateRecord', '_grist_Views_section', res.sectionRef, { layoutSpec: JSON.stringify(spec) }]]);
         }
