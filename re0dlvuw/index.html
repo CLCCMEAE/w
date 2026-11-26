@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.4 - 26/11/2026
+  Version : 1.0.5 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -663,7 +663,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.4';
+var VERSION_WIDGET = '1.0.5';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -2792,9 +2792,9 @@ function champJour(id, libelle, jour, o) {
     var lettres = creer('p', { classe: 'bi-jour-lettres', id: id + 'Lettres' });
     var err = creer('p', { classe: 'fr-error-text', id: id + 'Err' });
     err.hidden = true;
-    var inp = creer('input', { classe: 'fr-input', id: id, valeur: dateSaisie(jour), attrs: { type: 'date', 'aria-describedby': (o.aide ? id + 'Aide ' : '') + id + 'Lettres ' + id + 'Err' } });
+    var inp = creer('input', { classe: 'fr-input', id: id, valeur: dateSaisie(jour), attrs: { type: 'date', 'aria-describedby': (o.aide ? id + 'Aide ' : '') + (o.jourSemaine ? id + 'Lettres ' : '') + id + 'Err' } });
     var groupe = creer('div', { classe: 'fr-input-group bi-jour' + (o.classe ? ' ' + o.classe : '') }, [
-        creer('label', { classe: 'fr-label', attrs: { for: id } }, [libelle, o.aide ? creer('span', { classe: 'fr-hint-text', id: id + 'Aide', texte: o.aide }) : null]), inp, lettres, err]);
+        creer('label', { classe: 'fr-label', attrs: { for: id } }, [libelle, o.aide ? creer('span', { classe: 'fr-hint-text', id: id + 'Aide', texte: o.aide }) : null]), inp, o.jourSemaine ? lettres : null, err]);
     var poser = function (nom, v) {
         var t = v !== null && v !== undefined ? dateSaisie(v) : '';
         if ((inp.getAttribute(nom) || '') !== t) {
@@ -2818,7 +2818,7 @@ function champJour(id, libelle, jour, o) {
         var dehors = final || document.activeElement !== inp;
         var b = bornes(dehors);
         var j = jourSaisi(inp.value);
-        lettres.textContent = j !== null ? texteJour(j, { annee: true, sansJour: !o.jourSemaine }) : '';
+        lettres.textContent = j !== null ? texteJour(j, { annee: true }) : '';
         var m = '';
         if (final || j !== null) {
             if ((inp.value && j === null) || (!inp.value && inp.validity && inp.validity.badInput)) {
