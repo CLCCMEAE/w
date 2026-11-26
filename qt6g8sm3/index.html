@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.7 - 24/11/2026
+  Version : 1.3.8 - 26/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1195,7 +1195,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.7';
+var VERSION_WIDGET = '1.3.8';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -3444,8 +3444,8 @@ function sansEmojiTri(t) { return String(t || '').replace(/^[^\p{L}\p{N}]+/u, ''
    Ici : quelles lignes reçoivent un document. */
 var OPS_FILTRE = {
     texte: [['contient', 'contient'], ['necontientpas', 'ne contient pas'], ['est', 'est'], ['nestpas', 'n\'est pas'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide']],
-    choix: [['parmi', 'est l\'une de'], ['horsde', 'n\'est aucune de'], ['contient', 'contient'], ['necontientpas', 'ne contient pas'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide']],
-    multiple: [['parmi', 'contient l\'une de'], ['horsde', 'ne contient aucune de'], ['contient', 'contient le texte'], ['necontientpas', 'ne contient pas le texte'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide']],
+    choix: [['parmi', 'est l\'une de'], ['horsde', 'n\'est aucune de'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide'], ['contient', 'contient', true], ['necontientpas', 'ne contient pas', true]],
+    multiple: [['parmi', 'contient l\'une de'], ['tous', 'contient toutes'], ['horsde', 'ne contient aucune de'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide'], ['contient', 'contient le texte', true], ['necontientpas', 'ne contient pas le texte', true]],
     nombre: [['egal', 'est égal à'], ['different', 'est différent de'], ['inf', 'est inférieur à'], ['sup', 'est supérieur à'], ['entre', 'est entre'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide']],
     date: [['aujourdhui', 'est aujourd\'hui'], ['passee', 'est avant aujourd\'hui'], ['avenir', 'est après aujourd\'hui'], ['prochains', 'est dans les prochains jours'], ['avant', 'est avant le'], ['apres', 'est après le'], ['entre', 'est entre le'], ['vide', 'est vide'], ['nonvide', 'n\'est pas vide']],
     bool: [['coche', 'est coché'], ['noncoche', 'n\'est pas coché']],
@@ -3583,7 +3583,7 @@ function problemeFiltre(tid, k) {
     if (!opsFiltre(col).some(function (o) { return o[0] === k.op; })) {
         return 'choisissez le filtre';
     }
-    if ((k.op === 'parmi' || k.op === 'horsde') && !k.valeurs.length) {
+    if ((k.op === 'parmi' || k.op === 'horsde' || k.op === 'tous') && !k.valeurs.length) {
         return 'choisissez au moins une valeur';
     }
     if (['contient', 'necontientpas', 'est', 'nestpas'].indexOf(k.op) !== -1 && !k.texte.trim()) {
@@ -3675,6 +3675,7 @@ function evaluerFiltre(tid, k, i) {
     var parmi = function () { return k.valeurs.some(function (x) { return textes.indexOf(normalizer(x)) !== -1; }); };
     switch (k.op) {
         case 'parmi': return parmi();
+        case 'tous': return k.valeurs.every(function (x) { return textes.indexOf(normalizer(x)) !== -1; });
         case 'horsde': return !parmi();
         case 'contient': return textes.join(' ').indexOf(cherche) !== -1;
         case 'necontientpas': return textes.join(' ').indexOf(cherche) === -1;
@@ -3717,6 +3718,7 @@ function libelleFiltre(tid, k) {
     var nb = function (x) { return x === null ? '…' : formaterNombre(x); };
     switch (k.op) {
         case 'parmi': return nom + ' ' + (g === 'multiple' ? 'contient ' : 'est ') + (k.valeurs.length ? gu(k.valeurs).join(' ou ') : '…');
+        case 'tous': return nom + ' contient ' + (k.valeurs.length ? gu(k.valeurs).join(' et ') : '…');
         case 'horsde': return nom + (k.valeurs.length ? (g === 'multiple' ? ' ne contient ni ' : ' n\'est ni ') + gu(k.valeurs).join(' ni ') : ' …');
         case 'contient':
         case 'necontientpas':
@@ -3918,7 +3920,7 @@ function valeurFiltreFu(tid, k, id, col, maj) {
     if (!col) {
         return cell;
     }
-    if (k.op === 'parmi' || k.op === 'horsde') {
+    if (k.op === 'parmi' || k.op === 'horsde' || k.op === 'tous') {
         var cibleRef = tableCibleRef(col.type);
         if (cibleRef && !etat.donnees[cibleRef] && !_chargesFiltre[cibleRef]) {
             _chargesFiltre[cibleRef] = true;
@@ -4105,7 +4107,7 @@ function editeurFiltresAirtable(tid, f, idBase, changer, maj) {
                 });
                 var selOp = creer('span', { classe: 'w-af__op w-af__vide' });
                 if (col) {
-                    selOp = liste(id + 'Op', opsFiltre(col).map(function (o) { return { valeur: o[0], libelle: o[1] }; }), k.op, opsFiltre(col).some(function (o) { return o[0] === k.op; }) ? undefined : { vide: 'Filtre' });
+                    selOp = liste(id + 'Op', opsFiltre(col).filter(function (o) { return !o[2] || o[0] === k.op; }).map(function (o) { return { valeur: o[0], libelle: o[1] }; }), k.op, opsFiltre(col).some(function (o) { return o[0] === k.op; }) ? undefined : { vide: 'Filtre' });
                     selOp.classList.add('w-af__op');
                     selOp.setAttribute('aria-label', 'Filtre');
                     selOp.addEventListener('change', function () { k.op = selOp.value; changer(id + 'Op'); });
