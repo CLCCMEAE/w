@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.3.8 - 26/11/2026
+  Version : 1.3.9 - 26/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -1195,7 +1195,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.3.8';
+var VERSION_WIDGET = '1.3.9';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -4463,6 +4463,7 @@ function etapePageFu(b) {
         ligneReglage('Format', fmt, 'pPapierChoix'),
         groupeRadios('pOrient', 'Orientation', [{ valeur: 'portrait', libelle: 'Portrait' }, { valeur: 'landscape', libelle: 'Paysage' }], p.orientation, change('orientation')),
         groupeRadios('pMarges', 'Marges', Object.keys(MARGES).map(function (k) { return { valeur: k, libelle: MARGES[k].nom }; }), p.margins, change('margins')),
+        caseACocher('pRetirerVides', 'Retirer les lignes dont les champs sont vides', !!p.retirerVides, function (e) { p.retirerVides = e.target.checked; marquerTouche(); majApercuBrouillon(); }, { aide: 'Pour une adresse, par exemple. Sans cette case, chaque ligne garde sa place, comme sur un papier pré-imprimé.' }),
         sousTitreFu('Allure'),
         ligneReglage('Police', sp, 'pPolice'),
         groupeRadios('pCadre', 'Cadre', [{ valeur: 'none', libelle: 'Aucun' }, { valeur: 'thin', libelle: 'Filet' }, { valeur: 'double', libelle: 'Double' }], p.border, change('border')),
@@ -6146,6 +6147,7 @@ function rendreRiche(parent, texte, rc) {
     var st = { b: false, i: false, u: false, x: false, h: false };
     var premiere = true;
     var ecrit = false;
+    var derniereVide = false;
     lignes.forEach(function (lg) {
         var aChamp = false, aTexte = false, tousVides = true;
         var morceaux = lg.map(function (t) {
@@ -6162,16 +6164,18 @@ function rendreRiche(parent, texte, rc) {
             }
             return t;
         });
-        if (aChamp && !aTexte && tousVides) {
+        if (aChamp && !aTexte && tousVides && retirerLignesVides(rc)) {
             lg.forEach(function (t) { if (t.t === 'b' || t.t === 'i' || t.t === 'u' || t.t === 'x' || t.t === 'h') {
                 st[t.t] = !st[t.t];
             } });
             return;
         }
-        if (!premiere) {
+        var avecBr = !premiere;
+        if (avecBr) {
             parent.appendChild(document.createElement('br'));
         }
         premiere = false;
+        var nAvant = parent.childNodes.length;
         morceaux.forEach(function (m) {
             if (m.t === 'b' || m.t === 'i' || m.t === 'u' || m.t === 'x' || m.t === 'h') {
                 st[m.t] = !st[m.t];
@@ -6195,8 +6199,17 @@ function rendreRiche(parent, texte, rc) {
             ajouterTexteMarque(parent, m.r.texte, st);
             ecrit = ecrit || !!m.r.texte;
         });
+        derniereVide = avecBr && parent.childNodes.length === nAvant;
     });
+    if (derniereVide) {
+        parent.appendChild(document.createElement('br'));
+    }
     return ecrit;
+}
+function retirerLignesVides(rc) { return !!(((rc && rc.cfg) || {}).page || {}).retirerVides; }
+function garderParagraphe(m, rc) {
+    var aChamp = analyserTexte(m).some(function (t) { return t.t === 'f'; });
+    return !aChamp || !retirerLignesVides(rc);
 }
 function texteBrut(texte, rc) {
     var d = document.createElement('div');
@@ -6380,11 +6393,17 @@ function unitesParagraphe(b, rc) {
     var morceaux = String(b.text || '').split(/\n[ \t]*\n/);
     var cls = classes('p-t', 'p-k--' + valeurDans(b.size, ['XS', 'S', 'SM', 'M', 'L', 'XL'], 'M'), 'p-a--' + valeurDans(b.align, ALIGNEMENTS, 'left'), 'p-c--' + valeurDans(b.color, ['ink', 'brand', 'muted'], 'ink'), classesMiseEnForme(b));
     var l = [];
+    while (morceaux.length && !morceaux[morceaux.length - 1].trim()) {
+        morceaux.pop();
+    }
     morceaux.forEach(function (m) {
         var lignes = m.split('\n');
         if (!lignes.some(estLignePuce)) {
             var el = creer('p', { classe: 'p-u ' + cls });
-            if (rendreRiche(el, m, rc)) {
+            if (rendreRiche(el, m, rc) || garderParagraphe(m, rc)) {
+                if (!el.firstChild) {
+                    el.appendChild(document.createElement('br'));
+                }
                 l.push({ el: el });
             }
             return;
