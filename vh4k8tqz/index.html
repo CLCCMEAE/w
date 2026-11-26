@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitVéhicules
-  Version : 1.1.1 - 26/11/2026
+  Version : 1.2.0 - 26/11/2026
   Description : trajets en voiture de service du poste : demande, affectation d'un chauffeur et d'un véhicule, suivi de course, planning et parc.
 -->
 <head>
@@ -664,7 +664,6 @@
     .ve-plan-grille thead th { background: var(--background-alt-blue-france); color: var(--text-title-blue-france); text-align: center; font-weight: 700; }
     .ve-plan-grille tbody th { background: var(--background-alt-blue-france); text-align: left; white-space: nowrap; width: 9rem; }
     .ve-plan-grille td { height: 3rem; min-width: 5.5rem; }
-    .ve-plan-grille--jour td { height: 2.25rem; }
     .ve-plan-auj { background: var(--background-contrast-yellow-tournesol); }
     .ve-evt { display: block; width: 100%; margin: 0 0 2px; padding: .125rem .375rem; border: 0; border-left: 3px solid currentColor; font: inherit; font-size: .75rem; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
     .ve-evt:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 1px; }
@@ -690,7 +689,31 @@
         .ve-prochain .fr-btn { min-height: 3rem; }
     }
     .ve-langues__autre { flex: 0 0 100%; max-width: 20rem; margin: 0 0 .5rem; }
+    .ve-plan-voir { margin: 0; }
+    .ve-plan-voir > .fr-checkbox-group { margin: 0; }
+    .ve-creneau-bloc { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); padding: .75rem 1rem; }
+    .ve-creneau-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem 1rem; }
+    .ve-creneau-ligne > .fr-input-group, .ve-creneau-ligne > div { margin: 0; min-width: 8rem; }
+    .ve-bandes-cadre { border: 1px solid var(--border-default-grey); background: var(--background-default-grey); padding: .5rem 1rem 1rem; }
+    .ve-bandes { list-style: none; margin: 0; padding: 0; }
+    .ve-bandes > li::marker { content: none; }
+    .ve-bande { display: grid; grid-template-columns: minmax(11rem, 15rem) 1fr; gap: .75rem; align-items: center; margin: 0; padding: .5rem 0; border-bottom: 1px solid var(--border-default-grey); }
+    .ve-bande--echelle { border-bottom: 0; padding: 0; }
+    .ve-bande__qui { display: flex; flex-direction: column; align-items: flex-start; gap: .125rem; min-width: 0; }
+    .ve-bande__heures { position: relative; height: 1.25rem; font-size: .75rem; color: var(--text-mention-grey); }
+    .ve-bande__heure { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+    .ve-bande__piste, .ve-bande__libre { background: var(--background-contrast-success); }
+    .ve-bande__piste { position: relative; height: 2.75rem; border: 1px solid var(--border-default-grey); }
+    .ve-bande--prise .ve-bande__piste { background: var(--background-alt-grey); }
+    .ve-bande__piste .ve-evt { position: absolute; top: .25rem; bottom: .25rem; width: auto; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .ve-bande__creneau { position: absolute; top: 0; bottom: 0; border: 2px dashed var(--border-action-high-blue-france); pointer-events: none; }
+    .ve-bande__maintenant { position: absolute; top: -.25rem; bottom: -.25rem; width: 2px; background: var(--text-default-error); pointer-events: none; }
+    .ve-bande__suite { display: none; }
+    .ve-plan-groupe th { background: var(--background-contrast-grey); color: var(--text-title-grey); text-align: left; }
     @media (max-width: 48em) {
+        .ve-bande { grid-template-columns: 1fr; }
+        .ve-bande__piste, .ve-bande--echelle { display: none; }
+        .ve-bande__suite { display: block; }
         .bi-principal .w-barre-vue .w-segment { flex-wrap: wrap; }
         .ve-plan-nav .ve-plan-periode { flex-basis: 100%; margin: .25rem 0 0; }
     }
@@ -736,7 +759,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.1';
+var VERSION_WIDGET = '1.2.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitVéhicules';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -918,7 +941,7 @@ var etat = {
     t: {}, personnes: [], chauffeurs: [], moiChauffeur: null, trajets: [], vehicules: [], indispos: [], acces: [],
     moi: null, identiteTentee: false, vue: 'chargement',
     onglet: 'avenir', admin: 'traiter', ongletPersonnes: 'toutes', recherchePersonnes: '', filtreTrajets: 'avenir', filtreChauffeur: '', filtreVehicule: '', ongletVehicules: 'actifs',
-    planning: { ressource: 'chauffeurs', vue: 'semaine', jour: null, masques: [] },
+    planning: { vue: 'jour', jour: null, masques: [], voir: null, creneau: null },
     panneau: null, pagePubliee: null, pageProtegee: null, initEnCours: false, empreinte: '', nomDoc: ''
 };
 
@@ -3752,11 +3775,21 @@ async function supprimerIndispo(x, type, id) {
         dessiner();
     }
 }
-function ouvrirAjoutIndispo(type, id, retourListe) {
+function ouvrirAjoutIndispo(typeDemande, id, retourListe) {
+    var type = typeDemande || 'vehicule';
+    var choixType = !typeDemande;
     var b = { type: type, id: id || 0, motif: '', detail: '', journees: true, du: aujourdhui(), au: aujourdhui(), deb: 8 * 60, fin: 18 * 60 };
     var choixRessource = !id;
     var rendre = function (focus) {
         var corps = [];
+        if (choixType) {
+            corps.push(groupeRadios('Pour', 'aiType', [{ valeur: 'vehicule', libelle: 'Un véhicule' }, { valeur: 'chauffeur', libelle: 'Un chauffeur' }], type, function (v) {
+                type = v;
+                b.id = 0;
+                b.motif = '';
+                rendre('aiType_' + (v === 'vehicule' ? 0 : 1));
+            }, { enLigne: true }));
+        }
         if (choixRessource) {
             var ress = type === 'chauffeur' ? chauffeursActifs().map(function (p) { return { valeur: p.id, libelle: nomListe(p) }; }) : vehiculesActifs().map(function (v) { return { valeur: v.id, libelle: v.nom }; });
             var sr = liste('aiRes', ress, b.id || '', { vide: 'Choisir' });
@@ -3841,12 +3874,12 @@ function ouvrirAjoutIndispo(type, id, retourListe) {
         }
     };
     if (!retourListe) {
-        ouvrirPanneau({ titre: 'Ajouter une indisponibilité', sousTitre: id ? nomRessource(type, id) : (type === 'chauffeur' ? 'Pour un chauffeur' : 'Pour un véhicule'), cle: 'indispo', corps: [], pied: [] });
+        ouvrirPanneau({ titre: 'Ajouter une indisponibilité', sousTitre: id ? nomRessource(type, id) : (choixType ? 'Pour un véhicule ou un chauffeur' : type === 'chauffeur' ? 'Pour un chauffeur' : 'Pour un véhicule'), cle: 'indispo', corps: [], pied: [] });
     }
     else {
         document.getElementById('wPanneauTitre').textContent = 'Ajouter une indisponibilité';
     }
-    rendre(choixRessource ? 'aiRes' : 'aiMotif');
+    rendre(choixType ? 'aiType_0' : choixRessource ? 'aiRes' : 'aiMotif');
 }
 
 var _dem = null;
@@ -5254,10 +5287,45 @@ async function majCloche() {
 
 var JOURS_COURTS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
 function rangSemaine(jour) { return (new Date(jour * 86400000).getUTCDay() + 6) % 7; }
-function ressourcesPlanning() {
+var CLE_PLANNING = 'wuitvehicules:planning';
+function voirPlanning() {
     var p = etat.planning;
-    var l = p.ressource === 'vehicules' ? vehiculesActifs().map(function (v) { return { cle: 'v' + v.id, type: 'vehicule', r: v, nom: v.nom }; })
-        : chauffeursActifs().map(function (c) { return { cle: 'c' + c.id, type: 'chauffeur', r: c, nom: nomListe(c) }; });
+    if (!p.voir) {
+        p.voir = { vehicules: true, chauffeurs: true };
+        try {
+            var v = JSON.parse(window.localStorage.getItem(CLE_PLANNING) || 'null');
+            if (v && typeof v === 'object' && (v.vehicules === true || v.chauffeurs === true)) {
+                p.voir = { vehicules: v.vehicules === true, chauffeurs: v.chauffeurs === true };
+            }
+        }
+        catch (e) {
+            logSecurite('INFO', 'Choix du planning non relu', e);
+        }
+    }
+    return p.voir;
+}
+function changerVoir(cle, valeur) {
+    var v = voirPlanning();
+    v[cle] = valeur;
+    if (!v.vehicules && !v.chauffeurs) {
+        v[cle === 'vehicules' ? 'chauffeurs' : 'vehicules'] = true;
+    }
+    try {
+        window.localStorage.setItem(CLE_PLANNING, JSON.stringify(v));
+    }
+    catch (e) {
+        logSecurite('INFO', 'Choix du planning non retenu', e);
+    }
+}
+function ressourcesPlanning() {
+    var v = voirPlanning();
+    var l = [];
+    if (v.vehicules) {
+        l = l.concat(vehiculesActifs().map(function (x) { return { cle: 'v' + x.id, type: 'vehicule', groupe: 'Véhicules', r: x, nom: x.nom }; }));
+    }
+    if (v.chauffeurs) {
+        l = l.concat(chauffeursActifs().map(function (c) { return { cle: 'c' + c.id, type: 'chauffeur', groupe: 'Chauffeurs', r: c, nom: nomPersonne(c) }; }));
+    }
     return l;
 }
 function evenements(res, deb, fin) {
@@ -5280,14 +5348,14 @@ function boutonEvenement(ev, res, id, o) {
         var t = ev.t;
         var benef = personneParId(t.BENEFICIAIRE);
         var lib = libelleStatut(t);
-        b = creer('button', { classe: 've-evt ' + (CLASSES_STATUT[lib] || ''), id: id, texte: '🚗 ' + hd + ' ' + (benef ? nomPersonne(benef) : '') + (o.nom ? ' · ' + res.nom : ''),
+        b = creer('button', { classe: 've-evt ' + (CLASSES_STATUT[lib] || ''), id: id, texte: o.bande ? hd + ' ' + (t.ADRESSE_DESTINATION || t.NUMERO) : '🚗 ' + hd + ' ' + (benef ? nomPersonne(benef) : '') + (o.nom ? ' · ' + res.nom : ''),
             attrs: { type: 'button', 'aria-label': 'Trajet ' + t.NUMERO + ', ' + hd + ' à ' + hf + ', ' + (benef ? nomPersonne(benef) : '') + ', ' + trajetTexte(t) + ', ' + lib + (o.nom ? ', ' + res.nom : '') } });
         b.addEventListener('click', function () { ouvrirTraitement(t); });
     }
     else {
         var x = ev.x;
         var journee = partiesDe(x.debut).minutes === 0 && partiesDe(x.fin).minutes >= 1435;
-        b = creer('button', { classe: 've-evt ve-evt--indispo ' + classeMotif(x.motif), id: id, texte: (journee ? '' : hd + ' ') + (x.motif || 'Indisponible') + (o.nom ? ' · ' + res.nom : ''),
+        b = creer('button', { classe: 've-evt ve-evt--indispo ' + classeMotif(x.motif), id: id, texte: (journee || o.bande ? '' : hd + ' ') + (x.motif || 'Indisponible') + (o.nom ? ' · ' + res.nom : ''),
             attrs: { type: 'button', 'aria-label': (x.motif || 'Indisponible') + ', ' + res.nom + ', ' + texteIndispo(x) } });
         b.addEventListener('click', function () { ouvrirDetailIndispo(x); });
     }
@@ -5336,89 +5404,210 @@ function vuePlanning(main) {
     if (p.jour === null) {
         p.jour = aujourdhui();
     }
+    var v = voirPlanning();
     var redessiner = function (f) { dessiner(f); };
-    main.appendChild(titreVue(null, { droite: [segment('plRes', [['chauffeurs', 'Chauffeurs'], ['vehicules', 'Véhicules']], p.ressource, function (v) { p.ressource = v; redessiner('plRes_' + v); }, 'Planning de'),
-        segment('plVue', [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']], p.vue, function (v) { p.vue = v; redessiner('plVue_' + v); }, 'Affichage'),
-        bouton('Ajouter une indisponibilité', null, 'add-line', function () { ouvrirAjoutIndispo(p.ressource === 'vehicules' ? 'vehicule' : 'chauffeur', 0, false); }, { petit: true, id: 'plAjout', desactive: !accesComplet() })] }));
+    var cases = creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne ve-plan-voir' }, [creer('legend', { classe: 'fr-fieldset__legend fr-sr-only', texte: 'Afficher' }),
+        caseACocher('plVoirV', 'Véhicules', v.vehicules, { change: function (e) { changerVoir('vehicules', e.target.checked); redessiner('plVoirV'); } }),
+        caseACocher('plVoirC', 'Chauffeurs', v.chauffeurs, { change: function (e) { changerVoir('chauffeurs', e.target.checked); redessiner('plVoirC'); } })]);
+    main.appendChild(titreVue(null, { droite: [cases,
+        segment('plVue', [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']], p.vue, function (x) { p.vue = x; redessiner('plVue_' + x); }, 'Affichage'),
+        bouton('Ajouter une indisponibilité', null, 'add-line', function () { ouvrirAjoutIndispo(v.vehicules && !v.chauffeurs ? 'vehicule' : !v.vehicules ? 'chauffeur' : null, 0, false); }, { petit: true, id: 'plAjout', desactive: !accesComplet() })] }));
     var nav = creer('div', { classe: 've-plan-nav wb-hors-section' }, [
-        bouton('Période précédente', 'tertiaire', 'arrow-left-s-line', function () { deplacerPlanning(-1); redessiner('plPrec'); }, { petit: true, iconeSeule: true, id: 'plPrec' }),
-        bouton('Aujourd\'hui', 'secondaire', null, function () { deplacerPlanning(0); redessiner('plAuj'); }, { petit: true, id: 'plAuj' }),
-        bouton('Période suivante', 'tertiaire', 'arrow-right-s-line', function () { deplacerPlanning(1); redessiner('plSuiv'); }, { petit: true, iconeSeule: true, id: 'plSuiv' }),
+        bouton('Période précédente', 'tertiaire', 'arrow-left-s-line', function () { deplacerPlanning(-1); p.creneau = null; redessiner('plPrec'); }, { petit: true, iconeSeule: true, id: 'plPrec' }),
+        bouton('Aujourd\'hui', 'secondaire', null, function () { deplacerPlanning(0); p.creneau = null; redessiner('plAuj'); }, { petit: true, id: 'plAuj' }),
+        bouton('Période suivante', 'tertiaire', 'arrow-right-s-line', function () { deplacerPlanning(1); p.creneau = null; redessiner('plSuiv'); }, { petit: true, iconeSeule: true, id: 'plSuiv' }),
         creer('p', { classe: 've-plan-periode', texte: libellePeriode(), attrs: { 'aria-live': 'polite' } })]);
     main.appendChild(nav);
     var toutes = ressourcesPlanning();
     var masques = p.masques || [];
-    var filtres = creer('ul', { classe: 've-plan-filtres wb-hors-section', attrs: { 'aria-label': p.ressource === 'vehicules' ? 'Véhicules affichés' : 'Chauffeurs affichés' } }, toutes.map(function (res, k) {
-        var off = masques.indexOf(res.cle) !== -1;
-        var b = creer('button', { classe: 've-puce' + (off ? '' : ' ve-puce--on'), id: 'plF' + k, texte: res.nom, attrs: { type: 'button', 'aria-pressed': off ? 'false' : 'true' } });
-        b.addEventListener('click', function () { p.masques = off ? masques.filter(function (x) { return x !== res.cle; }) : masques.concat([res.cle]); redessiner('plF' + k); });
-        return creer('li', {}, [b]);
-    }));
     if (toutes.length > 1) {
-        main.appendChild(filtres);
+        main.appendChild(creer('ul', { classe: 've-plan-filtres wb-hors-section', attrs: { 'aria-label': 'Ressources affichées' } }, toutes.map(function (res, k) {
+            var off = masques.indexOf(res.cle) !== -1;
+            var b = creer('button', { classe: 've-puce' + (off ? '' : ' ve-puce--on'), id: 'plF' + k, texte: res.nom, attrs: { type: 'button', 'aria-pressed': off ? 'false' : 'true' } });
+            b.addEventListener('click', function () { p.masques = off ? masques.filter(function (x) { return x !== res.cle; }) : masques.concat([res.cle]); redessiner('plF' + k); });
+            return creer('li', {}, [b]);
+        })));
     }
-    var motifs = p.ressource === 'vehicules' ? cfg().motifsVehicules : cfg().motifsChauffeurs;
-    main.appendChild(creer('ul', { classe: 've-plan-legende wb-hors-section', attrs: { 'aria-label': 'Légende' } }, [['ve-st--attente', 'En attente'], ['ve-st--cours', 'Pris en charge'], ['ve-st--validee', 'Validé'], ['ve-st--route', 'En course'], ['ve-st--fini', 'Terminé']]
+    var motifs = (v.vehicules ? cfg().motifsVehicules : []).concat(v.chauffeurs ? cfg().motifsChauffeurs : []).filter(function (m, i, t) { return t.indexOf(m) === i; });
+    main.appendChild(creer('ul', { classe: 've-plan-legende wb-hors-section', attrs: { 'aria-label': 'Légende' } }, (p.vue === 'jour' ? [['ve-bande__libre', 'Libre']] : []).concat([['ve-st--attente', 'En attente'], ['ve-st--cours', 'Pris en charge'], ['ve-st--validee', 'Validé'], ['ve-st--route', 'En course'], ['ve-st--fini', 'Terminé']])
         .map(function (x) { return creer('li', {}, [creer('span', { classe: 've-plan-pastille ' + x[0], attrs: { 'aria-hidden': 'true' } }), x[1]]); })
         .concat(motifs.map(function (m) { return creer('li', {}, [creer('span', { classe: 've-plan-pastille ve-evt--indispo ' + classeMotif(m), attrs: { 'aria-hidden': 'true' } }), m]); }))));
     var res = toutes.filter(function (r) { return masques.indexOf(r.cle) === -1; });
     if (!toutes.length) {
-        main.appendChild(creer('p', { classe: 'w-texte', texte: p.ressource === 'vehicules' ? 'Aucun véhicule actif : ajoutez-les dans « Les véhicules ».' : 'Aucun chauffeur : ajoutez-les dans « Les chauffeurs ».' }));
+        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun véhicule ni chauffeur actif : ajoutez-les dans « Les véhicules » et « Les chauffeurs ».' }));
+        return;
+    }
+    if (p.vue === 'jour') {
+        main.appendChild(blocCreneau());
+        main.appendChild(grilleBandes(res));
         return;
     }
     var cadre = creer('div', { classe: 've-plan wb-hors-section' });
-    if (p.vue === 'semaine') {
-        cadre.appendChild(grilleSemaine(res));
-    }
-    else if (p.vue === 'jour') {
-        cadre.appendChild(grilleJour(res));
-    }
-    else {
-        cadre.appendChild(grilleMois(res));
-    }
+    cadre.appendChild(p.vue === 'semaine' ? grilleSemaine(res) : grilleMois(res));
     main.appendChild(cadre);
+}
+function blocCreneau() {
+    var p = etat.planning;
+    var c = p.creneau || { deb: null, fin: null, trajet: 0 };
+    var b = { deb: c.deb !== null ? partiesDe(c.deb).minutes : null, fin: c.fin !== null ? partiesDe(c.fin).minutes : null };
+    var appliquer = function () {
+        if (b.deb === null || b.fin === null) {
+            afficherErreur('Choisissez l\'heure de début et l\'heure de fin.');
+            return;
+        }
+        var deb = secDe(p.jour, b.deb), fin = secDe(b.fin > b.deb ? p.jour : p.jour + 1, b.fin);
+        p.creneau = { deb: deb, fin: fin, trajet: 0 };
+        dessiner('plCrVoir');
+    };
+    var demandes = etat.trajets.filter(function (t) { return (t.STATUT === ST.attente || t.STATUT === ST.cours) && t.DEPART !== null && partiesDe(t.DEPART).jour === p.jour && !estPasse(t); }).sort(parDepart);
+    var z = creer('section', { classe: 've-creneau-bloc wb-hors-section', attrs: { 'aria-labelledby': 'plCrTitre' } }, [
+        creer('p', { classe: 've-sous', id: 'plCrTitre', texte: 'Qui est libre de… à… ?' }),
+        creer('div', { classe: 've-creneau-ligne' }, [champ('De', listeHeure('plCrDeb', b.deb, function (m) { b.deb = m; }, { vide: 'Heure' })), champ('À', listeHeure('plCrFin', b.fin, function (m) { b.fin = m; }, { vide: 'Heure' })),
+            bouton('Voir qui est libre', 'secondaire', 'search-line', appliquer, { petit: true, id: 'plCrVoir' }),
+            p.creneau ? bouton('Effacer le créneau', 'tertiaire', 'close-line', function () { p.creneau = null; dessiner('plCrVoir'); }, { petit: true, id: 'plCrEff' }) : null])]);
+    if (demandes.length) {
+        z.appendChild(creer('p', { classe: 'w-mention', texte: 'Demandes à traiter ce jour : placez-en une pour voir qui peut la prendre.' }));
+        z.appendChild(creer('ul', { classe: 've-plan-filtres' }, demandes.map(function (t, k) {
+            var on = p.creneau && p.creneau.trajet === t.id;
+            var bt = creer('button', { classe: 've-puce' + (on ? ' ve-puce--on' : ''), id: 'plDem' + k, texte: t.NUMERO + ' · ' + texteHeure(partiesDe(t.DEPART).minutes) + ' · ' + t.ADRESSE_DESTINATION,
+                attrs: { type: 'button', 'aria-pressed': on ? 'true' : 'false', 'aria-label': 'Placer la demande ' + t.NUMERO + ', ' + texteCreneau(t) + ', ' + trajetTexte(t) } });
+            bt.addEventListener('click', function () { p.creneau = on ? null : { deb: t.DEPART, fin: finOccupation(t), trajet: t.id }; dessiner('plDem' + k); });
+            return creer('li', {}, [bt]);
+        })));
+    }
+    if (p.creneau && p.creneau.trajet) {
+        var tr = trajetParId(p.creneau.trajet);
+        if (tr) {
+            z.appendChild(creer('p', {}, [boutonLien('Traiter la demande ' + tr.NUMERO, function () { ouvrirTraitement(tr); }, { id: 'plCrTraiter', classe: 'wb-lien--fort' })]));
+        }
+    }
+    return z;
+}
+function etatBande(r, debJ, finJ) {
+    var p = etat.planning;
+    if (p.creneau) {
+        var t = p.creneau.trajet ? trajetParId(p.creneau.trajet) : null;
+        var e = etatRessource(r.type, r.r, t || { id: 0, NB_PERSONNES: 1, ADRESSE_DESTINATION: '' }, p.creneau.deb, p.creneau.fin);
+        return { libre: e.libre, texte: e.libre ? (e.regroupe ? e.raison : 'Libre sur le créneau') : e.raison, classe: e.libre ? 've-st--validee' : 've-st--refusee' };
+    }
+    var evs = evenements(r, debJ, finJ);
+    var mtn = maintenant();
+    if (mtn < debJ || mtn >= finJ) {
+        var nb = evs.filter(function (x) { return x.genre === 'trajet'; }).length;
+        var ind = evs.filter(function (x) { return x.genre === 'indispo'; })[0];
+        if (ind && ind.deb <= debJ && ind.fin >= finJ - 60) {
+            return { libre: false, texte: (ind.x.motif || 'Indisponible') + ' toute la journée', classe: 've-st--refusee' };
+        }
+        return { libre: !nb && !ind, grise: false, texte: nb ? pluriel(nb, 'course') + ', libre le reste du temps' : (ind ? 'Indisponible une partie du jour' : 'Libre toute la journée'), classe: nb || ind ? 've-st--attente' : 've-st--validee' };
+    }
+    var enCours = evs.filter(function (x) { return x.deb <= mtn && x.fin > mtn; })[0];
+    if (enCours && enCours.genre === 'indispo') {
+        var pf = partiesDe(enCours.fin);
+        return { libre: false, texte: (enCours.x.motif || 'Indisponible') + (enCours.fin >= finJ - 60 ? ' toute la journée' : ' jusqu\'à ' + texteHeure(pf.minutes)), classe: 've-st--refusee' };
+    }
+    if (enCours) {
+        return { libre: false, texte: 'En course, retour vers ' + texteHeure(partiesDe(enCours.fin).minutes), classe: 've-st--route' };
+    }
+    var suite = evs.filter(function (x) { return x.deb > mtn; })[0];
+    return { libre: true, texte: suite ? 'Libre jusqu\'à ' + texteHeure(partiesDe(suite.deb).minutes) : 'Libre toute la journée', classe: 've-st--validee' };
+}
+function grilleBandes(res) {
+    var p = etat.planning;
+    var debJ = secDe(p.jour, 0), finJ = secDe(p.jour + 1, 0);
+    var hMin = 7, hMax = 21;
+    var tous = res.map(function (r) { return { r: r, evs: evenements(r, debJ, finJ), e: etatBande(r, debJ, finJ) }; });
+    tous.forEach(function (x) { x.evs.forEach(function (ev) {
+        if (ev.genre === 'trajet' || ev.fin - ev.deb < 86000) {
+            if (ev.deb >= debJ) {
+                hMin = Math.min(hMin, Math.floor(partiesDe(ev.deb).minutes / 60));
+            }
+            if (ev.fin <= finJ) {
+                hMax = Math.max(hMax, Math.ceil(partiesDe(ev.fin).minutes / 60));
+            }
+        }
+    }); });
+    if (p.creneau) {
+        hMin = Math.min(hMin, Math.floor(partiesDe(p.creneau.deb).minutes / 60));
+        hMax = Math.max(hMax, p.creneau.fin >= finJ ? 24 : Math.ceil(partiesDe(p.creneau.fin).minutes / 60));
+    }
+    var a = secDe(p.jour, hMin * 60), b = hMax >= 24 ? finJ : secDe(p.jour, hMax * 60);
+    var pos = function (sec) { return Math.max(0, Math.min(100, (sec - a) / (b - a) * 100)); };
+    var mtn = maintenant();
+    var z = creer('div', { classe: 've-bandes-cadre wb-hors-section' });
+    ['Véhicules', 'Chauffeurs'].forEach(function (g) {
+        var l = tous.filter(function (x) { return x.r.groupe === g; });
+        if (!l.length) {
+            return;
+        }
+        l.sort(function (x, y) { return (y.e.libre ? 1 : 0) - (x.e.libre ? 1 : 0) || comparerTexte(x.r.nom, y.r.nom); });
+        var libres = l.filter(function (x) { return x.e.libre; }).length;
+        var idG = 'plG' + g.charAt(0);
+        z.appendChild(creer('h3', { classe: 'bi-sous-titre', id: idG }, [g + ' ', creer('span', { classe: 'bi-st ' + (libres ? 've-st--validee' : 've-st--refusee'), texte: libres + ' ' + (libres > 1 ? 'libres' : 'libre') + ' sur ' + l.length + (p.creneau ? ' sur le créneau' : (mtn >= debJ && mtn < finJ ? ' maintenant' : '')) })]));
+        var echelle = creer('div', { classe: 've-bande ve-bande--echelle', attrs: { 'aria-hidden': 'true' } }, [creer('span', {}), creer('div', { classe: 've-bande__heures' }, (function () {
+            var h = [];
+            for (var i = hMin; i <= Math.min(hMax, 24); i += (hMax - hMin > 14 ? 3 : hMax - hMin > 8 ? 2 : 1)) {
+                var t = creer('span', { classe: 've-bande__heure', texte: i + ' h' });
+                t.style.left = pos(i >= 24 ? finJ : secDe(p.jour, i * 60)) + '%';
+                h.push(t);
+            }
+            return h;
+        })())]);
+        z.appendChild(echelle);
+        z.appendChild(creer('ul', { classe: 've-bandes', attrs: { 'aria-labelledby': idG } }, l.map(function (x, k) {
+            var r = x.r;
+            var info = r.type === 'vehicule' ? [r.r.immat, r.r.places ? pluriel(r.r.places, 'place') : ''].filter(Boolean).join(' · ') : [r.r.telephone, r.r.langues.join(', ')].filter(Boolean).join(' · ');
+            var blinde = r.type === 'vehicule' ? r.r.blinde : r.r.habiliteBlinde;
+            var piste = creer('div', { classe: 've-bande__piste' });
+            x.evs.forEach(function (ev, i) {
+                var bt = boutonEvenement(ev, r, 'plB' + g.charAt(0) + k + '_' + i, { bande: true });
+                var gauche = pos(Math.max(ev.deb, a)), droite = pos(Math.min(ev.fin, b));
+                if (droite <= gauche) {
+                    return;
+                }
+                bt.style.left = gauche + '%';
+                bt.style.width = Math.max(droite - gauche, 1.5) + '%';
+                piste.appendChild(bt);
+            });
+            if (p.creneau) {
+                var cr = creer('span', { classe: 've-bande__creneau', attrs: { 'aria-hidden': 'true' } });
+                cr.style.left = pos(p.creneau.deb) + '%';
+                cr.style.width = Math.max(pos(p.creneau.fin) - pos(p.creneau.deb), 1) + '%';
+                piste.appendChild(cr);
+            }
+            if (mtn > a && mtn < b) {
+                var mt = creer('span', { classe: 've-bande__maintenant', attrs: { 'aria-hidden': 'true' } });
+                mt.style.left = pos(mtn) + '%';
+                piste.appendChild(mt);
+            }
+            var suite = x.evs.filter(function (ev) { return ev.genre === 'trajet' && ev.fin > mtn; })[0];
+            return creer('li', { classe: 've-bande' + ((x.e.grise === undefined ? !x.e.libre : x.e.grise) ? ' ve-bande--prise' : '') }, [
+                creer('div', { classe: 've-bande__qui' }, [creer('strong', {}, [r.nom, blinde ? ' ' : '', blinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: r.type === 'vehicule' ? 'Blindé' : 'Habilité blindé' }) : null]),
+                    info ? creer('span', { classe: 'w-mention ve-bloc', texte: info }) : null,
+                    creer('span', { classe: 'bi-st ' + x.e.classe, texte: x.e.texte }),
+                    suite ? creer('span', { classe: 'w-mention ve-bloc ve-bande__suite', texte: 'Prochaine course : ' + texteHeure(partiesDe(suite.deb).minutes) + ', ' + suite.t.NUMERO }) : null]),
+                piste]);
+        })));
+    });
+    return z;
 }
 function grilleSemaine(res) {
     var lundi = etat.planning.jour - rangSemaine(etat.planning.jour);
     var auj = aujourdhui();
     var jours = [0, 1, 2, 3, 4, 5, 6].map(function (i) { return lundi + i; });
-    var tete = creer('tr', {}, [creer('th', { texte: etat.planning.ressource === 'vehicules' ? 'Véhicule' : 'Chauffeur', attrs: { scope: 'col' } })].concat(jours.map(function (j, i) {
+    var tete = creer('tr', {}, [creer('th', { texte: 'Véhicule ou chauffeur', attrs: { scope: 'col' } })].concat(jours.map(function (j, i) {
         return creer('th', { classe: j === auj ? 've-plan-auj' : null, attrs: { scope: 'col' } }, [JOURS_COURTS[i] + ' ', creer('span', { classe: 've-normal', texte: texteJour(j, { sansJour: true, court: true }) })]);
     })));
-    var corps = res.map(function (r, ir) {
-        return creer('tr', {}, [creer('th', { texte: r.nom, attrs: { scope: 'row' } })].concat(jours.map(function (j, ij) {
+    var corps = [];
+    res.forEach(function (r, ir) {
+        if (!ir || res[ir - 1].groupe !== r.groupe) {
+            corps.push(creer('tr', { classe: 've-plan-groupe' }, [creer('th', { texte: r.groupe, attrs: { scope: 'colgroup', colspan: '8' } })]));
+        }
+        corps.push(creer('tr', {}, [creer('th', { texte: r.nom, attrs: { scope: 'row' } })].concat(jours.map(function (j, ij) {
             var deb = secDe(j, 0), fin = secDe(j + 1, 0);
             return creer('td', { classe: j === auj ? 've-plan-auj' : null }, evenements(r, deb, fin).map(function (ev, k) { return boutonEvenement(ev, r, 'plS' + ir + '_' + ij + '_' + k); }));
-        })));
+        }))));
     });
     return creer('table', { classe: 've-plan-grille' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Planning de la semaine' }), creer('thead', {}, [tete]), creer('tbody', {}, corps)]);
-}
-function grilleJour(res) {
-    var j = etat.planning.jour;
-    var debJ = secDe(j, 0), finJ = secDe(j + 1, 0);
-    var parRes = res.map(function (r) { return evenements(r, debJ, finJ); });
-    var hMin = 7, hMax = 20;
-    var journee = function (ev) { return ev.genre === 'indispo' && partiesDe(ev.x.debut).minutes === 0 && ev.fin >= finJ - 60; };
-    parRes.forEach(function (l) { l.forEach(function (ev) { if (ev.deb >= debJ && !journee(ev)) {
-        var h = Math.floor(partiesDe(ev.deb).minutes / 60);
-        hMin = Math.min(hMin, h);
-        hMax = Math.max(hMax, h);
-    } }); });
-    var maintenantP = partiesMaintenant();
-    var tete = creer('tr', {}, [creer('th', { texte: 'Heure', attrs: { scope: 'col' } })].concat(res.map(function (r) { return creer('th', { texte: r.nom, attrs: { scope: 'col' } }); })));
-    var lignes = [creer('tr', {}, [creer('th', { texte: 'Journée', attrs: { scope: 'row' } })].concat(parRes.map(function (l, ir) {
-        return creer('td', {}, l.filter(function (ev) { return ev.deb < debJ || journee(ev); }).map(function (ev, k) { return boutonEvenement(ev, res[ir], 'plJ' + ir + '_j_' + k); }));
-    })))];
-    for (var h = hMin; h <= hMax; h++) {
-        (function (h) {
-            var ici = maintenantP.jour === j && Math.floor(maintenantP.minutes / 60) === h;
-            lignes.push(creer('tr', { classe: ici ? 've-plan-auj' : null }, [creer('th', { texte: h + ' h', attrs: { scope: 'row' } })].concat(parRes.map(function (l, ir) {
-                return creer('td', {}, l.filter(function (ev) { return ev.deb >= debJ && Math.floor(partiesDe(ev.deb).minutes / 60) === h && !journee(ev); })
-                    .map(function (ev, k) { return boutonEvenement(ev, res[ir], 'plJ' + ir + '_' + h + '_' + k); }));
-            }))));
-        })(h);
-    }
-    return creer('table', { classe: 've-plan-grille ve-plan-grille--jour' }, [creer('caption', { classe: 'fr-sr-only', texte: 'Planning de la journée' }), creer('thead', {}, [tete]), creer('tbody', {}, lignes)]);
 }
 function grilleMois(res) {
     var d = new Date(etat.planning.jour * 86400000);
