@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.1 - 26/11/2026
+  Version : 1.0.2 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -76,6 +76,11 @@
       border-top: 1px solid var(--border-default-grey); }
     .w-dialogue__pied .w-pousse { margin-left: auto; }
     .w-panneau { background: var(--background-alt-grey); color: var(--text-default-grey); padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+    .w-disposition { display: flex; gap: 1.5rem; flex: 1; min-height: 0; position: relative; }
+    .w-principal { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    @media (max-width: 48em) {
+      .w-disposition { gap: 0; }
+    }
     .w-aide { width: 1.5rem; height: 1.5rem; flex-shrink: 0; padding: 0; margin: -.5rem 0 0 -.25rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
       background: transparent; border: 0; color: var(--text-action-high-blue-france); vertical-align: super; }
     .w-aide:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 0; }
@@ -163,6 +168,7 @@
       /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       #skipLink, .w-bandeau, .w-panneau-aide, .w-toast, .w-loader, .w-overlay { display: none !important; }
       .w-contenu{ overflow: visible; padding: 0; display: block; }
+      .w-disposition, .w-principal { display: block; }
     }
     .w-dialogue--pousse { flex: 0 0 34rem; width: 34rem; max-width: 50%; height: auto; min-height: 0; border-left: 1px solid var(--border-default-grey); outline: 1px solid var(--border-default-grey); }
     .w-dialogue--pousse .w-dialogue__corps { overflow-y: auto; }
@@ -403,11 +409,88 @@
       /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
       /* !important : impression : surcharge les règles d'écran et celles du DSFR, plus spécifiques */
     }
-    .bi-page { display: flex; flex-direction: column; gap: 1.25rem; padding: 1rem 1.5rem 2rem; max-width: 72rem; margin: 0 auto; }
-    .bi-bienvenue { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
-    .bi-bienvenue h2 { margin: 0; font-size: 1rem; line-height: 1.5rem; }
-    .bi-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
-    .bi-barre__actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+    .w-disposition { display: flex; gap: 1.5rem; flex: 1; min-height: 0; position: relative; }
+    .w-principal { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .w-volet { flex: 0 0 16rem; min-height: 0; display: flex; background: var(--background-alt-grey); border-left: .25rem solid var(--border-action-high-blue-france); color: var(--text-default-grey); }
+    .w-volet__contenu { flex: 1; min-width: 0; overflow-y: auto; padding: .75rem 1rem 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .w-volet__tete { display: none; align-items: center; justify-content: space-between; gap: .5rem; }
+    .w-volet__titre { margin: 0; font-size: .875rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-volet__bloc { display: flex; flex-direction: column; gap: .75rem; }
+    .w-volet__bloc .fr-input, .w-volet__bloc .fr-select { width: 100%; }
+    .w-volet__bloc .w-outils__champ { width: 100%; }
+    .w-volet__bloc + .w-volet__bloc { padding-top: .5rem; }
+    .w-volet__entete { display: flex; align-items: center; gap: .5rem; }
+    .w-volet__puce { flex-shrink: 0; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
+    .w-volet__puce::before { --icon-size: 1rem; }
+    .w-volet__h { margin: 0; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: var(--text-title-grey); }
+    .w-volet__bloc .fr-label .fr-hint-text { margin-top: .125rem; }
+    .w-volet-mobile { display: none; }
+    .w-volet__poignee { position: relative; flex: 0 0 .75rem; align-self: stretch; padding: 0; cursor: pointer; border: 0; border-left: 1px solid var(--border-default-grey);
+      background: var(--background-alt-grey); color: var(--text-default-grey); }
+    .w-volet__poignee::before { content: ''; position: absolute; top: 50%; left: 50%; width: .25rem; height: 1.75rem; margin: -.875rem 0 0 -.125rem;
+      border-left: 1px solid var(--border-plain-grey); border-right: 1px solid var(--border-plain-grey); }
+    .w-volet__poignee:hover { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-volet__poignee:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-volet--replie { flex-basis: auto; }
+    .w-volet--replie .w-volet__contenu { display: none; }
+    .w-volet--replie .w-volet__poignee { flex-basis: 1rem; border-left: 0; }
+    .w-volet__compte { position: absolute; top: .5rem; left: 50%; transform: translateX(-50%); min-width: 1.25rem; height: 1.25rem; padding: 0 .25rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 700; line-height: 1.25rem; text-align: center; color: var(--text-inverted-blue-france); background: var(--background-action-high-blue-france); }
+    .w-volet__compte:empty { display: none; }
+    @media (max-width: 48em) {
+      .w-volet, .w-volet--replie { display: none; position: absolute; z-index: 30; top: 0; bottom: 0; left: 0; width: min(20rem, 92%); border-right: 1px solid var(--border-plain-grey); }
+      .w-volet--mobile-ouvert, .w-volet--mobile-ouvert.w-volet--replie { display: flex; }
+      .w-volet--replie .w-volet__contenu { display: flex; }
+      .w-volet__poignee { display: none; }
+      .w-volet__tete { display: flex; }
+      .w-volet-mobile { display: inline-flex; flex-shrink: 0; }
+      .w-disposition { gap: 0; }
+    }
+    .w-barre-vue { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
+    .w-barre-vue__texte { min-width: 0; display: flex; align-items: center; gap: .5rem .75rem; flex-wrap: wrap; }
+    .w-barre-vue__titre { margin: 0; }
+    .w-barre-vue__compteurs { display: flex; flex-wrap: wrap; gap: .375rem; }
+    .w-compteur { padding: .125rem .625rem; border-radius: 999px; font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--background-contrast-blue-france); color: var(--text-action-high-blue-france); }
+    .w-barre-vue__commandes { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; margin-left: auto; }
+    .w-segment { display: inline-flex; flex-wrap: nowrap; border: 1px solid var(--border-action-high-blue-france);
+      background: var(--background-default-grey); color: var(--text-action-high-blue-france); }
+    .w-segment button { display: inline-flex; align-items: center; gap: .25rem; border: 0; border-left: 1px solid var(--border-action-high-blue-france); background: transparent;
+      padding: .25rem .625rem; min-height: 2rem; font-size: .8125rem; font-weight: 500; color: var(--text-action-high-blue-france); cursor: pointer; white-space: nowrap; }
+    .w-segment button:first-child { border-left: 0; }
+    .w-segment button:hover { background: var(--background-default-grey-hover); color: var(--text-action-high-blue-france); }
+    .w-segment button[aria-pressed="true"] { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); font-weight: 700; }
+    .w-segment button:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 2px; }
+    .w-segment [class*="fr-icon-"]::before { --icon-size: 1rem; }
+    .w-legende li { margin: 0; padding: 0; }
+    .w-legende__item { display: flex; align-items: center; gap: .5rem; width: 100%; min-height: 1.75rem; padding: .125rem .25rem; border: 0; cursor: pointer; text-align: left; font: inherit; font-size: .875rem; background: transparent; color: var(--text-default-grey); }
+    .w-legende__item:hover { background: var(--background-contrast-grey); color: var(--text-default-grey); }
+    .w-legende__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: 0; }
+    .w-legende__nom { flex: 1; min-width: 0; overflow-wrap: break-word; }
+    .w-legende__item--off { color: var(--text-mention-grey); }
+    .w-legende__item--off .w-legende__nom { text-decoration: line-through; color: var(--text-mention-grey); }
+    .w-legende__item--off .gp-pastille { opacity: .3; }
+    .w-filtres__pied { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+    .w-mobile-actions { display: none; }
+    @media (max-width: 48em) {
+      .w-mobile-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+      .w-barre-vue__texte { flex-direction: column; align-items: flex-start; }
+      .w-barre-vue__commandes { margin-left: 0; justify-content: flex-start; }
+    }
+    .gp-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; font-size: .8125rem; margin: 0; padding: 0; list-style: none; color: var(--text-default-grey); }
+    .gp-legende li { display: inline-flex; align-items: center; gap: .375rem; padding: 0; }
+    .gp-legende__n { color: var(--text-mention-grey); font-size: .75rem; }
+    .gp-pastille { display: inline-block; flex: 0 0 auto; width: .875rem; height: .875rem; border-radius: 0; border: 1px solid; border-left-width: 4px; }
+    .bi-page { display: flex; flex-direction: column; gap: 1.25rem; }
+    .w-contenu:has(.bi-disposition) { padding: 0; overflow: hidden; display: flex; }
+    .bi-disposition { flex: 1 1 auto; min-height: 0; gap: 0; }
+    .bi-principal { overflow-y: auto; padding: 1rem 1.75rem 2rem; gap: 1rem; }
+    .bi-pleine { width: 100%; justify-content: center; }
+    .w-legende { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
+    @media (max-width: 48em) {
+      .w-contenu:has(.bi-disposition) { overflow-y: auto; display: block; }
+      .bi-principal { overflow: visible; padding: .75rem 1rem; }
+    }
     .bi-message { margin: 0; padding: .75rem 1rem; background: var(--background-alt-grey); border-left: .25rem solid var(--border-action-high-blue-france); font-size: .875rem; line-height: 1.5rem; }
     .bi-message summary { cursor: pointer; font-weight: 700; }
     .bi-message p { margin: .5rem 0 0; white-space: pre-line; }
@@ -575,7 +658,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.0.2';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -596,7 +679,7 @@ var ST = { valoriser: 'À valoriser', valider: 'À valider', validee: 'Validée'
 var STATUTS_DEMANDE = [ST.valoriser, ST.valider, ST.validee, ST.emis, ST.completer, ST.refusee, ST.annulee];
 var COULEURS_STATUT = {
     'À valoriser': ['#e3e3fd', '#000091'], 'À valider': ['#feebd0', '#695240'], 'Validée': ['#c3fad5', '#18753c'], 'Billets émis': ['#18753c', '#ffffff'],
-    'À compléter': ['#fee9e6', '#8d533e'], 'Refusée': ['#ffe9e9', '#ce0500'], 'Annulée': ['#eeeeee', '#3a3a3a']
+    'À compléter': ['#fee9e6', '#8d533e'], 'Refusée': ['#ffe9e9', '#ce0500'], 'Annulée': ['#eeeeee', '#3a3a3a'], 'Clôturée': ['#f3ede5', '#6a6156']
 };
 function optionsChoixStatut() {
     var o = {};
@@ -2940,66 +3023,181 @@ async function executer(actions, message, succes) {
     }
 }
 
-function vueUtilisateurs(racine) {
-    var main = creer('div', { classe: 'bi-page' });
-    racine.appendChild(main);
-    if (!etat.moi) {
-        main.appendChild(alerte('warning', 'Vous ne pouvez pas faire de demande depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de vous inscrire. Demandez au service des billets de vous ajouter.' : 'Vous n\'êtes pas reconnu. Rechargez la page ; si le problème continue, prévenez le service des billets.') : 'Le widget n\'a pas l\'accès complet au document.', { role: 'status' }));
-        return;
+var CLE_VOLET = 'wuitbillets:volet';
+function voletReplie() {
+    try {
+        return window.localStorage.getItem(CLE_VOLET) === '1';
     }
-    if (!etat.moi.actif) {
-        main.appendChild(alerte('warning', 'Votre accès est désactivé', 'Pour faire une demande de déplacement, adressez-vous au service des billets.', { role: 'status' }));
-        return;
+    catch (e) {
+        return !!etat.voletReplie;
     }
-    if (cfg().message) {
-        main.appendChild(blocMessage());
+}
+function basculerVolet(replier) {
+    etat.voletReplie = replier;
+    try {
+        window.localStorage.setItem(CLE_VOLET, replier ? '1' : '0');
     }
-    if (!etat.moi.profilFait) {
-        main.appendChild(alerte('info', null, null, { classe: 'bi-bienvenue', enfants: [creer('p', {}, [creer('strong', { texte: 'Bienvenue ' + nomPersonne(etat.moi) + '. ' }), 'Complétez votre profil voyageur pour ne plus le ressaisir à chaque demande.']),
-            bouton('Compléter mon profil voyageur', 'secondaire', 'user-line', function () { ouvrirProfil(true); }, { petit: true, id: 'uBienvenue' })] }));
+    catch (e) {
+        logSecurite('INFO', 'Choix du volet non retenu', e);
     }
-    var aValider = etat.demandes.filter(aValiderParMoi).sort(function (a, b) { return (a.DATE_ALLER || 0) - (b.DATE_ALLER || 0); });
-    if (aValider.length) {
-        main.appendChild(creer('section', { classe: 'bi-avalider', attrs: { 'aria-labelledby': 'uAValiderT' } }, [
-            creer('h2', { classe: 'bi-titre-sec', id: 'uAValiderT' }, [creer('span', { classe: 'fr-icon-checkbox-circle-line', attrs: { 'aria-hidden': 'true' } }), ' À valider', creer('span', { classe: 'bi-compte', texte: String(aValider.length) })]),
-            creer('ul', { classe: 'bi-lignes' }, aValider.map(function (d, k) { return ligneDemande(d, 'valideur', 'uV' + k); }))
-        ]));
-    }
+    dessiner('uPoignee');
+}
+function titreVolet(icone, texte, id) {
+    return creer('div', { classe: 'w-volet__entete' }, [creer('span', { classe: 'w-volet__puce fr-icon-' + icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('h3', { classe: 'w-volet__h', id: id, texte: texte })]);
+}
+function couleurStatut(libelle) {
+    var base = libelle === 'Envoyée' ? ST.valoriser : libelle;
+    var st = libelle === 'Clôturée' ? null : styleChoix(etat.t.demandes ? infoColonne(etat.t.demandes, 'STATUT') : null, base);
+    var c = COULEURS_STATUT[base] || COULEURS_STATUT['Clôturée'];
+    return { fond: st && st.fond ? st.fond : c[0], encre: st && st.encre ? st.encre : c[1] };
+}
+function vuesUtilisateur() {
     var miennes = etat.demandes.filter(concerneMoi);
-    var enCours = miennes.filter(function (d) { return !estCloturee(d); }).sort(function (a, b) { return (a.DATE_ALLER || 0) - (b.DATE_ALLER || 0); });
-    var closes = miennes.filter(estCloturee).sort(function (a, b) { return (dernierJour(b) || 0) - (dernierJour(a) || 0); });
-    var duService = estValideur() && etat.moi.service ? etat.demandes.filter(function (d) { return serviceDe(d) === etat.moi.service && !estCloturee(d); }).sort(function (a, b) { return (a.DATE_ALLER || 0) - (b.DATE_ALLER || 0); }) : [];
-    var onglets = [['cours', 'En cours', enCours], ['closes', 'Clôturées', closes]];
-    if (estValideur()) {
-        onglets.splice(1, 0, ['service', 'Mon service', duService]);
+    var l = [{ cle: 'cours', nom: 'En cours', titre: 'Mes demandes en cours', demandes: miennes.filter(function (d) { return !estCloturee(d); }).sort(parDepart) }];
+    if (estValideur() && etat.moi.service) {
+        l.push({ cle: 'service', nom: 'Mon service', titre: 'Les demandes de mon service', demandes: etat.demandes.filter(function (d) { return serviceDe(d) === etat.moi.service && !estCloturee(d); }).sort(parDepart) });
     }
-    if (!onglets.some(function (o) { return o[0] === etat.onglet; })) {
-        etat.onglet = 'cours';
+    l.push({ cle: 'closes', nom: 'Clôturées', titre: 'Mes demandes clôturées', demandes: miennes.filter(estCloturee).sort(function (a, b) { return (dernierJour(b) || 0) - (dernierJour(a) || 0); }) });
+    return l;
+}
+function filtresActifs() { return (etat.rechercheU ? 1 : 0) + (etat.filtreTypeU ? 1 : 0) + (etat.statutsMasques || []).length; }
+function demandesVisibles(liste, mode) {
+    var q = normaliser(etat.rechercheU || '');
+    var masques = etat.statutsMasques || [];
+    return liste.filter(function (d) {
+        if (etat.filtreTypeU && d.TYPE !== etat.filtreTypeU) {
+            return false;
+        }
+        if (masques.indexOf(libelleStatut(d, mode !== 'gestion')) !== -1) {
+            return false;
+        }
+        if (q && normaliser([d.NUMERO, trajetTexte(d), d.TYPE, nomPersonne(personneParId(d.VOYAGEUR)), d.RAISON].join(' ')).indexOf(q) === -1) {
+            return false;
+        }
+        return true;
+    });
+}
+function vueUtilisateurs(racine) {
+    if (!etat.moi || !etat.moi.actif) {
+        var refus = !etat.moi ? alerte('warning', 'Vous ne pouvez pas faire de demande depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de vous inscrire. Demandez au service des billets de vous ajouter.' : 'Vous n\'êtes pas reconnu. Rechargez la page ; si le problème continue, prévenez le service des billets.') : 'Le widget n\'a pas l\'accès complet au document.', { role: 'status' })
+            : alerte('warning', 'Votre accès est désactivé', 'Pour faire une demande de déplacement, adressez-vous au service des billets.', { role: 'status' });
+        racine.appendChild(creer('div', { classe: 'bi-page' }, [refus]));
+        return;
     }
-    var nav = creer('div', { classe: 'bi-onglets', attrs: { role: 'tablist', 'aria-label': 'Mes demandes' } }, onglets.map(function (o) {
-        var on = etat.onglet === o[0];
-        var b = creer('button', { classe: 'bi-onglet' + (on ? ' bi-onglet--on' : ''), id: 'uOng_' + o[0], attrs: { role: 'tab', 'aria-selected': on ? 'true' : 'false', 'aria-controls': 'uListe' } }, [o[1] + ' (' + o[2].length + ')']);
-        b.addEventListener('click', function () { etat.onglet = o[0]; dessiner('uOng_' + o[0]); });
-        return b;
+    var vues = vuesUtilisateur();
+    var vue = vues.filter(function (v) { return v.cle === etat.onglet; })[0] || vues[0];
+    etat.onglet = vue.cle;
+    var mode = vue.cle === 'service' ? 'service' : 'agent';
+    var replie = voletReplie();
+    var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'uVolet', attrs: { 'aria-label': 'Demander, rechercher et filtrer' } });
+    var cont = creer('div', { classe: 'w-volet__contenu', id: 'uVoletContenu' });
+    cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: 'Recherche et filtres' }),
+        bouton('Fermer le panneau', 'discret', 'close-line', function () { etat.voletMobile = false; dessiner('uVoletMobile'); }, { petit: true, iconeSeule: true, id: 'uVoletFermer' })]));
+    cont.appendChild(creer('div', { classe: 'w-volet__bloc' }, [bouton('Nouvelle demande de déplacement', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { id: 'uNouvelle', classe: 'bi-pleine', desactive: !accesComplet() })]));
+    var rech = saisie('uRecherche', etat.rechercheU || '', { type: 'search', indice: 'Numéro, ville, voyageur…' });
+    var minuterie = null;
+    rech.addEventListener('input', function () {
+        etat.rechercheU = rech.value;
+        clearTimeout(minuterie);
+        minuterie = setTimeout(function () { remplirListeU(vue, mode); }, 200);
+    });
+    cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletRech' } }, [titreVolet('search-line', 'Rechercher', 'uVoletRech'),
+        creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-sr-only', attrs: { for: 'uRecherche' }, texte: 'Rechercher dans les demandes' }), rech])]));
+    var types = vue.demandes.map(function (d) { return d.TYPE; }).filter(function (x, i, t) { return x && t.indexOf(x) === i; }).sort(comparerTexte);
+    if (etat.filtreTypeU && types.indexOf(etat.filtreTypeU) === -1) {
+        etat.filtreTypeU = '';
+    }
+    var selT = liste('uFiltreType', types.map(function (x) { return { valeur: x, libelle: x }; }), etat.filtreTypeU || '', { vide: 'Tous' });
+    selT.addEventListener('change', function () { etat.filtreTypeU = selT.value; remplirListeU(vue, mode); });
+    cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletFil' } }, [titreVolet('filter-line', 'Filtres', 'uVoletFil'),
+        creer('div', { classe: 'w-outils__champ' }, [creer('label', { classe: 'fr-label', attrs: { for: 'uFiltreType' }, texte: 'Type de déplacement' }), selT]),
+        creer('div', { classe: 'w-filtres__pied' }, [bouton('Effacer les filtres', 'discret', null, function () { etat.rechercheU = ''; etat.filtreTypeU = ''; etat.statutsMasques = []; dessiner('uEffacer'); }, { petit: true, id: 'uEffacer', desactive: !filtresActifs() })])]));
+    var comptes = {};
+    vue.demandes.forEach(function (d) { var l = libelleStatut(d, mode !== 'gestion'); comptes[l] = (comptes[l] || 0) + 1; });
+    var ordre = ['Envoyée', ST.valoriser, ST.valider, ST.validee, ST.emis, ST.completer, ST.refusee, ST.annulee, 'Clôturée'].filter(function (x) { return comptes[x]; });
+    if (ordre.length) {
+        var ul = creer('ul', { classe: 'w-legende', id: 'uLegende', attrs: { 'aria-labelledby': 'uVoletLeg' } });
+        ordre.forEach(function (x, i) {
+            var off = (etat.statutsMasques || []).indexOf(x) !== -1;
+            var c = couleurStatut(x);
+            var p = creer('span', { classe: 'gp-pastille', attrs: { 'aria-hidden': 'true' } });
+            p.style.background = c.fond;
+            p.style.borderColor = c.encre;
+            var b = creer('button', { classe: 'w-legende__item' + (off ? ' w-legende__item--off' : ''), id: 'uLeg_' + i, attrs: { type: 'button', 'aria-pressed': off ? 'false' : 'true', 'aria-label': x + ', ' + pluriel(comptes[x], 'demande') + (off ? ', masquées' : ', affichées') } },
+                [p, creer('span', { classe: 'w-legende__nom', texte: x }), creer('span', { classe: 'gp-legende__n', texte: String(comptes[x]), attrs: { 'aria-hidden': 'true' } })]);
+            b.addEventListener('click', function () {
+                var m = (etat.statutsMasques || []).slice();
+                etat.statutsMasques = off ? m.filter(function (y) { return y !== x; }) : m.concat([x]);
+                dessiner('uLeg_' + i);
+            });
+            ul.appendChild(creer('li', {}, [b]));
+        });
+        cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletLeg' } }, [titreVolet('palette-line', 'Statuts', 'uVoletLeg'), ul]));
+    }
+    cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletProfil' } }, [titreVolet('user-line', 'Mon profil voyageur', 'uVoletProfil'),
+        creer('p', { classe: 'w-mention', texte: etat.moi.profilFait ? 'Autres prénoms, date de naissance, cartes et ayants droit, repris dans chaque demande.' : 'Pas encore rempli : il évite de tout ressaisir à chaque demande.' }),
+        bouton(etat.moi.profilFait ? 'Modifier mon profil' : 'Remplir mon profil', 'secondaire', 'user-line', function () { ouvrirProfil(!etat.moi.profilFait); }, { petit: true, id: 'uProfil' })]));
+    volet.appendChild(cont);
+    var nb = filtresActifs();
+    volet.appendChild(creer('button', { classe: 'w-volet__poignee', id: 'uPoignee', attrs: { type: 'button', 'aria-expanded': replie ? 'false' : 'true', 'aria-controls': 'uVoletContenu',
+        'aria-label': (replie ? 'Afficher' : 'Masquer') + ' le volet' + (replie && nb ? ', ' + pluriel(nb, 'filtre actif', 'filtres actifs') : '') } }, [creer('span', { classe: 'w-volet__compte', texte: replie && nb ? String(nb) : '', attrs: { 'aria-hidden': 'true' } })]));
+    volet.querySelector('#uPoignee').addEventListener('click', function () { basculerVolet(!voletReplie()); });
+    var principal = creer('div', { classe: 'w-principal bi-principal' });
+    principal.appendChild(creer('div', { classe: 'w-mobile-actions' }, [
+        bouton('Nouvelle demande', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { petit: true, id: 'uNouvelleMobile', desactive: !accesComplet() }),
+        bouton('Recherche et filtres', 'secondaire', 'filter-line', function () { etat.voletMobile = true; dessiner('uVoletFermer'); }, { petit: true, id: 'uVoletMobile', classe: 'w-volet-mobile', attrs: { 'aria-controls': 'uVolet', 'aria-expanded': etat.voletMobile ? 'true' : 'false' } })]));
+    var seg = creer('div', { classe: 'w-segment', id: 'uVues', attrs: { role: 'group', 'aria-label': 'Demandes affichées' } }, vues.map(function (v) {
+        var bt = creer('button', { id: 'uVue_' + v.cle, attrs: { type: 'button', 'aria-pressed': v.cle === vue.cle ? 'true' : 'false' } }, [v.nom + ' (' + v.demandes.length + ')']);
+        bt.addEventListener('click', function () { etat.onglet = v.cle; etat.statutsMasques = []; dessiner('uVue_' + v.cle); });
+        return bt;
     }));
-    main.appendChild(creer('div', { classe: 'bi-barre' }, [nav, creer('div', { classe: 'bi-barre__actions' }, [
-        bouton('Mon profil voyageur', 'tertiaire', 'user-line', function () { ouvrirProfil(false); }, { id: 'uProfil' }),
-        bouton('Nouvelle demande de déplacement', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { id: 'uNouvelle', desactive: !accesComplet() })])]));
-    var courant = onglets.filter(function (o) { return o[0] === etat.onglet; })[0][2];
-    var zone = creer('div', { id: 'uListe', attrs: { role: 'tabpanel', 'aria-labelledby': 'uOng_' + etat.onglet } });
-    if (!courant.length) {
-        zone.appendChild(creer('p', { classe: 'w-mention bi-vide', texte: etat.onglet === 'cours' ? 'Aucune demande en cours. « Nouvelle demande de déplacement » ouvre le formulaire.' : 'Aucune demande ici.' }));
+    principal.appendChild(creer('div', { classe: 'w-barre-vue' }, [
+        creer('div', { classe: 'w-barre-vue__texte' }, [creer('h2', { classe: 'fr-h5 w-barre-vue__titre', id: 'titreVue', texte: vue.titre, attrs: { tabindex: '-1' } }), creer('div', { classe: 'w-barre-vue__compteurs', id: 'uCompteurs' })]),
+        creer('div', { classe: 'w-barre-vue__commandes' }, [seg])]));
+    if (cfg().message) {
+        principal.appendChild(blocMessage());
     }
-    else {
-        zone.appendChild(creer('ul', { classe: 'bi-lignes' }, courant.map(function (d, k) { return ligneDemande(d, etat.onglet === 'service' ? 'service' : 'agent', 'uL' + k); })));
+    var aValider = etat.demandes.filter(aValiderParMoi).sort(parDepart);
+    if (aValider.length && vue.cle === 'cours') {
+        principal.appendChild(creer('section', { classe: 'bi-avalider', attrs: { 'aria-labelledby': 'uAValiderT' } }, [
+            creer('h3', { classe: 'bi-titre-sec', id: 'uAValiderT' }, ['À valider ', creer('span', { classe: 'bi-compte', texte: String(aValider.length) })]),
+            creer('ul', { classe: 'bi-lignes' }, aValider.map(function (d, k) { return ligneDemande(d, 'valideur', 'uV' + k); }))]));
     }
-    main.appendChild(zone);
+    principal.appendChild(creer('div', { id: 'uListe' }));
+    racine.appendChild(creer('div', { classe: 'w-disposition bi-disposition' }, [volet, principal]));
+    volet.addEventListener('keydown', function (e) { if (e.key === 'Escape' && etat.voletMobile) {
+        etat.voletMobile = false;
+        dessiner('uVoletMobile');
+    } });
+    remplirListeU(vue, mode);
     if (!etat.moi.profilFait && !etat.profilPropose && !etat.modaleOuverte && accesComplet()) {
         etat.profilPropose = true;
         setTimeout(function () { if (!etat.modaleOuverte) {
             ouvrirProfil(true);
         } }, 0);
     }
+}
+function remplirListeU(vue, mode) {
+    var zone = document.getElementById('uListe');
+    var cpt = document.getElementById('uCompteurs');
+    if (!zone) {
+        return;
+    }
+    vider(zone);
+    var l = demandesVisibles(vue.demandes, mode);
+    if (cpt) {
+        vider(cpt);
+        cpt.appendChild(creer('span', { classe: 'w-compteur', texte: pluriel(l.length, 'demande') }));
+        var acomp = l.filter(function (d) { return d.STATUT === ST.completer; }).length;
+        if (acomp && mode === 'agent') {
+            cpt.appendChild(creer('span', { classe: 'w-compteur', texte: acomp + ' à compléter' }));
+        }
+    }
+    if (!l.length) {
+        zone.appendChild(creer('p', { classe: 'w-mention bi-vide', texte: vue.demandes.length ? 'Aucune demande avec ces filtres.' : (vue.cle === 'cours' ? 'Aucune demande en cours.' : 'Aucune demande ici.') }));
+        return;
+    }
+    zone.appendChild(creer('ul', { classe: 'bi-lignes' }, l.map(function (d, k) { return ligneDemande(d, mode === 'service' && aValiderParMoi(d) ? 'valideur' : mode, 'uL' + k); })));
 }
 function blocMessage() {
     var lignes = cfg().message.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
