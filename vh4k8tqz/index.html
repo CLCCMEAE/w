@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitVéhicules
-  Version : 1.0.1 - 26/11/2026
+  Version : 1.1.0 - 26/11/2026
   Description : trajets en voiture de service du poste : demande, affectation d'un chauffeur et d'un véhicule, suivi de course, planning et parc.
 -->
 <head>
@@ -689,6 +689,7 @@
         .ve-courses { max-width: none; }
         .ve-prochain .fr-btn { min-height: 3rem; }
     }
+    .ve-langues__autre { flex: 0 0 100%; max-width: 20rem; margin: 0 0 .5rem; }
     @media (max-width: 48em) {
         .bi-principal .w-barre-vue .w-segment { flex-wrap: wrap; }
         .ve-plan-nav .ve-plan-periode { flex-basis: 100%; margin: .25rem 0 0; }
@@ -735,7 +736,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.1';
+var VERSION_WIDGET = '1.1.0';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitVéhicules';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -768,6 +769,8 @@ var SUIVI = { route: 'En route', bord: 'Passager à bord', fini: 'Terminé' };
 var ETAPES_SUIVI = [SUIVI.route, SUIVI.bord, SUIVI.fini];
 var AVIS = ['Bien passé', 'À améliorer'];
 var CARBURANTS = ['Électrique', 'Hybride', 'Essence', 'Diesel'];
+var LANGUES = ['Français', 'Anglais', 'Espagnol', 'Allemand', 'Italien', 'Portugais', 'Arabe', 'Russe', 'Chinois'];
+var MOTIFS_INTERDITS = /malad|sant[eé]|m[eé]dic|handicap|grossesse|enceinte|hospital|soin|th[eé]rap|syndic|gr[eè]ve|religi|culte/i;
 var ACCES_STATUTS = ['À traiter', 'Acceptée', 'Refusée'];
 var LIMITE_TEXTE = 200;
 var PAS_MINUTES = 5;
@@ -785,6 +788,7 @@ var CONFIG_DEFAUT = {
     kilometrage: true,
     avis: true,
     regroupement: true,
+    repriseDirecte: true,
     alerteJours: 30,
     mobilisation: 60,
     motifsChauffeurs: ['Coursier', 'Absence', 'Affectation SEMA', 'Autre'],
@@ -796,6 +800,8 @@ var CONFIG_DEFAUT = {
 var DEF_TABLES = {
     personnes: { id: 'PERSONNES_DU_POSTE', titre: '👥 PERSONNES DU POSTE ⚡', signature: ['PRENOM', 'NOM', 'EMAIL', 'SERVICE'],
         description: 'Personnes du poste qui utilisent les outils de la série : une ligne par personne, avec son service et ses rôles.' },
+    chauffeurs: { id: 'CHAUFFEURS_WUITVEHICULES', titre: '🧑‍✈️ CHAUFFEURS WUITVÉHICULES ⚡', signature: ['NOM', 'EMAIL', 'TELEPHONE', 'LANGUES', 'HABILITE_BLINDE'],
+        description: 'Chauffeurs du poste, distincts des personnes qui demandent des trajets : une ligne par chauffeur.' },
     trajets: { id: 'TRAJETS_WUITVEHICULES', titre: '🚗 TRAJETS WUITVÉHICULES ⚡', signature: ['BENEFICIAIRE', 'ADRESSE_DESTINATION', 'DEPART', 'MOBILISATION', 'STATUT'],
         description: 'Demandes de trajet faites avec WuitVéhicules : une ligne par trajet, de la demande au trajet terminé. Un aller-retour fait deux lignes reliées.' },
     vehicules: { id: 'VEHICULES_WUITVEHICULES', titre: '🚙 VÉHICULES WUITVÉHICULES ⚡', signature: ['NOM', 'IMMATRICULATION', 'PLACES', 'BLINDE'],
@@ -811,14 +817,25 @@ function colonnesTables(ids) {
         personnes: [
             { id: 'PRENOM', type: 'Text', label: 'PRÉNOM', description: 'Prénom de la personne.' },
             { id: 'NOM', type: 'Text', label: 'NOM', description: 'Nom de famille de la personne.' },
-            { id: 'EMAIL', type: 'Text', label: 'ADRESSE', description: 'Adresse avec laquelle la personne se connecte au document.' },
+            { id: 'EMAIL', type: 'Text', label: 'ADRESSE E-MAIL PROFESSIONNELLE', description: 'Adresse avec laquelle la personne se connecte au document.' },
             { id: 'SERVICE', type: 'Choice', label: 'SERVICE', widgetOptions: { choices: [] }, description: 'Service de la personne.' },
             { id: 'ROLE', type: 'Choice', label: 'RÔLE', widgetOptions: { choices: ROLES_BILLETS }, description: 'Rôle dans les demandes de déplacement.' },
             { id: 'ROLE_VEHICULES', type: 'Choice', label: 'RÔLE VÉHICULES', widgetOptions: { choices: ROLES }, description: 'Agent, Chef de service ou Gestionnaire trajets, dans WuitVéhicules.' },
-            { id: 'CHAUFFEUR', type: 'Bool', label: 'CHAUFFEUR', description: 'Coché : la personne conduit les véhicules du poste et reçoit des trajets.' },
             { id: 'FONCTION', type: 'Text', label: 'FONCTION', description: 'Fonction, pour information.' },
-            { id: 'TELEPHONE', type: 'Text', label: 'TÉLÉPHONE', description: 'Téléphone professionnel. Celui d\'un chauffeur est montré aux passagers de ses trajets.' },
+            { id: 'TELEPHONE', type: 'Text', label: 'TÉLÉPHONE', description: 'Téléphone professionnel.' },
             { id: 'INACTIF', type: 'Bool', label: 'INACTIF', description: 'Coché : la personne ne peut plus rien demander.' },
+            { id: 'CONNEXION', type: 'Text', label: 'CONNEXION', description: 'Identifiant technique de connexion, rempli par le widget. Ne pas modifier.' }
+        ],
+        chauffeurs: [
+            { id: 'PRENOM', type: 'Text', label: 'PRÉNOM', description: 'Prénom du chauffeur.' },
+            { id: 'NOM', type: 'Text', label: 'NOM', description: 'Nom de famille du chauffeur.' },
+            { id: 'EMAIL', type: 'Text', label: 'ADRESSE E-MAIL PROFESSIONNELLE', description: 'Adresse avec laquelle le chauffeur se connecte au document pour voir ses courses.' },
+            { id: 'TELEPHONE', type: 'Text', label: 'TÉLÉPHONE PROFESSIONNEL', description: 'Montré aux passagers de ses trajets.' },
+            { id: 'LANGUES', type: 'ChoiceList', label: 'LANGUES PARLÉES', widgetOptions: { choices: LANGUES }, description: 'Langues que le chauffeur parle, montrées au gestionnaire et aux passagers.' },
+            { id: 'HABILITE_BLINDE', type: 'Bool', label: 'HABILITÉ VÉHICULE BLINDÉ', description: 'Coché : le chauffeur peut conduire un véhicule blindé.' },
+            { id: 'VEHICULE_HABITUEL', type: ref('vehicules'), label: 'VÉHICULE HABITUEL', description: 'Véhicule proposé en premier quand on lui affecte un trajet.' },
+            { id: 'INACTIF', type: 'Bool', label: 'INACTIF', description: 'Coché : le chauffeur n\'est plus proposé ; son historique est gardé.' },
+            { id: 'COMMENTAIRES', type: 'Text', label: 'COMMENTAIRES', description: 'Commentaires des gestionnaires, lus par eux seuls.' },
             { id: 'CONNEXION', type: 'Text', label: 'CONNEXION', description: 'Identifiant technique de connexion, rempli par le widget. Ne pas modifier.' }
         ],
         trajets: [
@@ -839,7 +856,7 @@ function colonnesTables(ids) {
             { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: { choices: STATUTS, choiceOptions: optionsChoixStatut() }, description: 'Où en est la demande.' },
             { id: 'MOTIF_STATUT', type: 'Text', label: 'MOTIF DU REFUS OU DE L\'ANNULATION', description: 'Motif donné au refus ou à l\'annulation.' },
             { id: 'AGENT_RESPONSABLE', type: ref('personnes'), label: 'AGENT RESPONSABLE', description: 'Gestionnaire qui traite la demande.' },
-            { id: 'CHAUFFEUR', type: ref('personnes'), label: 'CHAUFFEUR', description: 'Chauffeur affecté au trajet.' },
+            { id: 'CHAUFFEUR', type: ref('chauffeurs'), label: 'CHAUFFEUR', description: 'Chauffeur affecté au trajet.' },
             { id: 'VEHICULE', type: ref('vehicules'), label: 'VÉHICULE', description: 'Véhicule affecté au trajet.' },
             { id: 'MOBILISATION', type: 'Int', label: 'TEMPS DE MOBILISATION (MINUTES)', description: 'Temps pendant lequel le chauffeur et le véhicule sont pris, à partir du départ.' },
             { id: 'SUIVI', type: 'Choice', label: 'SUIVI DE COURSE', widgetOptions: { choices: ETAPES_SUIVI }, description: 'En route, Passager à bord, Terminé : posé par le chauffeur.' },
@@ -850,7 +867,8 @@ function colonnesTables(ids) {
             { id: 'SERVICE_BENEFICIAIRE', type: 'Any', label: 'SERVICE DU BÉNÉFICIAIRE', calcul: '$BENEFICIAIRE.SERVICE', description: 'Calculé : sert aux règles d\'accès.' },
             { id: 'EMAIL_DEMANDEUR', type: 'Any', label: 'ADRESSE DU DEMANDEUR', calcul: '$DEMANDEUR.EMAIL', description: 'Calculé : sert aux règles d\'accès.' },
             { id: 'EMAIL_BENEFICIAIRE', type: 'Any', label: 'ADRESSE DU BÉNÉFICIAIRE', calcul: '$BENEFICIAIRE.EMAIL', description: 'Calculé : sert aux règles d\'accès.' },
-            { id: 'EMAIL_CHAUFFEUR', type: 'Any', label: 'ADRESSE DU CHAUFFEUR', calcul: '$CHAUFFEUR.EMAIL', description: 'Calculé : sert aux règles d\'accès.' }
+            { id: 'EMAIL_CHAUFFEUR', type: 'Any', label: 'ADRESSE DU CHAUFFEUR', calcul: '$CHAUFFEUR.EMAIL', description: 'Calculé : sert aux règles d\'accès.' },
+            { id: 'A_REPRENDRE', type: 'Any', label: 'À REPRENDRE', calcul: 'import datetime\nif $SANS_CHAUFFEUR or $STATUT != "' + ST.validee + '" or not $DEPART or $SUIVI:\n  return False\nif not $CHAUFFEUR or $CHAUFFEUR.INACTIF:\n  return True\nfin = $DEPART + datetime.timedelta(minutes=$MOBILISATION or 60)\nreturn any(x.DEBUT and x.FIN and x.DEBUT < fin and x.FIN > $DEPART for x in ' + ids.indispos + '.lookupRecords(CHAUFFEUR=$CHAUFFEUR.id))', description: 'Calculé : trajet validé sans chauffeur disponible, que les autres chauffeurs peuvent reprendre.' }
         ],
         vehicules: [
             { id: 'NOM', type: 'Text', label: 'NOM DU VÉHICULE', description: 'Nom unique et parlant : c\'est lui qu\'on voit partout.' },
@@ -868,7 +886,7 @@ function colonnesTables(ids) {
             { id: 'COMMENTAIRES', type: 'Text', label: 'COMMENTAIRES', description: 'Commentaires sur le véhicule.' }
         ],
         indispos: [
-            { id: 'CHAUFFEUR', type: ref('personnes'), label: 'CHAUFFEUR', description: 'Chauffeur indisponible (vide pour un véhicule).' },
+            { id: 'CHAUFFEUR', type: ref('chauffeurs'), label: 'CHAUFFEUR', description: 'Chauffeur indisponible (vide pour un véhicule).' },
             { id: 'VEHICULE', type: ref('vehicules'), label: 'VÉHICULE', description: 'Véhicule indisponible (vide pour un chauffeur).' },
             { id: 'DEBUT', type: 'DateTime', label: 'DÉBUT', description: 'Début de l\'indisponibilité.' },
             { id: 'FIN', type: 'DateTime', label: 'FIN', description: 'Fin de l\'indisponibilité.' },
@@ -878,7 +896,7 @@ function colonnesTables(ids) {
             { id: 'POUR_VEHICULE', type: 'Any', label: 'POUR UN VÉHICULE', calcul: 'bool($VEHICULE)', description: 'Calculé : sert aux règles d\'accès.' }
         ],
         acces: [
-            { id: 'EMAIL', type: 'Text', label: 'ADRESSE PROFESSIONNELLE', description: 'Adresse professionnelle, celle qui servira à se connecter.' },
+            { id: 'EMAIL', type: 'Text', label: 'ADRESSE E-MAIL PROFESSIONNELLE', description: 'Adresse e-mail professionnelle, celle qui servira à se connecter.' },
             { id: 'SERVICE', type: 'Choice', label: 'SERVICE', widgetOptions: { choices: [] }, description: 'Service.' },
             { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: { choices: ACCES_STATUTS }, description: 'À traiter, Acceptée ou Refusée. Rempli par le widget.' },
             { id: 'MOTIF', type: 'Text', label: 'MOTIF DU REFUS', description: 'Motif du refus. Rempli par le widget.' }
@@ -897,7 +915,7 @@ function colonnesTables(ids) {
 var etat = {
     niveauAcces: null, meta: null, biblio: null, biblioCentrale: true,
     cfg: null, cleLigne: null, temoinParam: false, temoinsTentes: false, peutParametrer: false, optionsWidget: {}, modaleOuverte: false,
-    t: {}, personnes: [], trajets: [], vehicules: [], indispos: [], acces: [],
+    t: {}, personnes: [], chauffeurs: [], moiChauffeur: null, trajets: [], vehicules: [], indispos: [], acces: [],
     moi: null, identiteTentee: false, vue: 'chargement',
     onglet: 'avenir', admin: 'traiter', ongletPersonnes: 'toutes', recherchePersonnes: '', filtreTrajets: 'avenir', filtreChauffeur: '', filtreVehicule: '', ongletVehicules: 'actifs',
     planning: { ressource: 'chauffeurs', vue: 'semaine', jour: null, masques: [] },
@@ -1017,9 +1035,10 @@ function configValide(o) {
         kilometrage: booleen(o.kilometrage, d.kilometrage),
         avis: booleen(o.avis, d.avis),
         regroupement: booleen(o.regroupement, d.regroupement),
+        repriseDirecte: booleen(o.repriseDirecte, d.repriseDirecte),
         alerteJours: entierBorne(o.alerteJours, 1, 365, d.alerteJours),
         mobilisation: entierBorne(o.mobilisation, 5, 1440, d.mobilisation),
-        motifsChauffeurs: o.motifsChauffeurs === undefined ? d.motifsChauffeurs.slice() : listeTextes(o.motifsChauffeurs, 20),
+        motifsChauffeurs: o.motifsChauffeurs === undefined ? d.motifsChauffeurs.slice() : listeTextes(o.motifsChauffeurs, 20).filter(function (m) { return !MOTIFS_INTERDITS.test(m); }),
         motifsVehicules: o.motifsVehicules === undefined ? d.motifsVehicules.slice() : listeTextes(o.motifsVehicules, 20),
         message: String(o.message === undefined ? d.message : o.message || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').slice(0, 2000),
         serviceFormulaire: booleen(o.serviceFormulaire, d.serviceFormulaire),
@@ -1122,9 +1141,20 @@ function lirePersonnes(d) {
     return (d.id || []).map(function (id, i) {
         var role = colonneDe(d, 'ROLE_VEHICULES', i);
         return { id: id, prenom: ligneBornee(colonneDe(d, 'PRENOM', i), 80), nom: ligneBornee(colonneDe(d, 'NOM', i), 80), email: ligneBornee(colonneDe(d, 'EMAIL', i), 200).toLowerCase(),
-            service: ligneBornee(colonneDe(d, 'SERVICE', i), 80), role: ROLES.indexOf(role) !== -1 ? role : 'Agent', chauffeur: colonneDe(d, 'CHAUFFEUR', i) === true,
+            service: ligneBornee(colonneDe(d, 'SERVICE', i), 80), role: ROLES.indexOf(role) !== -1 ? role : 'Agent',
             fonction: ligneBornee(colonneDe(d, 'FONCTION', i), 120), telephone: ligneBornee(colonneDe(d, 'TELEPHONE', i), 40),
             actif: colonneDe(d, 'INACTIF', i) !== true, connexion: ligneBornee(colonneDe(d, 'CONNEXION', i), 60),
+            creePar: ligneBornee(colonneDe(d, 'CREE_PAR', i), 200).toLowerCase(), creeLe: colonneDe(d, 'CREE_LE', i),
+            modifiePar: ligneBornee(colonneDe(d, 'MODIFIE_PAR', i), 200).toLowerCase(), modifieLe: colonneDe(d, 'MODIFIE_LE', i) };
+    });
+}
+function listeDe(v) { return Array.isArray(v) && v[0] === 'L' ? v.slice(1).map(function (x) { return ligneBornee(x, 40); }).filter(Boolean).slice(0, 20) : []; }
+function lireChauffeurs(d) {
+    return (d.id || []).map(function (id, i) {
+        return { id: id, prenom: ligneBornee(colonneDe(d, 'PRENOM', i), 80), nom: ligneBornee(colonneDe(d, 'NOM', i), 80), email: ligneBornee(colonneDe(d, 'EMAIL', i), 200).toLowerCase(),
+            telephone: ligneBornee(colonneDe(d, 'TELEPHONE', i), 40), langues: listeDe(colonneDe(d, 'LANGUES', i)), habiliteBlinde: colonneDe(d, 'HABILITE_BLINDE', i) === true,
+            vehiculeHabituel: refDe(colonneDe(d, 'VEHICULE_HABITUEL', i)), actif: colonneDe(d, 'INACTIF', i) !== true, commentaires: texteBorne(colonneDe(d, 'COMMENTAIRES', i), 1000),
+            connexion: ligneBornee(colonneDe(d, 'CONNEXION', i), 60),
             creePar: ligneBornee(colonneDe(d, 'CREE_PAR', i), 200).toLowerCase(), creeLe: colonneDe(d, 'CREE_LE', i),
             modifiePar: ligneBornee(colonneDe(d, 'MODIFIE_PAR', i), 200).toLowerCase(), modifieLe: colonneDe(d, 'MODIFIE_LE', i) };
     });
@@ -1162,6 +1192,7 @@ function lireTrajets(d) {
         o.SUIVI = ETAPES_SUIVI.indexOf(su) !== -1 ? su : '';
         var av = colonneDe(d, 'AVIS', i);
         o.AVIS = AVIS.indexOf(av) !== -1 ? av : '';
+        o.A_REPRENDRE = colonneDe(d, 'A_REPRENDRE', i) === true;
         o.HISTORIQUE = lireHistorique(colonneDe(d, 'HISTORIQUE', i));
         o.creeLe = colonneDe(d, 'CREE_LE', i);
         o.creePar = ligneBornee(colonneDe(d, 'CREE_PAR', i), 200).toLowerCase();
@@ -1208,15 +1239,20 @@ async function lireUne(k) {
     }
 }
 async function lireDonnees() {
-    var cles = ['personnes', 'trajets', 'vehicules', 'indispos', 'acces'];
+    var cles = ['personnes', 'trajets', 'vehicules', 'indispos', 'acces', 'chauffeurs'];
     var lus = await Promise.all(cles.map(function (k) { return k === 'personnes' || k === 'trajets' ? lireTable(etat.t[k]) : lireUne(k); }));
     etat.personnes = lirePersonnes(lus[0]);
     etat.trajets = lireTrajets(lus[1]);
     etat.vehicules = lireVehicules(lus[2]);
     etat.indispos = lireIndispos(lus[3]);
     etat.acces = lireAcces(lus[4]);
+    etat.chauffeurs = lireChauffeurs(lus[5]);
+    if (etat.moiChauffeur) {
+        etat.moiChauffeur = chauffeurParId(etat.moiChauffeur.id);
+    }
     etat.empreinte = JSON.stringify(lus.map(function (x) { return [x.id, x.MODIFIE_LE || null, x.STATUT || null, x.SUIVI || null]; }));
 }
+function chauffeurParId(id) { return id ? etat.chauffeurs.filter(function (c) { return c.id === id; })[0] || null : null; }
 function personneParId(id) { return etat.personnes.filter(function (p) { return p.id === id; })[0] || null; }
 function trajetParId(id) { return etat.trajets.filter(function (d) { return d.id === id; })[0] || null; }
 function vehiculeParId(id) { return etat.vehicules.filter(function (v) { return v.id === id; })[0] || null; }
@@ -1236,7 +1272,8 @@ function nomListe(p) {
 }
 function estGestionnaire() { return !!etat.moi && etat.moi.role === ROLE_GESTION && etat.moi.actif; }
 function estChef() { return !!etat.moi && etat.moi.role === ROLE_CHEF && etat.moi.actif && !!etat.moi.service; }
-function estChauffeur() { return !!etat.moi && etat.moi.chauffeur && etat.moi.actif; }
+function estChauffeur() { return !!etat.moiChauffeur && etat.moiChauffeur.actif; }
+function estAgent() { return !!etat.moi && etat.moi.actif; }
 function nomDepuisAdresse(email) {
     var local = String(email || '').split('@')[0].replace(/-ext$/i, '');
     var morceaux = local.split(/[._]/).filter(Boolean);
@@ -1269,24 +1306,44 @@ async function identifier() {
         logSecurite('AVERTISSEMENT', 'Personne connectée non ajoutée à la liste (droits du document)', e);
         etat.identiteRefusee = estRefusDroits(e);
         etat.moi = etat.moi && personneParId(etat.moi.id) ? etat.moi : null;
+        etat.moiChauffeur = etat.moiChauffeur && chauffeurParId(etat.moiChauffeur.id) ? etat.moiChauffeur : null;
+    }
+}
+function chauffeurDeEmail(email) { return email ? etat.chauffeurs.filter(function (c) { return c.email === email; })[0] || null : null; }
+function retenirMoi() {
+    try {
+        window.localStorage.setItem(cleStockage(), JSON.stringify({ id: etat.moi ? etat.moi.id : 0, email: etat.moi ? etat.moi.email : '', chauffeur: etat.moiChauffeur ? etat.moiChauffeur.id : 0, emailChauffeur: etat.moiChauffeur ? etat.moiChauffeur.email : '' }));
+    }
+    catch (e) {
+        logSecurite('INFO', 'Personne non retenue par le navigateur', e);
     }
 }
 async function reconnaitre() {
     etat.moi = null;
+    etat.moiChauffeur = null;
     var cx = await idConnexion();
     if (cx) {
         etat.moi = etat.personnes.filter(function (p) { return p.connexion === cx; })[0] || null;
-        if (etat.moi) {
+        etat.moiChauffeur = etat.chauffeurs.filter(function (c) { return c.connexion === cx; })[0] || null;
+        if (etat.moi || etat.moiChauffeur) {
+            if (!etat.moiChauffeur && etat.moi) {
+                await lierChauffeur(etat.moi.email, cx);
+            }
             return;
         }
     }
     else {
         try {
             var m = JSON.parse(window.localStorage.getItem(cleStockage()) || 'null');
-            if (m && typeof m.id === 'number') {
-                var p0 = personneParId(m.id);
-                if (p0 && p0.email && p0.email === String(m.email || '')) {
-                    etat.moi = p0;
+            if (m && typeof m === 'object') {
+                var p0 = typeof m.id === 'number' ? personneParId(m.id) : null;
+                var c0 = typeof m.chauffeur === 'number' ? chauffeurParId(m.chauffeur) : null;
+                etat.moi = p0 && p0.email && p0.email === String(m.email || '') ? p0 : null;
+                etat.moiChauffeur = c0 && c0.email && c0.email === String(m.emailChauffeur || '') ? c0 : null;
+                if (etat.moi || etat.moiChauffeur) {
+                    if (!etat.moiChauffeur && etat.moi) {
+                        await lierChauffeur(etat.moi.email, '');
+                    }
                     return;
                 }
             }
@@ -1313,27 +1370,45 @@ async function reconnaitre() {
         return;
     }
     var deja = d.filter(function (p) { return p.id !== nouvel && p.email === email; })[0];
+    var ch = chauffeurDeEmail(email);
     if (deja) {
         await agir([['RemoveRecord', etat.t.personnes, nouvel], ['UpdateRecord', etat.t.personnes, deja.id, { CONNEXION: cx }]]);
         deja.connexion = cx;
         etat.moi = deja;
+    }
+    else if (ch) {
+        await agir([['RemoveRecord', etat.t.personnes, nouvel]]);
     }
     else {
         var n = nomDepuisAdresse(email);
         await agir([['UpdateRecord', etat.t.personnes, nouvel, { EMAIL: email, PRENOM: n.prenom, NOM: n.nom, CONNEXION: cx }]]);
         etat.moi = Object.assign(ligne, { email: email, prenom: n.prenom, nom: n.nom, role: 'Agent', actif: true, connexion: cx });
     }
-    etat.personnes = etat.personnes.filter(function (p) { return p.id !== etat.moi.id; }).concat([etat.moi]);
-    try {
-        window.localStorage.setItem(cleStockage(), JSON.stringify({ id: etat.moi.id, email: etat.moi.email }));
+    if (etat.moi) {
+        etat.personnes = etat.personnes.filter(function (p) { return p.id !== etat.moi.id; }).concat([etat.moi]);
     }
-    catch (e) {
-        logSecurite('INFO', 'Personne non retenue par le navigateur', e);
+    await lierChauffeur(email, cx);
+    retenirMoi();
+}
+async function lierChauffeur(email, cx) {
+    var ch = chauffeurDeEmail(email);
+    if (!ch) {
+        return;
+    }
+    etat.moiChauffeur = ch;
+    if (cx && ch.connexion !== cx) {
+        try {
+            await agir([['UpdateRecord', etat.t.chauffeurs, ch.id, { CONNEXION: cx }]]);
+            ch.connexion = cx;
+        }
+        catch (e) {
+            logSecurite('INFO', 'Connexion du chauffeur non retenue (droits)', e);
+        }
     }
 }
 async function poserReferences(cles, ids) {
     var cols = colonnesTables(ids);
-    var affiche = { personnes: 'NOM', trajets: 'NUMERO', vehicules: 'NOM' };
+    var affiche = { personnes: 'NOM', chauffeurs: 'NOM', trajets: 'NUMERO', vehicules: 'NOM' };
     for (var i = 0; i < cles.length; i++) {
         var k = cles[i];
         var refs = cols[k].filter(function (c) { return c.type.indexOf('Ref') === 0; });
@@ -1401,6 +1476,66 @@ async function completerColonnes(tid, colonnes) {
     if (manquantes.length) {
         await chargerMeta();
     }
+}
+async function migrerChauffeurs(ids) {
+    var cible = 'Ref:' + ids.chauffeurs;
+    var aMigrer = ['trajets', 'indispos'].filter(function (k) { var c = infoColonne(ids[k], 'CHAUFFEUR'); return c && c.type !== cible; });
+    if (!aMigrer.length) {
+        return;
+    }
+    var pers = await lireTable(ids.personnes);
+    var deja = lireChauffeurs(await lireTable(ids.chauffeurs));
+    var lus = {};
+    for (var i = 0; i < aMigrer.length; i++) {
+        lus[aMigrer[i]] = await lireTable(ids[aMigrer[i]]);
+    }
+    var utilises = {};
+    aMigrer.forEach(function (k) { (lus[k].CHAUFFEUR || []).forEach(function (v) { if (refDe(v)) {
+        utilises[v] = true;
+    } }); });
+    var correspondance = {};
+    var aAjouter = [];
+    (pers.id || []).forEach(function (id, j) {
+        var coche = colonneDe(pers, 'CHAUFFEUR', j) === true;
+        if (!coche && !utilises[id]) {
+            return;
+        }
+        var email = ligneBornee(colonneDe(pers, 'EMAIL', j), 200).toLowerCase();
+        var existe = email ? deja.filter(function (c) { return c.email === email; })[0] : null;
+        if (existe) {
+            correspondance[id] = existe.id;
+            return;
+        }
+        aAjouter.push({ ancien: id, champs: { PRENOM: ligneBornee(colonneDe(pers, 'PRENOM', j), 80), NOM: ligneBornee(colonneDe(pers, 'NOM', j), 80), EMAIL: email,
+            TELEPHONE: ligneBornee(colonneDe(pers, 'TELEPHONE', j), 40), INACTIF: !coche || colonneDe(pers, 'INACTIF', j) === true } });
+    });
+    if (aAjouter.length) {
+        var r = await agir(aAjouter.map(function (x) { return ['AddRecord', ids.chauffeurs, null, x.champs]; }));
+        var rv = r && r.retValues ? r.retValues : [];
+        aAjouter.forEach(function (x, k) { if (typeof rv[k] === 'number') {
+            correspondance[x.ancien] = rv[k];
+        } });
+    }
+    var actions = [];
+    aMigrer.forEach(function (k) {
+        actions.push(['ModifyColumn', ids[k], 'CHAUFFEUR', { type: cible, visibleCol: 0 }]);
+        var lignes = [], valeurs = [];
+        (lus[k].id || []).forEach(function (id, j) {
+            var v = refDe(lus[k].CHAUFFEUR[j]);
+            if (v) {
+                lignes.push(id);
+                valeurs.push(correspondance[v] || 0);
+            }
+        });
+        if (lignes.length) {
+            actions.push(['BulkUpdateRecord', ids[k], lignes, { CHAUFFEUR: valeurs }]);
+        }
+    });
+    await agir(actions);
+    await chargerMeta();
+    await poserReferences(aMigrer, ids);
+    etat.chauffeursTransferes = aAjouter.length;
+    logSecurite('INFO', 'Chauffeurs transférés dans leur propre liste : ' + aAjouter.length);
 }
 async function creerListes() {
     await chargerMeta();
@@ -1470,6 +1605,10 @@ async function creerListes() {
         await chargerMeta();
     }
     resoudreTables();
+    if (etat.t.chauffeurs && etat.t.trajets && etat.t.indispos && etat.t.personnes) {
+        await migrerChauffeurs(Object.assign({}, etat.t));
+        resoudreTables();
+    }
     etat.cfg = configValide(etat.cfg || {});
     await ecrireConfig();
     await lireBibliotheque();
@@ -1523,12 +1662,18 @@ function regroupable(a, b) {
     return cfg().regroupement && a.id !== b.id && memeDestination(a, b) && a.DEPART !== null && b.DEPART !== null && Math.abs(a.DEPART - b.DEPART) <= REGROUPEMENT_MINUTES * 60;
 }
 function indisposDe(type, id) { return etat.indispos.filter(function (x) { return type === 'chauffeur' ? x.chauffeur === id : x.vehicule === id; }); }
-function etatRessource(type, r, t, deb, fin) {
+function etatRessource(type, r, t, deb, fin, autre) {
     var places = type === 'vehicule' ? r.places : null;
     var ind = indisposDe(type, r.id).filter(function (x) { return chevauche(deb, fin, x.debut, x.fin); })[0];
     if (ind) {
         var pf = partiesDe(ind.fin);
         return { libre: false, raison: (ind.motif || 'Indisponible') + ' jusqu\'au ' + (pf.minutes >= 1435 ? texteJour(pf.jour, { sansJour: true }) : texteDateHeure(ind.fin, { annee: false, sansJour: true })) };
+    }
+    if (type === 'chauffeur' && autre && autre.blinde && !r.habiliteBlinde) {
+        return { libre: false, raison: 'Non habilité au véhicule blindé' };
+    }
+    if (type === 'vehicule' && r.blinde && autre && !autre.habiliteBlinde) {
+        return { libre: false, raison: 'Chauffeur non habilité au blindé' };
     }
     var champ = type === 'chauffeur' ? 'CHAUFFEUR' : 'VEHICULE';
     var autres = etat.trajets.filter(function (x) { return x.id !== t.id && x[champ] === r.id && estActif(x) && x.DEPART !== null && chevauche(deb, fin, x.DEPART, finOccupation(x)); });
@@ -1549,18 +1694,38 @@ function etatRessource(type, r, t, deb, fin) {
     var x0 = autres[0];
     return { libre: false, raison: 'Déjà pris : ' + (x0.NUMERO || 'trajet') + ', ' + texteHeure(partiesDe(x0.DEPART).minutes) };
 }
-function chauffeursActifs() { return etat.personnes.filter(function (p) { return p.chauffeur && p.actif; }).sort(function (a, b) { return comparerTexte(nomListe(a), nomListe(b)); }); }
+function chauffeursActifs() { return etat.chauffeurs.filter(function (p) { return p.actif; }).sort(function (a, b) { return comparerTexte(nomListe(a), nomListe(b)); }); }
 function vehiculesActifs() { return etat.vehicules.filter(function (v) { return v.actif; }).sort(function (a, b) { return comparerTexte(a.nom, b.nom); }); }
 function trajetsDuJour(champ, id, jour) {
     return etat.trajets.filter(function (x) { return x[champ] === id && estActif(x) && x.DEPART !== null && partiesDe(x.DEPART).jour === jour; }).length;
 }
-function suggestions(t, deb, fin) {
+function suggestions(t, deb, fin, choix) {
+    choix = choix || {};
     var jour = partiesDe(deb).jour;
-    var ch = chauffeursActifs().map(function (p) { return { r: p, e: etatRessource('chauffeur', p, t, deb, fin) }; }).filter(function (x) { return x.e.libre; })
-        .sort(function (a, b) { return (b.e.regroupe ? 1 : 0) - (a.e.regroupe ? 1 : 0) || trajetsDuJour('CHAUFFEUR', a.r.id, jour) - trajetsDuJour('CHAUFFEUR', b.r.id, jour) || comparerTexte(nomListe(a.r), nomListe(b.r)); })[0];
-    var ve = vehiculesActifs().map(function (v) { return { r: v, e: etatRessource('vehicule', v, t, deb, fin) }; }).filter(function (x) { return x.e.libre; })
-        .sort(function (a, b) { return (b.e.regroupe ? 1 : 0) - (a.e.regroupe ? 1 : 0) || (a.r.blinde ? 1 : 0) - (b.r.blinde ? 1 : 0) || a.r.places - b.r.places || comparerTexte(a.r.nom, b.r.nom); })[0];
+    var vChoisi = vehiculeParId(choix.v), cChoisi = chauffeurParId(choix.c);
+    var ch = chauffeursActifs().map(function (p) { return { r: p, e: etatRessource('chauffeur', p, t, deb, fin, vChoisi) }; }).filter(function (x) { return x.e.libre; })
+        .sort(function (a, b) { return (b.e.regroupe ? 1 : 0) - (a.e.regroupe ? 1 : 0) || (vChoisi ? (b.r.vehiculeHabituel === vChoisi.id ? 1 : 0) - (a.r.vehiculeHabituel === vChoisi.id ? 1 : 0) : 0)
+            || trajetsDuJour('CHAUFFEUR', a.r.id, jour) - trajetsDuJour('CHAUFFEUR', b.r.id, jour) || comparerTexte(nomListe(a.r), nomListe(b.r)); })[0];
+    var pour = cChoisi || (ch ? ch.r : null);
+    var ve = vehiculesActifs().map(function (v) { return { r: v, e: etatRessource('vehicule', v, t, deb, fin, cChoisi) }; }).filter(function (x) { return x.e.libre; })
+        .sort(function (a, b) { return (b.e.regroupe ? 1 : 0) - (a.e.regroupe ? 1 : 0) || (pour ? (b.r.id === pour.vehiculeHabituel ? 1 : 0) - (a.r.id === pour.vehiculeHabituel ? 1 : 0) : 0)
+            || (a.r.blinde ? 1 : 0) - (b.r.blinde ? 1 : 0) || a.r.places - b.r.places || comparerTexte(a.r.nom, b.r.nom); })[0];
     return { chauffeur: ch ? ch.r.id : 0, vehicule: ve ? ve.r.id : 0 };
+}
+function trajetsAReprendre() {
+    return etat.trajets.filter(function (t) {
+        if (t.STATUT !== ST.validee || t.SANS_CHAUFFEUR || t.SUIVI || t.DEPART === null || estPasse(t)) {
+            return false;
+        }
+        var c = chauffeurParId(t.CHAUFFEUR);
+        var fin = finOccupation(t);
+        return t.A_REPRENDRE || !c || !c.actif || indisposDe('chauffeur', c.id).some(function (x) { return chevauche(t.DEPART, fin, x.debut, x.fin); });
+    }).sort(parDepart);
+}
+function absencesEquipe(jours) {
+    var debut = maintenant(), fin = debut + (jours || 7) * 86400;
+    return etat.indispos.filter(function (x) { return x.chauffeur && chevauche(debut, fin, x.debut, x.fin) && chauffeurParId(x.chauffeur) && chauffeurParId(x.chauffeur).actif; })
+        .sort(function (a, b) { return a.debut - b.debut; });
 }
 function aTraiter() { return etat.trajets.filter(function (t) { return (t.STATUT === ST.attente || t.STATUT === ST.cours) && !estPasse(t); }).sort(parDepart); }
 function regroupements() {
@@ -1620,7 +1785,7 @@ function badgeStatut(t) {
 }
 function entreeHistorique(t, statut, motif) {
     var l = (t ? t.HISTORIQUE : []).slice(-99);
-    l.push({ le: maintenant(), statut: statut, par: etat.moi ? nomPersonne(etat.moi) : '', motif: motif || '' });
+    l.push({ le: maintenant(), statut: statut, par: etat.moi ? nomPersonne(etat.moi) : etat.moiChauffeur ? nomPersonne(etat.moiChauffeur) : '', motif: motif || '' });
     return JSON.stringify(l);
 }
 function dateHistorique(t, statut) {
@@ -3078,12 +3243,16 @@ function basculerVolet(replier) {
 function titreVolet(icone, texte, id) {
     return creer('div', { classe: 'w-volet__entete' }, [creer('span', { classe: 'w-volet__puce fr-icon-' + icone + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('h3', { classe: 'w-volet__h', id: id, texte: texte })]);
 }
-function mesCourses() { var m = etat.moi; return etat.trajets.filter(function (t) { return t.CHAUFFEUR === m.id && t.STATUT === ST.validee; }); }
+function mesCourses() { var m = etat.moiChauffeur; return m ? etat.trajets.filter(function (t) { return t.CHAUFFEUR === m.id && t.STATUT === ST.validee; }) : []; }
 function vuesUtilisateur() {
     var miens = etat.trajets.filter(concerneMoi);
     var l = [];
     if (estChauffeur()) {
         l.push({ cle: 'courses', nom: 'Mes courses', titre: 'Mes courses', trajets: mesCourses().filter(function (t) { return !estPasse(t) || t.SUIVI === SUIVI.route || t.SUIVI === SUIVI.bord; }).sort(parDepart) });
+        l.push({ cle: 'equipe', nom: 'L\'équipe', titre: 'L\'équipe des chauffeurs', trajets: trajetsAReprendre() });
+    }
+    if (!estAgent()) {
+        return l;
     }
     l.push({ cle: 'avenir', nom: 'À venir', titre: 'Mes trajets à venir', trajets: miens.filter(function (t) { return estActif(t) && !estPasse(t); }).sort(parDepart) });
     if (estChef()) {
@@ -3110,8 +3279,8 @@ function couleurStatut(libelle) {
     return { fond: st && st.fond ? st.fond : c[0], encre: st && st.encre ? st.encre : c[1] };
 }
 function vueUtilisateurs(racine) {
-    if (!etat.moi || !etat.moi.actif) {
-        var refus = !etat.moi ? alerte('warning', 'Vous ne pouvez pas faire de demande depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de vous inscrire. Demandez au gestionnaire des trajets de vous ajouter.' : 'Vous n\'êtes pas reconnu. Rechargez la page ; si le problème continue, prévenez le gestionnaire des trajets.') : 'Le widget n\'a pas l\'accès complet au document.', { role: 'status' })
+    if (!estAgent() && !estChauffeur()) {
+        var refus = !etat.moi && !etat.moiChauffeur ? alerte('warning', 'Vous ne pouvez pas faire de demande depuis ce document', accesComplet() ? (etat.identiteRefusee ? 'Vos droits sur ce document ne permettent pas de vous inscrire. Demandez au gestionnaire des trajets de vous ajouter.' : 'Vous n\'êtes pas reconnu. Rechargez la page ; si le problème continue, prévenez le gestionnaire des trajets.') : 'Le widget n\'a pas l\'accès complet au document.', { role: 'status' })
             : alerte('warning', 'Votre accès est désactivé', 'Pour demander un trajet, adressez-vous au gestionnaire des trajets.', { role: 'status' });
         racine.appendChild(creer('div', { classe: 'bi-page' }, [refus]));
         return;
@@ -3120,14 +3289,16 @@ function vueUtilisateurs(racine) {
     if (!etat.ongletChoisi && estChauffeur()) {
         etat.onglet = 'courses';
     }
-    var vue = vues.filter(function (v) { return v.cle === etat.onglet; })[0] || vues.filter(function (v) { return v.cle === 'avenir'; })[0];
+    var vue = vues.filter(function (v) { return v.cle === etat.onglet; })[0] || vues.filter(function (v) { return v.cle === 'avenir'; })[0] || vues[0];
     etat.onglet = vue.cle;
     var replie = voletReplie();
     var volet = creer('aside', { classe: 'w-volet' + (replie ? ' w-volet--replie' : '') + (etat.voletMobile ? ' w-volet--mobile-ouvert' : ''), id: 'uVolet', attrs: { 'aria-label': 'Demander, rechercher et filtrer' } });
     var cont = creer('div', { classe: 'w-volet__contenu', id: 'uVoletContenu' });
     cont.appendChild(creer('div', { classe: 'w-volet__tete' }, [creer('p', { classe: 'w-volet__titre', texte: 'Recherche et filtres' }),
         bouton('Fermer le panneau', 'discret', 'close-line', function () { etat.voletMobile = false; dessiner('uVoletMobile'); }, { petit: true, iconeSeule: true, id: 'uVoletFermer' })]));
-    cont.appendChild(creer('div', { classe: 'w-volet__bloc' }, [bouton('Nouvelle demande de trajet', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { id: 'uNouvelle', classe: 'bi-pleine', desactive: !accesComplet() })]));
+    if (estAgent()) {
+        cont.appendChild(creer('div', { classe: 'w-volet__bloc' }, [bouton('Nouvelle demande de trajet', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { id: 'uNouvelle', classe: 'bi-pleine', desactive: !accesComplet() })]));
+    }
     var rech = saisie('uRecherche', etat.rechercheU || '', { type: 'search', indice: 'Numéro, adresse, personne…' });
     var minuterie = null;
     rech.addEventListener('input', function () {
@@ -3163,7 +3334,7 @@ function vueUtilisateurs(racine) {
     if (estChauffeur()) {
         cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletIndispo' } }, [titreVolet('calendar-close-line', 'Mes indisponibilités', 'uVoletIndispo'),
             creer('p', { classe: 'w-mention', texte: 'Congés, absences : le gestionnaire ne vous propose pas de trajet sur ces périodes.' }),
-            bouton('Gérer mes indisponibilités', 'secondaire', null, function () { ouvrirIndispos('chauffeur', etat.moi.id); }, { petit: true, id: 'uIndispos' })]));
+            bouton('Gérer mes indisponibilités', 'secondaire', null, function () { ouvrirIndispos('chauffeur', etat.moiChauffeur.id); }, { petit: true, id: 'uIndispos' })]));
     }
     volet.appendChild(cont);
     var nb = filtresActifs();
@@ -3172,7 +3343,7 @@ function vueUtilisateurs(racine) {
     volet.querySelector('#uPoignee').addEventListener('click', function () { basculerVolet(!voletReplie()); });
     var principal = creer('div', { classe: 'w-principal bi-principal' });
     principal.appendChild(creer('div', { classe: 'w-mobile-actions' }, [
-        bouton('Nouvelle demande', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { petit: true, id: 'uNouvelleMobile', desactive: !accesComplet() }),
+        estAgent() ? bouton('Nouvelle demande', null, 'add-line', function () { ouvrirDemande({ mode: 'nouvelle' }); }, { petit: true, id: 'uNouvelleMobile', desactive: !accesComplet() }) : null,
         bouton('Recherche et filtres', 'secondaire', 'filter-line', function () { etat.voletMobile = true; dessiner('uVoletFermer'); }, { petit: true, id: 'uVoletMobile', classe: 'w-volet-mobile', attrs: { 'aria-controls': 'uVolet', 'aria-expanded': etat.voletMobile ? 'true' : 'false' } })]));
     var seg = creer('div', { classe: 'w-segment', id: 'uVues', attrs: { role: 'group', 'aria-label': 'Trajets affichés' } }, vues.map(function (v) {
         var bt = creer('button', { id: 'uVue_' + v.cle, attrs: { type: 'button', 'aria-pressed': v.cle === vue.cle ? 'true' : 'false' } }, [v.nom + ' (' + v.trajets.length + ')']);
@@ -3209,6 +3380,10 @@ function remplirListeU(vue) {
         zone.appendChild(vueCourses(l));
         return;
     }
+    if (vue.cle === 'equipe') {
+        zone.appendChild(vueEquipe(l));
+        return;
+    }
     if (!l.length) {
         zone.appendChild(creer('p', { classe: 'w-mention bi-vide', texte: vue.trajets.length ? 'Aucun trajet avec ces filtres.' : (vue.cle === 'avenir' ? 'Aucun trajet à venir. « Nouvelle demande de trajet » pour en demander un.' : 'Aucun trajet ici.') }));
         return;
@@ -3226,8 +3401,9 @@ function telLien(tel) {
 }
 function blocChauffeur(t, o) {
     o = o || {};
-    var c = personneParId(t.CHAUFFEUR);
+    var c = chauffeurParId(t.CHAUFFEUR);
     var v = vehiculeParId(t.VEHICULE);
+    var langues = c && c.langues.length ? 'Parle ' + c.langues.map(function (x) { return x.toLowerCase(); }).join(', ') : '';
     if (!c && !v) {
         return null;
     }
@@ -3235,7 +3411,8 @@ function blocChauffeur(t, o) {
     return creer('div', { classe: 've-chauffeur' }, [
         enRoute ? creer('p', { classe: 've-chauffeur__etat', texte: 'Votre chauffeur est en route' }) : null,
         c ? creer('div', { classe: 've-chauffeur__qui' }, [creer('span', { classe: 've-avatar', texte: ((c.prenom || '').charAt(0) + (c.nom || '').charAt(0)).toUpperCase() || '?', attrs: { 'aria-hidden': 'true' } }),
-            creer('div', {}, [creer('strong', { texte: nomPersonne(c) }), creer('span', { classe: 'w-mention ve-bloc' }, ['Votre chauffeur', c.telephone ? ' · ' : '', telLien(c.telephone)])])]) : (t.SANS_CHAUFFEUR ? creer('p', { classe: 'w-mention', texte: 'Sans chauffeur : vous conduisez.' }) : null),
+            creer('div', {}, [creer('strong', { texte: nomPersonne(c) }), creer('span', { classe: 'w-mention ve-bloc' }, ['Votre chauffeur', c.telephone ? ' · ' : '', telLien(c.telephone)]),
+                langues ? creer('span', { classe: 'w-mention ve-bloc', texte: langues }) : null])]) : (t.SANS_CHAUFFEUR ? creer('p', { classe: 'w-mention', texte: 'Sans chauffeur : vous conduisez.' }) : null),
         v ? creer('div', { classe: 've-chauffeur__vehicule' }, [v.immat ? creer('span', { classe: 've-plaque', texte: v.immat, attrs: { 'aria-label': 'Immatriculation ' + v.immat.split('').join(' ') } }) : null,
             creer('span', { texte: [v.nom, [v.modele, v.couleur].filter(Boolean).join(' '), v.places ? pluriel(v.places, 'place') : ''].filter(Boolean).join(' · ') })]) : null,
         o.appeler && c && telLien(c.telephone) && String(c.telephone).replace(/[^0-9+]/g, '').length >= 4 ? creer('a', { classe: 'fr-btn fr-btn--secondary fr-icon-phone-line fr-btn--icon-left ve-gros', texte: 'Appeler le chauffeur', attrs: { href: 'tel:' + String(c.telephone).replace(/[^0-9+]/g, '') } }) : null
@@ -3294,7 +3471,7 @@ function recapTrajet(t) {
     ajout('Bénéficiaire', nomPersonne(personneParId(t.BENEFICIAIRE)));
     ajout('Demandé par', t.DEMANDEUR !== t.BENEFICIAIRE ? nomPersonne(personneParId(t.DEMANDEUR)) : '');
     ajout('Personnes', String(t.NB_PERSONNES) + ' hors chauffeur');
-    ajout('Chauffeur', t.SANS_CHAUFFEUR ? 'Sans chauffeur' : (t.CHAUFFEUR ? nomPersonne(personneParId(t.CHAUFFEUR)) : ''));
+    ajout('Chauffeur', t.SANS_CHAUFFEUR ? 'Sans chauffeur' : (t.CHAUFFEUR ? nomPersonne(chauffeurParId(t.CHAUFFEUR)) : ''));
     var v = vehiculeParId(t.VEHICULE);
     ajout('Véhicule', v ? [v.nom, v.immat].filter(Boolean).join(' · ') : '');
     ajout('Motif', t.MOTIF);
@@ -3444,6 +3621,56 @@ function vueCourses(l) {
     });
     return z;
 }
+function vueEquipe(l) {
+    var z = creer('div', { classe: 've-courses' });
+    var moi = etat.moiChauffeur;
+    z.appendChild(creer('h3', { classe: 'bi-sous-titre', texte: 'Trajets à reprendre (' + l.length + ')' }));
+    z.appendChild(creer('p', { classe: 'w-mention', texte: cfg().repriseDirecte ? 'Trajets validés dont le chauffeur est absent ou pas encore choisi. Si vous êtes libre, prenez-le : le passager voit aussitôt votre nom et le gestionnaire est averti.' : 'Trajets validés dont le chauffeur est absent ou pas encore choisi. Si vous êtes libre, dites-le au gestionnaire des trajets : c\'est lui qui change le chauffeur.' }));
+    if (!l.length) {
+        z.appendChild(creer('p', { classe: 'w-mention bi-vide', texte: 'Aucun trajet à reprendre.' }));
+    }
+    else {
+        z.appendChild(creer('ul', { classe: 've-lignes' }, l.map(function (t, i) {
+            var prevu = chauffeurParId(t.CHAUFFEUR);
+            var v = vehiculeParId(t.VEHICULE);
+            var e = etatRessource('chauffeur', moi, t, t.DEPART, finOccupation(t), v);
+            var dejaMoi = prevu && prevu.id === moi.id;
+            var action = dejaMoi ? creer('span', { classe: 'w-mention', texte: 'Prévu avec vous, mais vous êtes absent' })
+                : !cfg().repriseDirecte ? null
+                : e.libre ? bouton('Je le prends', 'secondaire', null, function () { return reprendreTrajet(t, 'eqP' + i); }, { petit: true, id: 'eqP' + i, desactive: !accesComplet(), aria: 'Je prends le trajet ' + t.NUMERO })
+                : creer('span', { classe: 'w-mention', texte: 'Vous n\'êtes pas libre : ' + e.raison.charAt(0).toLowerCase() + e.raison.slice(1) });
+            return creer('li', { classe: 've-ligne-course' }, [creer('span', { classe: 've-ligne-course__heure', texte: partiesDe(t.DEPART).jour === aujourdhui() ? texteHeure(partiesDe(t.DEPART).minutes) : texteDateHeure(t.DEPART, { court: true, annee: false }) }),
+                creer('span', { classe: 've-ligne-course__texte' }, [creer('strong', { texte: trajetTexte(t) }),
+                    creer('span', { classe: 'w-mention', texte: [pluriel(t.NB_PERSONNES, 'personne'), v ? v.nom + (v.blinde ? ' (blindé)' : '') : '', prevu ? 'prévu avec ' + nomPersonne(prevu) : 'sans chauffeur'].filter(Boolean).join(' · ') })]),
+                action]);
+        })));
+    }
+    var abs = absencesEquipe(7);
+    z.appendChild(creer('h3', { classe: 'bi-sous-titre', texte: 'Absences des 7 prochains jours (' + abs.length + ')' }));
+    if (!abs.length) {
+        z.appendChild(creer('p', { classe: 'w-mention bi-vide', texte: 'Aucune absence prévue dans l\'équipe.' }));
+    }
+    else {
+        z.appendChild(creer('ul', { classe: 've-indispos' }, abs.map(function (x) {
+            var c = chauffeurParId(x.chauffeur);
+            return creer('li', {}, [creer('div', {}, [creer('strong', { texte: nomPersonne(c) + (c.id === moi.id ? ' (vous)' : '') }),
+                creer('span', { classe: 'w-mention ve-bloc', texte: (x.motif || 'Indisponible') + ' · ' + texteIndispo(x) }), c.telephone && c.id !== moi.id ? creer('span', { classe: 'w-mention ve-bloc' }, [telLien(c.telephone)]) : null])]);
+        })));
+    }
+    return z;
+}
+async function reprendreTrajet(t, focus) {
+    var moi = etat.moiChauffeur;
+    var prevu = chauffeurParId(t.CHAUFFEUR);
+    var ok = await confirmerAction('Prendre le trajet ' + t.NUMERO + ' ?', trajetTexte(t) + ', ' + texteCreneau(t) + '. Le passager verra votre nom et votre téléphone, et le gestionnaire des trajets est averti.', 'Je le prends');
+    if (!ok) {
+        return;
+    }
+    var r = await executer([['UpdateRecord', etat.t.trajets, t.id, { CHAUFFEUR: moi.id, HISTORIQUE: entreeHistorique(t, 'Repris par ' + nomPersonne(moi), prevu ? 'à la place de ' + nomPersonne(prevu) : '') }]], 'Enregistrement…', 'Le trajet ' + t.NUMERO + ' est à vous : il apparaît dans « Mes courses ».');
+    if (r) {
+        dessiner(focus);
+    }
+}
 async function avancerCourse(t, suivi) {
     if (suivi === SUIVI.fini && cfg().kilometrage && t.VEHICULE) {
         ouvrirFinCourse(t);
@@ -3485,7 +3712,7 @@ function ouvrirFinCourse(t) {
         pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'fcNon' }), bouton('Terminer la course', null, null, finir, { id: 'fcOui' })] });
 }
 function motifsPour(type) { return type === 'chauffeur' ? cfg().motifsChauffeurs : cfg().motifsVehicules; }
-function nomRessource(type, id) { return type === 'chauffeur' ? nomPersonne(personneParId(id)) : (vehiculeParId(id) || {}).nom || 'Véhicule'; }
+function nomRessource(type, id) { return type === 'chauffeur' ? nomPersonne(chauffeurParId(id)) : (vehiculeParId(id) || {}).nom || 'Véhicule'; }
 function texteIndispo(x) {
     var a = partiesDe(x.debut), b = partiesDe(x.fin);
     var journees = a.minutes === 0 && b.minutes >= 1435;
@@ -4193,8 +4420,9 @@ function vueTraiter(main) {
                 boutonLien('Traiter ' + p[0].NUMERO, function () { ouvrirTraitement(p[0]); }, { id: 'aRg' + k })])] });
         })));
     }
-    var groupes = [['En attente de traitement', 've-st--attente', l.filter(function (t) { return t.STATUT === ST.attente; })], ['Pris en charge', 've-st--cours', l.filter(function (t) { return t.STATUT === ST.cours; })]];
-    if (!l.length) {
+    var rep = trajetsAReprendre();
+    var groupes = [['Chauffeur à remplacer', 've-st--refusee', rep], ['En attente de traitement', 've-st--attente', l.filter(function (t) { return t.STATUT === ST.attente; })], ['Pris en charge', 've-st--cours', l.filter(function (t) { return t.STATUT === ST.cours; })]];
+    if (!l.length && !rep.length) {
         main.appendChild(creer('p', { classe: 'w-texte', texte: 'Rien à traiter pour le moment.' }));
     }
     groupes.forEach(function (g, ig) {
@@ -4215,14 +4443,15 @@ function vueTraiter(main) {
     }
 }
 function carteRessource(type, r, e, choisi, sugg, id, choisir) {
-    var info = type === 'chauffeur' ? r.telephone : [r.immat, r.places ? pluriel(r.places, 'place') : '', r.carburant].filter(Boolean).join(' · ');
+    var info = type === 'chauffeur' ? [r.telephone, r.langues.join(', ')].filter(Boolean).join(' · ') : [r.immat, r.places ? pluriel(r.places, 'place') : '', r.carburant].filter(Boolean).join(' · ');
+    var blinde = type === 'vehicule' ? r.blinde : r.habiliteBlinde;
     var nom = type === 'chauffeur' ? nomListe(r) : r.nom;
     var b = creer('button', { classe: 've-res' + (choisi ? ' ve-res--choisi' : '') + (e.libre ? '' : ' ve-res--pris'), id: id, attrs: { type: 'button', 'aria-pressed': choisi ? 'true' : 'false', 'aria-disabled': e.libre || choisi ? null : 'true',
-        'aria-label': nom + ', ' + e.raison + (sugg ? ', suggéré' : '') + (type === 'vehicule' && r.blinde ? ', blindé' : '') } }, [
+        'aria-label': nom + ', ' + e.raison + (sugg ? ', suggéré' : '') + (blinde ? (type === 'vehicule' ? ', blindé' : ', habilité au blindé') : '') } }, [
         sugg ? creer('span', { classe: 've-res__sugg', texte: 'Suggéré', attrs: { 'aria-hidden': 'true' } }) : null,
         creer('strong', { classe: 've-res__nom', texte: nom }), info ? creer('span', { classe: 'w-mention', texte: info }) : null,
         creer('span', { classe: 've-res__etat', texte: e.raison }),
-        type === 'vehicule' && r.blinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: 'Blindé' }) : null
+        blinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: type === 'vehicule' ? 'Blindé' : 'Habilité blindé' }) : null
     ]);
     b.addEventListener('click', function () { if (e.libre || choisi) {
         choisir(r.id);
@@ -4242,18 +4471,19 @@ function ouvrirTraitement(t, focus) {
         }
         var deb = t.DEPART, fin = t.DEPART + ch.mob * 60;
         creneau.textContent = 'Créneau occupé : ' + texteHeure(partiesDe(deb).minutes) + ' → ' + texteDateHeure(fin, { relatif: true }).replace(/^aujourd'hui, /, '');
-        var sg = suggestions(t, deb, fin);
+        var sg = suggestions(t, deb, fin, ch);
+        var vChoisi = vehiculeParId(ch.v), cChoisi = chauffeurParId(ch.c);
         if (!t.SANS_CHAUFFEUR) {
             var lc = chauffeursActifs();
             zoneRes.appendChild(creer('h3', { classe: 'bi-sous-titre', texte: 'Chauffeur' }));
             zoneRes.appendChild(lc.length ? creer('div', { classe: 've-ressources' }, lc.map(function (p, k) {
-                return carteRessource('chauffeur', p, etatRessource('chauffeur', p, t, deb, fin), ch.c === p.id, sg.chauffeur === p.id, 'tC' + k, function (id) { ch.c = ch.c === id ? 0 : id; dessinerRes('tC' + k); });
-            })) : alerte('warning', null, 'Aucun chauffeur : cochez « Chauffeur » dans la fiche des personnes qui conduisent.'));
+                return carteRessource('chauffeur', p, etatRessource('chauffeur', p, t, deb, fin, vChoisi), ch.c === p.id, sg.chauffeur === p.id && !ch.c, 'tC' + k, function (id) { ch.c = ch.c === id ? 0 : id; dessinerRes('tC' + k); });
+            })) : alerte('warning', null, 'Aucun chauffeur : ajoutez-les dans « Les chauffeurs ».'));
         }
         var lv = vehiculesActifs();
         zoneRes.appendChild(creer('h3', { classe: 'bi-sous-titre', texte: 'Véhicule' }));
         zoneRes.appendChild(lv.length ? creer('div', { classe: 've-ressources' }, lv.map(function (v, k) {
-            return carteRessource('vehicule', v, etatRessource('vehicule', v, t, deb, fin), ch.v === v.id, sg.vehicule === v.id, 'tV' + k, function (id) { ch.v = ch.v === id ? 0 : id; dessinerRes('tV' + k); });
+            return carteRessource('vehicule', v, etatRessource('vehicule', v, t, deb, fin, t.SANS_CHAUFFEUR ? null : cChoisi), ch.v === v.id, sg.vehicule === v.id && !ch.v, 'tV' + k, function (id) { ch.v = ch.v === id ? 0 : id; dessinerRes('tV' + k); });
         })) : alerte('warning', null, 'Aucun véhicule : ajoutez-les dans « Les véhicules ».'));
         if (fx) {
             var n = document.getElementById(fx);
@@ -4426,7 +4656,7 @@ function vueTrajets(main) {
     main.appendChild(tableau(['Trajet', 'Départ', 'Bénéficiaire', 'Itinéraire', 'Chauffeur', 'Véhicule', 'Statut'], l.slice(0, 300).map(function (t, k) {
         var v = vehiculeParId(t.VEHICULE);
         return ligneTableau([{ noeuds: [boutonLien(t.NUMERO || 'Trajet', function () { ouvrirTraitement(t); }, { id: 'aD' + k })] }, texteDateHeure(t.DEPART, { relatif: true, court: true }), nomListe(personneParId(t.BENEFICIAIRE)),
-            trajetTexte(t), t.SANS_CHAUFFEUR ? 'Sans chauffeur' : (t.CHAUFFEUR ? nomListe(personneParId(t.CHAUFFEUR)) : ''), v ? v.nom : '', { noeuds: [badgeStatut(t)] }]);
+            trajetTexte(t), t.SANS_CHAUFFEUR ? 'Sans chauffeur' : (t.CHAUFFEUR ? nomListe(chauffeurParId(t.CHAUFFEUR)) : ''), v ? v.nom : '', { noeuds: [badgeStatut(t)] }]);
     }), { legende: 'Trajets', classe: 've-table-trajets' }));
     if (l.length > 300) {
         main.appendChild(creer('p', { classe: 'w-mention', texte: 'Les 300 premiers trajets sont affichés : l\'export les contient tous.' }));
@@ -4438,7 +4668,7 @@ function exporterTrajets(l) {
     var lignes = [ent.map(celluleCsv).join(';')].concat(l.map(function (t) {
         var v = vehiculeParId(t.VEHICULE);
         return [t.NUMERO, t.STATUT, t.SUIVI, nomListe(personneParId(t.DEMANDEUR)), nomListe(personneParId(t.BENEFICIAIRE)), serviceDe(t), t.NB_PERSONNES, d(t.DEPART), d(t.ARRIVEE), t.ADRESSE_DEPART, t.ETAPES.join(' ; '), t.ADRESSE_DESTINATION,
-            t.SANS_CHAUFFEUR ? 'Oui' : '', t.CHAUFFEUR ? nomListe(personneParId(t.CHAUFFEUR)) : '', v ? v.nom : '', t.MOBILISATION || '', t.KM_FIN === null ? '' : t.KM_FIN, t.MOTIF, t.MOTIF_STATUT, t.AVIS].map(celluleCsv).join(';');
+            t.SANS_CHAUFFEUR ? 'Oui' : '', t.CHAUFFEUR ? nomListe(chauffeurParId(t.CHAUFFEUR)) : '', v ? v.nom : '', t.MOBILISATION || '', t.KM_FIN === null ? '' : t.KM_FIN, t.MOTIF, t.MOTIF_STATUT, t.AVIS].map(celluleCsv).join(';');
     }));
     telecharger('trajets.csv', '﻿' + lignes.join('\r\n'), 'text/csv;charset=utf-8');
     afficherSucces(pluriel(l.length, 'trajet exporté', 'trajets exportés') + '.');
@@ -4473,7 +4703,7 @@ function vueStats(main) {
         return Object.keys(o).sort(function (a, b) { return o[b].length - o[a].length || comparerTexte(a, b); }).map(function (k) { return [k, o[k]]; });
     };
     var max = faits.length || 1;
-    [['Par véhicule', function (t) { var v = vehiculeParId(t.VEHICULE); return v ? v.nom : ''; }], ['Par chauffeur', function (t) { return t.CHAUFFEUR ? nomListe(personneParId(t.CHAUFFEUR)) : ''; }], ['Par service', serviceDe]].forEach(function (x, k) {
+    [['Par véhicule', function (t) { var v = vehiculeParId(t.VEHICULE); return v ? v.nom : ''; }], ['Par chauffeur', function (t) { return t.CHAUFFEUR ? nomListe(chauffeurParId(t.CHAUFFEUR)) : ''; }], ['Par service', serviceDe]].forEach(function (x, k) {
         var r = parCle(x[1]);
         if (!r.length) {
             return;
@@ -4565,40 +4795,131 @@ function ouvrirVehicule(v) {
         pied: [v ? bouton('Retirer', 'tertiaire', 'delete-line', retirer, { id: 'vRetirer', desactive: !accesComplet() }) : null, creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'vNon' }), bouton('Enregistrer', null, null, enregistrer, { id: 'vOui', desactive: !accesComplet() })] });
 }
 function vueChauffeurs(main) {
-    main.appendChild(titreVue(null, { droite: [bouton('Désigner un chauffeur', null, 'user-add-line', ouvrirDesigner, { petit: true, id: 'aDesigner', desactive: !accesComplet() })] }));
-    var l = chauffeursActifs();
+    var actifs = etat.ongletChauffeurs !== 'inactifs';
+    main.appendChild(titreVue(null, { droite: [segment('aCO', [['actifs', 'Actifs (' + chauffeursActifs().length + ')'], ['inactifs', 'Inactifs (' + etat.chauffeurs.filter(function (c) { return !c.actif; }).length + ')']], actifs ? 'actifs' : 'inactifs', function (v) { etat.ongletChauffeurs = v; dessiner('aCO_' + v); }, 'Chauffeurs affichés'),
+        bouton('Ajouter un chauffeur', null, 'user-add-line', function () { ouvrirChauffeur(null); }, { petit: true, id: 'aAjoutCh', desactive: !accesComplet() })] }));
+    var l = etat.chauffeurs.filter(function (c) { return c.actif === actifs; }).sort(function (a, b) { return comparerTexte(nomListe(a), nomListe(b)); });
     if (!l.length) {
-        main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucun chauffeur. « Désigner un chauffeur » parmi les personnes du poste.' }));
+        main.appendChild(creer('p', { classe: 'w-texte', texte: actifs ? 'Aucun chauffeur : « Ajouter un chauffeur » pour commencer. Les chauffeurs ont leur propre liste, à part des personnes qui demandent des trajets.' : 'Aucun chauffeur inactif.' }));
         return;
     }
     var j = aujourdhui();
-    main.appendChild(tableau(['Chauffeur', 'Téléphone', 'Aujourd\'hui', 'À venir', 'Indisponibilité', ''], l.map(function (p, k) {
+    main.appendChild(tableau(['Chauffeur', 'Téléphone', 'Langues', 'Aujourd\'hui', 'À venir', 'Indisponibilité', ''], l.map(function (p, k) {
         var ind = indisposDe('chauffeur', p.id).filter(function (x) { return x.fin > maintenant(); }).sort(function (a, b) { return a.debut - b.debut; })[0];
         var avenir = etat.trajets.filter(function (t) { return t.CHAUFFEUR === p.id && estActif(t) && !estPasse(t); }).length;
-        return ligneTableau([{ noeuds: [boutonLien(nomListe(p), function () { ouvrirFiche(p); }, { id: 'aCh' + k })] }, p.telephone, String(trajetsDuJour('CHAUFFEUR', p.id, j)), String(avenir),
+        return ligneTableau([{ noeuds: [boutonLien(nomListe(p), function () { ouvrirChauffeur(p); }, { id: 'aCh' + k }), p.habiliteBlinde ? creer('span', { classe: 'bi-st ve-st--blinde', texte: 'Habilité blindé' }) : null] }, p.telephone, p.langues.join(', '),
+            String(trajetsDuJour('CHAUFFEUR', p.id, j)), String(avenir),
             ind ? (ind.motif || 'Indisponible') + ' · ' + texteIndispo(ind) : '', { noeuds: [boutonLien('Indisponibilités', function () { ouvrirIndispos('chauffeur', p.id); }, { id: 'aChI' + k, aria: 'Indisponibilités de ' + nomPersonne(p) })] }]);
     }), { legende: 'Chauffeurs' }));
 }
-function ouvrirDesigner() {
-    var l = etat.personnes.filter(function (p) { return p.actif && !p.chauffeur; }).sort(function (a, b) { return comparerTexte(nomListe(a), nomListe(b)); });
-    var s = liste('dgPers', l.map(function (p) { return { valeur: p.id, libelle: nomListe(p) + (p.service ? ' · ' + p.service : '') }; }), '', { vide: 'Choisir' });
-    var tel = saisie('dgTel', '', { type: 'tel' });
-    s.addEventListener('change', function () { var p = personneParId(Number(s.value)); tel.value = p ? p.telephone : ''; });
-    ouvrirPanneau({ titre: 'Désigner un chauffeur', sousTitre: 'Parmi les personnes du poste', cle: 'designer', focus: 'dgPers',
-        corps: [l.length ? champ('Personne', s) : alerte('info', null, 'Toutes les personnes actives sont déjà chauffeurs. Ajoutez la personne dans « Les personnes ».'), champ('Téléphone professionnel', tel, { aide: 'Montré aux passagers de ses trajets.' })],
-        pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'dgNon' }), bouton('Désigner', null, null, async function () {
-            var id = Number(s.value);
-            if (!id) {
-                afficherErreur('Choisissez la personne.');
-                s.focus();
-                return;
+function rappelPartage(adresses, quoi) {
+    toast(quoi + ' Pour ' + (adresses.length > 1 ? 'leur' : 'lui') + ' ouvrir le document, ajoutez ' + (adresses.length > 1 ? 'ces adresses' : 'son adresse') + ' dans « Partager », « Gérer les utilisateurs », avec le rôle Éditeur, puis prévenez ' + (adresses.length > 1 ? 'ces personnes' : 'la personne') + ' vous-même : Diplotable n\'envoie aucun message.',
+        { type: 'info', duree: 20000, action: { libelle: adresses.length > 1 ? 'Copier les adresses' : 'Copier l\'adresse', icone: 'file-copy-line', id: 'wCopierAdr', fn: function () { return copierTexte(adresses.join(', '), null, adresses.length > 1 ? 'Adresses copiées.' : 'Adresse copiée.'); } } });
+}
+function champLangues(id, choisies) {
+    var connues = LANGUES.slice();
+    choisies.forEach(function (x) { if (connues.indexOf(x) === -1) {
+        connues.push(x);
+    } });
+    var cases = connues.map(function (x, i) { return caseACocher(id + '_' + i, x, choisies.indexOf(x) !== -1, { valeur: x, nom: id }); });
+    var autre = saisie(id + 'Autre', '', { indice: 'Autre langue' });
+    autre.setAttribute('maxlength', '40');
+    var noeud = creer('fieldset', { classe: 'fr-fieldset wb-fieldset wb-fieldset--ligne', id: id }, [creer('legend', { classe: 'fr-fieldset__legend', texte: 'Langues parlées' })].concat(cases)
+        .concat([creer('div', { classe: 've-langues__autre' }, [creer('label', { classe: 'fr-sr-only', attrs: { for: id + 'Autre' }, texte: 'Autre langue parlée' }), autre])]));
+    return { noeud: noeud, valeur: function () {
+        var l = Array.prototype.map.call(noeud.querySelectorAll('input[type="checkbox"]:checked'), function (n) { return n.value; });
+        var a = ligneBornee(autre.value, 40);
+        if (a) {
+            a = a.charAt(0).toUpperCase() + a.slice(1);
+            if (l.map(normaliser).indexOf(normaliser(a)) === -1) {
+                l.push(a);
             }
-            var r = await executer([['UpdateRecord', etat.t.personnes, id, { CHAUFFEUR: true, TELEPHONE: ligneBornee(tel.value, 40) }]], 'Enregistrement…', nomPersonne(personneParId(id)) + ' est chauffeur.');
-            if (r) {
-                fermerPanneau();
-                dessiner();
+        }
+        return l.slice(0, 20);
+    } };
+}
+async function completerChoixLangues(l) {
+    var info = infoColonne(etat.t.chauffeurs, 'LANGUES');
+    var choix = info && info.options && Array.isArray(info.options.choices) ? info.options.choices : LANGUES;
+    var manque = l.filter(function (x) { return choix.indexOf(x) === -1; });
+    if (!info || !manque.length) {
+        return;
+    }
+    try {
+        await agir([['ModifyColumn', etat.t.chauffeurs, 'LANGUES', { widgetOptions: JSON.stringify(Object.assign({}, info.options, { choices: choix.concat(manque) })) }]]);
+        await chargerMeta();
+    }
+    catch (e) {
+        logSecurite('INFO', 'Liste des langues non complétée', e);
+    }
+}
+function ouvrirChauffeur(c) {
+    var n = c || { id: 0, prenom: '', nom: '', email: '', telephone: '', langues: ['Français'], habiliteBlinde: false, vehiculeHabituel: 0, actif: true, commentaires: '' };
+    var f = { prenom: saisie('chPrenom', n.prenom), nom: saisie('chNom', n.nom), email: saisie('chEmail', n.email, { type: 'email' }), tel: saisie('chTel', n.telephone, { type: 'tel' }),
+        veh: liste('chVeh', vehiculesActifs().map(function (v) { return { valeur: v.id, libelle: v.nom + (v.blinde ? ' (blindé)' : '') }; }), n.vehiculeHabituel || '', { vide: 'Aucun' }),
+        com: saisie('chCom', n.commentaires, { multiligne: true, lignes: 2 }) };
+    var langues = champLangues('chLangues', n.langues);
+    var blinde = caseACocher('chBlinde', 'Habilité à conduire un véhicule blindé', n.habiliteBlinde, { aide: 'Sans cette case, il n\'est pas proposé pour un véhicule blindé.' });
+    var actif = caseACocher('chActif', 'Actif : proposé aux affectations', n.actif);
+    var voir = creer('span', {});
+    if (c && c.email) {
+        relayer(lienVoirEnTantQue(c.email).then(function (url) {
+            voir.appendChild(creer('a', { classe: 'fr-link', id: 'chVoir', texte: 'Voir en tant que', attrs: { href: url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Voir le document comme ' + nomPersonne(c) + ' (nouvel onglet)' } }));
+        }), 'Lien « Voir en tant que »');
+    }
+    var aVenir = c ? etat.trajets.filter(function (t) { return t.CHAUFFEUR === c.id && estActif(t) && !estPasse(t); }).sort(parDepart) : [];
+    var corps = [c ? creer('p', { classe: 'w-mention' }, [voir]) : null,
+        creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]),
+        champ('Adresse e-mail professionnelle', f.email, { aide: 'Celle avec laquelle il se connecte au document pour voir ses courses.' }),
+        champ('Téléphone professionnel', f.tel, { aide: 'Montré aux passagers de ses trajets.' }),
+        langues.noeud, blinde, champ('Véhicule habituel', f.veh, { aide: 'Proposé en premier quand on lui affecte un trajet.' }), actif,
+        champ('Commentaires', f.com, { aide: 'Lus par les gestionnaires seulement.' })];
+    if (c) {
+        corps.push(creer('h3', { classe: 'bi-sous-titre', texte: 'Courses à venir (' + aVenir.length + ')' }));
+        corps.push(aVenir.length ? creer('ul', { classe: 've-lignes' }, aVenir.slice(0, 5).map(function (t) { return creer('li', { classe: 'w-mention', texte: t.NUMERO + ' · ' + texteCreneau(t) + ' · ' + trajetTexte(t) }); })) : creer('p', { classe: 'w-mention', texte: 'Aucune course prévue.' }));
+        corps.push(creer('p', {}, [boutonLien('Ses indisponibilités', function () { ouvrirIndispos('chauffeur', c.id); }, { id: 'chIndispos' })]), ligneMeta(c));
+    }
+    var enregistrer = async function () {
+        var email = f.email.value.trim().toLowerCase();
+        var prenom = ligneBornee(f.prenom.value, 80), nom = ligneBornee(f.nom.value, 80);
+        if (!prenom || !nom || !adresseValide(email)) {
+            afficherErreur('Indiquez le prénom, le nom et une adresse e-mail professionnelle valide.');
+            (prenom ? (nom ? f.email : f.nom) : f.prenom).focus();
+            return;
+        }
+        if (etat.chauffeurs.some(function (x) { return x.id !== n.id && x.email === email; })) {
+            afficherErreur('Un autre chauffeur a déjà cette adresse.');
+            f.email.focus();
+            return;
+        }
+        var l = langues.valeur();
+        await completerChoixLangues(l);
+        var champs = { PRENOM: prenom, NOM: nom.toUpperCase(), EMAIL: email, TELEPHONE: ligneBornee(f.tel.value, 40), LANGUES: ['L'].concat(l), HABILITE_BLINDE: blinde.querySelector('input').checked,
+            VEHICULE_HABITUEL: Number(f.veh.value) || 0, INACTIF: !actif.querySelector('input').checked, COMMENTAIRES: texteBorne(f.com.value, 1000) };
+        var r = await executer([c ? ['UpdateRecord', etat.t.chauffeurs, c.id, champs] : ['AddRecord', etat.t.chauffeurs, null, champs]], 'Enregistrement…', c ? 'Fiche de ' + prenom + ' ' + nom.toUpperCase() + ' enregistrée.' : null);
+        if (r) {
+            fermerPanneau();
+            dessiner();
+            if (!c || c.email !== email) {
+                rappelPartage([email], (c ? 'Adresse de ' : '') + prenom + ' ' + nom.toUpperCase() + (c ? ' modifiée.' : ' est ajouté aux chauffeurs.'));
             }
-        }, { id: 'dgOui', desactive: !l.length })] });
+        }
+    };
+    var retirer = async function () {
+        var lie = etat.trajets.some(function (t) { return t.CHAUFFEUR === c.id; });
+        var ok = await confirmerAction('Retirer ' + nomPersonne(c) + ' ?', lie ? 'Ce chauffeur a des trajets : il devient inactif, pour garder l\'historique.' : 'Le chauffeur disparaît de la liste, avec ses indisponibilités. Il garde son accès au document tant que vous ne le retirez pas dans « Partager ».', lie ? 'Rendre inactif' : 'Retirer', { danger: true });
+        if (!ok) {
+            return;
+        }
+        var act = lie ? [['UpdateRecord', etat.t.chauffeurs, c.id, { INACTIF: true }]] : indisposDe('chauffeur', c.id).map(function (x) { return ['RemoveRecord', etat.t.indispos, x.id]; }).concat([['RemoveRecord', etat.t.chauffeurs, c.id]]);
+        var r = await executer(act, 'Enregistrement…', lie ? nomPersonne(c) + ' est inactif.' : nomPersonne(c) + ' est retiré des chauffeurs.');
+        if (r) {
+            fermerPanneau();
+            dessiner();
+        }
+    };
+    ouvrirPanneau({ titre: c ? nomListe(c) : 'Ajouter un chauffeur', sousTitre: c ? 'Fiche du chauffeur' : 'Il sera proposé aux affectations', cle: 'chauffeur', focus: 'chPrenom', corps: corps,
+        pied: [c ? bouton('Retirer', 'tertiaire', 'delete-line', retirer, { id: 'chRetirer', desactive: !accesComplet() }) : null, creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'chNon' }), bouton(c ? 'Enregistrer' : 'Ajouter', null, null, enregistrer, { id: 'chOui', desactive: !accesComplet() })] });
 }
 function adressesEnDouble() {
     var vus = {}, d = {};
@@ -4652,9 +4973,9 @@ function remplirPersonnes(corps) {
         corps.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune personne.' }));
         return;
     }
-    corps.appendChild(tableau(['Nom', 'Adresse', 'Service', 'Rôle', 'Chauffeur'], l.map(function (p, k) {
+    corps.appendChild(tableau(['Nom', 'Adresse e-mail', 'Service', 'Rôle'], l.map(function (p, k) {
         return ligneTableau([{ noeuds: [boutonLien(nomListe(p), function () { ouvrirFiche(p); }, { id: 'aP' + k })] },
-            dbl[p.email] ? { noeuds: [creer('span', { classe: 'bi-alerte-texte', texte: p.email + ' · en double' })] } : p.email, p.service || '', p.role, p.chauffeur ? 'Oui' : '']);
+            dbl[p.email] ? { noeuds: [creer('span', { classe: 'bi-alerte-texte', texte: p.email + ' · en double' })] } : p.email, p.service || '', p.role]);
     }), { legende: 'Personnes du poste' }));
 }
 function optionsServices(courant) {
@@ -4671,25 +4992,8 @@ function roleChoisi(nom, defaut) {
     var c = document.querySelector('input[name="' + nom + '"]:checked');
     return c ? c.value : defaut;
 }
-async function finirInvitation(adresses, inviter) {
-    if (!inviter || !adresses.length) {
-        return '';
-    }
-    try {
-        await inviterAuDocument(adresses);
-        return adresses.length > 1 ? ' Les personnes sont invitées au document.' : ' La personne est invitée au document : elle reçoit un courriel.';
-    }
-    catch (e) {
-        logSecurite('AVERTISSEMENT', 'Invitation par le widget impossible', e);
-        return null;
-    }
-}
-function messageInvitationManuelle(adresses) {
-    return 'L\'invitation n\'a pas pu être envoyée par le widget (seul un propriétaire du document peut inviter). Dans « Partager », « Gérer les utilisateurs », ajoutez : ' + adresses.join(', ') + ', avec le rôle Éditeur.';
-}
 function ouvrirAcces(a) {
     var srv = liste('acService', optionsServices(a.service), a.service, { vide: 'Choisir' });
-    var inviter = caseACocher('acInviter', 'Inviter au document à l\'acceptation', true);
     var existe = etat.personnes.filter(function (p) { return p.email === a.email; })[0];
     var accepter = async function () {
         var service = srv.value;
@@ -4712,20 +5016,14 @@ function ouvrirAcces(a) {
         if (!r) {
             return;
         }
-        var m = await finirInvitation([a.email], inviter.querySelector('input').checked);
         fermerPanneau();
         dessiner();
-        if (m === null) {
-            toast(messageInvitationManuelle([a.email]), { type: 'avertissement', duree: 15000 });
-        }
-        else {
-            afficherSucces(nomPersonne(a) + ' est ajoutée à la liste.' + m);
-        }
+        rappelPartage([a.email], nomPersonne(a) + ' est ajoutée à la liste.');
     };
     ouvrirPanneau({ titre: a.email, sousTitre: 'Demande d\'accès' + (texteHorodatage(a.creeLe) ? ' du ' + texteHorodatage(a.creeLe) : ''), cle: 'acces', focus: 'acService',
-        corps: [existe ? alerte('info', null, 'Cette adresse est déjà dans la liste : sa fiche sera mise à jour.') : null, champ('Service', srv), radiosRole('acRole', existe ? existe.role : 'Agent'), inviter,
-            creer('p', { classe: 'w-mention', texte: 'Le prénom et le nom sont repris de l\'adresse. Après l\'invitation, la personne reçoit un courriel et demande ses trajets depuis « ' + NOM_PAGE_UTILISATEURS + ' ».' })],
-        pied: [creer('span', { classe: 'w-pousse' }), bouton('Refuser', 'secondaire', null, function () { refuserAcces(a); }, { id: 'acRefuser' }), bouton('Accepter et inviter', null, null, accepter, { id: 'acAccepter', desactive: !accesComplet() })] });
+        corps: [existe ? alerte('info', null, 'Cette adresse est déjà dans la liste : sa fiche sera mise à jour.') : null, champ('Service', srv), radiosRole('acRole', existe ? existe.role : 'Agent'),
+            creer('p', { classe: 'w-mention', texte: 'Le prénom et le nom sont repris de l\'adresse. Ensuite, ajoutez la personne dans « Partager » et prévenez-la vous-même : elle demande ses trajets depuis « ' + NOM_PAGE_UTILISATEURS + ' ».' })],
+        pied: [creer('span', { classe: 'w-pousse' }), bouton('Refuser', 'secondaire', null, function () { refuserAcces(a); }, { id: 'acRefuser' }), bouton('Accepter', null, null, accepter, { id: 'acAccepter', desactive: !accesComplet() })] });
 }
 function refuserAcces(a) {
     var zone = saisie('acMotif', '', { multiligne: true, lignes: 3 });
@@ -4740,13 +5038,10 @@ function refuserAcces(a) {
 function ouvrirAjoutPersonne() {
     var f = { prenom: saisie('npPrenom', ''), nom: saisie('npNom', ''), email: saisie('npEmail', '', { type: 'email' }), tel: saisie('npTel', '', { type: 'tel' }),
         srv: liste('npService', optionsServices(''), '', { vide: 'Choisir' }), liste: saisie('npListe', '', { multiligne: true, lignes: 4, indice: 'prenom.nom@exemple.fr' }) };
-    var inviter = caseACocher('npInviter', 'Inviter au document', true);
-    var chauffeur = caseACocher('npChauffeur', 'Chauffeur', false);
     var plusieurs = false;
     var ajouter = async function () {
         var role = roleChoisi('npRole', 'Agent');
         var service = f.srv.value;
-        var estCh = chauffeur.querySelector('input').checked;
         var adresses = [];
         var act = [];
         if (plusieurs) {
@@ -4760,7 +5055,7 @@ function ouvrirAjoutPersonne() {
             adresses.forEach(function (x) {
                 var n = nomDepuisAdresse(x);
                 var deja = etat.personnes.filter(function (p) { return p.email === x; })[0];
-                var ch = { EMAIL: x, SERVICE: service, ROLE_VEHICULES: role, CHAUFFEUR: estCh, INACTIF: false };
+                var ch = { EMAIL: x, SERVICE: service, ROLE_VEHICULES: role, INACTIF: false };
                 if (!deja) {
                     ch.PRENOM = n.prenom;
                     ch.NOM = n.nom;
@@ -4781,21 +5076,15 @@ function ouvrirAjoutPersonne() {
                 return;
             }
             adresses = [email];
-            act.push(['AddRecord', etat.t.personnes, null, { PRENOM: ligneBornee(f.prenom.value, 80), NOM: ligneBornee(f.nom.value, 80).toUpperCase(), EMAIL: email, SERVICE: service, ROLE_VEHICULES: role, CHAUFFEUR: estCh, TELEPHONE: ligneBornee(f.tel.value, 40) }]);
+            act.push(['AddRecord', etat.t.personnes, null, { PRENOM: ligneBornee(f.prenom.value, 80), NOM: ligneBornee(f.nom.value, 80).toUpperCase(), EMAIL: email, SERVICE: service, ROLE_VEHICULES: role, TELEPHONE: ligneBornee(f.tel.value, 40) }]);
         }
         var r = await executer(act, 'Ajout…');
         if (!r) {
             return;
         }
-        var m = await finirInvitation(adresses, inviter.querySelector('input').checked);
         fermerPanneau();
         dessiner();
-        if (m === null) {
-            toast(messageInvitationManuelle(adresses), { type: 'avertissement', duree: 15000 });
-        }
-        else {
-            afficherSucces((adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.' + m);
-        }
+        rappelPartage(adresses, (adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.');
     };
     var rendre = function () {
         var corps = [groupeRadios('Ajouter', 'npMode', [{ valeur: 'une', libelle: 'Une personne' }, { valeur: 'liste', libelle: 'Une liste d\'adresses' }], plusieurs ? 'liste' : 'une', function (v) { plusieurs = v === 'liste'; rendre(); }, { enLigne: true })];
@@ -4803,10 +5092,10 @@ function ouvrirAjoutPersonne() {
             corps.push(champ('Adresses', f.liste, { aide: 'Une par ligne. Le prénom et le nom sont repris de l\'adresse.' }));
         }
         else {
-            corps.push(creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]), champ('Adresse professionnelle', f.email), champ('Téléphone professionnel', f.tel));
+            corps.push(creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]), champ('Adresse e-mail professionnelle', f.email), champ('Téléphone professionnel', f.tel));
         }
-        corps.push(champ('Service', f.srv), radiosRole('npRole', 'Agent'), chauffeur, inviter);
-        remplirPanneau({ corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'npNon' }), bouton('Ajouter et inviter', null, null, ajouter, { id: 'npOui' })] });
+        corps.push(champ('Service', f.srv), radiosRole('npRole', 'Agent'));
+        remplirPanneau({ corps: corps, pied: [creer('span', { classe: 'w-pousse' }), bouton('Annuler', 'secondaire', null, fermerPanneau, { id: 'npNon' }), bouton('Ajouter', null, null, ajouter, { id: 'npOui' })] });
     };
     ouvrirPanneau({ titre: 'Ajouter une personne', sousTitre: 'Sans passer par le formulaire d\'accès', cle: 'ajout', focus: 'npPrenom', corps: [], pied: [] });
     rendre();
@@ -4818,7 +5107,6 @@ function ouvrirAjoutPersonne() {
 function ouvrirFiche(p) {
     var f = { prenom: saisie('fiPrenom', p.prenom), nom: saisie('fiNom', p.nom), email: saisie('fiEmail', p.email, { type: 'email' }), srv: liste('fiService', optionsServices(p.service), p.service, { vide: 'Sans service' }),
         fonction: saisie('fiFonction', p.fonction), tel: saisie('fiTel', p.telephone, { type: 'tel' }) };
-    var chauffeur = caseACocher('fiChauffeur', 'Chauffeur : conduit les véhicules du poste', p.chauffeur);
     var inactif = caseACocher('fiInactif', 'Inactive : elle ne peut plus rien demander', !p.actif);
     var voir = creer('span', {});
     if (p.email) {
@@ -4833,28 +5121,28 @@ function ouvrirFiche(p) {
             return;
         }
         var r = await executer([['UpdateRecord', etat.t.personnes, p.id, { PRENOM: ligneBornee(f.prenom.value, 80), NOM: ligneBornee(f.nom.value, 80).toUpperCase(), EMAIL: email, SERVICE: f.srv.value, ROLE_VEHICULES: roleChoisi('fiRole', p.role),
-            FONCTION: ligneBornee(f.fonction.value, 120), TELEPHONE: ligneBornee(f.tel.value, 40), CHAUFFEUR: chauffeur.querySelector('input').checked, INACTIF: inactif.querySelector('input').checked }]], 'Enregistrement…', 'Fiche de ' + nomPersonne(p) + ' enregistrée.');
+            FONCTION: ligneBornee(f.fonction.value, 120), TELEPHONE: ligneBornee(f.tel.value, 40), INACTIF: inactif.querySelector('input').checked }]], 'Enregistrement…', 'Fiche de ' + nomPersonne(p) + ' enregistrée.');
         if (r) {
             fermerPanneau();
             dessiner();
         }
     };
     var retirer = async function () {
-        var lie = etat.trajets.some(function (t) { return t.DEMANDEUR === p.id || t.BENEFICIAIRE === p.id || t.CHAUFFEUR === p.id || t.AGENT_RESPONSABLE === p.id; });
+        var lie = etat.trajets.some(function (t) { return t.DEMANDEUR === p.id || t.BENEFICIAIRE === p.id || t.AGENT_RESPONSABLE === p.id; });
         var ok = await confirmerAction('Retirer ' + nomPersonne(p) + ' ?', lie ? 'Cette personne a des trajets : elle est rendue inactive, pour garder l\'historique.' : 'La personne disparaît de la liste. Elle garde son accès au document tant que vous ne la retirez pas dans « Partager ». La liste des personnes peut servir à d\'autres outils du poste.', lie ? 'Rendre inactive' : 'Retirer', { danger: true });
         if (!ok) {
             return;
         }
-        var act = lie ? [['UpdateRecord', etat.t.personnes, p.id, { INACTIF: true }]] : indisposDe('chauffeur', p.id).map(function (x) { return ['RemoveRecord', etat.t.indispos, x.id]; }).concat([['RemoveRecord', etat.t.personnes, p.id]]);
+        var act = lie ? [['UpdateRecord', etat.t.personnes, p.id, { INACTIF: true }]] : [['RemoveRecord', etat.t.personnes, p.id]];
         var r = await executer(act, 'Enregistrement…', lie ? nomPersonne(p) + ' est inactive.' : nomPersonne(p) + ' est retirée de la liste.');
         if (r) {
             fermerPanneau();
             dessiner();
         }
     };
-    var corps = [creer('p', { classe: 'w-mention' }, [voir]), creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]), champ('Adresse', f.email),
-        creer('div', { classe: 'bi-deux' }, [champ('Service', f.srv), champ('Téléphone professionnel', f.tel, { aide: 'Celui d\'un chauffeur est montré à ses passagers.' })]), champ('Fonction', f.fonction),
-        radiosRole('fiRole', p.role), chauffeur, inactif, ligneMeta(p)];
+    var corps = [creer('p', { classe: 'w-mention' }, [voir]), creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)]), champ('Adresse e-mail professionnelle', f.email),
+        creer('div', { classe: 'bi-deux' }, [champ('Service', f.srv), champ('Téléphone professionnel', f.tel)]), champ('Fonction', f.fonction),
+        radiosRole('fiRole', p.role), inactif, ligneMeta(p)];
     ouvrirPanneau({ titre: nomListe(p), sousTitre: p.email, cle: 'fiche', corps: corps,
         pied: [bouton('Retirer', 'tertiaire', 'delete-line', retirer, { id: 'fiRetirer', desactive: !accesComplet() }), creer('span', { classe: 'w-pousse' }), bouton('Enregistrer', null, null, enregistrer, { id: 'fiEnr', desactive: !accesComplet() })] });
 }
@@ -4917,7 +5205,7 @@ async function majCloche() {
     if (_clocheEnCours || _clocheRefusee || etat.vue !== 'admin' || etat.niveauAcces !== 'full') {
         return;
     }
-    var actif = aTraiter().length + accesATraiter().length > 0;
+    var actif = aTraiter().length + accesATraiter().length + trajetsAReprendre().length > 0;
     var cle = actif ? '1' : '0';
     if (cle === _clocheCle) {
         return;
@@ -5056,7 +5344,7 @@ function vuePlanning(main) {
         .concat(motifs.map(function (m) { return creer('li', {}, [creer('span', { classe: 've-plan-pastille ve-evt--indispo ' + classeMotif(m), attrs: { 'aria-hidden': 'true' } }), m]); }))));
     var res = toutes.filter(function (r) { return masques.indexOf(r.cle) === -1; });
     if (!toutes.length) {
-        main.appendChild(creer('p', { classe: 'w-texte', texte: p.ressource === 'vehicules' ? 'Aucun véhicule actif : ajoutez-les dans « Les véhicules ».' : 'Aucun chauffeur : désignez-les dans « Les chauffeurs ».' }));
+        main.appendChild(creer('p', { classe: 'w-texte', texte: p.ressource === 'vehicules' ? 'Aucun véhicule actif : ajoutez-les dans « Les véhicules ».' : 'Aucun chauffeur : ajoutez-les dans « Les chauffeurs ».' }));
         return;
     }
     var cadre = creer('div', { classe: 've-plan wb-hors-section' });
@@ -5180,6 +5468,11 @@ function editeurTags(id, liste, lecture, libelleNouveau) {
     };
     var ajouter = function () {
         var v = ligneBornee(nouveau.value, 60);
+        if (v && MOTIFS_INTERDITS.test(v)) {
+            toast('« ' + v + ' » dit la raison personnelle d\'une absence : il ne peut pas être ajouté. Gardez un motif neutre, comme « Absence ».', { type: 'avertissement' });
+            nouveau.focus();
+            return;
+        }
         if (v && !liste.some(function (x) { return normaliser(x) === normaliser(v); })) {
             liste.push(v);
             nouveau.value = '';
@@ -5251,7 +5544,8 @@ function vueReglesParc(main) {
         coche('gSuivi', 'Suivi de course par le chauffeur', c, 'suivi', '« Je pars », « Passager à bord », « Trajet terminé » : le passager suit sa course sur sa page.'),
         coche('gKm', 'Kilométrage saisi en fin de trajet', c, 'kilometrage', 'Met à jour le kilométrage du véhicule.'),
         coche('gAvis', 'Avis du passager après le trajet', c, 'avis', 'Une question : « Le trajet s\'est bien passé ? ». L\'avis porte sur le service, pas sur une personne.'),
-        coche('gRegroup', 'Suggérer les regroupements', c, 'regroupement', 'Deux demandes vers la même destination à moins de ' + REGROUPEMENT_MINUTES + ' minutes d\'écart peuvent partager un chauffeur et un véhicule.')
+        coche('gRegroup', 'Suggérer les regroupements', c, 'regroupement', 'Deux demandes vers la même destination à moins de ' + REGROUPEMENT_MINUTES + ' minutes d\'écart peuvent partager un chauffeur et un véhicule.'),
+        coche('gReprise', 'Les chauffeurs peuvent reprendre un trajet eux-mêmes', c, 'repriseDirecte', 'Quand un chauffeur est absent, un collègue libre prend son trajet depuis « L\'équipe ». Le passager voit le nouveau nom et le gestionnaire est averti par la cloche.')
     ], lecture);
     var b2 = blocRegle(2, 'Les échéances des véhicules', [
         creer('div', { classe: 'bi-regle-ligne' }, [creer('label', { attrs: { for: 'gAlerte' }, texte: 'Signaler une échéance' }), nombreRegle('gAlerte', c, 'alerteJours', 1, 365, 'Jours avant l\'échéance'), creer('span', { texte: 'jours avant' })]),
@@ -5458,7 +5752,7 @@ async function supprimerPage(x, zone) {
     await remplirPublier(zone);
 }
 function questionsFormulaire() {
-    var l = [['EMAIL', 'Adresse professionnelle', true, 'Celle avec laquelle vous vous connecterez au document.']];
+    var l = [['EMAIL', 'Adresse e-mail professionnelle', true, 'Celle avec laquelle vous vous connecterez au document.']];
     if (cfg().serviceFormulaire) {
         l.push(['SERVICE', 'Service', false]);
     }
@@ -5520,7 +5814,7 @@ async function creerFormulaire(zone) {
         vue = res.viewRef;
         var act = await actionsChampsFormulaire(res.sectionRef);
         act.push(['UpdateRecord', '_grist_Views', res.viewRef, { name: NOM_PAGE_FORMULAIRE }]);
-        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitVéhicules', layoutSpec: '', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Vous recevrez un courriel d\'invitation dès qu\'elle sera acceptée.', formAnotherResponse: false }) }]);
+        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitVéhicules', layoutSpec: '', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Le gestionnaire des trajets vous préviendra quand elle sera acceptée.', formAnotherResponse: false }) }]);
         await agir(act);
         relayer(miseEnPageFormulaire(res.sectionRef), 'Mise en page du formulaire');
         masquerLoader();
@@ -5642,14 +5936,20 @@ async function cacherPageGestion() {
     dessiner('aSecAdmin');
 }
 function vueInstallation(racine) {
-    var carteD = creer('div', { classe: 's-depart__carte' }, [
+    var maj = !!etat.cleLigne;
+    var carteD = creer('div', { classe: 's-depart__carte' }, maj ? [
+        creer('span', { classe: 'fr-icon-refresh-line fr-icon--lg s-depart__icone', attrs: { 'aria-hidden': 'true' } }),
+        creer('h2', { classe: 's-depart__titre', id: 'iTitre', texte: 'Mise à jour : les chauffeurs ont leur propre liste', attrs: { tabindex: '-1' } }),
+        creer('p', { classe: 'w-texte', texte: 'Cette version sépare les chauffeurs des personnes qui demandent des trajets. Les chauffeurs cochés dans « Les personnes » sont transférés dans la nouvelle liste, avec leurs trajets et leurs indisponibilités. Rien n\'est perdu.' }),
+        creer('ul', { classe: 's-depart__points' }, ['Une fiche chauffeur avec ses langues, l\'habilitation au véhicule blindé et son véhicule habituel', 'Un onglet « L\'équipe » pour que les chauffeurs se dépannent', 'Les réglages et les trajets restent tels quels'].map(function (x) { return creer('li', { texte: x }); }))
+    ] : [
         creer('span', { classe: 'fr-icon-car-line fr-icon--lg s-depart__icone', attrs: { 'aria-hidden': 'true' } }),
         creer('h2', { classe: 's-depart__titre', id: 'iTitre', texte: 'Les trajets, les chauffeurs et les véhicules du poste, prêts en quelques minutes', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-texte', texte: 'WuitVéhicules crée les listes des trajets, des véhicules, des indisponibilités et des demandes d\'accès, et reprend la liste des personnes du poste si elle existe déjà. Vous réglez ensuite la demande, les lieux du poste et le suivi.' }),
+        creer('p', { classe: 'w-texte', texte: 'WuitVéhicules crée les listes des trajets, des chauffeurs, des véhicules, des indisponibilités et des demandes d\'accès, et reprend la liste des personnes du poste si elle existe déjà. Vous réglez ensuite la demande, les lieux du poste et le suivi.' }),
         creer('ul', { classe: 's-depart__points' }, ['La demande de trajet, les lieux du poste et le suivi de course', 'Un formulaire de demande d\'accès pour les agents', 'Une page « ' + NOM_PAGE_UTILISATEURS + ' » pour les demandeurs, les chauffeurs et les chefs de service'].map(function (x) { return creer('li', { texte: x }); }))
     ]);
     if (accesComplet()) {
-        carteD.appendChild(bouton('Commencer : créer les listes', null, 'arrow-right-line', installer, { id: 'iInstaller', iconeDroite: true, classe: 's-depart__bouton' }));
+        carteD.appendChild(bouton(maj ? 'Mettre à jour les listes' : 'Commencer : créer les listes', null, 'arrow-right-line', installer, { id: 'iInstaller', iconeDroite: true, classe: 's-depart__bouton' }));
     }
     else {
         carteD.appendChild(alerte('warning', null, 'Le widget n\'a pas l\'accès complet au document : donnez-le-lui dans le panneau de droite, puis rechargez la page.', { role: 'status' }));
@@ -5657,7 +5957,8 @@ function vueInstallation(racine) {
     racine.appendChild(creer('div', { classe: 'w-assistant s-depart' }, [carteD]));
 }
 async function installer() {
-    afficherLoader('Installation de WuitVéhicules…');
+    var maj = !!etat.cleLigne;
+    afficherLoader(maj ? 'Mise à jour de WuitVéhicules…' : 'Installation de WuitVéhicules…');
     try {
         await creerListes();
         await lireDonnees();
@@ -5672,9 +5973,9 @@ async function installer() {
         masquerLoader();
         etat.pagePubliee = false;
         etat.vue = 'admin';
-        etat.admin = 'demande';
+        etat.admin = maj ? 'chauffeurs' : 'demande';
         dessiner();
-        afficherSucces('Les listes sont créées. Réglez la demande et les lieux du poste, puis ajoutez les véhicules et désignez les chauffeurs.');
+        afficherSucces(maj ? 'WuitVéhicules est à jour : les chauffeurs ont maintenant leur propre liste.' + (etat.chauffeursTransferes ? ' ' + pluriel(etat.chauffeursTransferes, 'chauffeur transféré', 'chauffeurs transférés') + ', avec leurs trajets et leurs indisponibilités.' : '') : 'Les listes sont créées. Réglez la demande et les lieux du poste, puis ajoutez les véhicules et les chauffeurs.');
         var t = document.getElementById('aTitre');
         if (t) {
             t.focus();
@@ -5692,29 +5993,30 @@ var AIDE = {
         'Demander un trajet en cinq étapes : où, quand, qui, le motif, le récapitulatif ; aller-retour et étapes en route.',
         'Suivre son trajet : prise en charge, chauffeur et véhicule affectés (nom, téléphone, immatriculation, couleur), course en cours.',
         'Modifier ou annuler une demande, refaire un trajet passé, donner son avis.',
-        'Pour les chauffeurs : la prochaine course, « Je pars », « Passager à bord », « Trajet terminé », et leurs indisponibilités.',
-        'Pour les gestionnaires : affecter en voyant qui est libre, le planning, le parc et ses échéances.'
+        'Pour les chauffeurs : la prochaine course, « Je pars », « Passager à bord », « Trajet terminé », leurs indisponibilités, et « L\'équipe » pour reprendre le trajet d\'un collègue absent.',
+        'Pour les gestionnaires : affecter en voyant qui est libre, le planning, le parc et ses échéances, une liste de chauffeurs à part avec leurs langues et l\'habilitation au blindé.'
     ],
     avant: [
         'Le widget a besoin de l\'accès complet au document.',
         'Vous êtes reconnu par l\'adresse avec laquelle vous vous connectez.',
-        'Les agents demandent leur accès par le formulaire ; le gestionnaire l\'accepte et les invite.'
+        'Les agents demandent leur accès par le formulaire ; le gestionnaire l\'accepte, leur ouvre le document dans « Partager » et les prévient lui-même.'
     ],
     etapes: {
         'Demander un trajet': { titre: 'cinq étapes', points: ['Destination d\'abord : lieux du poste et adresses récentes en un clic.', '« Dès que possible » ou « Planifier » ; un retour en une case.'] },
         'Suivre son trajet': { titre: 'jusqu\'à l\'arrivée', points: ['Le chauffeur, son téléphone, le véhicule et sa plaque apparaissent dès l\'affectation.', 'Avec le suivi de course, vous voyez quand le chauffeur part.'] },
-        'Pour les chauffeurs': { titre: 'la page « Mes courses »', points: ['La prochaine course en grand, avec un bouton pour chaque étape.', 'Les congés et absences dans « Mes indisponibilités ».'] },
+        'Pour les chauffeurs': { titre: 'la page « Mes courses »', points: ['La prochaine course en grand, avec un bouton pour chaque étape.', 'Les congés et absences dans « Mes indisponibilités ».', 'Dans « L\'équipe », les absences des collègues et les trajets à reprendre.'] },
         'Installer': { titre: 'les listes et les réglages', points: ['Le widget crée ses listes dans le document et reprend la liste des personnes du poste.'] },
         'La demande': { titre: 'ce que l\'agent peut demander', points: ['Délai minimum, sans chauffeur, étapes, motif obligatoire.', 'Les lieux du poste proposés en un clic.'] },
         'Le parc et le suivi': { titre: 'les options du poste', points: ['Suivi de course, kilométrage, avis, regroupements.', 'Échéances et motifs d\'indisponibilité.'] },
         'Publier': { titre: 'le formulaire et la page', points: ['Créez le formulaire de demande d\'accès, publiez-le et donnez son lien.', 'Publiez la page des agents, puis réglez les droits.'] }
     },
     questions: [
-        { q: 'Qui voit mes trajets ?', r: 'Vous, la personne pour qui vous demandez, le chauffeur affecté, les gestionnaires et, une fois les droits du document réglés, votre chef de service et les collègues de votre service.' },
+        { q: 'Qui voit mes trajets ?', r: 'Vous, la personne pour qui vous demandez, le chauffeur affecté, les gestionnaires et, une fois les droits du document réglés, votre chef de service et les collègues de votre service. Si votre chauffeur est absent, les autres chauffeurs voient le trajet pour le reprendre.' },
+        { q: 'Mon chauffeur a changé', r: 'Un collègue a repris votre trajet parce que votre chauffeur est absent. Son nom, son téléphone et le véhicule sont à jour sur votre page.' },
         { q: 'Puis-je modifier ma demande ?', r: 'Oui, tant qu\'elle n\'est pas prise en charge. Ensuite, annulez-la et refaites-en une, ou appelez le gestionnaire.' },
         { q: 'Mon trajet est dans moins de deux heures', r: 'Le délai minimum est fixé par le poste. Pour un trajet plus proche, appelez directement le gestionnaire des trajets.' },
         { q: 'Que veut dire « Regroupement » ?', r: 'Deux demandes vers la même destination à quelques minutes d\'écart peuvent partager le même chauffeur et le même véhicule.' },
-        { q: 'Je ne trouve pas la page des trajets', r: 'Demandez votre accès avec le formulaire que vous a transmis le gestionnaire. Une fois accepté, vous recevez un courriel d\'invitation au document.' }
+        { q: 'Je ne trouve pas la page des trajets', r: 'Demandez votre accès avec le formulaire que vous a transmis le gestionnaire. Une fois votre demande acceptée, le gestionnaire vous ouvre le document et vous prévient lui-même.' }
     ]
 };
 var ETAPES_ADMIN = ['Installer', 'La demande', 'Le parc et le suivi', 'Publier'];
@@ -5765,7 +6067,7 @@ function dessiner(focusId) {
         vueInstallation(racine);
     }
     else if (etat.vue === 'absent') {
-        racine.appendChild(alerte('info', 'WuitVéhicules n\'est pas encore installé', 'Une personne qui gère ce document doit d\'abord l\'installer depuis sa page de gestion.', { role: 'status' }));
+        racine.appendChild(alerte('info', etat.cleLigne ? 'WuitVéhicules est en cours de mise à jour' : 'WuitVéhicules n\'est pas encore installé', etat.cleLigne ? 'Une personne qui gère ce document doit ouvrir sa page de gestion pour terminer la mise à jour.' : 'Une personne qui gère ce document doit d\'abord l\'installer depuis sa page de gestion.', { role: 'status' }));
     }
     else if (etat.vue === 'admin') {
         vueAdmin(racine);
@@ -6065,9 +6367,9 @@ function guideDroitsDg(o) {
     ]);
     var inviter = creer('ol', { classe: 's-droits' }, [
         { titre: 'Ouvrir le partage', texte: 'Bouton « Partager », en haut à droite du document, puis « Gérer les utilisateurs ».' },
-        { titre: 'Ajouter les personnes', texte: 'Saisissez le courriel de chaque personne (adresse du ministère), une par une ou plusieurs à la suite.' },
+        { titre: 'Ajouter les personnes', texte: 'Saisissez l\'adresse e-mail professionnelle de chaque personne, une par une ou plusieurs à la suite.' },
         { titre: 'Choisir le rôle', texte: 'À côté de chaque personne, choisissez Propriétaire, Éditeur ou Lecteur (voir la partie ' + nRol + ').' },
-        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer » : chaque personne reçoit un courriel avec le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
+        { titre: 'Confirmer', texte: 'Cliquez sur « Confirmer ». Diplotable n\'envoie aucun message : prévenez vous-même chaque personne et donnez-lui le lien du document.' + (o.confirmerPlus ? ' ' + o.confirmerPlus : '') },
         { titre: 'Garder l\'accès public désactivé', texte: 'Dans la même fenêtre, l\'accès public doit rester désactivé : seules les personnes invitées entrent dans le document.' }
     ].map(function (x, k) { return sousEtape(x, k); }));
     var roles = creer('table', { classe: 's-roles' }, [
@@ -6093,7 +6395,7 @@ function guideDroitsDg(o) {
     var olRegles = creer('ol', { classe: 's-droits' }, regles.map(function (x, k) { return sousEtape(x, k, x.titre === 'Enregistrer' ? 's-dg__enreg' : ''); }));
     var verifier = creer('div', { classe: 's-dg__verif' }, [
         o.verifAvant ? creer('p', { classe: 's-droits__texte', texte: o.verifAvant }) : null,
-        creer('p', { classe: 's-droits__texte', texte: 'Dans les Permissions avancées, bouton « Voir en tant que », en haut à droite : choisissez le courriel d\'un éditeur. Le document s\'affiche comme il le voit. Contrôlez :' }),
+        creer('p', { classe: 's-droits__texte', texte: 'Dans les Permissions avancées, bouton « Voir en tant que », en haut à droite : choisissez l\'adresse d\'un éditeur. Le document s\'affiche comme il le voit. Contrôlez :' }),
         creer('ul', { classe: 's-dg__coches' }, (o.coches || [
             'Il ne voit pas la page Admin.',
             'Il ne voit ni l\'étiquette « Admin » ni le paramétrage du widget.',
@@ -6106,7 +6408,7 @@ function guideDroitsDg(o) {
         ['Un éditeur voit encore la page Admin', 'Vérifiez que vous avez cliqué sur « Enregistrer » (étape « Enregistrer » de la partie ' + nReg + '), puis que la ligne « Tous les autres » de la table ' + owner + ' est entièrement en rouge barré.'],
         ['Un éditeur ne peut plus saisir', 'Une ligne « Tous les autres » refuse trop. Sur les tables de données, laissez « Tous les autres » sans réglage, sauf si vous voulez la lecture seule.'],
         ['J\'ai quitté les Permissions avancées sans enregistrer', 'Les règles posées sont perdues. Reprenez la partie ' + nReg + ', puis cliquez sur « Enregistrer » avant de quitter la page.'],
-        o.sansInviter ? null : ['Une personne invitée n\'a pas reçu le courriel', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Vous pouvez aussi lui envoyer directement le lien du document.']
+        o.sansInviter ? null : ['Une personne ajoutée n\'arrive pas à ouvrir le document', 'Vérifiez son adresse dans « Partager », « Gérer les utilisateurs ». Diplotable ne la prévient pas : envoyez-lui vous-même le lien du document.']
     ]).filter(Boolean).map(function (q) { return creer('details', { classe: 's-dg__q' }, [creer('summary', { texte: q[0] }), creer('p', { classe: 's-droits__texte', texte: q[1] })]); }));
     return creer('div', { classe: 'w-general s-droits-page s-dg' + (o.classe ? ' ' + o.classe : '') }, [
         creer('div', { classe: 's-droits__entete s-dg__entete' }, [creer('p', { classe: 's-dg__intro', texte: 'Marche à suivre pour ouvrir le document aux bonnes personnes, avec les bons droits.' }),
@@ -6144,37 +6446,47 @@ function blocDroits() {
     var nomT = function (k, defaut) { return etat.t[k] ? libelleTable(etat.t[k]) : defaut; };
     var moi = 'rec.EMAIL == user.Email';
     var actif = 'user.Personne.INACTIF != True';
-    var chauffeur = 'user.Personne.CHAUFFEUR == True and ' + actif;
+    var chauffeur = 'user.Chauffeur.EMAIL == user.Email and user.Chauffeur.INACTIF != True';
     var demandeur = 'rec.EMAIL_DEMANDEUR == user.Email or rec.EMAIL_BENEFICIAIRE == user.Email or rec.CREE_PAR == user.Email';
     var chef = 'user.Personne.ROLE_VEHICULES == "' + ROLE_CHEF + '" and ' + actif + ' and rec.SERVICE_BENEFICIAIRE == user.Personne.SERVICE';
     var duService = 'rec.SERVICE_BENEFICIAIRE == user.Personne.SERVICE and ' + actif;
     var sonChauffeur = 'rec.EMAIL_CHAUFFEUR == user.Email';
     return [
         { titre: 'Ouvrir les règles', texte: 'Panneau de gauche, rubrique « Outils », « Permissions avancées ». En bas de la page, dans « Règles spéciales », la case « Autoriser les Éditeurs à modifier la structure » doit être décochée : sinon les personnes contournent toutes les règles.', modele: modeleReglesSpeciales() },
-        { titre: 'Reconnaître chaque personne', texte: 'Bouton « Ajouter des propriétés d\'utilisateur ». Nom : Personne. Table : ' + nomT('personnes', 'des personnes') + '. Colonne de la table : EMAIL. Attribut de l\'utilisateur : user.Email. Si WuitBillets est déjà réglé dans ce document, cette propriété existe : ne la recréez pas.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('code', { texte: 'Personne' }), ' = ligne de ', creer('strong', { texte: nomT('personnes', 'des personnes') }), ' dont ', creer('code', { texte: 'EMAIL' }), ' = ', creer('code', { texte: 'user.Email' })]) },
+        { titre: 'Reconnaître chaque personne et chaque chauffeur', texte: 'Bouton « Ajouter des propriétés d\'utilisateur », deux fois. Première : nom Personne, table ' + nomT('personnes', 'des personnes') + ', colonne EMAIL, attribut user.Email. Si WuitBillets est déjà réglé dans ce document, cette propriété existe : ne la recréez pas. Seconde : nom Chauffeur, table ' + nomT('chauffeurs', 'des chauffeurs') + ', colonne EMAIL, attribut user.Email.', modele: creer('div', {}, [
+            creer('p', { classe: 's-acl__enregistrer' }, [creer('code', { texte: 'Personne' }), ' = ligne de ', creer('strong', { texte: nomT('personnes', 'des personnes') }), ' dont ', creer('code', { texte: 'EMAIL' }), ' = ', creer('code', { texte: 'user.Email' })]),
+            creer('p', { classe: 's-acl__enregistrer' }, [creer('code', { texte: 'Chauffeur' }), ' = ligne de ', creer('strong', { texte: nomT('chauffeurs', 'des chauffeurs') }), ' dont ', creer('code', { texte: 'EMAIL' }), ' = ', creer('code', { texte: 'user.Email' })])]) },
         { titre: 'Comment poser une règle', texte: 'Bouton « Ajouter des règles pour la table », choisissez la table : un bloc « Règles pour la table » apparaît. Le « + » ajoute une ligne ; collez la condition copiée ici. Cliquez sur une lettre pour la passer au vert (autorisé), cliquez encore pour la passer au rouge barré (refusé). R : lecture, U : modification, C : création, D : suppression. Pour des colonnes précises, « Ajouter une règle de colonne » dans le menu du bloc. Les lignes se lisent de haut en bas : la première qui correspond à la personne s\'applique.', modele: modeleBarreAcl(titreOwner()) },
         { titre: 'Cacher la page de gestion', texte: 'Cette table n\'a qu\'une colonne : ne recopiez pas les règles d\'une autre table.', modele: modeleAcl(titreOwner(), [{ colonnes: 'Toutes', regles: [proprio, { droits: tout(false) }] }], 'aAclA') },
         { titre: 'Protéger les réglages du widget', texte: 'La deuxième ligne rend la ligne témoin illisible : c\'est ainsi que le widget sait qui est propriétaire. Laissez « Tous les autres » sans réglage : la table sert aussi aux autres widgets.', modele: modeleAcl(biblio, [{ colonnes: 'Toutes', regles: [proprio,
             { condition: 'rec.CLE == "' + CLE_ACCES_PARAMETRAGE + '"' + duW, droits: tout(false) },
             { condition: 'rec.WIDGET == "' + NOM_WIDGET + '" or newRec.WIDGET == "' + NOM_WIDGET + '"', droits: { R: true, U: false, C: false, D: false } },
             { note: 'laisser sans réglage' }] }], 'aAclB') },
-        { titre: 'Les personnes', texte: 'Tout le monde voit les noms et les services, pour choisir la personne qui fait le trajet. Le téléphone n\'est lu que par la personne, par les propriétaires et, pour un chauffeur, par tous (ses passagers l\'appellent). Le service, le rôle, la case « chauffeur » et la case « inactif » ne sont changés que par les propriétaires.', modele: modeleAcl(nomT('personnes', 'des personnes'), [
-            { colonnes: 'TELEPHONE', regles: [proprio, { condition: moi, droits: { R: true, U: true } }, { condition: 'rec.CHAUFFEUR == True', droits: lu }, { droits: rien }] },
-            { colonnes: 'SERVICE, ROLE_VEHICULES, CHAUFFEUR, INACTIF', regles: [proprio, { droits: lu }] },
-            { colonnes: 'Toutes', regles: [proprio, { condition: moi + ' or rec.CREE_PAR == user.Email', droits: { R: true, U: true, C: true, D: false } }, { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclP') },
-        { titre: 'Les trajets', texte: 'Comme dans l\'outil d\'origine : le demandeur et le bénéficiaire voient et modifient leurs demandes, le chef de service celles de son service, les collègues du même service et le chauffeur affecté les lisent. Seuls les propriétaires (les gestionnaires) affectent, valident et refusent ; l\'agent peut seulement annuler. Le chauffeur pose le suivi de course et le kilométrage ; le passager, son avis.', modele: modeleAcl(nomT('trajets', 'des trajets'), [
-            { colonnes: 'AGENT_RESPONSABLE, CHAUFFEUR, VEHICULE, MOBILISATION', regles: [proprio, { droits: lu }] },
+        { titre: 'Les personnes', texte: 'Tout le monde voit les noms et les services, pour choisir la personne qui fait le trajet. Le téléphone n\'est lu que par la personne et par les propriétaires. Le service, le rôle et la case « inactif » ne sont changés que par les propriétaires. La deuxième ligne de « Toutes » laisse le widget effacer la ligne provisoire qu\'il crée pour reconnaître une personne à sa première visite.', modele: modeleAcl(nomT('personnes', 'des personnes'), [
+            { colonnes: 'TELEPHONE', regles: [proprio, { condition: moi, droits: { R: true, U: true } }, { droits: rien }] },
+            { colonnes: 'SERVICE, ROLE_VEHICULES, INACTIF', regles: [proprio, { droits: lu }] },
+            { colonnes: 'Toutes', regles: [proprio, { condition: 'rec.CREE_PAR == user.Email and not rec.EMAIL', droits: tout(true), note: 'ligne provisoire' }, { condition: moi + ' or rec.CREE_PAR == user.Email', droits: { R: true, U: true, C: true, D: false } }, { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclP') },
+        { titre: 'Les chauffeurs', texte: 'Tout le monde lit le nom, le téléphone et les langues : le passager sait qui vient le chercher. L\'adresse, l\'habilitation au blindé, le véhicule habituel et la case « inactif » ne sont lus que par les chauffeurs et les propriétaires ; les commentaires, par les propriétaires seuls. Chaque chauffeur peut corriger son téléphone et ses langues.', modele: modeleAcl(nomT('chauffeurs', 'des chauffeurs'), [
+            { colonnes: 'COMMENTAIRES', regles: [proprio, { droits: rien }] },
+            { colonnes: 'EMAIL, HABILITE_BLINDE, VEHICULE_HABITUEL, INACTIF', regles: [proprio, { condition: moi + ' or ' + chauffeur, droits: lu }, { droits: rien }] },
+            { colonnes: 'CONNEXION', regles: [proprio, { condition: moi, droits: { R: true, U: true } }, { droits: rien }] },
+            { colonnes: 'Toutes', regles: [proprio, { condition: moi, droits: { R: true, U: true, C: false, D: false } }, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclH') },
+        { titre: 'Les trajets', texte: 'Comme dans l\'outil d\'origine : le demandeur et le bénéficiaire voient et modifient leurs demandes, le chef de service celles de son service, les collègues du même service et le chauffeur affecté les lisent. Seuls les propriétaires (les gestionnaires) affectent, valident et refusent ; l\'agent peut seulement annuler. Le chauffeur pose le suivi de course et le kilométrage ; le passager, son avis. Les chauffeurs lisent les trajets « à reprendre » (chauffeur absent ou manquant) et peuvent s\'y mettre eux-mêmes : si vous décochez cette reprise dans « Le parc », retirez les deux lignes marquées « reprise ».', modele: modeleAcl(nomT('trajets', 'des trajets'), [
+            { colonnes: 'CHAUFFEUR', regles: [proprio, { condition: chauffeur + ' and rec.A_REPRENDRE == True and newRec.EMAIL_CHAUFFEUR == user.Email', droits: { R: true, U: true }, note: 'reprise' }, { droits: lu }] },
+            { colonnes: 'AGENT_RESPONSABLE, VEHICULE, MOBILISATION', regles: [proprio, { droits: lu }] },
             { colonnes: 'STATUT', regles: [proprio, { condition: 'newRec.STATUT in ["' + ST.attente + '", "' + ST.annulee + '"] and (' + demandeur + ' or ' + chef + ')', droits: { R: true, U: true }, note: 'créer une demande ou l\'annuler' }, { droits: lu }] },
             { colonnes: 'SUIVI, KM_FIN', regles: [proprio, { condition: sonChauffeur, droits: { R: true, U: true } }, { droits: lu }] },
+            { colonnes: 'HISTORIQUE', regles: [proprio, { condition: demandeur + ' or ' + chef + ' or ' + sonChauffeur, droits: { R: true, U: true } }, { condition: chauffeur + ' and rec.A_REPRENDRE == True', droits: { R: true, U: true }, note: 'reprise' }, { droits: lu }] },
             { colonnes: 'AVIS, AVIS_COMMENTAIRE', regles: [proprio, { condition: 'rec.EMAIL_DEMANDEUR == user.Email or rec.EMAIL_BENEFICIAIRE == user.Email', droits: { R: true, U: true } }, { droits: lu }] },
-            { colonnes: 'Toutes', regles: [proprio, { condition: 'user.Personne.INACTIF == True', droits: tout(false) }, { condition: demandeur + ' or ' + chef, droits: { R: true, U: true, C: true, D: false } },
-                { condition: duService + ' or ' + sonChauffeur, droits: { R: true, U: false, C: true, D: false } }, { droits: { R: false, U: false, C: true, D: false } }] }], 'aAclT') },
+            { colonnes: 'Toutes', regles: [proprio, { condition: 'user.Personne.INACTIF == True and not (' + chauffeur + ')', droits: tout(false) }, { condition: demandeur + ' or ' + chef, droits: { R: true, U: true, C: true, D: false } },
+                { condition: duService + ' or ' + sonChauffeur + ' or (' + chauffeur + ' and rec.A_REPRENDRE == True)', droits: { R: true, U: false, C: true, D: false } }, { droits: { R: false, U: false, C: true, D: false } }] }], 'aAclT') },
         { titre: 'Les véhicules', texte: 'Tout le monde lit le nom, l\'immatriculation, la couleur et les places : le passager reconnaît sa voiture. La case « blindé », les échéances et les commentaires ne sont lus que par les chauffeurs et les propriétaires. Les chauffeurs mettent à jour le kilométrage.', modele: modeleAcl(nomT('vehicules', 'des véhicules'), [
             { colonnes: 'BLINDE, ASSURANCE, CONTROLE_TECHNIQUE, ENTRETIEN, COMMENTAIRES', regles: [proprio, { condition: chauffeur, droits: lu }, { droits: rien }] },
             { colonnes: 'KILOMETRAGE', regles: [proprio, { condition: chauffeur, droits: { R: true, U: true } }, { droits: lu }] },
             { colonnes: 'Toutes', regles: [proprio, { condition: chauffeur, droits: { R: true, U: true, C: false, D: false } }, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclV') },
-        { titre: 'Les indisponibilités', texte: 'Le chauffeur gère les siennes et voit celles des véhicules ; personne d\'autre ne voit pourquoi un chauffeur est absent.', modele: modeleAcl(nomT('indispos', 'des indisponibilités'), [{ colonnes: 'Toutes', regles: [proprio,
-            { condition: sonChauffeur + ' or newRec.EMAIL_CHAUFFEUR == user.Email', droits: tout(true) }, { condition: chauffeur + ' and rec.POUR_VEHICULE == True', droits: { R: true, U: false, C: false, D: false } }, { droits: tout(false) }] }], 'aAclI') },
+        { titre: 'Les indisponibilités', texte: 'Le chauffeur gère les siennes. Les autres chauffeurs voient qui est absent, quand, et le motif choisi dans la liste, pour se dépanner ; jamais le détail. Les agents ne voient rien.', modele: modeleAcl(nomT('indispos', 'des indisponibilités'), [
+            { colonnes: 'DETAIL', regles: [proprio, { condition: sonChauffeur + ' or newRec.EMAIL_CHAUFFEUR == user.Email', droits: { R: true, U: true } }, { droits: rien }] },
+            { colonnes: 'Toutes', regles: [proprio, { condition: sonChauffeur + ' or newRec.EMAIL_CHAUFFEUR == user.Email', droits: tout(true) }, { condition: chauffeur, droits: { R: true, U: false, C: false, D: false } }, { droits: tout(false) }] }], 'aAclI') },
         { titre: 'Les demandes d\'accès', texte: 'Seuls les propriétaires les lisent. La deuxième ligne laisse le formulaire publié créer une réponse, sans rien pouvoir lire.', modele: modeleAcl(nomT('acces', 'des demandes d\'accès'), [{ colonnes: 'Toutes', regles: [proprio, { condition: 'user.ShareRef is not None', droits: { R: false, U: false, C: true, D: false } }, { droits: tout(false) }] }], 'aAclQ') },
         { titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues, sans avertissement.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('span', { classe: 's-acl__btn', texte: 'Enregistrer' }), ' devient ', creer('span', { classe: 's-acl__btn s-acl__btn--fait', texte: 'Enregistré' })]) },
         { titre: 'Vérifier' }
@@ -6189,52 +6501,28 @@ function etapeDroits() {
                 creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon ' + (etat.pageProtegee ? 'fr-badge--success' : 'fr-badge--warning'), texte: etat.pageProtegee ? 'Page de gestion prête' : 'Page de gestion pas encore cachée' }),
                 etat.pageProtegee || !accesComplet() ? null : bouton('Cacher cette page', 'secondaire', 'eye-off-line', cacherPageGestion, { petit: true, id: 'aReserverPage2' })]);
         },
-        carte1: 'Les personnes acceptées : le widget les invite, sinon vous le faites.',
+        carte1: 'Les personnes acceptées et les chauffeurs : vous les ajoutez dans « Partager ».',
         roles: [['Propriétaire', 'Les gestionnaires trajets', 'Tout : affecter, valider, refuser, gérer le parc, les chauffeurs et les personnes, inviter, régler les droits.'],
-            ['Éditeur', 'Les agents, les chauffeurs et les chefs de service', 'Demander leurs trajets et les suivre ; les chauffeurs suivent leurs courses ; les chefs de service voient ceux de leur service.'],
+            ['Éditeur', 'Les agents, les chauffeurs et les chefs de service', 'Demander leurs trajets et les suivre ; les chauffeurs suivent leurs courses et se dépannent ; les chefs de service voient ceux de leur service.'],
             ['Lecteur', 'Personne', 'Ce rôle ne permet pas de demander un trajet : ne le donnez pas.']],
-        quiAdmin: 'Le rôle dans WuitVéhicules (Agent, Chef de service, Gestionnaire trajets) et la case « Chauffeur » se règlent dans « Les personnes » ; le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires trajets doivent être propriétaires : seuls les propriétaires invitent au document.',
+        quiAdmin: 'Le rôle dans WuitVéhicules (Agent, Chef de service, Gestionnaire trajets) se règle dans « Les personnes », et les chauffeurs ont leur liste à part dans « Les chauffeurs ». Le rôle dans le document (Propriétaire, Éditeur) se règle dans « Partager ». Les gestionnaires trajets doivent être propriétaires : seuls les propriétaires ouvrent le document à de nouvelles personnes.',
         confirmerPlus: 'Envoyez-lui aussi le lien de la page « ' + NOM_PAGE_UTILISATEURS + ' ».',
         carte3: 'Qui voit quels trajets, et qui voit les indisponibilités.',
         alerteBref: 'Sans les règles d\'accès, chaque agent voit les trajets de tous et les motifs d\'absence des chauffeurs.',
-        coches: ['Un agent ne voit que ses trajets et ceux de son service.', 'Un chauffeur voit ses courses, ses indisponibilités et celles des véhicules, pas celles des autres chauffeurs.', 'Un agent ne voit pas la case « blindé » ni les échéances des véhicules.', 'Personne d\'autre que vous ne voit la page de gestion ni les demandes d\'accès.'],
-        verifAvant: 'Testez avec un agent puis avec un chauffeur. Le lien « Voir en tant que », dans la fiche de chaque personne (« Les personnes »), ouvre le document comme elle le voit.'
+        coches: ['Un agent ne voit que ses trajets et ceux de son service.', 'Un chauffeur voit ses courses, les trajets à reprendre et les absences de ses collègues, sans leur détail.', 'Un agent ne voit pas la case « blindé » ni les échéances des véhicules.', 'Personne d\'autre que vous ne voit la page de gestion ni les demandes d\'accès.'],
+        verifAvant: 'Testez avec un agent puis avec un chauffeur. Le lien « Voir en tant que », dans la fiche de chaque personne (« Les personnes ») et de chaque chauffeur (« Les chauffeurs »), ouvre le document comme il le voit.'
     });
 }
 
-async function jeton(ecriture) {
-    var j = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: !ecriture }), 15000);
+async function jeton() {
+    var j = await gristAvecTimeout(grist.docApi.getAccessToken({ readOnly: true }), 15000);
     if (!j || !j.token || !j.baseUrl || !/^https:\/\//i.test(j.baseUrl)) {
         throw new Error('Jeton d\'accès indisponible');
     }
     return j;
 }
-async function fetchDelai(url, opts, delai) {
-    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-    var minuterie = ctrl ? setTimeout(function () { ctrl.abort(); }, delai || DELAI_API_MS) : null;
-    try {
-        return await fetch(url, Object.assign({}, opts, ctrl ? { signal: ctrl.signal } : {}));
-    }
-    finally {
-        if (minuterie) {
-            clearTimeout(minuterie);
-        }
-    }
-}
-async function inviterAuDocument(adresses) {
-    var j = await jeton(true);
-    var users = {};
-    adresses.forEach(function (a) { users[a] = 'editors'; });
-    var rep = await fetchDelai(j.baseUrl + '/access?auth=' + encodeURIComponent(j.token), {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ delta: { users: users } })
-    }, DELAI_API_MS);
-    if (!rep.ok) {
-        throw new Error('Réponse ' + rep.status);
-    }
-    return true;
-}
 async function lienVoirEnTantQue(email) {
-    var j = await jeton(false);
+    var j = await jeton();
     var m = /^(https:\/\/[^/]+(?:\/o\/[^/]+)?)\/api\/docs\/([^/?#]+)/.exec(j.baseUrl);
     if (!m) {
         throw new Error('Adresse du document non reconnue');
