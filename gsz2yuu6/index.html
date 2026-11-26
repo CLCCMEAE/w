@@ -362,6 +362,8 @@
     .w-feuilles-choix { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
     .w-feuilles-choix__item { display: flex; align-items: center; gap: .5rem; padding: .25rem .375rem; }
     .w-feuilles-choix__item--active { background: var(--background-alt-blue-france); }
+    .w-feuilles-choix__item--vide { color: var(--text-disabled-grey); }
+    .w-feuilles-choix__item--vide .w-feuilles-choix__lib { cursor: not-allowed; }
     .w-feuilles-choix__item input { margin: 0; accent-color: var(--background-action-high-blue-france); }
     .w-feuilles-choix__lib { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; overflow-wrap: break-word; }
     .w-mention { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
@@ -3024,7 +3026,8 @@ function majResumes() {
     var feuilles = etat.feuilles || [];
     var retenues = feuilles.filter(function (f) { return f.retenu === true; });
     r('fichier', etat.nomFichier && feuilles.length ? etat.nomFichier : 'Aucun fichier');
-    r('feuilles', feuilles.length ? retenues.length + (retenues.length > 1 ? ' feuilles cochées' : ' feuille cochée') + ' sur ' + feuilles.length : 'Choisissez un fichier');
+    var nbVides = feuilles.filter(function (f) { return f.tableAssociee === '__vide__'; }).length;
+    r('feuilles', feuilles.length ? retenues.length + (retenues.length > 1 ? ' feuilles cochées' : ' feuille cochée') + ' sur ' + feuilles.length + (nbVides ? ' (' + nbVides + (nbVides > 1 ? ' vides)' : ' vide)') : '') : 'Choisissez un fichier');
     var nom = feuilleActiveNom();
     var m = (nom && etat.mappings[nom]) || {};
     var f = feuilles.find(function (x) { return x.nom === nom; });
@@ -3080,6 +3083,11 @@ function rendreEtapeFeuillesImport() {
             rendreEtapeFeuillesImport();
         });
         ul.appendChild(el('li', { class: 'w-feuilles-choix__item' + (f.nom === actif ? ' w-feuilles-choix__item--active' : '') }, cb, lab, voir));
+    });
+    (etat.feuilles || []).filter(function (f) { return f.tableAssociee === '__vide__'; }).forEach(function (f, k) {
+        var cb = el('input', { type: 'checkbox', id: 'feuille-vide-' + k, disabled: 'disabled', autocomplete: 'off' });
+        var lab = el('label', { for: 'feuille-vide-' + k, class: 'w-feuilles-choix__lib' }, f.nom, el('span', { class: 'w-feuilles-choix__nb', text: 'vide : aucune ligne sous les titres' }));
+        ul.appendChild(el('li', { class: 'w-feuilles-choix__item w-feuilles-choix__item--vide' }, cb, lab));
     });
 }
 function retirerVueImport() {
