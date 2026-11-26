@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitViz
-  Version : 1.1.11 - 24/11/2026
+  Version : 1.1.12 - 26/11/2026
   Description : graphiques, chiffres clés, tableaux croisés, plannings et tableaux de bord.
 -->
 <head>
@@ -1109,7 +1109,7 @@ select.w-af__lien-choix { flex: none; width: 3.75rem; margin: 0; padding: .25rem
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.11';
+var VERSION_WIDGET = '1.1.12';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -4335,8 +4335,21 @@ var OPS = {
         ['thisQuarter', 'est ce trimestre'], ['thisYear', 'est cette année'], ['last30', 'est dans les 30 derniers jours'], ['last12m', 'est dans les 12 derniers mois'],
         ['olderDays', 'est passée depuis plus de… jours'], ['nextDays', 'est dans les… prochains jours'],
         ['before', 'est avant le'], ['after', 'est après le'], ['year', 'est dans l\'année'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
-    bool: [['true', 'est coché'], ['false', 'n\'est pas coché']]
+    bool: [['true', 'est coché'], ['false', 'n\'est pas coché']],
+    choix: [['is', 'est l\'une de'], ['not', 'n\'est aucune de'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']],
+    liste: [['is', 'contient l\'une de'], ['all', 'contient toutes'], ['not', 'ne contient aucune de'], ['empty', 'est vide'], ['notEmpty', 'n\'est pas vide']]
 };
+function opsCondition(col, opActuel) {
+    var g = genreCol(col);
+    var l = g === 'choice' || g === 'ref' ? OPS.choix : (g === 'choicelist' || g === 'reflist' ? OPS.liste : OPS[famille(col)]);
+    if (opActuel && !l.some(function (o) { return o[0] === opActuel; })) {
+        var anc = (OPS[famille(col)] || []).filter(function (o) { return o[0] === opActuel; })[0];
+        if (anc) {
+            l = l.concat([anc]);
+        }
+    }
+    return l;
+}
 function famille(col) {
     var g = genreCol(col);
     if (g === 'num') {
@@ -4469,6 +4482,9 @@ function predicat(tid, c) {
     if (op === 'not') {
         return function (i) { return !lk(i).some(function (k) { return ens[k]; }); };
     }
+    if (op === 'all') {
+        return function (i) { var k = lk(i); return vals.every(function (x) { return k.indexOf(x) !== -1; }); };
+    }
     return function (i) { return lk(i).some(function (k) { return ens[k]; }); };
 }
 function libelleCondition(tid, c, guill) {
@@ -4478,7 +4494,8 @@ function libelleCondition(tid, c, guill) {
     }
     var g = function (s) { return guill ? '« ' + s + ' »' : s; };
     var lc = function (k) { return g(libCol(tid, k)); };
-    var ops = OPS[famille(col)];
+    var ops = opsCondition(col, c.op);
+    var liste = ops === OPS.liste || ops.indexOf(OPS.liste[1]) !== -1;
     var lib = c.op;
     ops.forEach(function (o) { if (o[0] === c.op) {
         lib = o[1];
@@ -4490,9 +4507,9 @@ function libelleCondition(tid, c, guill) {
     else if (['empty', 'notEmpty', 'true', 'false', 'past', 'future', 'today', 'thisWeek', 'thisMonth', 'thisQuarter', 'thisYear', 'last30', 'last12m'].indexOf(c.op) === -1) {
         var vals = Array.isArray(c.val) ? c.val : [c.val];
         var vl = vals.filter(function (x) { return x !== null && x !== undefined; });
-        v = ' ' + vl.map(function (x) { return x === '' ? NOM_VIDE : (famille(col) === 'num' ? String(x) : g(String(x))); }).join(c.op === 'not' ? ' ni ' : ' ou ');
-        if ((c.op === 'is' || c.op === 'not') && vl.length < 2) {
-            lib = c.op === 'is' ? 'est' : 'n\'est pas';
+        v = ' ' + vl.map(function (x) { return x === '' ? NOM_VIDE : (famille(col) === 'num' ? String(x) : g(String(x))); }).join(c.op === 'not' ? ' ni ' : (c.op === 'all' ? ' et ' : ' ou '));
+        if ((c.op === 'is' || c.op === 'not' || c.op === 'all') && vl.length < 2) {
+            lib = liste ? (c.op === 'not' ? 'ne contient pas' : 'contient') : (c.op === 'is' ? 'est' : 'n\'est pas');
         }
     }
     if (c.op === 'olderDays') {
@@ -11348,7 +11365,7 @@ function editeurConditions(b, cle, prefixe, redessiner, maj) {
                 });
                 selCol.classList.add('w-af__col');
                 selCol.setAttribute('aria-label', 'Colonne');
-                var selOp = champListe(id + 'Op', (OPS[fam] || []).map(function (o) { return { valeur: o[0], libelle: o[1] }; }), c.op, function (v) {
+                var selOp = champListe(id + 'Op', opsCondition(col, c.op).map(function (o) { return { valeur: o[0], libelle: o[1] }; }), c.op, function (v) {
                     c.op = v;
                     if (/Col$/.test(v)) {
                         c.val = (optionsColonnes(tid, estNum).filter(function (o) { return o.valeur !== c.col; })[0] || {}).valeur || null;
