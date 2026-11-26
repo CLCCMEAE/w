@@ -362,8 +362,6 @@
     .w-feuilles-choix { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
     .w-feuilles-choix__item { display: flex; align-items: center; gap: .5rem; padding: .25rem .375rem; }
     .w-feuilles-choix__item--active { background: var(--background-alt-blue-france); }
-    .w-feuilles-choix__item--vide { color: var(--text-disabled-grey); }
-    .w-feuilles-choix__item--vide .w-feuilles-choix__lib { cursor: not-allowed; }
     .w-feuilles-choix__item input { margin: 0; accent-color: var(--background-action-high-blue-france); }
     .w-feuilles-choix__lib { display: inline-flex; align-items: center; gap: .375rem; font-size: .875rem; cursor: pointer; overflow-wrap: break-word; }
     .w-mention { margin: 0; font-size: .8125rem; color: var(--text-mention-grey); }
@@ -1035,7 +1033,7 @@ function brancherSocle() {
 }
 </script>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.4';
+var VERSION_WIDGET = '1.1.6';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 var NOM_TABLE_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -2299,8 +2297,11 @@ function setupAssociations() {
     if (!etat.tableAssociations)
         etat.tableAssociations = {};
     etat.feuilles.forEach(function (feuille) {
-        if (feuille.donnees.length === 0)
-            feuille.tableAssociee = '__vide__';
+        feuille.vide = feuille.donnees.length === 0;
+        if (feuille.vide) {
+            feuille.tableAssociee = '__creer__';
+            feuille.retenu = false;
+        }
     });
     var feuillesNonVides = etat.feuilles.filter(function (f) { return f.donnees.length > 0; });
     if (feuillesNonVides.length === 0) {
@@ -2314,12 +2315,12 @@ function setupAssociations() {
         if (etat.parametrageEnCache.ordreFeuilles.length > 0) {
             var feuillesOrdonnees = [];
             etat.parametrageEnCache.ordreFeuilles.forEach(function (nomFeuille) {
-                var feuille = etat.feuilles.find(function (f) { return f.nom === nomFeuille && f.donnees.length > 0; });
+                var feuille = etat.feuilles.find(function (f) { return f.nom === nomFeuille; });
                 if (feuille)
                     feuillesOrdonnees.push(feuille);
             });
             etat.feuilles.forEach(function (feuille) {
-                if (feuille.donnees.length > 0 && feuillesOrdonnees.indexOf(feuille) === -1)
+                if (feuillesOrdonnees.indexOf(feuille) === -1)
                     feuillesOrdonnees.push(feuille);
             });
             etat.feuilles = feuillesOrdonnees;
@@ -2342,7 +2343,7 @@ function setupAssociations() {
         if (etat.parametrageSelectionnee) {
             var retenusModele = etat.parametrageEnCache.ongletsRetenus;
             if (retenusModele) {
-                feuillesNonVides.forEach(function (feuille) {
+                etat.feuilles.forEach(function (feuille) {
                     feuille.retenu = retenusModele.indexOf(feuille.nom) !== -1;
                 });
             }
@@ -3026,7 +3027,7 @@ function majResumes() {
     var feuilles = etat.feuilles || [];
     var retenues = feuilles.filter(function (f) { return f.retenu === true; });
     r('fichier', etat.nomFichier && feuilles.length ? etat.nomFichier : 'Aucun fichier');
-    var nbVides = feuilles.filter(function (f) { return f.tableAssociee === '__vide__'; }).length;
+    var nbVides = feuilles.filter(function (f) { return f.vide; }).length;
     r('feuilles', feuilles.length ? retenues.length + (retenues.length > 1 ? ' feuilles cochées' : ' feuille cochée') + ' sur ' + feuilles.length + (nbVides ? ' (' + nbVides + (nbVides > 1 ? ' vides)' : ' vide)') : '') : 'Choisissez un fichier');
     var nom = feuilleActiveNom();
     var m = (nom && etat.mappings[nom]) || {};
@@ -3076,18 +3077,16 @@ function rendreEtapeFeuillesImport() {
             }
         });
         var nb = g.feuilles.reduce(function (a, x) { return a + x.donnees.length; }, 0);
-        var lab = el('label', { for: 'feuille-cb-' + k, class: 'w-feuilles-choix__lib' }, f.nom, el('span', { class: 'w-feuilles-choix__nb', text: nb.toLocaleString('fr-FR') + (nb > 1 ? ' lignes' : ' ligne') }));
+        var mention = nb.toLocaleString('fr-FR') + (nb > 1 ? ' lignes' : ' ligne');
+        if (f.vide)
+            mention = f.colonnes.length ? 'titres seuls : crée la structure, sans données' : 'onglet vide : crée une table vide';
+        var lab = el('label', { for: 'feuille-cb-' + k, class: 'w-feuilles-choix__lib' }, f.nom, el('span', { class: 'w-feuilles-choix__nb', text: mention }));
         var voir = el('button', { type: 'button', class: 'fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-eye-line fr-btn--icon-only w-infobulle w-infobulle--gauche', id: 'feuille-voir-' + k, 'aria-label': 'Afficher la feuille ' + f.nom, 'data-infobulle': 'Afficher' });
         voir.addEventListener('click', function () {
             activerOngletFeuille(f.nom);
             rendreEtapeFeuillesImport();
         });
         ul.appendChild(el('li', { class: 'w-feuilles-choix__item' + (f.nom === actif ? ' w-feuilles-choix__item--active' : '') }, cb, lab, voir));
-    });
-    (etat.feuilles || []).filter(function (f) { return f.tableAssociee === '__vide__'; }).forEach(function (f, k) {
-        var cb = el('input', { type: 'checkbox', id: 'feuille-vide-' + k, disabled: 'disabled', autocomplete: 'off' });
-        var lab = el('label', { for: 'feuille-vide-' + k, class: 'w-feuilles-choix__lib' }, f.nom, el('span', { class: 'w-feuilles-choix__nb', text: 'vide : aucune ligne sous les titres' }));
-        ul.appendChild(el('li', { class: 'w-feuilles-choix__item w-feuilles-choix__item--vide' }, cb, lab));
     });
 }
 function retirerVueImport() {
@@ -3294,10 +3293,12 @@ function convertirColonneExcel(nomColonne) {
         nom = 'c' + nom;
     return nom;
 }
-function construireOptionsSelectTable(tableSelectionnee) {
+function construireOptionsSelectTable(tableSelectionnee, seulementCreer) {
     var estNouvelle = estTableACreer(tableSelectionnee);
     var html = '';
     html += '<option value="__creer__"' + (estNouvelle ? ' selected' : '') + '>Créer une nouvelle table</option>';
+    if (seulementCreer)
+        return html;
     etat.tablesGrist.forEach(function (table) {
         html += '<option value="' + echapperHTML(table) + '"' + (!estNouvelle && table === tableSelectionnee ? ' selected' : '') + '>Table «\u00a0' + echapperHTML(libelleTableAvecId(table)) + '\u00a0»</option>';
     });
@@ -3322,6 +3323,8 @@ function grouperFeuilles(feuillesActives) {
 }
 function detecterColonnesVides(groupe) {
     var colonnesVides = new Set();
+    if (groupe.feuilles.every(function (f) { return f.vide; }))
+        return colonnesVides;
     groupe.feuilles.forEach(function (feuille) {
         feuille.colonnes.forEach(function (colExcel, indexCol) {
             var estVide = feuille.donnees.every(function (ligne) {
@@ -3354,7 +3357,7 @@ async function construireMapping(tablesAMappingAuto) {
             });
         });
     }
-    var feuillesAffichables = etat.feuilles.filter(function (f) { return f.tableAssociee !== '__vide__'; });
+    var feuillesAffichables = etat.feuilles.slice();
     var groupes = grouperFeuilles(feuillesAffichables);
     etat.groupes = groupes;
     var colonnesParTable = JSON.parse(JSON.stringify(etat.colonnesParTable || {}));
@@ -3565,11 +3568,11 @@ async function construireMapping(tablesAMappingAuto) {
                 tab.classList.add('csnc-onglet-table--ignored');
                 var selIgn = document.getElementById('table-select-' + idSur(nomFeuille));
                 if (selIgn)
-                    selIgn.innerHTML = construireOptionsSelectTable(feuille.tableAssociee);
+                    selIgn.innerHTML = construireOptionsSelectTable(feuille.tableAssociee, feuille.vide);
             }
             else {
                 var tableCourante = feuille.tableAssociee;
-                var aDejaUneTable = tableCourante && tableCourante !== '__vide__';
+                var aDejaUneTable = !!tableCourante;
                 var table = aDejaUneTable ? tableCourante : proposerTable(nomFeuille);
                 feuille.tableAssociee = table;
                 feuille.retenu = true;
@@ -3596,7 +3599,7 @@ async function construireMapping(tablesAMappingAuto) {
                 relayer(reconstruireMappingBloc(nomFeuille, aDejaUnMapping), 'Reconstruction du mapping impossible');
                 var sel = document.getElementById('table-select-' + idSur(nomFeuille));
                 if (sel)
-                    sel.innerHTML = construireOptionsSelectTable(table);
+                    sel.innerHTML = construireOptionsSelectTable(table, feuille.vide);
             }
             activerOngletFeuille(nomFeuille);
             construireRecapImport();
@@ -4151,7 +4154,7 @@ function construireBlocGroupe(groupe, colonnesGrist) {
     assocSelect.id = 'table-select-' + nomSafe;
     assocSelect.dataset.feuille = nomGroupe;
     assocSelect.setAttribute('aria-label', 'Table cible pour ' + nomGroupe);
-    assocSelect.innerHTML = construireOptionsSelectTable(nomTable);
+    assocSelect.innerHTML = construireOptionsSelectTable(nomTable, representante.vide);
     assocSelect.addEventListener('change', function () { mettreAJourAssociation(assocSelect); });
     assocRow.appendChild(assocSelect);
     var newTableDiv = document.createElement('span');
@@ -4168,7 +4171,7 @@ function construireBlocGroupe(groupe, colonnesGrist) {
     newTableInput.autocomplete = 'off';
     newTableInput.setAttribute('aria-required', 'true');
     newTableInput.placeholder = 'Nom de la nouvelle table';
-    newTableInput.value = (isNouvelle && nomTable !== '__creer__') ? sansUnderscores(nomTable) : '';
+    newTableInput.value = (isNouvelle && nomTable !== '__creer__') ? sansUnderscores(nomTable) : (representante.vide ? representante.nom : '');
     newTableDiv.appendChild(newTableInput);
     assocRow.appendChild(newTableDiv);
     var badge = document.createElement('span');
@@ -4439,7 +4442,7 @@ function mettreAJourAssociation(selectEl) {
 }
 async function reconstruireMappingBloc(nomFeuille, conserverMapping) {
     var feuille = etat.feuilles.find(function (f) { return f.nom === nomFeuille; });
-    if (!feuille || feuille.retenu !== true || feuille.tableAssociee === '__vide__')
+    if (!feuille || feuille.retenu !== true)
         return;
     var nomSafe = idSur(nomFeuille);
     var nomTable = feuille.tableAssociee;
@@ -4501,7 +4504,7 @@ async function reconstruireMappingBloc(nomFeuille, conserverMapping) {
             }
         });
     }
-    var feuillesAffichables = etat.feuilles.filter(function (f) { return f.tableAssociee !== '__vide__'; });
+    var feuillesAffichables = etat.feuilles.slice();
     etat.groupes = grouperFeuilles(feuillesAffichables);
     var rowsContainer = document.getElementById('mapping-rows-' + nomSafe);
     if (!rowsContainer) {
@@ -4572,7 +4575,7 @@ async function reconstruireMappingBloc(nomFeuille, conserverMapping) {
 }
 function validerIdsEtMappings() {
     var erreurs = [];
-    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true; });
     feuillesActives.forEach(function (feuille) {
         var nomFeuille = feuille.nom;
         var mappingsFeuille = etat.mappings[nomFeuille] || {};
@@ -4614,7 +4617,7 @@ function afficherErreursValidation(erreurs) {
 }
 async function detecterTousLesDoublons() {
     var doublonsParFeuille = {};
-    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__' && !estTableACreer(f.tableAssociee); });
+    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && !estTableACreer(f.tableAssociee); });
     for (var fi = 0; fi < feuillesActives.length; fi++) {
         var feuille = feuillesActives[fi];
         var nomTable = feuille.tableAssociee;
@@ -4673,7 +4676,7 @@ async function detecterTousLesDoublons() {
 }
 function verifierLimitesLignes() {
     var erreurs = [];
-    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true; });
     var LIMITE_PAR_FEUILLE = 100000;
     var LIMITE_TOTALE = 500000;
     var totalLignes = 0;
@@ -4711,7 +4714,7 @@ function validerEtAppliquerNomsNouvellesTables() {
     _champNomEnErreur = null;
     var groupesConcernes = (etat.groupes || []).filter(function (g) {
         var f = g.feuilles[0];
-        return f && f.retenu === true && f.tableAssociee !== '__vide__' && estTableACreer(f.tableAssociee);
+        return f && f.retenu === true && estTableACreer(f.tableAssociee);
     });
     groupesConcernes.forEach(function (groupe) {
         var representante = groupe.feuilles[0];
@@ -4848,7 +4851,7 @@ function validerNomsValeursFixes() {
     var erreurs = [];
     _champVFEnErreur = null;
     var feuillesActives = etat.feuilles.filter(function (f) {
-        return f.retenu === true && f.tableAssociee !== '__vide__';
+        return f.retenu === true;
     });
     feuillesActives.forEach(function (feuille) {
         var vfRef = etat.valeursFixes[feuille.nom] || {};
@@ -4921,7 +4924,7 @@ function reaffecterTableCreee(ancien, nouveau) {
 }
 async function creerColonnesManquantes() {
     var feuillesActives = etat.feuilles.filter(function (f) {
-        return f.retenu === true && f.tableAssociee !== '__vide__';
+        return f.retenu === true;
     });
     var demandes = {};
     feuillesActives.forEach(function (feuille) {
@@ -5153,7 +5156,7 @@ async function allerEtape4() {
     var aDesColonnesId = Object.values(etat.colonnesIdUnique).some(function (arr) { return arr && arr.length > 0; });
     if (!aDesColonnesId && etat.modeImportSelectionne !== 'creer') {
         var sansCle = etat.feuilles.filter(function (f) {
-            return f.retenu === true && f.tableAssociee && f.tableAssociee !== '__vide__' && !estTableACreer(f.tableAssociee);
+            return f.retenu === true && f.tableAssociee && !estTableACreer(f.tableAssociee);
         }).map(function (f) { return f.nom; });
         if (sansCle.length > 0) {
             afficherErreur('Aucune colonne clé n\'est cochée pour ' + sansCle.join(', ') +
@@ -5261,7 +5264,7 @@ function afficherModaleConfirmation() {
     if (detail) {
         detail.textContent = '';
         var feuillesActives = etat.feuilles.filter(function (f) {
-            return f.retenu === true && f.tableAssociee && f.tableAssociee !== '__vide__';
+            return f.retenu === true && f.tableAssociee;
         });
         feuillesActives.forEach(function (f) {
             var nomTable = f.tableAssociee;
@@ -5350,7 +5353,7 @@ async function construireCacheReferences() {
     etat.avertissementsConversion = {};
     var tablesACharger = {};
     var feuillesActives = etat.feuilles.filter(function (f) {
-        return f.retenu === true && f.tableAssociee !== '__vide__';
+        return f.retenu === true;
     });
     feuillesActives.forEach(function (feuille) {
         var nomTable = feuille.tableAssociee;
@@ -5690,7 +5693,7 @@ async function executerImport() {
 }
 async function executerImportInterne() {
     var feuillesRetenues = etat.feuilles.filter(function (f) {
-        return f.retenu === true && f.tableAssociee !== '__vide__';
+        return f.retenu === true;
     });
     if (feuillesRetenues.length === 0) {
         afficherErreur("Aucune feuille n'est cochée. Cochez au moins une feuille pour lancer l'import.");
@@ -5701,7 +5704,7 @@ async function executerImportInterne() {
     try {
         await construireCacheReferences();
         var resultats = [];
-        var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+        var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true; });
         for (var fi = 0; fi < feuillesActives.length; fi++) {
             var feuille = feuillesActives[fi];
             var nomTable = feuille.tableAssociee;
@@ -5725,7 +5728,7 @@ async function executerImportInterne() {
                     continue;
                 }
                 if (lignesExcel.length === 0) {
-                    resultats.push({ feuille: feuille.nom, table: nomTable, status: 'success', message: 'Aucune ligne à importer (doublons exclus)' });
+                    resultats.push({ feuille: feuille.nom, table: nomTable, status: 'success', message: feuille.vide ? 'Table créée, sans données' : 'Aucune ligne à importer (doublons exclus)' });
                     continue;
                 }
                 var resultCreate = await construirePayloadBulk(feuille, mappingRef, nomTable, lignesExcel);
@@ -6162,7 +6165,7 @@ async function simulerImport() {
         var radioSel = document.querySelector('input[name="modeImport"]:checked');
         var mode = radioSel ? radioSel.value : 'creer';
         etat.modeImportSelectionne = mode;
-        var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+        var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true; });
         if (feuillesActives.length === 0) {
             afficherErreur("Aucune feuille n'est cochée. Cochez au moins une feuille pour simuler l'import.");
             return;
@@ -7084,6 +7087,9 @@ function restaurerSession() {
                 f.tableAssociee = etat.tableAssociations[f.nom];
             }
             f.retenu = snapshot.feuillesRetenues ? snapshot.feuillesRetenues[f.nom] === true : false;
+            f.vide = f.donnees.length === 0;
+            if (f.vide && !estTableACreer(f.tableAssociee))
+                f.tableAssociee = '__creer__';
         });
         logSecurite('INFO', 'Session restaurée : ' + etat.nomFichier + ' (' + etat.feuilles.length + ' onglets)');
         return true;
@@ -7320,7 +7326,7 @@ function mettreAJourMetaFichier() {
     if (!metaEl || !etat.feuilles || etat.feuilles.length === 0)
         return;
     var nbFeuilles = etat.feuilles.length;
-    var actives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+    var actives = etat.feuilles.filter(function (f) { return f.retenu === true; });
     var totalLignes = actives.reduce(function (s, f) { return s + (f.donnees ? f.donnees.length : 0); }, 0);
     var taille = etat.tailleFichier < 1024 ? etat.tailleFichier + ' o'
         : etat.tailleFichier < 1048576 ? Math.round(etat.tailleFichier / 1024) + ' Ko'
@@ -7500,7 +7506,7 @@ function construireRecapImport() {
     if (!container)
         return;
     container.textContent = '';
-    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true && f.tableAssociee !== '__vide__'; });
+    var feuillesActives = etat.feuilles.filter(function (f) { return f.retenu === true; });
     if (feuillesActives.length === 0)
         return;
     if (etat.ecartsModele && !etat.ecartsModele.aucunCommun && etat.ecartsModele.absents.length) {
