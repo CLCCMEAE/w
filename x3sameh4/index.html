@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitSalles
-  Version : 1.1.6 - 24/11/2026
+  Version : 1.1.7 - 26/11/2026
   Description : réservation de salles, règles, validation et pages des agents.
 -->
 <head>
@@ -337,6 +337,12 @@
       padding-right: .5rem; background-color: var(--background-default-grey); color: var(--text-default-grey); }
     .w-toast[hidden] { display: none; }
     .w-btn-danger { background-color: var(--background-action-high-error); color: var(--text-inverted-error); }
+    .s-acces { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .s-acces__item { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: .75rem; border: 1px solid var(--border-default-grey); }
+    .s-acces__texte { display: flex; flex-direction: column; gap: .125rem; overflow-wrap: anywhere; }
+    .s-acces__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+    .s-acces-pas { margin: .75rem 0 0; padding-left: 1.5rem; font-size: .875rem; }
+    .s-acces-pas li { margin-bottom: .25rem; }
     .w-btn-danger:hover { background-color: var(--background-action-high-error-hover); }
     .w-toast__message { flex: 1 1 12rem; margin: 0; font-size: .875rem; }
     .w-toast__action:empty { display: none; }
@@ -1185,7 +1191,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.1.6';
+var VERSION_WIDGET = '1.1.7';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -5317,6 +5323,7 @@ async function chargerDonnees() {
     await chargerSalles();
     construireItems();
     await chargerExternes();
+    await lireAccesSalles();
 }
 function valeurLigne(i, colId) { return colId && etat.donnees ? colonneDe(etat.donnees, colId, i) : undefined; }
 function clesCouloir(v, col) {
@@ -7544,6 +7551,7 @@ function afficherVue(vue, garderFocus) {
     }
     if ((vue === 'plan' || vue === 'assistant') && estConsoleAdmin()) {
         envelopperConsoleSl(zone);
+        majBadgeAcces();
         relayer(majClocheSalles(), 'Cloche dans le nom des pages');
     }
     zone.classList.toggle('w-contenu--plan', vue === 'plan');
@@ -10329,10 +10337,11 @@ function blocDroits() {
             { colonnes: 'Toutes', regles: [proprio, { condition: 'rec.CREE_PAR == user.Email', droits: { R: true, U: true, C: true, D: false } }, { droits: { R: true, U: false, C: true, D: false } }] },
             { colonnes: colonnesStatut, regles: [{ condition: 'user.Access in [OWNER]', droits: { R: true, U: true } }, { condition: 'newRec.' + colStat + ' in ["' + (sv.annulee || 'Annulée') + '", "' + (sv.attente || 'En attente') + '"]', droits: { R: true, U: true } }, { droits: { R: true, U: false } }] }
         ], 'aAclR') },
+        tableAccesSalles() ? { titre: 'Les demandes d\'accès', texte: 'Seuls les propriétaires les lisent. La deuxième ligne laisse le formulaire publié créer une réponse, sans rien pouvoir lire.', modele: modeleAcl(libelleTable(tableAccesSalles()), [{ colonnes: 'Toutes', regles: [proprio, { condition: 'user.ShareRef is not None', droits: { R: false, U: false, C: true, D: false } }, { droits: tout(false) }] }], 'aAclQ') } : null,
         { titre: 'Enregistrer', texte: 'Cliquez sur le bouton « Enregistrer », en haut à gauche des Permissions avancées. Il devient gris et affiche « Enregistré » : c\'est le seul signe que vos règles sont prises en compte. Si vous quittez la page avant, toutes les règles posées sont perdues, sans avertissement.', modele: creer('p', { classe: 's-acl__enregistrer' }, [creer('span', { classe: 's-acl__btn', texte: 'Enregistrer' }), ' devient ', creer('span', { classe: 's-acl__btn s-acl__btn--fait', texte: 'Enregistré' })]) },
         { titre: 'Vérifier', texte: 'Bouton « Voir en tant que », en haut à droite des Permissions avancées, avec le courriel d\'un agent : il ne voit pas la page Admin, il réserve, modifie et annule ses réservations, pas celles des autres.' }
     ];
-    return etapes;
+    return etapes.filter(Boolean);
 }
 function imprimerDroits() {
     var ancien = document.getElementById('wImprDroits');
@@ -10551,7 +10560,7 @@ function etapeGeneral(partie) {
         return creer('div', { classe: 'w-general' }, [grilleParam([[col1]], '2-1')]);
     }
     if (partie === 'publier') {
-        return creer('div', { classe: 'w-general' }, [creer('p', { classe: 'w-texte', texte: 'Publier crée une page dans le document : « Réserver une salle », pour les agents, et si vous le souhaitez une page pour les gestionnaires, qui valident, refusent ou annulent. Ils y voient le planning sans le paramétrage.' }), grilleParam([[col3]], '2-1')]);
+        return creer('div', { classe: 'w-general' }, [creer('p', { classe: 'w-texte', texte: 'Publier crée une page dans le document : « Réserver une salle », pour les agents, et si vous le souhaitez une page pour les gestionnaires, qui valident, refusent ou annulent. Ils y voient le planning sans le paramétrage.' }), grilleParam([[col3, blocFormulaireAcces()]], '2-1')]);
     }
     if (partie === 'droits') {
         return creer('div', { classe: 'w-general' }, [grilleParam([[col2]], '2-1')]);
@@ -10921,7 +10930,7 @@ async function chargerTout() {
 }
 function empreinteDonnees() {
     try {
-        return JSON.stringify(etat.donnees) + '|' + JSON.stringify(etat.sallesDonnees || null) + '|' + JSON.stringify(etat.idsLies ? Object.keys(etat.idsLies) : null);
+        return JSON.stringify(etat.donnees) + '|' + JSON.stringify(etat.sallesDonnees || null) + '|' + JSON.stringify(etat.idsLies ? Object.keys(etat.idsLies) : null) + '|' + JSON.stringify(etat.accesSalles || []);
     }
     catch (e) {
         return String(Date.now());
@@ -15270,6 +15279,271 @@ function rendreCreneau(focusId) {
 }
 function estConsoleAdmin() { return !etat.page && etat.peutParametrer && !!etat.config && !enCreation(); }
 var EMOJI_CLOCHE = '🔔', _clocheEnCours = false, _clocheRefusee = false, _clocheCle = null;
+var ACCES_SALLES = { id: 'DEMANDES_ACCES_WUITSALLES', titre: '📝 DEMANDES D\'ACCÈS WUITSALLES ⚡', page: '📝 Demande d\'accès à WuitSalles', statuts: ['À traiter', 'Acceptée', 'Refusée'] };
+function tableAccesSalles() {
+    var ids = Object.keys(etat.meta.tables || {});
+    if (ids.indexOf(ACCES_SALLES.id) !== -1) {
+        return ACCES_SALLES.id;
+    }
+    return ids.filter(function (t) { return /^DEMANDES_D?_?ACCES_WUITSALLES/.test(t) && infoColonne(t, 'EMAIL') && infoColonne(t, 'STATUT') && infoColonne(t, 'MOTIF'); })[0] || null;
+}
+function adresseAccesValide(a) { return /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(String(a || '')) && String(a).length <= 200; }
+async function lireAccesSalles() {
+    var tid = tableAccesSalles();
+    if (!tid || !estConsoleAdmin()) {
+        etat.accesSalles = [];
+        return;
+    }
+    try {
+        var d = await lireTable(tid);
+        var colCree = infoColonne(tid, 'CREE_LE');
+        etat.accesSalles = (d.id || []).map(function (id, i) {
+            var st = String((d.STATUT || [])[i] || '');
+            return { id: id, email: String((d.EMAIL || [])[i] || '').trim().toLowerCase().slice(0, 200), statut: ACCES_SALLES.statuts.indexOf(st) !== -1 ? st : 'À traiter',
+                recue: colCree ? murDe((d.CREE_LE || [])[i], colCree) : null };
+        });
+    }
+    catch (e) {
+        etat.accesSalles = [];
+        logSecurite('INFO', 'Demandes d\'accès non lues', e);
+    }
+    majBadgeAcces();
+}
+function majBadgeAcces() {
+    var b = document.getElementById('pAdmin_accesNb');
+    var n = accesSallesATraiter().length;
+    if (b) {
+        b.textContent = String(n);
+        b.hidden = n === 0;
+        var bt = document.getElementById('pAdmin_acces');
+        if (bt) {
+            bt.setAttribute('aria-label', 'Demandes d\'accès' + (n ? ', ' + n + ' en attente' : ''));
+        }
+    }
+}
+function accesSallesATraiter() { return (etat.accesSalles || []).filter(function (a) { return a.statut === 'À traiter'; }); }
+async function inviterSalles(adresse) {
+    var j = await obtenirJeton(true);
+    var users = {};
+    users[adresse] = 'editors';
+    var rep = await fetchDelai(j.baseUrl + '/access?auth=' + encodeURIComponent(j.token), {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ delta: { users: users } })
+    }, DELAI_API_MS);
+    if (!rep.ok) {
+        throw new Error('Réponse ' + rep.status);
+    }
+}
+function ouvrirAccesSalles(focus) {
+    var l = accesSallesATraiter().sort(function (a, b) { return (a.recue || 0) - (b.recue || 0); });
+    var corps = [];
+    if (!tableAccesSalles()) {
+        corps.push(alerte('info', 'Pas encore de formulaire', 'Créez le formulaire de demande d\'accès dans « Publier », puis donnez son lien aux agents.'));
+    }
+    else if (!l.length) {
+        corps.push(creer('p', { classe: 'w-texte', texte: 'Aucune demande en attente. Le lien du formulaire se trouve dans « Publier ».' }));
+    }
+    else {
+        corps.push(creer('p', { classe: 'w-mention', texte: 'Accepter invite la personne au document avec le rôle Éditeur : elle reçoit un courriel et peut réserver depuis la page des agents.' }));
+        corps.push(creer('ul', { classe: 's-acces' }, l.map(function (a, k) {
+            return creer('li', { classe: 's-acces__item' }, [
+                creer('div', { classe: 's-acces__texte' }, [creer('strong', { texte: a.email }), a.recue !== null ? creer('span', { classe: 'w-mention', texte: 'Reçue le ' + texteMur(a.recue, true) }) : null]),
+                creer('div', { classe: 's-acces__actions' }, [
+                    bouton('Refuser', 'tertiaire', null, function () { return traiterAccesSalles(a, false, k); }, { petit: true, id: 'sAccNon' + k, aria: 'Refuser la demande de ' + a.email }),
+                    bouton('Accepter et inviter', null, null, function () { return traiterAccesSalles(a, true, k); }, { petit: true, id: 'sAccOui' + k, aria: 'Accepter et inviter ' + a.email })])
+            ]);
+        })));
+    }
+    ouvrirModale({ titre: 'Demandes d\'accès', sousTitre: l.length ? pluriel(l.length, 'demande en attente', 'demandes en attente') : '', laterale: true, etroite: true, corps: corps,
+        pied: [creer('span', { classe: 'w-pousse' }), bouton('Fermer', 'secondaire', null, fermerModale, { id: 'sAccFermer' })], focus: focus });
+}
+async function traiterAccesSalles(a, accepter, k) {
+    if (!adresseAccesValide(a.email) && accepter) {
+        afficherErreur('Cette adresse n\'est pas valide : invitez la personne vous-même dans « Partager ».');
+        return;
+    }
+    if (!accepter) {
+        var ok = await confirmerAction('Refuser la demande de ' + a.email + ' ?', 'La personne ne sera pas invitée. Elle pourra refaire une demande avec le formulaire.', 'Refuser', { danger: true });
+        if (!ok) {
+            return;
+        }
+    }
+    afficherLoader(accepter ? 'Invitation…' : 'Enregistrement…');
+    var invite = true;
+    try {
+        await agir([['UpdateRecord', tableAccesSalles(), a.id, { STATUT: accepter ? 'Acceptée' : 'Refusée' }]]);
+        if (accepter) {
+            try {
+                await inviterSalles(a.email);
+            }
+            catch (eI) {
+                invite = false;
+                logSecurite('AVERTISSEMENT', 'Invitation par le widget impossible', eI);
+            }
+        }
+        await lireAccesSalles();
+        masquerLoader();
+        if (!accepter) {
+            afficherSucces('Demande refusée.');
+        }
+        else if (invite) {
+            afficherSucces(a.email + ' est invitée au document : elle reçoit un courriel.');
+        }
+        else {
+            toast('Demande acceptée, mais l\'invitation n\'a pas pu être envoyée par le widget (seul un propriétaire du document peut inviter). Dans « Partager », « Gérer les utilisateurs », ajoutez ' + a.email + ' avec le rôle Éditeur.', { type: 'avertissement', duree: 0 });
+        }
+        ouvrirAccesSalles(document.getElementById('sAccOui' + k) ? 'sAccOui' + k : 'sAccFermer');
+        relayer(majClocheSalles(), 'Cloche dans le nom des pages');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de traiter cette demande.' : 'La demande n\'a pas été enregistrée. Réessayez.', e);
+    }
+}
+function formulairesAcces(d) {
+    var tid = tableAccesSalles();
+    var ref = tid && etat.meta.tables[tid] ? etat.meta.tables[tid].ref : null;
+    var l = [];
+    for (var i = 0; ref && i < d.id.length; i++) {
+        if ((d.parentKey || [])[i] === 'form' && (d.tableRef || [])[i] === ref && (d.parentId || [])[i]) {
+            var so = {};
+            try {
+                so = JSON.parse(String((d.shareOptions || [])[i] || '{}')) || {};
+            }
+            catch (e) {
+                so = {};
+            }
+            l.push({ section: d.id[i], vue: d.parentId[i], publie: so.publish === true });
+        }
+    }
+    return l;
+}
+function blocFormulaireAcces() {
+    var zone = creer('div', { id: 'sFormAcces', attrs: { 'aria-live': 'polite' } }, [creer('p', { classe: 'w-mention', texte: 'Lecture des pages…' })]);
+    relayer(remplirFormulaireAcces(zone), 'Formulaire d\'accès');
+    return creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecFormAcces' } }, [
+        creer('div', { classe: 'w-champ-aide w-opt' }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecFormAcces', texte: 'Formulaire de demande d\'accès', attrs: { tabindex: '-1' } })]),
+        creer('p', { classe: 'w-mention', texte: 'Un formulaire tout simple, qui ne demande que l\'adresse professionnelle. Vous donnez son lien aux agents ; leurs demandes arrivent dans « Demandes d\'accès », où vous les acceptez et les invitez au document.' }),
+        zone]);
+}
+async function remplirFormulaireAcces(zone) {
+    var forms = [], noms = {};
+    try {
+        var d = await lireTable('_grist_Views_section');
+        var v = await lireTable('_grist_Views');
+        v.id.forEach(function (id, i) { noms[id] = (v.name || [])[i] || ''; });
+        forms = formulairesAcces(d);
+    }
+    catch (e) {
+        logSecurite('INFO', 'Pages non lues (formulaire d\'accès)', e);
+    }
+    vider(zone);
+    if (!forms.length) {
+        zone.appendChild(bouton('Créer le formulaire de demande d\'accès', null, 'file-add-line', function () { return creerFormulaireAcces(zone); }, { petit: true, id: 'aCreerFormAcces', desactive: etat.niveauAcces !== 'full' }));
+        return;
+    }
+    var f = forms[0];
+    zone.appendChild(creer('ul', { classe: 'w-pages-liste' }, [creer('li', { classe: 'w-pages-liste__item' }, [
+        creer('div', { classe: 'w-pages-liste__texte' }, [creer('span', { classe: 'w-pages-liste__nom', texte: noms[f.vue] || ACCES_SALLES.page }),
+            creer('span', { classe: 'fr-badge fr-badge--sm ' + (f.publie ? 'fr-badge--success' : 'fr-badge--warning'), texte: f.publie ? 'Publié' : 'À publier' })]),
+        boutonIcone('Supprimer « ' + (noms[f.vue] || 'le formulaire') + ' »', 'delete-line', function () { return supprimerFormulaireAcces(f.vue, noms[f.vue], zone); }, { variante: 'discret', id: 'aFormAccesSuppr', classe: 'w-infobulle--dessus' })])]));
+    zone.appendChild(creer('ol', { classe: 's-acces-pas' }, [
+        'Ouvrez la page « ' + (noms[f.vue] || ACCES_SALLES.page) + ' » dans la liste des pages.',
+        f.publie ? 'Le formulaire est publié.' : 'Cliquez sur « Publier », en haut du formulaire, puis confirmez.',
+        'Cliquez sur « Partager » (à côté de « Publier »), puis « Copier le lien ».',
+        'Donnez ce lien aux agents : courriel, intranet, affichage.'
+    ].map(function (t) { return creer('li', { texte: t }); })));
+}
+async function creerFormulaireAcces(zone) {
+    afficherLoader('Création du formulaire…');
+    var vue = null;
+    try {
+        var tid = tableAccesSalles();
+        if (!tid) {
+            var cols = [{ id: 'EMAIL', type: 'Text', label: 'ADRESSE PROFESSIONNELLE' },
+                { id: 'STATUT', type: 'Choice', label: 'STATUT', widgetOptions: { choices: ACCES_SALLES.statuts } },
+                { id: 'MOTIF', type: 'Text', label: 'MOTIF' }].concat(COLONNES_META);
+            tid = (await creerTables([{ id: ACCES_SALLES.id, colonnes: cols }]))[0];
+            await chargerMeta();
+            await renommerTables([[tid, ACCES_SALLES.titre]]);
+            await chargerMeta();
+            tid = tableAccesSalles();
+            if (!tid) {
+                throw new Error('Table des demandes d\'accès introuvable');
+            }
+        }
+        var r = await agir([['CreateViewSection', etat.meta.tables[tid].ref, 0, 'form', null, null]]);
+        var res = r && r.retValues ? r.retValues[0] || {} : {};
+        if (!res.viewRef || !res.sectionRef) {
+            throw new Error('Formulaire non créé');
+        }
+        vue = res.viewRef;
+        var email = infoColonne(tid, 'EMAIL');
+        var fl = await lireTable('_grist_Views_section_field');
+        var act = [];
+        var garde = null;
+        (fl.id || []).forEach(function (id, i) {
+            if (fl.parentId[i] !== res.sectionRef) {
+                return;
+            }
+            if (email && fl.colRef[i] === email.ref && garde === null) {
+                garde = id;
+            }
+            else {
+                act.push(['RemoveRecord', '_grist_Views_section_field', id]);
+            }
+        });
+        var wo = JSON.stringify({ question: 'Adresse professionnelle', description: 'Celle avec laquelle vous vous connecterez au document.', formRequired: true });
+        if (garde !== null) {
+            act.push(['UpdateRecord', '_grist_Views_section_field', garde, { parentPos: 1, widgetOptions: wo }]);
+        }
+        else {
+            act.push(['AddRecord', '_grist_Views_section_field', null, { parentId: res.sectionRef, colRef: email.ref, parentPos: 1, widgetOptions: wo }]);
+        }
+        act.push(['UpdateRecord', '_grist_Views', res.viewRef, { name: ACCES_SALLES.page }]);
+        act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitSalles', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Vous recevrez un courriel d\'invitation dès qu\'elle sera acceptée.', formAnotherResponse: false }) }]);
+        var ret = await agir(act);
+        var champ = garde !== null ? garde : (ret && ret.retValues ? ret.retValues.filter(function (x) { return typeof x === 'number'; })[0] : null);
+        if (champ) {
+            var spec = { type: 'Layout', id: 'w1', children: [
+                { type: 'Paragraph', id: 'w2', text: '## **Demande d\'accès à WuitSalles**', alignment: 'center' },
+                { type: 'Paragraph', id: 'w3', text: 'Pour réserver des salles, demandez d\'abord votre accès. Vous recevrez un courriel d\'invitation au document.', alignment: 'center' },
+                { type: 'Section', id: 'w4', children: [{ type: 'Field', id: 'w5', leaf: champ }] }] };
+            await agir([['UpdateRecord', '_grist_Views_section', res.sectionRef, { layoutSpec: JSON.stringify(spec) }]]);
+        }
+        await chargerMeta();
+        masquerLoader();
+        toast('Le formulaire est créé. Ouvrez-le dans la liste des pages et cliquez sur « Publier » pour obtenir son lien.', { type: 'succes', duree: 0 });
+    }
+    catch (e) {
+        masquerLoader();
+        if (vue) {
+            await agir([['RemoveRecord', '_grist_Views', vue]]).catch(function (eA) { logSecurite('AVERTISSEMENT', 'Création du formulaire non annulée', eA); });
+        }
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de créer une page dans ce document.' : 'Le formulaire n\'a pas été créé. Réessayez.', e);
+    }
+    await remplirFormulaireAcces(zone);
+    var t = document.getElementById('aSecFormAcces');
+    if (t) {
+        t.focus();
+    }
+}
+async function supprimerFormulaireAcces(vue, nom, zone) {
+    var ok = await confirmerAction('Supprimer la page « ' + (nom || 'le formulaire') + ' » ?', 'Le lien donné aux agents ne marchera plus. Les demandes déjà reçues restent dans la table.', 'Supprimer la page', { danger: true });
+    if (!ok) {
+        return;
+    }
+    try {
+        afficherLoader('Suppression de la page…');
+        await agir([['RemoveRecord', '_grist_Views', vue]]);
+        masquerLoader();
+        afficherSucces('Le formulaire est supprimé.');
+    }
+    catch (e) {
+        masquerLoader();
+        afficherErreur(estRefusDroits(e) ? 'Vos droits ne permettent pas de supprimer cette page.' : 'La page n\'a pas été supprimée. Réessayez.', e);
+    }
+    await remplirFormulaireAcces(zone);
+}
 function nomAvecCloche(nom, actif) {
     var n = String(nom || '').split(EMOJI_CLOCHE + '\uFE0F').join('').split(EMOJI_CLOCHE).join('').replace(/\s{2,}/g, ' ').trim();
     if (!actif) {
@@ -15286,7 +15560,7 @@ async function majClocheSalles() {
         return;
     }
     var c = etat.config;
-    var actif = c.clochePage !== false && elementsATraiter().length > 0;
+    var actif = c.clochePage !== false && elementsATraiter().length + accesSallesATraiter().length > 0;
     var gestion = Object.keys(etat.copies || {}).filter(function (b) { return etat.copies[b].gestion && (etat.copies[b].plans || []).indexOf(etat.cleConfig) !== -1; });
     var cle = (actif ? '1' : '0') + gestion.join(',');
     if (cle === _clocheCle) {
@@ -15448,6 +15722,7 @@ function envelopperConsoleSl(zone) {
         item('pAdmin_' + d[0], d[1], d[2], !param && courant === d[0], function () { relayer(allerOngletAdmin(d[0]), d[1]); },
             d[0] === 'atraiter' && nbT ? creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new s-acc-nb', texte: String(nbT) }) : null);
     });
+    item('pAdmin_acces', 'Demandes d\'accès', iconeDispo(['user-add-line', 'team-line']), false, function () { ouvrirAccesSalles(); }, creer('span', { classe: 'fr-badge fr-badge--sm fr-badge--no-icon fr-badge--new s-acc-nb', id: 'pAdmin_accesNb', attrs: { hidden: '' } }));
     menu.appendChild(creer('p', { classe: 'w-acc__groupe', texte: 'Pour toutes les salles' }));
     var communs = [['Les colonnes', 'Les colonnes'], ['Les règles', 'Règles communes'], ['Le formulaire', 'Le formulaire'], ['Publier', 'Publier']].filter(function (d) { return noms.indexOf(d[0]) !== -1; });
     communs.forEach(function (d, k) {
