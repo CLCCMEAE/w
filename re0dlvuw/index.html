@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitBillets
-  Version : 1.0.6 - 26/11/2026
+  Version : 1.0.7 - 26/11/2026
   Description : demandes de déplacement du poste, du profil voyageur aux billets émis, avec circuit de validation conditionnel.
 -->
 <head>
@@ -657,7 +657,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.6';
+var VERSION_WIDGET = '1.0.7';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitBillets';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -712,6 +712,7 @@ var CONFIG_DEFAUT = {
     regles: { type: true, preavis: true, heures: 72, horsPays: false, montant: false, seuil: 800, toujours: false },
     pays: '',
     hebergement: false,
+    serviceFormulaire: true,
     frais: { repas: false, hebSoi: false, autres: false, avance: false },
     message: MESSAGE_DEFAUT,
     tables: {}
@@ -951,6 +952,7 @@ function configValide(o) {
             horsPays: booleen(r.horsPays, d.regles.horsPays), montant: booleen(r.montant, d.regles.montant), seuil: entierBorne(r.seuil, 0, 1000000, d.regles.seuil), toujours: booleen(r.toujours, d.regles.toujours) },
         pays: texteBorne(o.pays, 80),
         hebergement: o.hebergement === true,
+        serviceFormulaire: booleen(o.serviceFormulaire, d.serviceFormulaire),
         frais: { repas: fr.repas === true, hebSoi: fr.hebSoi === true, autres: fr.autres === true, avance: fr.avance === true },
         message: String(o.message === undefined ? d.message : o.message || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').slice(0, 2000),
         tables: {}
@@ -1142,7 +1144,9 @@ function lireAcces(d) {
     return (d.id || []).map(function (id, i) {
         var st = colonneDe(d, 'STATUT', i);
         var js = colonneDe(d, 'JE_SUIS', i);
-        return { id: id, prenom: texteBorne(colonneDe(d, 'PRENOM', i), 80), nom: texteBorne(colonneDe(d, 'NOM', i), 80), email: texteBorne(colonneDe(d, 'EMAIL', i), 200).toLowerCase().replace(/\s+/g, ''),
+        var email = texteBorne(colonneDe(d, 'EMAIL', i), 200).toLowerCase().replace(/\s+/g, '');
+        var deduit = nomDepuisAdresse(email);
+        return { id: id, prenom: texteBorne(colonneDe(d, 'PRENOM', i), 80) || deduit.prenom, nom: texteBorne(colonneDe(d, 'NOM', i), 80) || deduit.nom, email: email,
             service: texteBorne(colonneDe(d, 'SERVICE', i), 80), fonction: texteBorne(colonneDe(d, 'FONCTION', i), 120), jeSuis: JE_SUIS.indexOf(js) !== -1 ? js : 'Agent',
             precisions: texteBorne(colonneDe(d, 'PRECISIONS', i), 1000), statut: ACCES_STATUTS.indexOf(st) !== -1 ? st : 'À traiter', motif: texteBorne(colonneDe(d, 'MOTIF', i), 500),
             creeLe: colonneDe(d, 'CREE_LE', i) };
@@ -1426,6 +1430,9 @@ async function creerListes() {
     await determinerDroits();
 }
 
+function profilComplet(p) {
+    return !!(p && p.profilFait && texteBorne(p.prenom, 80) && texteBorne(p.nom, 80) && p.naissance !== null);
+}
 function typeDe(nom) {
     var t = cfg().types.filter(function (x) { return x.nom === nom; })[0];
     return t || typeValide({ nom: nom || '' });
@@ -3123,8 +3130,8 @@ function vueUtilisateurs(racine) {
         cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletLeg' } }, [titreVolet('palette-line', 'Statuts', 'uVoletLeg'), ul]));
     }
     cont.appendChild(creer('section', { classe: 'w-volet__bloc', attrs: { 'aria-labelledby': 'uVoletProfil' } }, [titreVolet('user-line', 'Mon profil voyageur', 'uVoletProfil'),
-        creer('p', { classe: 'w-mention', texte: etat.moi.profilFait ? 'Autres prénoms, date de naissance, cartes et ayants droit, repris dans chaque demande.' : 'Pas encore rempli : il évite de tout ressaisir à chaque demande.' }),
-        bouton(etat.moi.profilFait ? 'Modifier mon profil' : 'Remplir mon profil', 'secondaire', 'user-line', function () { ouvrirProfil(!etat.moi.profilFait); }, { petit: true, id: 'uProfil' })]));
+        creer('p', { classe: 'w-mention', texte: profilComplet(etat.moi) ? 'Prénoms, date de naissance, cartes et ayants droit, repris dans chaque demande.' : 'À compléter avant votre première demande.' }),
+        bouton(profilComplet(etat.moi) ? 'Modifier mon profil' : 'Compléter mon profil', profilComplet(etat.moi) ? 'secondaire' : null, 'user-line', function () { ouvrirProfil(!profilComplet(etat.moi)); }, { petit: true, id: 'uProfil' })]));
     volet.appendChild(cont);
     var nb = filtresActifs();
     volet.appendChild(creer('button', { classe: 'w-volet__poignee', id: 'uPoignee', attrs: { type: 'button', 'aria-expanded': replie ? 'false' : 'true', 'aria-controls': 'uVoletContenu',
@@ -3158,7 +3165,7 @@ function vueUtilisateurs(racine) {
         dessiner('uVoletMobile');
     } });
     remplirListeU(vue, mode);
-    if (!etat.moi.profilFait && !etat.profilPropose && !etat.modaleOuverte && accesComplet()) {
+    if (!profilComplet(etat.moi) && !etat.profilPropose && !etat.modaleOuverte && accesComplet()) {
         etat.profilPropose = true;
         setTimeout(function () { if (!etat.modaleOuverte) {
             ouvrirProfil(true);
@@ -3410,6 +3417,7 @@ function editeurProfil(p, prefixe, o) {
     var cartes = cartesDe(p.id).map(function (c) { return Object.assign({}, c); });
     var ayants = ayantsDe(p.id).map(function (a) { return Object.assign({}, a); });
     var f = {
+        prenom: o.identite ? saisie(prefixe + 'Prenom', p.prenom) : null, nom: o.identite ? saisie(prefixe + 'Nom', p.nom) : null,
         autres: saisie(prefixe + 'Autres', p.autresPrenoms),
         naissance: champJour(prefixe + 'Naiss', 'Date de naissance', p.naissance, { verifierTout: true, max: aujourdhui(), messageMax: 'La date de naissance ne peut pas être dans le futur.' }),
         om: null, omFin: champJour(prefixe + 'OmFin', 'Valable jusqu\'au', p.omFin, { verifierTout: true, classe: 'bi-retrait', verifier: function (j) { return j < aujourdhui() ? 'Cet ordre de mission n\'est plus valable.' : ''; } })
@@ -3459,13 +3467,19 @@ function editeurProfil(p, prefixe, o) {
     dessinerCartes();
     dessinerAyants();
     return {
-        moi: [creer('div', { classe: 'bi-deux' }, [champ('Autres prénoms', f.autres, { aide: 'Demandés pour certains billets.' }), f.naissance]), omCase, omFinChamp],
+        moi: (o.identite ? [creer('div', { classe: 'bi-deux' }, [champ('Prénom', f.prenom), champ('Nom', f.nom)])] : []).concat([creer('div', { classe: 'bi-deux' }, [champ('Autres prénoms', f.autres, { aide: 'Demandés pour certains billets.' }), f.naissance]), omCase, omFinChamp]),
         cartes: [zoneCartes],
         ayants: [zoneAyants],
         lire: function () {
             var err = [];
             var naiss = jourSaisi(f.naissance.entree.value);
             var omFinJ = jourSaisi(f.omFin.entree.value);
+            if (o.identite && (!texteBorne(f.prenom.value, 80) || !texteBorne(f.nom.value, 80))) {
+                err.push('Indiquez votre prénom et votre nom.');
+            }
+            if (o.identite && !f.naissance.entree.value) {
+                err.push('Indiquez votre date de naissance : elle est demandée pour les billets.');
+            }
             if (f.naissance.entree.value && naiss === null) {
                 err.push('La date de naissance n\'est pas valide.');
             }
@@ -3486,6 +3500,10 @@ function editeurProfil(p, prefixe, o) {
                 erreurs: err.filter(function (x, i, t) { return t.indexOf(x) === i; }),
                 actions: function () {
                     var act = [['UpdateRecord', etat.t.personnes, p.id, { AUTRES_PRENOMS: texteBorne(f.autres.value, 120), NAISSANCE: naiss === null ? null : secDeJour(naiss), OM_PERMANENT: omOn, OM_FIN: omOn && omFinJ !== null ? secDeJour(omFinJ) : null }]];
+                    if (o.identite) {
+                        act[0][3].PRENOM = texteBorne(f.prenom.value, 80);
+                        act[0][3].NOM = texteBorne(f.nom.value, 80).toUpperCase();
+                    }
                     cartes.forEach(function (c) {
                         var champs = { PERSONNE: p.id, CARTE: texteBorne(c.carte, 80), NUMERO: texteBorne(c.numero, 60), FIN: c.fin === null ? null : secDeJour(c.fin) };
                         if (c.supprime || !champs.CARTE) {
@@ -3525,7 +3543,7 @@ function ouvrirProfil(premiere) {
     if (!p) {
         return;
     }
-    var ed = editeurProfil(p, 'pf');
+    var ed = editeurProfil(p, 'pf', { identite: true });
     var etape = 0;
     var noms = ['Moi', 'Cartes', 'Ayants droit'];
     var ayantsOui = ayantsDe(p.id).length > 0;
@@ -3545,8 +3563,21 @@ function ouvrirProfil(premiere) {
             dessiner();
         }
     };
+    var etapeOk = function () {
+        var l = ed.lire();
+        vider(erreurs);
+        if (l.erreurs.length) {
+            erreurs.appendChild(alerte('error', null, l.erreurs.join(' ')));
+            erreurs.scrollIntoView({ block: 'nearest' });
+            return false;
+        }
+        return true;
+    };
     var rendre = function (focus) {
         var corps = [];
+        if (!profilComplet(p)) {
+            corps.push(alerte('info', null, 'Complétez votre profil voyageur : il est nécessaire pour faire une demande de déplacement.'));
+        }
         if (etape === 0) {
             corps = corps.concat(ed.moi);
         }
@@ -3561,12 +3592,16 @@ function ouvrirProfil(premiere) {
             }
         }
         corps.push(erreurs);
-        corps = [etapesVerticales(noms, etape, corps, { prefixe: 'pfEtape_', aller: function (i) { return function () { etape = i; rendre('pfEtape_' + i); }; } })];
+        corps = [etapesVerticales(noms, etape, corps, { prefixe: 'pfEtape_', aller: function (i) { return function () { if (i > etape && !etapeOk()) {
+                return;
+            } etape = i; rendre('pfEtape_' + i); }; } })];
         var pied = [premiere ? bouton('Plus tard', 'tertiaire', null, fermerPanneau, { id: 'pfPlusTard' }) : null, creer('span', { classe: 'w-pousse' })];
         if (etape > 0) {
             pied.push(bouton('Précédent', 'secondaire', null, function () { etape--; rendre('pfSuiv'); }, { id: 'pfPrec' }));
         }
-        pied.push(etape < 2 ? bouton('Suivant', null, null, function () { etape++; rendre('pfPrec'); }, { id: 'pfSuiv' }) : bouton('Enregistrer mon profil', null, null, enregistrer, { id: 'pfEnr', desactive: !accesComplet() }));
+        pied.push(etape < 2 ? bouton('Suivant', null, null, function () { if (!etapeOk()) {
+                return;
+            } etape++; rendre('pfEtape_' + etape); }, { id: 'pfSuiv' }) : bouton('Enregistrer mon profil', null, null, enregistrer, { id: 'pfEnr', desactive: !accesComplet() }));
         remplirPanneau({ corps: corps, pied: pied });
         var n = focus ? document.getElementById(focus) : null;
         if (n) {
@@ -3621,6 +3656,10 @@ function cartesTexte(idPersonne) {
 }
 function ouvrirDemande(o) {
     if (!etat.moi || !accesComplet()) {
+        return;
+    }
+    if (!profilComplet(etat.moi)) {
+        ouvrirProfil(true);
         return;
     }
     var dem = o.dem || null;
@@ -3881,9 +3920,6 @@ function caseDem(id, libelle, chemin, o) {
 function etapeQui() {
     var b = _dem.b;
     var l = [];
-    if (!etat.moi.profilFait) {
-        l.push(alerte('info', null, 'Votre profil voyageur n\'est pas encore rempli : vos autres prénoms et votre date de naissance y seront enregistrés.'));
-    }
     var choisi = voyageurCourant();
     var rech = creer('input', { classe: 'fr-input', id: 'dRecherche', valeur: b.nouveau ? '' : (choisi ? nomListe(choisi) : _dem.recherche),
         attrs: { role: 'combobox', 'aria-expanded': 'false', 'aria-controls': 'dResultats', 'aria-autocomplete': 'list', placeholder: 'Tapez un nom ou un prénom' } });
@@ -4783,8 +4819,8 @@ function vuePersonnes(main) {
             main.appendChild(creer('p', { classe: 'w-texte', texte: 'Aucune demande d\'accès en attente. Le lien du formulaire se trouve dans « Publier ».' }));
             return;
         }
-        main.appendChild(tableau(['Personne', 'Adresse', 'Service', 'Se déclare', 'Reçue le'], acc.map(function (a, k) {
-            return ligneTableau([{ noeuds: [boutonLien(nomListe(a), function () { ouvrirAcces(a); }, { id: 'aAc' + k })] }, a.email, a.service, a.jeSuis, a.creeLe ? texteHorodatage(a.creeLe) : '']);
+        main.appendChild(tableau(['Adresse', 'Service', 'Reçue le'], acc.map(function (a, k) {
+            return ligneTableau([{ noeuds: [boutonLien(a.email || nomListe(a), function () { ouvrirAcces(a); }, { id: 'aAc' + k })] }, a.service, texteHorodatage(a.creeLe)]);
         }), { legende: 'Demandes d\'accès' }));
         return;
     }
@@ -4849,7 +4885,7 @@ function ouvrirAcces(a) {
     var existe = etat.personnes.filter(function (p) { return p.email === a.email; })[0];
     var accepter = async function () {
         var service = srv.value;
-        var role = roleChoisi('acRole', a.jeSuis === 'Agent' ? 'Agent' : ROLE_VALIDEUR);
+        var role = roleChoisi('acRole', 'Agent');
         if (!adresseValide(a.email)) {
             afficherErreur('L\'adresse de cette demande n\'est pas valide : ajoutez la personne à la main avec la bonne adresse.');
             return;
@@ -4881,11 +4917,11 @@ function ouvrirAcces(a) {
         }
     };
     ouvrirPanneau({ titre: nomListe(a), sousTitre: 'Demande d\'accès' + (texteHorodatage(a.creeLe) ? ' du ' + texteHorodatage(a.creeLe) : ''), cle: 'acces', focus: 'acService',
-        corps: [creer('p', { classe: 'w-texte', texte: [a.email, a.fonction ? 'Fonction : ' + a.fonction : '', 'Se déclare : ' + a.jeSuis].filter(Boolean).join(' · ') }),
+        corps: [creer('p', { classe: 'w-texte', texte: a.email }),
             a.precisions ? creer('p', { classe: 'w-mention', texte: '« ' + a.precisions + ' »' }) : null,
             existe ? alerte('info', null, 'Cette adresse est déjà dans la liste : sa fiche sera mise à jour.') : null,
-            champ('Service', srv), radiosRole('acRole', a.jeSuis === 'Agent' ? 'Agent' : ROLE_VALIDEUR), inviter,
-            creer('p', { classe: 'w-mention', texte: 'Après l\'invitation, la personne reçoit un courriel. À sa première ouverture de « ' + NOM_PAGE_UTILISATEURS + ' », le widget lui propose de compléter son profil voyageur.' })],
+            champ('Service', srv), radiosRole('acRole', 'Agent'), inviter,
+            creer('p', { classe: 'w-mention', texte: 'Le prénom et le nom sont repris de l\'adresse. Après l\'invitation, la personne reçoit un courriel ; à sa première ouverture de « ' + NOM_PAGE_UTILISATEURS + ' », elle complète son profil voyageur, nécessaire pour faire une demande.' })],
         pied: [creer('span', { classe: 'w-pousse' }), bouton('Refuser', 'secondaire', null, function () { refuserAcces(a); }, { id: 'acRefuser' }), bouton('Accepter et inviter', null, null, accepter, { id: 'acAccepter', desactive: !accesComplet() })] });
 }
 function refuserAcces(a) {
@@ -5419,7 +5455,14 @@ async function remplirPublier(zone) {
     etat.pagePubliee = info.utilisateurs.length > 0;
     etat.pageProtegee = info.adminCachee;
     var s1 = creer('section', { classe: 'w-section', attrs: { 'aria-labelledby': 'aSecForm' } }, [creer('h3', { classe: 'w-c3__titre', id: 'aSecForm', texte: '1. Le formulaire de demande d\'accès', attrs: { tabindex: '-1' } }),
-        creer('p', { classe: 'w-mention', texte: 'Prénom, nom, adresse, service, fonction, « Je suis » et précisions : rien d\'autre n\'est demandé. Les réponses arrivent dans « Les personnes », onglet « Demandes d\'accès ».' })]);
+        creer('p', { classe: 'w-mention', texte: 'L\'adresse professionnelle seulement, et le service si vous le demandez. La personne complète ensuite son profil voyageur dans « ' + NOM_PAGE_UTILISATEURS + ' ». Les réponses arrivent dans « Les personnes », onglet « Demandes d\'accès ».' }),
+        caseACocher('aFormService', 'Demander le service dans le formulaire', cfg().serviceFormulaire, { aide: 'Facultatif pour la personne. Vous le choisissez de toute façon à l\'acceptation.', change: function (e) {
+            var c = copieConfig();
+            c.serviceFormulaire = e.target.checked;
+            etat.cfg = configValide(c);
+            afficherLoader('Mise à jour du formulaire…');
+            relayer(ecrireConfig().then(synchroniserFormulaires).then(function () { masquerLoader(); afficherSucces(c.serviceFormulaire ? 'Le formulaire demande le service.' : 'Le formulaire ne demande plus le service.'); }, function (eF) { masquerLoader(); afficherErreur('Le formulaire n\'a pas été mis à jour. Réessayez.', eF); }), 'Mise à jour du formulaire');
+        }, desactive: !accesComplet() })]);
     if (info.formulaires.length) {
         s1.appendChild(creer('ul', { classe: 'w-pages-liste' }, info.formulaires.map(function (x, k) {
             return lignePage(x, k, 'Formulaire Grist', 'aFormSuppr', zone, [creer('span', { classe: 'fr-badge fr-badge--sm ' + (x.publie ? 'fr-badge--success' : 'fr-badge--warning'), texte: x.publie ? 'Publié' : 'À publier' })]);
@@ -5464,10 +5507,52 @@ async function supprimerPage(x, zone) {
     }
     await remplirPublier(zone);
 }
-var QUESTIONS_FORM = [
-    ['PRENOM', 'Prénom', true], ['NOM', 'Nom', true], ['EMAIL', 'Adresse professionnelle', true, 'Celle avec laquelle vous vous connecterez au document.'],
-    ['SERVICE', 'Service', true], ['FONCTION', 'Fonction', false], ['JE_SUIS', 'Je suis', true], ['PRECISIONS', 'Précisions', false, 'Facultatif.']
-];
+function questionsFormulaire() {
+    var l = [['EMAIL', 'Adresse professionnelle', true, 'Celle avec laquelle vous vous connecterez au document.']];
+    if (cfg().serviceFormulaire) {
+        l.push(['SERVICE', 'Service', false]);
+    }
+    return l;
+}
+async function actionsChampsFormulaire(section) {
+    var f = await lireTable('_grist_Views_section_field');
+    var q = questionsFormulaire();
+    var presents = {};
+    var act = [];
+    (f.id || []).forEach(function (id, i) {
+        if (f.parentId[i] !== section) {
+            return;
+        }
+        var col = ((etat.meta.colonnes[etat.t.acces] || []).filter(function (x) { return x.ref === f.colRef[i]; })[0] || {}).colId;
+        if (q.some(function (x) { return x[0] === col; }) && !presents[col]) {
+            presents[col] = id;
+        }
+        else {
+            act.push(['RemoveRecord', '_grist_Views_section_field', id]);
+        }
+    });
+    q.forEach(function (x, k) {
+        var info = infoColonne(etat.t.acces, x[0]);
+        var wo = JSON.stringify({ question: x[1], description: x[3] || '', formRequired: x[2] });
+        if (presents[x[0]]) {
+            act.push(['UpdateRecord', '_grist_Views_section_field', presents[x[0]], { parentPos: k + 1, widgetOptions: wo }]);
+        }
+        else if (info) {
+            act.push(['AddRecord', '_grist_Views_section_field', null, { parentId: section, colRef: info.ref, parentPos: k + 1, widgetOptions: wo }]);
+        }
+    });
+    return act;
+}
+async function synchroniserFormulaires() {
+    var info = await lirePages();
+    for (var i = 0; i < info.formulaires.length; i++) {
+        var act = await actionsChampsFormulaire(info.formulaires[i].section);
+        if (act.length) {
+            await agir(act);
+        }
+        await miseEnPageFormulaire(info.formulaires[i].section);
+    }
+}
 async function creerFormulaire(zone) {
     afficherLoader('Création du formulaire…');
     var vue = null;
@@ -5483,31 +5568,7 @@ async function creerFormulaire(zone) {
             throw new Error('Formulaire non créé');
         }
         vue = res.viewRef;
-        var f = await lireTable('_grist_Views_section_field');
-        var presents = {};
-        var act = [];
-        (f.id || []).forEach(function (id, i) {
-            if (f.parentId[i] !== res.sectionRef) {
-                return;
-            }
-            var col = ((etat.meta.colonnes[etat.t.acces] || []).filter(function (x) { return x.ref === f.colRef[i]; })[0] || {}).colId;
-            if (QUESTIONS_FORM.some(function (q) { return q[0] === col; })) {
-                presents[col] = id;
-            }
-            else {
-                act.push(['RemoveRecord', '_grist_Views_section_field', id]);
-            }
-        });
-        QUESTIONS_FORM.forEach(function (q, k) {
-            var info = infoColonne(etat.t.acces, q[0]);
-            var wo = JSON.stringify({ question: q[1], description: q[3] || '', formRequired: q[2] });
-            if (presents[q[0]]) {
-                act.push(['UpdateRecord', '_grist_Views_section_field', presents[q[0]], { parentPos: k + 1, widgetOptions: wo }]);
-            }
-            else if (info) {
-                act.push(['AddRecord', '_grist_Views_section_field', null, { parentId: res.sectionRef, colRef: info.ref, parentPos: k + 1, widgetOptions: wo }]);
-            }
-        });
+        var act = await actionsChampsFormulaire(res.sectionRef);
         act.push(['UpdateRecord', '_grist_Views', res.viewRef, { name: NOM_PAGE_FORMULAIRE }]);
         act.push(['UpdateRecord', '_grist_Views_section', res.sectionRef, { title: 'Demande d\'accès à WuitBillets', layoutSpec: '', options: JSON.stringify({ formSubmitText: 'Envoyer ma demande', formSuccessText: 'Merci, votre demande est envoyée. Vous recevrez un courriel d\'invitation dès qu\'elle sera acceptée.', formAnotherResponse: false }) }]);
         await agir(act);
