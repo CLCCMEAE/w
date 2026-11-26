@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitVéhicules
-  Version : 1.0.0 - 26/11/2026
+  Version : 1.0.1 - 26/11/2026
   Description : trajets en voiture de service du poste : demande, affectation d'un chauffeur et d'un véhicule, suivi de course, planning et parc.
 -->
 <head>
@@ -735,7 +735,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.0.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitVéhicules';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -2294,7 +2294,7 @@ function toast(message, opts) {
     _toast.surFermeture = opts.surFermeture || null;
     z.hidden = false;
     _toast.texte = setTimeout(function () { _toast.texte = null; msg.textContent = message || ''; }, 50);
-    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 0 : (opts.action ? 12000 : 6000)) : opts.duree;
+    var duree = opts.duree === undefined ? (_toast.type === 'erreur' || _toast.type === 'avertissement' ? 10000 : (opts.action ? 12000 : 6000)) : opts.duree;
     if (duree > 0) {
         _toast.minuterie = setTimeout(function () { fermerToast(true); }, duree);
     }
@@ -3601,7 +3601,7 @@ function ouvrirAjoutIndispo(type, id, retourListe) {
         }
         var touches = etat.trajets.filter(function (t) { return estActif(t) && t[type === 'chauffeur' ? 'CHAUFFEUR' : 'VEHICULE'] === b.id && t.DEPART !== null && chevauche(deb, fin, t.DEPART, finOccupation(t)); });
         if (touches.length) {
-            toast(pluriel(touches.length, 'trajet déjà affecté', 'trajets déjà affectés') + ' sur cette période : ' + touches.map(function (t) { return t.NUMERO; }).join(', ') + '. Prévenez le gestionnaire des trajets.', { type: 'avertissement', duree: 0 });
+            toast(pluriel(touches.length, 'trajet déjà affecté', 'trajets déjà affectés') + ' sur cette période : ' + touches.map(function (t) { return t.NUMERO; }).join(', ') + '. Prévenez le gestionnaire des trajets.', { type: 'avertissement', duree: 15000 });
         }
         if (retourListe) {
             ouvrirIndispos(type, b.id, 'inAjout');
@@ -4716,7 +4716,7 @@ function ouvrirAcces(a) {
         fermerPanneau();
         dessiner();
         if (m === null) {
-            toast(messageInvitationManuelle([a.email]), { type: 'avertissement', duree: 0 });
+            toast(messageInvitationManuelle([a.email]), { type: 'avertissement', duree: 15000 });
         }
         else {
             afficherSucces(nomPersonne(a) + ' est ajoutée à la liste.' + m);
@@ -4791,7 +4791,7 @@ function ouvrirAjoutPersonne() {
         fermerPanneau();
         dessiner();
         if (m === null) {
-            toast(messageInvitationManuelle(adresses), { type: 'avertissement', duree: 0 });
+            toast(messageInvitationManuelle(adresses), { type: 'avertissement', duree: 15000 });
         }
         else {
             afficherSucces((adresses.length > 1 ? pluriel(adresses.length, 'personne ajoutée', 'personnes ajoutées') : 'Personne ajoutée') + '.' + m);
@@ -5320,9 +5320,10 @@ async function poserChoix() {
 }
 function sectionsUtilisateurs(d) {
     var l = [];
+    var chemin = location.origin + location.pathname.replace(/index\.html?$/, '');
     for (var i = 0; i < d.id.length; i++) {
         var cv = optionsSection(d, i);
-        if (cv.widgetOptions && cv.widgetOptions.page === 'utilisateurs' && (d.parentId || [])[i]) {
+        if (cv.widgetOptions && cv.widgetOptions.page === 'utilisateurs' && (d.parentId || [])[i] && String((d.options || [])[i] || '').indexOf(chemin) !== -1) {
             l.push({ section: d.id[i], vue: d.parentId[i] });
         }
     }
@@ -5523,7 +5524,7 @@ async function creerFormulaire(zone) {
         await agir(act);
         relayer(miseEnPageFormulaire(res.sectionRef), 'Mise en page du formulaire');
         masquerLoader();
-        toast('Le formulaire est créé. Ouvrez-le dans la liste des pages et cliquez sur « Publier » pour obtenir son lien.', { type: 'succes', duree: 0 });
+        toast('Le formulaire est créé. Ouvrez-le dans la liste des pages et cliquez sur « Publier » pour obtenir son lien.', { type: 'succes', duree: 15000 });
     }
     catch (e) {
         masquerLoader();
