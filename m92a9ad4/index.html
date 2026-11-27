@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitAchats
-  Version : 1.0.0 - 27/11/2026
+  Version : 1.0.1 - 27/11/2026
   Description : fournitures et achats du poste : catalogue, achats hors catalogue, validation du chef de service, traitement, commandes fournisseur et stock en option.
 -->
 <head>
@@ -615,6 +615,7 @@
     .ac-lignes td { padding: .25rem .5rem .25rem 0; border-top: 1px solid var(--border-default-grey); vertical-align: middle; }
     .ac-lignes td:last-child { text-align: right; padding-right: 0; }
     .ac-lib { font-weight: 500; color: var(--text-title-grey); }
+    .ac-lignes .bi-st { white-space: normal; text-align: left; line-height: 1.25rem; }
     .ac-chef { margin: 0; padding: .75rem 1rem; border: 1px solid var(--border-default-grey); box-shadow: inset .25rem 0 0 var(--border-plain-warning); background: var(--background-default-grey); display: flex; flex-direction: column; gap: .5rem; }
     .ac-chef__actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
     .ac-suivi { display: flex; flex-direction: column; gap: .75rem; padding: .75rem 0; border-top: 1px solid var(--border-default-grey); }
@@ -693,7 +694,7 @@
     <aside class="w-panneau-aide" id="wPanneauAide" role="complementary" aria-label="Aide" hidden></aside>
   </div>
 <script>'use strict';
-var VERSION_WIDGET = '1.0.0';
+var VERSION_WIDGET = '1.0.1';
 var HOMOLOGUE = false;
 var NOM_WIDGET = 'WuitAchats';
 var ID_CENTRALE = 'BIBLIOTHEQUE_CENTRALE';
@@ -792,7 +793,7 @@ function colonnesTables(ids) {
             { id: 'HORS_CATALOGUE', type: 'Bool', label: 'HORS CATALOGUE', description: 'Coché : achat hors catalogue, décrit par le demandeur.' },
             { id: 'DESCRIPTION', type: 'Text', label: 'ACHAT SOUHAITÉ', description: 'Pour un achat hors catalogue : ce que la personne veut acheter.' },
             { id: 'REFERENCE_PROPOSEE', type: 'Text', label: 'RÉFÉRENCE PROPOSÉE', description: 'Pour un achat hors catalogue : référence précise, facultative.' },
-            { id: 'JUSTIFICATION', type: 'Text', label: 'JUSTIFICATION', description: 'Pour un achat hors catalogue : pourquoi il est nécessaire.' },
+            { id: 'JUSTIFICATION', type: 'Text', label: 'JUSTIFICATION', description: 'Pour un achat hors catalogue : le besoin de service, sans rien de personnel (santé, situation particulière).' },
             { id: 'QUANTITE', type: 'Int', label: 'QUANTITÉ DEMANDÉE', description: 'Quantité demandée.' },
             { id: 'QUANTITE_SERVIE', type: 'Int', label: 'QUANTITÉ SERVIE', description: 'Quantité remise par le gestionnaire.' },
             { id: 'ECHEANCE', type: 'Date', label: 'ÉCHÉANCE', description: 'Date à laquelle la personne en a besoin.' },
@@ -1434,7 +1435,9 @@ function grouper(lignes) {
 }
 function demandeDe(numero) { return grouper(etat.lignes.filter(function (l) { return l.NUMERO === numero; }))[0] || null; }
 function lignesQueJeTraite(l) { return l.HORS_CATALOGUE ? gereHorsCatalogue() : gereCatalogue(); }
-function aTraiter() { return etat.lignes.filter(function (l) { return (l.STATUT === ST.attente || l.STATUT === ST.cours) && lignesQueJeTraite(l); }); }
+function sansChef(l) { return l.STATUT === ST.chef && !chefDuService(serviceDe(l)); }
+function pourSGA(l) { return l.STATUT === ST.attente || l.STATUT === ST.cours || sansChef(l); }
+function aTraiter() { return etat.lignes.filter(function (l) { return pourSGA(l) && lignesQueJeTraite(l); }); }
 function aValiderParMoi() { return estChef() ? etat.lignes.filter(function (l) { return l.STATUT === ST.chef && duMonService(l); }) : []; }
 function articlesActifs() { return etat.articles.filter(function (a) { return a.actif; }).sort(function (a, b) { return comparerTexte(a.libelle, b.libelle); }); }
 function commandesEnCours(articleId) { return etat.commandes.filter(function (c) { return c.ARTICLE === articleId && c.STATUT !== CMD.recue; }); }
@@ -1457,7 +1460,7 @@ function articlesACommander() {
     return articlesActifs().map(function (a) { return { a: a, e: etatArticle(a) }; }).filter(function (x) { return x.e.aCommander || (cfg().stock && x.e.commandes.length && x.e.demande > x.a.stock); });
 }
 function horsCatalogueACommander() {
-    return etat.lignes.filter(function (l) { return l.HORS_CATALOGUE && (l.STATUT === ST.attente || l.STATUT === ST.cours) && !l.DEJA_DISPONIBLE && !commandeDeLigne(l) && gereHorsCatalogue(); });
+    return etat.lignes.filter(function (l) { return l.HORS_CATALOGUE && pourSGA(l) && !l.DEJA_DISPONIBLE && !commandeDeLigne(l) && gereHorsCatalogue(); });
 }
 function doublons() {
     var lib = {}, code = {};
@@ -1504,7 +1507,13 @@ function badgeChoix(valeur, tid) {
     }
     return n;
 }
-function badgeStatut(l) { return badgeChoix(l.STATUT, etat.t.lignes); }
+function badgeStatut(l) {
+    var n = badgeChoix(l.STATUT, etat.t.lignes);
+    if (sansChef(l)) {
+        n.textContent = 'À valider par le gestionnaire';
+    }
+    return n;
+}
 function badgeCommande(c) { return badgeChoix(c.STATUT, etat.t.commandes); }
 function badgeHC() { return creer('span', { classe: 'bi-st ac-st--hc', texte: 'Hors catalogue' }); }
 function entreeHistorique(o, statut, motif) {
@@ -3369,8 +3378,8 @@ function formulaireHC() {
     just.setAttribute('maxlength', '1000');
     just.addEventListener('input', function () { h.justification = just.value; });
     return [creer('p', { classe: 've-sous', texte: 'Article hors catalogue' }),
-        champ('Ce que vous voulez acheter', desc), champ('Référence proposée (facultatif)', ref), champ('Quantité', qte), champ('Pourquoi en avez-vous besoin ?', just),
-        cfg().validationChef ? alerte('info', null, 'Cet article n\'est pas au catalogue : votre chef de service le valide d\'abord, puis le SGA.') : null,
+        champ('Ce que vous voulez acheter', desc), champ('Référence proposée (facultatif)', ref), champ('Quantité', qte), champ('À quoi va-t-il servir ?', just, { aide: 'Le besoin de service seulement : n\'indiquez rien sur votre santé ni sur votre situation personnelle.' }),
+        circuitHC() ? alerte('info', null, texteCircuit()) : null,
         creer('div', { classe: 'ac-boutons' }, [bouton('Ajouter au panier', null, null, function () {
             if (!ligneBornee(h.description, 200)) {
                 afficherErreur('Décrivez ce que vous voulez acheter.');
@@ -3378,7 +3387,7 @@ function formulaireHC() {
                 return;
             }
             if (!texteBorne(h.justification, 1000)) {
-                afficherErreur('Dites pourquoi vous en avez besoin.');
+                afficherErreur('Dites à quoi il va servir.');
                 just.focus();
                 return;
             }
@@ -3432,7 +3441,7 @@ function texteCircuit() {
         return 'Vous êtes chef de ce service : les articles hors catalogue partent directement au SGA, avec votre accord.';
     }
     if (!chefDuService(benef.service)) {
-        return 'Aucun chef de service n\'est désigné pour ce service : tout part directement au SGA.';
+        return 'Aucun chef de service n\'est désigné pour ce service : le gestionnaire des achats valide lui-même les articles hors catalogue.';
     }
     return 'Les articles hors catalogue passent d\'abord par le chef de service. Les autres partent directement au SGA.';
 }
@@ -3474,7 +3483,7 @@ async function envoyerCommande() {
     var champs = c.b.lignes.map(function (x) {
         var base = { DEMANDEUR: etat.moi.id, BENEFICIAIRE: benef.id, QUANTITE: x.quantite, ECHEANCE: secDeJour(c.b.echeance), COMMENTAIRE: texteBorne(c.b.commentaire, 1000) };
         if (x.hc) {
-            var parChef = circuitHC() && chefPresent && !moiChef;
+            var parChef = circuitHC() && !moiChef;
             var h = JSON.parse(entreeHistorique(null, 'Envoyée'));
             if (circuitHC() && moiChef) {
                 h = JSON.parse(entreeHistorique({ HISTORIQUE: h }, 'Validée par le chef de service'));
@@ -3499,7 +3508,7 @@ async function envoyerCommande() {
         _cmd = null;
         etat.onglet = 'cours';
         dessiner();
-        afficherSucces('Commande ' + numero + ' envoyée.' + (champs.some(function (ch) { return ch.STATUT === ST.chef; }) ? ' Les articles hors catalogue attendent votre chef de service.' : ''));
+        afficherSucces('Commande ' + numero + ' envoyée.' + (champs.some(function (ch) { return ch.STATUT === ST.chef; }) ? (chefPresent ? ' Les articles hors catalogue attendent votre chef de service.' : ' Les articles hors catalogue attendent la validation du gestionnaire des achats.') : ''));
     }
     catch (e) {
         masquerLoader();
@@ -4059,7 +4068,7 @@ function ouvrirCommandeFournisseur(o) {
             champs.HISTORIQUE = entreeHistorique(c, st);
         }
         var act = [c ? ['UpdateRecord', etat.t.commandes, c.id, champs] : ['AddRecord', etat.t.commandes, null, champs]];
-        if (lig && !c && lig.STATUT === ST.attente) {
+        if (lig && !c && (lig.STATUT === ST.attente || sansChef(lig))) {
             act.push(['UpdateRecord', etat.t.lignes, lig.id, { STATUT: ST.cours, AGENT_RESPONSABLE: lig.AGENT_RESPONSABLE || (etat.moi ? etat.moi.id : 0), HISTORIQUE: entreeHistorique(lig, ST.cours) }]);
         }
         var art = articleParId(artId);
@@ -4255,7 +4264,7 @@ function vueTraiter(main) {
     else {
         main.appendChild(creer('ul', { classe: 've-cartes wb-hors-section' }, g.map(carteATraiter)));
     }
-    var chef = etat.lignes.filter(function (x) { return x.STATUT === ST.chef; }).length;
+    var chef = etat.lignes.filter(function (x) { return x.STATUT === ST.chef && !sansChef(x); }).length;
     if (chef && gereHorsCatalogue()) {
         main.appendChild(creer('p', { classe: 'w-mention wb-hors-section', texte: pluriel(chef, 'article hors catalogue attend', 'articles hors catalogue attendent') + ' la validation d\'un chef de service : ' + (chef > 1 ? 'ils arriveront' : 'il arrivera') + ' ici ensuite.' }));
     }
@@ -4295,7 +4304,7 @@ function ouvrirTraitement(numero, focus) {
         return;
     }
     var mesLignes = g.lignes.filter(function (l) { return lignesQueJeTraite(l); });
-    var ouvertes = mesLignes.filter(function (l) { return l.STATUT === ST.attente || l.STATUT === ST.cours; });
+    var ouvertes = mesLignes.filter(pourSGA);
     var lect = !accesComplet() || !ouvertes.length;
     var servis = {};
     var resp0 = g.lignes.map(function (l) { return l.AGENT_RESPONSABLE; }).filter(Boolean)[0] || (etat.moi ? etat.moi.id : 0);
@@ -4311,7 +4320,7 @@ function ouvrirTraitement(numero, focus) {
     var lignesUI = g.lignes.map(function (l, k) {
         var a = l.HORS_CATALOGUE ? null : articleParId(l.ARTICLE);
         var aMoi = mesLignes.indexOf(l) !== -1;
-        var ouverte = aMoi && (l.STATUT === ST.attente || l.STATUT === ST.cours) && accesComplet();
+        var ouverte = aMoi && pourSGA(l) && accesComplet();
         var infos = [creer('strong', { texte: libelleLigne(l) }), a && a.code ? creer('span', { classe: 'w-mention', texte: ' ' + a.code }) : null, l.HORS_CATALOGUE ? ' ' : null, l.HORS_CATALOGUE ? badgeHC() : null,
             creer('span', { classe: 'w-mention ve-bloc', texte: 'Demandé : ' + texteQuantite(l.QUANTITE, l) + (texteStock(a) ? ' · ' + texteStock(a) : '') })];
         if (l.HORS_CATALOGUE) {
@@ -4320,6 +4329,9 @@ function ouvrirTraitement(numero, focus) {
             }
             if (l.JUSTIFICATION) {
                 infos.push(creer('span', { classe: 'w-mention ve-bloc', texte: '« ' + l.JUSTIFICATION + ' »' }));
+            }
+            if (sansChef(l)) {
+                infos.push(creer('span', { classe: 'w-mention ve-bloc', texte: 'Aucun chef de service n\'est désigné pour ce service : validez ou refusez ici.' }));
             }
             var vc = dateHistorique(l, 'Validée par le chef de service');
             if (vc) {
@@ -4359,7 +4371,7 @@ function ouvrirTraitement(numero, focus) {
     var pied = [creer('span', { classe: 'w-pousse' })];
     if (!lect) {
         var cat = ouvertes.filter(function (l) { return !l.HORS_CATALOGUE; });
-        var attente = ouvertes.filter(function (l) { return l.STATUT === ST.attente; });
+        var attente = ouvertes.filter(function (l) { return l.STATUT !== ST.cours; });
         pied.unshift(bouton('Refuser toute la demande', 'tertiaire', 'close-circle-line', function () { ouvrirRefus(ouvertes, numero); }, { id: 'trRefTout' }));
         if (attente.length) {
             pied.push(bouton('Prendre en charge', 'secondaire', null, function () { return prendreEnCharge(attente, Number(resp.value) || 0, numero); }, { id: 'trPrendre' }));
@@ -4377,7 +4389,7 @@ function ouvrirTraitement(numero, focus) {
 function rouvrirTraitement(numero, focus) {
     dessinerSansPanneau();
     var g = demandeDe(numero);
-    if (g && g.lignes.some(function (l) { return lignesQueJeTraite(l) && (l.STATUT === ST.attente || l.STATUT === ST.cours); })) {
+    if (g && g.lignes.some(function (l) { return lignesQueJeTraite(l) && pourSGA(l); })) {
         ouvrirTraitement(numero, focus);
     }
     else {
@@ -4568,7 +4580,7 @@ function vueReglages(main) {
         Array.prototype.forEach.call(n.querySelectorAll('input'), function (i) { i.disabled = off || lecture; });
     } };
     var hc = coche('gHc', 'Permettre les articles hors catalogue', c, 'horsCatalogue', 'Ce que l\'agent ne trouve pas au catalogue : il le décrit, avec une référence s\'il en a une.');
-    var chef = coche('gChef', 'Hors catalogue : validation du chef de service d\'abord', c, 'validationChef', 'Sans chef de service désigné pour le service, l\'article va directement au SGA.');
+    var chef = coche('gChef', 'Hors catalogue : validation du chef de service d\'abord', c, 'validationChef', 'Sans chef de service désigné pour le service, le gestionnaire des achats le valide lui-même. Si vous changez ce réglage, reposez la règle de la colonne STATUT (« Les droits »).');
     var sep = coche('gSep', 'Le hors catalogue est traité par d\'autres gestionnaires', c, 'gestionnairesHC', 'Ils ont le rôle « Gestionnaire hors catalogue » dans « Les personnes ».');
     var b1 = blocRegle(1, 'Le circuit', [hc, chef, sep,
         creer('div', { classe: 'bi-regle-ligne' }, [creer('label', { attrs: { for: 'gDelai' }, texte: 'Délai minimum avant l\'échéance :' }), nombreRegle('gDelai', c, 'delai', 0, 60, 'Délai minimum en jours'), creer('span', { texte: 'jours' })])], lecture);
@@ -5030,7 +5042,7 @@ var AIDE = {
     questions: [
         { q: 'Qui voit mes commandes ?', r: 'Vous, la personne pour qui vous commandez, le chef de son service, les gestionnaires des achats et, une fois les droits du document posés, personne d\'autre.' },
         { q: 'Puis-je modifier ma commande ?', r: 'Oui, tant qu\'elle n\'est pas traitée : ouvrez « Voir le suivi ». Ensuite, annulez-la et refaites-en une, ou contactez le gestionnaire.' },
-        { q: 'Mon article n\'est pas dans le catalogue', r: 'Choisissez « Je ne trouve pas mon article » : décrivez-le, donnez une référence si vous en avez une et dites pourquoi il vous le faut.' },
+        { q: 'Mon article n\'est pas dans le catalogue', r: 'Choisissez « Je ne trouve pas mon article » : décrivez-le, donnez une référence si vous en avez une et dites à quoi il va servir, sans rien de personnel.' },
         { q: 'Pourquoi mon article hors catalogue attend ?', r: 'Le poste peut demander l\'accord du chef de service avant le traitement. Dès qu\'il valide, le gestionnaire le reçoit.' },
         { q: 'Je ne trouve pas la page des commandes', r: 'Demandez votre accès avec le formulaire que vous a transmis le gestionnaire. Une fois votre demande acceptée, le gestionnaire vous ouvre le document et vous prévient lui-même.' }
     ]
@@ -5481,9 +5493,9 @@ function blocDroits() {
             { colonnes: 'Toutes', regles: [proprio, { condition: 'rec.CREE_PAR == user.Email and not rec.EMAIL', droits: tout(true), note: 'ligne provisoire' }, { condition: moi + ' or rec.CREE_PAR == user.Email', droits: { R: true, U: true, C: true, D: false } }, { droits: { R: true, U: false, C: true, D: false } }] }], 'aAclP') },
         { titre: 'Le catalogue', texte: 'Tout le monde lit le catalogue pour commander. Seuls les propriétaires (les gestionnaires) le modifient, et le stock avec lui.', modele: modeleAcl(nomT('articles', 'du catalogue'), [
             { colonnes: 'Toutes', regles: [proprio, { droits: { R: true, U: false, C: false, D: false } }] }], 'aAclR') },
-        { titre: 'Les demandes', texte: 'Comme dans l\'outil d\'origine : le demandeur et le bénéficiaire voient leurs demandes, le chef de service celles de son service, les collègues du même service les lisent. Tant qu\'une demande n\'est pas traitée, le demandeur peut la modifier ou l\'annuler, et le chef de service valider ou refuser un achat hors catalogue. Seuls les propriétaires traitent, servent et refusent ensuite. Une personne inactive ne voit plus rien.', modele: modeleAcl(nomT('lignes', 'des demandes'), [
+        { titre: 'Les demandes', texte: 'Comme dans l\'outil d\'origine : le demandeur et le bénéficiaire voient leurs demandes, le chef de service celles de son service, les collègues du même service les lisent. Tant qu\'une demande n\'est pas traitée, le demandeur peut la modifier ou l\'annuler, et le chef de service valider ou refuser un achat hors catalogue ; avec la validation du chef de service, un agent ne peut pas envoyer lui-même un achat hors catalogue au SGA. Cette règle suit le réglage « validation du chef de service » : si vous le changez, reposez la ligne STATUT. Seuls les propriétaires traitent, servent et refusent ensuite. Une personne inactive ne voit plus rien.', modele: modeleAcl(nomT('lignes', 'des demandes'), [
             { colonnes: 'QUANTITE_SERVIE, DEJA_DISPONIBLE, AGENT_RESPONSABLE', regles: [proprio, { droits: lu }] },
-            { colonnes: 'STATUT', regles: [proprio, { condition: 'newRec.STATUT in ["' + ST.chef + '", "' + ST.attente + '", "' + ST.annulee + '"] and (' + demandeur + ')', droits: { R: true, U: true }, note: 'créer une demande ou l\'annuler' },
+            { colonnes: 'STATUT', regles: [proprio, { condition: (circuitHC() ? '(newRec.STATUT in ["' + ST.chef + '", "' + ST.annulee + '"] or (newRec.STATUT == "' + ST.attente + '" and newRec.HORS_CATALOGUE != True))' : 'newRec.STATUT in ["' + ST.chef + '", "' + ST.attente + '", "' + ST.annulee + '"]') + ' and (' + demandeur + ')', droits: { R: true, U: true }, note: 'créer une demande ou l\'annuler' },
                 { condition: 'newRec.STATUT in ["' + ST.attente + '", "' + ST.refusee + '"] and rec.HORS_CATALOGUE == True and (' + chef + ')', droits: { R: true, U: true }, note: 'validation du chef' }, { droits: lu }] },
             { colonnes: 'Toutes', regles: [proprio, { condition: 'user.Personne.INACTIF == True', droits: tout(false) }, { condition: '(' + demandeur + ' or ' + chef + ') and ' + ouverte, droits: { R: true, U: true, C: true, D: false } },
                 { condition: demandeur + ' or ' + chef + ' or ' + duService, droits: { R: true, U: false, C: true, D: false } }, { droits: { R: false, U: false, C: true, D: false } }] }], 'aAclT') },
