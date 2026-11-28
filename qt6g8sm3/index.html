@@ -2,7 +2,7 @@
 <html lang="fr" data-fr-scheme="light" data-fr-theme="light">
 <!--
   Widget : WuitFusion
-  Version : 1.4.0 - 27/11/2026
+  Version : 1.5.0 - 27/11/2026
   Description : documents à imprimer (courriers, notes, fiches) fusionnés avec une table.
 -->
 <head>
@@ -405,6 +405,17 @@
     .w-ec-el:hover > .w-ec-grip, .w-ec-el--choisi > .w-ec-grip { opacity: 1; }
     .w-ec-grip:hover { background: var(--background-action-low-blue-france); color: var(--text-action-high-blue-france); }
     .w-glisse-en-cours .w-ec-grip { opacity: 0; }
+    .w-ec-depot-cote { position: absolute; z-index: 40; width: 3px; background: var(--border-action-high-blue-france); color: inherit; pointer-events: none; }
+    .w-ec-depot-case { position: absolute; z-index: 40; outline: 2px dashed var(--border-action-high-blue-france); outline-offset: -2px; background: var(--background-action-low-blue-france); color: inherit; opacity: .5; pointer-events: none; }
+    .w-ec-el--objet[draggable="true"] { cursor: grab; }
+    .w-menu-ctx { position: fixed; z-index: 1000; min-width: 15rem; max-height: calc(100vh - 1rem); overflow-y: auto; background: var(--background-default-grey); color: var(--text-default-grey); border: 1px solid var(--border-default-grey); box-shadow: var(--overlap-shadow); padding: .25rem 0; }
+    .w-menu-ctx__titre { margin: .375rem .75rem .125rem; font-size: .75rem; font-weight: 700; color: var(--text-mention-grey); }
+    .w-menu-ctx__item { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .375rem .75rem; border: 0; background: transparent; color: var(--text-default-grey); font: inherit; font-size: .875rem; text-align: left; cursor: pointer; }
+    .w-menu-ctx__item:hover { background: var(--background-default-grey-hover); }
+    .w-menu-ctx__item:focus-visible { outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+    .w-menu-ctx__grille { display: grid; grid-template-columns: 1fr 1fr; }
+    .w-menu-ctx__grille .w-menu-ctx__item { padding: .3125rem .75rem; }
+    .w-menu-ctx__sep { height: 1px; margin: .25rem 0; background: var(--border-default-grey); }
     .w-ec-depot-ligne { position: absolute; z-index: 40; height: 3px; border-radius: 2px; background: var(--border-action-high-blue-france); pointer-events: none; }
     .w-glisse-en-cours [contenteditable] { pointer-events: none; }
     .w-champs--glisser { gap: .375rem; }
@@ -1238,7 +1249,7 @@
   </div>
   <div id="pPrint" aria-hidden="true"></div>
 <script>'use strict';
-var VERSION_WIDGET = '1.4.0';
+var VERSION_WIDGET = '1.5.0';
 var ESSAI_WIDGET = 0;
 var HOMOLOGUE = false;
 /* DEROGATION PALETTE : les seules couleurs écrites en JavaScript sont des valeurs de
@@ -5529,6 +5540,7 @@ var AIDE = {
         { q: 'Comment encadrer un texte ou placer le logo dans une colonne ?', r: 'Bloc « Encadré » : un cadre, au trait fin, au trait de couleur ou sur fond, dans lequel vous ajoutez les blocs voulus. Bloc « Logo » : le logo du document, à poser où vous voulez, y compris dans une colonne ou un encadré.' },
         { q: 'Puis-je changer le type d\'un bloc ?', r: 'Oui : dans les réglages de l\'élément choisi, « Type du bloc », ou le style dans le bandeau pour passer d\'un paragraphe à un titre. Un paragraphe devient un titre et inversement, une liste de champs ou une signature devient un paragraphe, et tout bloc peut être mis dans un encadré. Le texte est gardé.' },
         { q: 'Comment faire un retrait ou aligner des informations ?', r: 'Tapez des espaces en début de ligne : ils sont gardés dans le document. Pour des colonnes bien alignées, préférez le bloc « Colonnes » ou une « Liste de champs ».' },
+        { q: 'Comment placer un élément où je veux ?', r: 'Attrapez l\'élément (ou sa poignée à gauche pour un texte) et lâchez-le : au-dessus ou en dessous d\'un autre élément, à sa gauche ou à sa droite (les deux se mettent côte à côte, quatre au plus), dans une colonne, ou plus bas dans un espace libre de la page. Un trait bleu montre où il va se poser ; il ne se pose jamais par-dessus un autre. Clic droit sur la page : « Ajouter ici » pose un nouvel élément à l\'endroit du clic. Double-clic sur un élément : ses réglages s\'ouvrent dans le panneau. Au clavier : Alt et flèches pour le déplacer, touche Menu ou Maj+F10 pour le menu.' },
         { q: 'Comment changer la largeur d\'un élément ou des colonnes ?', r: 'Cliquez sur l\'élément : une poignée apparaît sur son bord. Tirez-la : la largeur avance par pas de 5 %, et se cale aussi sur un tiers et deux tiers. Double-clic sur la poignée : pleine largeur. Dans les colonnes (2 à 4), tirez la poignée d\'une séparation pour répartir la largeur entre deux colonnes voisines. Au clavier : Maj et flèches gauche et droite sur l\'élément choisi, ou flèches sur la poignée. Les réglages de l\'élément donnent aussi la largeur en % et sa position : à gauche, au centre ou à droite.' },
         { q: 'Comment choisir la ligne affichée dans l\'aperçu ?', r: 'Au-dessus de l\'aperçu : « Repérer les lignes par » choisit la colonne qui nomme chaque ligne, par exemple un nom ou un numéro de dossier. Avec beaucoup de lignes, « Chercher une ligne » la trouve en quelques lettres.' },
         { q: 'Comment les nombres sont-ils écrits ?', r: 'Comme dans Grist : une colonne au format « Monnaie » s\'écrit avec son symbole, une colonne au format « Décimal » avec ses séparateurs de milliers. Sans format choisi, le nombre s\'écrit tel quel : une année reste 2026.' },
@@ -15485,7 +15497,7 @@ function elementPage(bl, liste, k, ctx) {
         w.classList.add('w-ec-el--objet');
         w.setAttribute('tabindex', '0');
         w.setAttribute('role', 'button');
-        w.setAttribute('aria-label', nomElement(bl) + (cond ? '. ' + cond : '') + '. Entrée pour le régler, Suppr pour le supprimer, Alt et flèches pour le déplacer.');
+        w.setAttribute('aria-label', nomElement(bl) + (cond ? '. ' + cond : '') + '. Entrée pour le régler, Suppr pour le supprimer, Alt et flèches pour le déplacer, touche Menu pour les actions.');
         if (cond) {
             w.appendChild(creer('p', { classe: 'w-ec-note', texte: cond, attrs: { 'aria-hidden': 'true' } }));
         }
@@ -15512,7 +15524,29 @@ function elementPage(bl, liste, k, ctx) {
             }
             toucheElement(e, bl.id);
         });
+        if (bl.type !== 'footer') {
+            w.setAttribute('draggable', 'true');
+            w.addEventListener('pointerdown', function (e) {
+                var t = e.target && e.target.closest ? e.target : null;
+                var bloque = !!(t && t.closest('[contenteditable="true"], input, textarea, select, .w-ec-larg, .w-ec-sep, .w-ec-espace-poignee'));
+                w.setAttribute('draggable', bloque ? 'false' : 'true');
+            });
+            w.addEventListener('dragstart', function (e) {
+                if (e.target !== w) {
+                    return;
+                }
+                demarrerGlisser(e, bl.id, w);
+            });
+            w.addEventListener('dragend', finGlisser);
+        }
     }
+    w.addEventListener('dblclick', function (e) {
+        var t = e.target && e.target.closest ? e.target.closest('.w-ec-el') : null;
+        if (t !== w || (e.target.closest && e.target.closest('.w-ec-larg, .w-ec-sep, .w-ec-el__barre, .w-ec-espace-poignee'))) {
+            return;
+        }
+        ouvrirPanneauDe(bl.id, !!(e.target.closest && e.target.closest('[contenteditable="true"]')));
+    });
     w.addEventListener('focusin', function (e) {
         var t = e.target && e.target.closest ? e.target.closest('.w-ec-el') : null;
         if (t === w && !(e.target.closest && e.target.closest('.w-ec-el__barre'))) {
@@ -15529,6 +15563,7 @@ function etiquetteElement(bl) {
     var e = creer('button', { classe: 'w-ec-el__etiquette', id: 'pEtiq' + bl.id, attrs: { type: 'button', 'aria-label': 'Régler : ' + nomElement(bl) } }, [defElement(bl).nom]);
     e.addEventListener('click', function () { choisirElement(bl.id); });
     e.addEventListener('keydown', function (ev) { toucheElement(ev, bl.id); });
+    e.setAttribute('aria-label', 'Régler : ' + nomElement(bl) + '. Double-clic ou menu contextuel pour les réglages.');
     return e;
 }
 function toucheElement(e, id) {
@@ -15560,6 +15595,23 @@ function toucheElement(e, id) {
         poserLargeur(em.bl, pasLargeur(largeurDe(em.bl), e.key === 'ArrowRight' ? 1 : -1), null, true);
         return;
     }
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+        e.preventDefault();
+        var we = document.querySelector('#pCourrierCadre [data-el="' + id + '"]');
+        if (we) {
+            var rw = we.getBoundingClientRect();
+            ouvrirMenuCtx(rw.left + 24, rw.top + Math.min(24, rw.height / 2), we, e.target);
+        }
+        return;
+    }
+    if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && em.parent && em.parent.type === 'columns') {
+        e.preventDefault();
+        var cc = cellulesDe(em.parent), ci = cc.indexOf(em.liste) + (e.key === 'ArrowLeft' ? -1 : 1);
+        if (ci >= 0 && ci < cc.length) {
+            deplacerLibre(id, { mode: 'dans', ref: em.parent.id, cellule: ci });
+        }
+        return;
+    }
     if (e.key === 'Escape') {
         e.preventDefault();
         deselectionnerElement();
@@ -15581,6 +15633,9 @@ var _glisse = null;
 function demarrerGlisser(e, id, el) {
     e.stopPropagation();
     _glisse = id;
+    var wp = el.closest ? el.closest('.w-ec-el') : null;
+    var rp = wp ? wp.getBoundingClientRect() : null;
+    _prise = rp ? { dx: e.clientX - rp.left, l: rp.width, poignee: el !== wp } : null;
     try {
         e.dataTransfer.setData(MIME_BLOC, id);
         e.dataTransfer.effectAllowed = 'move';
@@ -15924,10 +15979,12 @@ function poigneeGlisser(bl) {
 function finGlisser() {
     _glisse = null;
     document.body.classList.remove('w-glisse-en-cours');
-    var l = document.getElementById('pDepotLigne');
-    if (l) {
-        l.hidden = true;
-    }
+    ['pDepotLigne', 'pDepotCote', 'pDepotCase'].forEach(function (k) {
+        var l = document.getElementById(k);
+        if (l) {
+            l.hidden = true;
+        }
+    });
 }
 function freresGlisse() {
     var src = _glisse ? emplacementBloc(_glisse) : null;
@@ -16085,21 +16142,7 @@ function brancherGlisserBlocs(cont) {
         else if (e.clientY > rc.bottom - 48) {
             cadre.scrollTop += 14;
         }
-        var c = cibleDepot(e);
-        var l = document.getElementById('pDepotLigne');
-        if (!l) {
-            l = creer('div', { classe: 'w-ec-depot-ligne', id: 'pDepotLigne', attrs: { 'aria-hidden': 'true' } });
-            cadre.appendChild(l);
-        }
-        if (!c) {
-            l.hidden = true;
-            return;
-        }
-        l.hidden = false;
-        var mv = margeAuLacher(e, c.src.liste, _glisse, DECALAGE_PRISE);
-        l.style.top = Math.round(mv.y !== null && mv.mm ? mv.y : c.y) + 'px';
-        l.style.left = Math.round(c.x) + 'px';
-        l.style.width = Math.round(c.l) + 'px';
+        montrerDepot(cibleGlisse(e), cadre);
     }, true);
     cadre.addEventListener('drop', function (e) {
         if (!_glisse && typesGlisses(e).indexOf(MIME_CHAMP) !== -1 && horsZoneTexte(e)) {
@@ -16135,21 +16178,431 @@ function brancherGlisserBlocs(cont) {
         }
         e.preventDefault();
         e.stopPropagation();
-        var c = cibleDepot(e);
+        var c = cibleGlisse(e);
         var id = _glisse;
-        var m = c ? margeAuLacher(e, c.src.liste, id, DECALAGE_PRISE) : null;
         finGlisser();
-        if (!c) {
-            return;
-        }
-        poserMarge(c.src.bl, m ? m.mm : 0);
-        if (c.j !== c.src.k) {
-            deplacerElement(id, c.j);
-        }
-        else {
-            apresStructure(id, m && m.mm ? 'Bloc placé, ' + m.mm + ' mm sous le précédent.' : 'Bloc replacé.');
+        if (c) {
+            deplacerLibre(id, c);
         }
     }, true);
+    cadre.addEventListener('contextmenu', function (e) {
+        var z = e.target && e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
+        if (z && document.activeElement === z) {
+            return;
+        }
+        if (!(e.target && e.target.closest && e.target.closest('.w-ec-page'))) {
+            return;
+        }
+        e.preventDefault();
+        var w = elementSous(e.clientX, e.clientY, null);
+        if (w && w.getAttribute('data-el')) {
+            choisirElement(w.getAttribute('data-el'));
+        }
+        ouvrirMenuCtx(e.clientX, e.clientY, w, null);
+    });
+    cadre.addEventListener('scroll', function () { fermerMenuCtx(false); });
+}
+/* Placement libre en rangées. Un élément se pose au-dessus ou en dessous
+   d'un autre (moitié haute ou basse), à sa gauche ou à sa droite (bande
+   de bord gauche ou droite, 64 px au plus ; tenu par sa poignée, l'élément
+   est repéré un peu à droite du pointeur : les deux se mettent côte à côte dans une rangée, quatre
+   au plus), dans une colonne vide, ou dans un espace libre de la page (il
+   y descend : l'écart devient son espace au-dessus). Jamais par-dessus un
+   autre élément. */
+function elementSous(x, y, exclu) {
+    var l = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
+    for (var i = 0; i < l.length; i++) {
+        var w = l[i].closest ? l[i].closest('#pCourrierCadre .w-ec-el[data-el]') : null;
+        while (w && exclu) {
+            var src = w.closest('.w-ec-el[data-el="' + exclu + '"]');
+            if (!src) {
+                break;
+            }
+            w = src.parentNode && src.parentNode.closest ? src.parentNode.closest('.w-ec-el[data-el]') : null;
+        }
+        if (w) {
+            return w;
+        }
+        if (l[i].classList && l[i].classList.contains('w-ec-page')) {
+            return null;
+        }
+    }
+    return null;
+}
+function admisEnColonne(type) { return !!typeBloc(type).dedans && type !== 'columns' && type !== 'footer'; }
+function admisDansListe(type, parent) {
+    if (!parent) {
+        return true;
+    }
+    return parent.type === 'columns' ? admisEnColonne(type) : typeAdmisDans(type, parent);
+}
+function peutCote(bS, em) {
+    if (!admisEnColonne(bS.type)) {
+        return false;
+    }
+    if (em.bl.type === 'columns') {
+        return cellulesDe(em.bl).length < 4;
+    }
+    if (em.parent) {
+        return em.parent.type === 'columns' && cellulesDe(em.parent).length < 4 && admisEnColonne(em.bl.type);
+    }
+    return admisEnColonne(em.bl.type);
+}
+function domDe(id) { return document.querySelector('#pCourrierCadre [data-el="' + id + '"]'); }
+function cibleLibre(x, y, bS, exclu) {
+    var w = elementSous(x, y, exclu);
+    var em = w ? emplacementBloc(w.getAttribute('data-el')) : null;
+    if (!em || em.bl.type === 'footer') {
+        return { mode: 'marge' };
+    }
+    var r = w.getBoundingClientRect();
+    if (em.bl.type === 'columns' && admisEnColonne(bS.type)) {
+        var cols = w.querySelectorAll(':scope > .w-ec-cols > .p-col');
+        for (var ci = 0; ci < cols.length; ci++) {
+            var rc = cols[ci].getBoundingClientRect();
+            if (x >= rc.left && x <= rc.right && y >= rc.top && y <= rc.bottom && (x - r.left) / r.width > 0.04 && (r.right - x) / r.width > 0.04) {
+                return { mode: 'dans', ref: em.bl.id, cellule: ci, rect: rc };
+            }
+        }
+    }
+    var bande = Math.min(64, Math.max(24, r.width / 4));
+    var cote = x - r.left < bande ? 'gauche' : (r.right - x < bande ? 'droite' : null);
+    if (cote && peutCote(bS, em)) {
+        return { mode: cote, ref: em.bl.id, rect: r };
+    }
+    var mode = y < r.top + r.height / 2 ? 'avant' : 'apres';
+    var e2 = em;
+    while (e2 && e2.parent && !admisDansListe(bS.type, e2.parent)) {
+        e2 = emplacementBloc(e2.parent.id);
+    }
+    if (!e2) {
+        return { mode: 'marge' };
+    }
+    if (e2 !== em) {
+        var w2 = domDe(e2.bl.id);
+        r = w2 ? w2.getBoundingClientRect() : r;
+    }
+    return { mode: mode, ref: e2.bl.id, rect: r };
+}
+function cibleEn(x, y, bS, exclu, prise) {
+    var c = cibleLibre(x, y, bS, exclu);
+    if (c.mode !== 'marge') {
+        return c;
+    }
+    var b = etat.brouillon, cadre = document.getElementById('pCourrierCadre');
+    if (!b || !cadre) {
+        return null;
+    }
+    var freres = [];
+    Array.prototype.forEach.call(cadre.querySelectorAll('[data-el]'), function (el) {
+        var id = el.getAttribute('data-el');
+        var em = id !== exclu ? emplacementBloc(id) : null;
+        if (em && em.liste === b.blocks && em.bl.type !== 'footer') {
+            freres.push({ el: el, k: em.k, id: id });
+        }
+    });
+    freres.sort(function (a, z) { return a.k - z.k; });
+    var p = 0;
+    freres.forEach(function (f, i) { var r = f.el.getBoundingClientRect(); if (y > r.top + r.height / 2) {
+        p = i + 1;
+    } });
+    var m = margeAuLacher({ clientY: y }, b.blocks, exclu, prise);
+    c.avantDe = p < freres.length ? freres[p].id : null;
+    c.mm = m.mm;
+    c.y = m.y;
+    var corps = cadre.querySelector('.w-ec-page .w-ec-corps') || cadre.querySelector('.w-ec-page');
+    var ref = freres.length ? freres[Math.min(p, freres.length - 1)].el : corps;
+    c.rect = ref ? ref.getBoundingClientRect() : null;
+    if (c.y === null && ref) {
+        var rc = cadre.getBoundingClientRect();
+        c.y = (p < freres.length ? c.rect.top - 4 : c.rect.bottom + 4) - rc.top + cadre.scrollTop;
+    }
+    return c;
+}
+var _prise = null;
+function cibleGlisse(e) {
+    var em = _glisse ? emplacementBloc(_glisse) : null;
+    if (!em) {
+        return null;
+    }
+    var cx = _prise && _prise.poignee && _prise.dx < 0 ? e.clientX - _prise.dx + Math.min(_prise.l / 2, 100) : e.clientX;
+    var corps = document.querySelector('#pCourrierCadre .w-ec-page .w-ec-corps');
+    if (corps) {
+        var rp = corps.getBoundingClientRect(), pad = parseFloat(corps.style.padding) || 0;
+        cx = Math.max(rp.left + pad + 2, Math.min(rp.right - pad - 2, cx));
+    }
+    return cibleEn(cx, e.clientY, em.bl, _glisse, DECALAGE_PRISE);
+}
+function indicateurDepot(id, classe, cadre) {
+    var l = document.getElementById(id);
+    if (!l) {
+        l = creer('div', { classe: classe, id: id, attrs: { 'aria-hidden': 'true' } });
+        cadre.appendChild(l);
+    }
+    return l;
+}
+function montrerDepot(c, cadre) {
+    var h = indicateurDepot('pDepotLigne', 'w-ec-depot-ligne', cadre), v = indicateurDepot('pDepotCote', 'w-ec-depot-cote', cadre), k = indicateurDepot('pDepotCase', 'w-ec-depot-case', cadre);
+    h.hidden = v.hidden = k.hidden = true;
+    if (!c || !c.rect) {
+        return;
+    }
+    var rc = cadre.getBoundingClientRect(), r = c.rect;
+    var X = function (n) { return Math.round(n - rc.left + cadre.scrollLeft) + 'px'; };
+    var Y = function (n) { return Math.round(n - rc.top + cadre.scrollTop) + 'px'; };
+    if (c.mode === 'gauche' || c.mode === 'droite') {
+        v.hidden = false;
+        v.style.left = X((c.mode === 'gauche' ? r.left - 6 : r.right + 3));
+        v.style.top = Y(r.top);
+        v.style.height = Math.round(r.height) + 'px';
+        return;
+    }
+    if (c.mode === 'dans') {
+        k.hidden = false;
+        k.style.left = X(r.left);
+        k.style.top = Y(r.top);
+        k.style.width = Math.round(r.width) + 'px';
+        k.style.height = Math.round(r.height) + 'px';
+        return;
+    }
+    h.hidden = false;
+    h.style.left = X(r.left);
+    h.style.width = Math.round(r.width) + 'px';
+    h.style.top = c.mode === 'marge' ? Math.round(c.y) + 'px' : Y(c.mode === 'avant' ? r.top - 4 : r.bottom + 2);
+}
+function ajouterCellule(C, pos, S, partage) {
+    var n = cellulesDe(C).length;
+    if (n >= 4) {
+        return false;
+    }
+    var w;
+    if (typeof partage === 'number' && C.widths[partage] >= 2 * LARGEUR_MIN) {
+        w = arrondi2(C.widths[partage] / 2);
+        C.widths[partage] = arrondi2(C.widths[partage] - w);
+    }
+    else {
+        w = arrondi2(100 / (n + 1));
+        C.widths = C.widths.map(function (x) { return x * (100 - w) / 100; });
+    }
+    C.cells.splice(pos, 0, [S]);
+    C.widths.splice(pos, 0, w);
+    C.widths = largeursValides(C.widths, C.cells.length);
+    return true;
+}
+function placerBloc(S, c) {
+    var b = etat.brouillon;
+    var lS = TYPES_LARGEUR.indexOf(S.type) !== -1 ? largeurDe(S) : 100;
+    if (S.type !== 'footer') {
+        delete S.mt;
+    }
+    if (!c || c.mode === 'marge') {
+        var ref = c && c.avantDe ? emplacementBloc(c.avantDe) : null;
+        var j = ref && ref.liste === b.blocks ? ref.k : dernierRang(b.blocks) + 1;
+        b.blocks.splice(Math.max(0, j), 0, S);
+        if (c) {
+            poserMarge(S, c.mm || 0);
+        }
+        return;
+    }
+    var et = emplacementBloc(c.ref);
+    if (!et) {
+        b.blocks.splice(dernierRang(b.blocks) + 1, 0, S);
+        return;
+    }
+    var T = et.bl;
+    if (c.mode === 'avant' || c.mode === 'apres') {
+        et.liste.splice(et.k + (c.mode === 'apres' ? 1 : 0), 0, S);
+        return;
+    }
+    delete S.larg;
+    delete S.place;
+    if (c.mode === 'dans') {
+        cellulesDe(T)[Math.min(c.cellule, T.cells.length - 1)].push(S);
+        return;
+    }
+    var g = c.mode === 'gauche';
+    if (T.type === 'columns') {
+        if (!ajouterCellule(T, g ? 0 : T.cells.length, S)) {
+            et.liste.splice(et.k + (g ? 0 : 1), 0, S);
+        }
+        return;
+    }
+    if (et.parent && et.parent.type === 'columns') {
+        var C = et.parent, ci = cellulesDe(C).indexOf(et.liste);
+        if (!ajouterCellule(C, g ? ci : ci + 1, S, ci)) {
+            et.liste.splice(et.k + (g ? 0 : 1), 0, S);
+        }
+        return;
+    }
+    var lT = TYPES_LARGEUR.indexOf(T.type) !== -1 ? largeurDe(T) : 100;
+    var ls = lS < 100 ? lS : (lT < 100 ? 100 - lT : 50);
+    ls = Math.max(LARGEUR_MIN * 2, Math.min(100 - LARGEUR_MIN * 2, ls));
+    var C2 = B('columns', { auto: true, widths: g ? [ls, 100 - ls] : [100 - ls, ls], cells: g ? [[S], [T]] : [[T], [S]] });
+    if (T.mt) {
+        C2.mt = T.mt;
+        delete T.mt;
+    }
+    delete T.larg;
+    delete T.place;
+    et.liste.splice(et.k, 1, C2);
+}
+function nettoyerRangee(C) {
+    if (!C || C.type !== 'columns' || !C.auto) {
+        return;
+    }
+    var em = emplacementBloc(C.id);
+    if (!em) {
+        return;
+    }
+    for (var i = C.cells.length - 1; i >= 0; i--) {
+        if (!C.cells[i].length && C.cells.length > 1) {
+            var w = C.widths[i];
+            C.cells.splice(i, 1);
+            C.widths.splice(i, 1);
+            C.widths[Math.min(i, C.widths.length - 1)] += w;
+        }
+    }
+    if (C.cells.length === 1) {
+        var contenu = C.cells[0];
+        if (contenu.length && C.mt) {
+            contenu[0].mt = C.mt;
+        }
+        em.liste.splice.apply(em.liste, [em.k, 1].concat(contenu));
+        return;
+    }
+    C.widths = largeursValides(C.widths, C.cells.length);
+}
+function messagePlace(S, c) {
+    var nom = defElement(S).nom;
+    var t = c && c.ref ? emplacementBloc(c.ref) : null;
+    var nt = t ? defElement(t.bl).nom.toLowerCase() : '';
+    switch (c ? c.mode : '') {
+        case 'avant': return nom + ' placé au-dessus : ' + nt + '.';
+        case 'apres': return nom + ' placé en dessous : ' + nt + '.';
+        case 'gauche': return nom + ' placé à gauche : ' + nt + '.';
+        case 'droite': return nom + ' placé à droite : ' + nt + '.';
+        case 'dans': return nom + ' placé dans la colonne ' + ((c.cellule || 0) + 1) + '.';
+        default: return c && c.mm ? nom + ' placé, ' + c.mm + ' mm sous l\'élément précédent.' : nom + ' placé.';
+    }
+}
+function deplacerLibre(id, c) {
+    var em = emplacementBloc(id);
+    if (!em || em.bl.type === 'footer' || !c || c.ref === id) {
+        return;
+    }
+    var S = em.bl, src = em.parent;
+    em.liste.splice(em.k, 1);
+    placerBloc(S, c);
+    if (src && src.type === 'columns') {
+        nettoyerRangee(src);
+    }
+    etat.brouillon.choisi = S.id;
+    apresStructure(S.id, messagePlace(S, c));
+}
+function ouvrirPanneauDe(id, garderFocus) {
+    if (!garderFocus) {
+        ouvrirReglagesBloc(id);
+    }
+    else {
+        etat.elemFuDemande = id;
+        choisirElement(id);
+        majPanneauElement();
+        var d = document.getElementById('pAtelierDefile');
+        if (d) {
+            d.scrollTop = 0;
+        }
+    }
+    var em = emplacementBloc(id);
+    if (em) {
+        annoncer('Réglages ouverts dans le panneau : ' + defElement(em.bl).nom + '.');
+    }
+}
+/* Menu du clic droit : actions sur l'élément visé et ajout d'un élément à
+   l'endroit du clic. Au clavier : touche Menu ou Maj+F10. Dans un texte en
+   cours d'écriture, le menu du navigateur reste (corrections). */
+var _menuCtx = null;
+function fermerMenuCtx(rendre) {
+    if (!_menuCtx) {
+        return;
+    }
+    var m = _menuCtx;
+    _menuCtx = null;
+    document.removeEventListener('mousedown', m.dehors, true);
+    window.removeEventListener('resize', m.fermer);
+    if (m.el.parentNode) {
+        m.el.parentNode.removeChild(m.el);
+    }
+    if (rendre && m.retour && document.contains(m.retour)) {
+        m.retour.focus({ preventScroll: true });
+    }
+}
+function ouvrirMenuCtx(x, y, w, retour) {
+    fermerMenuCtx(false);
+    var b = etat.brouillon;
+    if (!b) {
+        return;
+    }
+    var id = w ? w.getAttribute('data-el') : null;
+    var em = id ? emplacementBloc(id) : null;
+    var cibles = {};
+    optionsInsertion().forEach(function (g) { g.options.forEach(function (o) {
+        cibles[o.valeur] = o.valeur === 'footer' ? null : cibleEn(x, y, { type: o.valeur }, null, 0);
+    }); });
+    var menu = creer('div', { classe: 'w-menu-ctx', attrs: { role: 'menu', 'aria-label': em ? 'Actions : ' + nomElement(em.bl) : 'Ajouter un élément ici' } });
+    var items = [];
+    var item = function (lib, ico, fn) {
+        var x2 = creer('button', { classe: 'w-menu-ctx__item', attrs: { type: 'button', role: 'menuitem', tabindex: '-1' } }, [creer('span', { classe: 'fr-icon-' + ico + ' fr-icon--sm', attrs: { 'aria-hidden': 'true' } }), creer('span', { texte: lib })]);
+        x2.addEventListener('click', function () {
+            fermerMenuCtx(false);
+            relayer(Promise.resolve(fn()), lib);
+        });
+        items.push(x2);
+        menu.appendChild(x2);
+    };
+    if (em && em.bl.type !== 'footer') {
+        menu.appendChild(creer('p', { classe: 'w-menu-ctx__titre', texte: defElement(em.bl).nom, attrs: { 'aria-hidden': 'true' } }));
+        item('Réglages', 'settings-5-line', function () { ouvrirReglagesBloc(id); });
+        item('Dupliquer', iconeDispo(['file-copy-line', 'file-copy-2-line', 'clipboard-line']), function () { dupliquerElement(id); });
+        item('Supprimer', 'delete-line', function () { return supprimerElement(id); });
+        menu.appendChild(creer('div', { classe: 'w-menu-ctx__sep', attrs: { role: 'separator' } }));
+    }
+    menu.appendChild(creer('p', { classe: 'w-menu-ctx__titre', texte: 'Ajouter ici', attrs: { 'aria-hidden': 'true' } }));
+    var grille = creer('div', { classe: 'w-menu-ctx__grille', attrs: { role: 'group', 'aria-label': 'Ajouter ici' } });
+    menu.appendChild(grille);
+    optionsInsertion().forEach(function (g) { g.options.forEach(function (o) {
+        item(o.libelle, typeBloc(o.valeur).icone, function () { return insererElementPage(o.valeur, cibles[o.valeur] || undefined); });
+        grille.appendChild(items[items.length - 1]);
+    }); });
+    document.body.appendChild(menu);
+    var r = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + 'px';
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + 'px';
+    var m = { el: menu, retour: retour || w || null };
+    m.dehors = function (e) { if (!menu.contains(e.target)) {
+        fermerMenuCtx(false);
+    } };
+    m.fermer = function () { fermerMenuCtx(false); };
+    document.addEventListener('mousedown', m.dehors, true);
+    window.addEventListener('resize', m.fermer);
+    menu.addEventListener('keydown', function (e) {
+        var i = items.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+        }
+        else if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault();
+            items[e.key === 'Home' ? 0 : items.length - 1].focus();
+        }
+        else if (e.key === 'Escape' || e.key === 'Tab') {
+            e.preventDefault();
+            fermerMenuCtx(true);
+        }
+    });
+    _menuCtx = m;
+    if (items[0]) {
+        items[0].focus({ preventScroll: true });
+    }
 }
 function barreElement(id) {
     var em = emplacementBloc(id);
@@ -16392,7 +16845,7 @@ function cibleInsertion(type) {
     }
     return { liste: liste, pos: pos };
 }
-async function insererElementPage(type) {
+async function insererElementPage(type, ici) {
     var b = etat.brouillon;
     if (!b) {
         return;
@@ -16405,7 +16858,7 @@ async function insererElementPage(type) {
             return;
         }
     }
-    var c = cibleInsertion(type);
+    var c = ici ? null : cibleInsertion(type);
     var nb = nouveauBloc(type);
     if (type === 'paragraph') {
         nb.text = '';
@@ -16418,7 +16871,12 @@ async function insererElementPage(type) {
             x.text = '';
         } });
     }
-    c.liste.splice(c.pos, 0, nb);
+    if (ici) {
+        placerBloc(nb, ici);
+    }
+    else {
+        c.liste.splice(c.pos, 0, nb);
+    }
     b.choisi = nb.id;
     if (type === 'items') {
         try {
